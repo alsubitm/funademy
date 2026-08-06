@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { asc, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
 import {
   db,
   usersTable,
@@ -56,11 +56,34 @@ router.patch("/units/:id", staff, async (req, res): Promise<void> => {
     res.status(400).json({ message: "Invalid unit" });
     return;
   }
-  const [unit] = await db
-    .update(unitsTable)
-    .set(parsed.data)
-    .where(eq(unitsTable.id, parseId(req.params["id"] as string)))
-    .returning();
+  const id = parseId(req.params["id"] as string);
+  const data = parsed.data;
+  const unit = await db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(unitsTable)
+      .where(eq(unitsTable.id, id));
+    if (!current) return null;
+    // Reordering: swap positions with the sibling occupying the target slot.
+    if (data.position !== undefined && data.position !== current.position) {
+      await tx
+        .update(unitsTable)
+        .set({ position: current.position })
+        .where(
+          and(
+            eq(unitsTable.subjectId, current.subjectId),
+            eq(unitsTable.band, current.band),
+            eq(unitsTable.position, data.position),
+          ),
+        );
+    }
+    const [updated] = await tx
+      .update(unitsTable)
+      .set(data)
+      .where(eq(unitsTable.id, id))
+      .returning();
+    return updated ?? null;
+  });
   if (!unit) {
     res.status(404).json({ message: "Unit not found" });
     return;
@@ -150,11 +173,34 @@ router.patch("/lessons/:id", staff, async (req, res): Promise<void> => {
   }
   const { exercises, ...fields } = parsed.data;
   if (Object.keys(fields).length > 0) {
-    const [lesson] = await db
-      .update(lessonsTable)
-      .set(fields)
-      .where(eq(lessonsTable.id, id))
-      .returning();
+    const lesson = await db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(lessonsTable)
+        .where(eq(lessonsTable.id, id));
+      if (!current) return null;
+      // Reordering: swap positions with the sibling occupying the target slot.
+      if (
+        fields.position !== undefined &&
+        fields.position !== current.position
+      ) {
+        await tx
+          .update(lessonsTable)
+          .set({ position: current.position })
+          .where(
+            and(
+              eq(lessonsTable.unitId, current.unitId),
+              eq(lessonsTable.position, fields.position),
+            ),
+          );
+      }
+      const [updated] = await tx
+        .update(lessonsTable)
+        .set(fields)
+        .where(eq(lessonsTable.id, id))
+        .returning();
+      return updated ?? null;
+    });
     if (!lesson) {
       res.status(404).json({ message: "Lesson not found" });
       return;
@@ -298,24 +344,36 @@ router.post(
       });
     });
 
-    if (parsed.data.replace) {
-      await db
-        .delete(exercisesTable)
-        .where(eq(exercisesTable.lessonId, lessonId));
+    // Validation-first: never delete existing content unless the import
+    // actually contains valid replacement rows.
+    if (rows.length === 0) {
+      res.status(400).json({
+        message: "لا توجد صفوف صالحة في الملف",
+        imported: 0,
+        skipped: errors.length,
+        errors,
+      });
+      return;
     }
-    if (rows.length > 0) {
-      const [{ max }] = await db
+    await db.transaction(async (tx) => {
+      if (parsed.data.replace) {
+        await tx
+          .delete(exercisesTable)
+          .where(eq(exercisesTable.lessonId, lessonId));
+      }
+      const [row] = await tx
         .select({ max: sql<number>`coalesce(max(${exercisesTable.position}), -1)::int` })
         .from(exercisesTable)
         .where(eq(exercisesTable.lessonId, lessonId));
-      await db.insert(exercisesTable).values(
+      const max = row?.max ?? -1;
+      await tx.insert(exercisesTable).values(
         rows.map((r, i) => ({
           lessonId,
           ...r,
-          position: (max ?? -1) + 1 + i,
+          position: max + 1 + i,
         })),
       );
-    }
+    });
     res.json({
       imported: rows.length,
       skipped: errors.length,

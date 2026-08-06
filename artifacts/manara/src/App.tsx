@@ -59,7 +59,7 @@ function App() {
             <Route path="/verify-email" component={VerifyEmail} />
 
             {/* Parent App Routes */}
-            <Route path="/app/*">
+            <Route path="/app/*?">
               <AppLayout>
                 <Switch>
                   <Route path="/app" component={ParentDashboard} />
@@ -74,12 +74,12 @@ function App() {
             </Route>
 
             {/* Child App Routes (KidLayout handles the shell) */}
-            <Route path="/kid/*">
+            <Route path="/kid/*?">
               <KidLayout />
             </Route>
 
             {/* Admin App Routes */}
-            <Route path="/admin/*">
+            <Route path="/admin/*?">
               <AdminLayout>
                 <Switch>
                   <Route path="/admin" component={AdminDashboard} />

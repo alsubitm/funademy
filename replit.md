@@ -50,6 +50,9 @@ Arabic-first, RTL e-learning platform for Saudi families — children 4–18, Sa
 - Codegen post-processes `lib/api-zod` imports to `zod/v4` (sed step in `lib/api-spec/package.json`) — don't remove it.
 - wouter: marketing catch-all must be a path-less `<Route>` at the end of the Switch, not `path="/"`.
 - Express 5: async handlers annotated `Promise<void>`, early exits via `res.status().json(); return;`.
+- OpenAPI: inline request-body schemas make orval emit `<OpId>Body` in both `api.ts` and `types/`, causing TS2308 export collisions in `lib/api-zod` — always use named `components/schemas` refs for request bodies.
+- Email: `activeEmailProvider` in `artifacts/api-server/src/lib/email.ts` is a dev/log provider — swap it for a real provider (Resend/SendGrid) before production; verification tokens are sha256-hashed with 24h expiry.
+- Payments: `lib/payments.ts` demo provider is still active (Stripe integration was declined); swap via the `PaymentProvider` interface when ready.
 
 ## Pointers
 

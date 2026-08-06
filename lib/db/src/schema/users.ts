@@ -10,7 +10,10 @@ export const usersTable = pgTable("users", {
   pin: text("pin").notNull().default("0000"),
   role: text("role").notNull().default("parent"), // parent | teacher | admin
   emailVerified: boolean("email_verified").notNull().default(false),
-  verificationToken: text("verification_token"),
+  verificationToken: text("verification_token"), // sha256 hash of the emailed token
+  verificationTokenExpires: timestamp("verification_token_expires", {
+    withTimezone: true,
+  }),
   lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

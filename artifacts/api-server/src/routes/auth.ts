@@ -52,10 +52,11 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       passwordHash: hashPassword(password),
       pin,
       role: "parent",
-      verificationToken,
+      verificationToken: hashToken(verificationToken),
+      verificationTokenExpires: tokenExpiry(),
     })
     .returning();
-  await sendVerificationEmail(user!.email, user!.name, verificationToken, req);
+  await sendVerificationEmail(user!.email, user!.name, verificationToken);
   setSessionCookie(res, { userId: user!.id });
   res.status(201).json(serializeSessionUser(user!, null, null));
 });
@@ -121,24 +122,35 @@ router.post("/auth/parent-gate", async (req, res): Promise<void> => {
   );
 });
 
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function tokenExpiry(): Date {
+  return new Date(Date.now() + TOKEN_TTL_MS);
+}
+
+/**
+ * The verification link is a path relative to the app's own origin — the
+ * frontend and API are served behind the same proxy, so this can never be
+ * pointed at another origin by request headers.
+ */
 async function sendVerificationEmail(
   to: string,
   name: string,
   token: string,
-  req: { headers: Record<string, unknown> },
 ): Promise<string | null> {
-  const origin =
-    typeof req.headers["origin"] === "string"
-      ? (req.headers["origin"] as string)
-      : "";
-  const url = `${origin}/verify-email?token=${token}`;
+  const url = `/verify-email?token=${token}`;
   const { devActionUrl } = await activeEmailProvider.send({
     to,
     subject: "تأكيد بريدك الإلكتروني — منارة",
-    html: `<div dir="rtl"><p>مرحباً ${name}،</p><p>اضغط الرابط لتأكيد بريدك الإلكتروني:</p><p><a href="${url}">تأكيد البريد</a></p></div>`,
+    html: `<div dir="rtl"><p>مرحباً ${name}،</p><p>اضغط الرابط لتأكيد بريدك الإلكتروني (صالح لمدة ٢٤ ساعة):</p><p><a href="${url}">تأكيد البريد</a></p></div>`,
     actionUrl: url,
   });
-  return devActionUrl;
+  // Never expose the verification link outside development.
+  return process.env["NODE_ENV"] === "production" ? null : devActionUrl;
 }
 
 router.post("/auth/verify-email", async (req, res): Promise<void> => {
@@ -150,14 +162,22 @@ router.post("/auth/verify-email", async (req, res): Promise<void> => {
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.verificationToken, parsed.data.token));
-  if (!user) {
+    .where(eq(usersTable.verificationToken, hashToken(parsed.data.token)));
+  if (
+    !user ||
+    !user.verificationTokenExpires ||
+    user.verificationTokenExpires.getTime() < Date.now()
+  ) {
     res.status(400).json({ message: "رمز التحقق غير صالح أو منتهي" });
     return;
   }
   const [updated] = await db
     .update(usersTable)
-    .set({ emailVerified: true, verificationToken: null })
+    .set({
+      emailVerified: true,
+      verificationToken: null,
+      verificationTokenExpires: null,
+    })
     .where(eq(usersTable.id, user.id))
     .returning();
   res.json(
@@ -175,19 +195,19 @@ router.post("/auth/resend-verification", async (req, res): Promise<void> => {
     res.json({ message: "البريد مؤكد بالفعل", devVerificationUrl: null });
     return;
   }
-  let token = session.user.verificationToken;
-  if (!token) {
-    token = crypto.randomBytes(24).toString("base64url");
-    await db
-      .update(usersTable)
-      .set({ verificationToken: token })
-      .where(eq(usersTable.id, session.user.id));
-  }
+  // Always rotate the token on resend.
+  const token = crypto.randomBytes(24).toString("base64url");
+  await db
+    .update(usersTable)
+    .set({
+      verificationToken: hashToken(token),
+      verificationTokenExpires: tokenExpiry(),
+    })
+    .where(eq(usersTable.id, session.user.id));
   const devUrl = await sendVerificationEmail(
     session.user.email,
     session.user.name,
     token,
-    req,
   );
   res.json({
     message: "تم إرسال رابط التحقق إلى بريدك",
