@@ -1,0 +1,68 @@
+Build a complete, production-ready e-learning platform and marketing website called [BRAND NAME] — a subscription-based online academy for Saudi families with children aged 4–18. The platform teaches academic subjects aligned with the Saudi national curriculum: Arabic, English, Mathematics, and Science. It must be Arabic-first with full RTL support and an English language toggle.
+Tech Stack
+	•	React (or Next.js) frontend with Tailwind CSS
+	•	Node.js/Express backend with PostgreSQL database
+	•	JWT-based authentication with role-based access
+	•	Responsive design, mobile-first (most Saudi parents will use phones), and tablet-optimized for children
+	•	Fully RTL-compatible layout with the ability to switch to LTR for English; use a font that renders Arabic beautifully (e.g., IBM Plex Sans Arabic or Tajawal)
+User Roles (4 roles)
+	1.	Parent (account owner): signs up, pays, creates child profiles, monitors progress
+	2.	Child (learner): logs in via a simple profile picker inside the parent account (avatar + PIN, no email needed), sees only age-appropriate content
+	3.	Teacher/Content Admin: uploads lessons, quizzes, and organizes curriculum
+	4.	Super Admin: manages users, subscriptions, analytics, and site content
+Public Marketing Website
+	•	Home page: hero section with value proposition (“One subscription. Every child. Ages 4–18.”), how it works in 3 steps, the four learning bands, pricing, testimonials section, FAQ, and a strong CTA to start a 7-day free trial
+	•	Pricing page: two plans — Monthly SAR 49/month and Annual SAR 399/year (show “Save 32%”) — one family plan covers unlimited children in the household; 7-day free trial requiring card details
+	•	Curriculum page: browsable outline of subjects per age band with a few free sample lessons
+	•	About + Contact pages, and a Parents Blog section (CMS-editable) for SEO articles
+	•	SEO meta tags, Open Graph tags, sitemap, fast page loads
+	•	Footer with Terms of Service, Privacy Policy, and Child Data Protection statement pages (placeholder legal text I can edit)
+Learning Bands (age-gated content structure)
+	•	Explorers (4–7): audio-led interface, minimal text, very large touch targets, bright playful design, lessons 5–8 minutes
+	•	Builders (8–11): gamified design with badges, streaks, and levels, lessons 8–12 minutes
+	•	Achievers (12–15): structured courses with progress bars and mastery percentages, cleaner design
+	•	Graduates (16–18): serious, exam-prep oriented UI with practice tests and performance analytics
+Each child profile is assigned a band automatically from their birth date, and the entire UI theme, navigation complexity, and content library adapt to that band.
+Core Learning Features
+	•	Lesson player: video lessons (support YouTube-unlisted/Vimeo embed AND direct MP4 upload), followed by interactive exercises
+	•	Exercise engine: multiple choice, drag-and-drop matching, fill-in-the-blank, and picture-selection question types; instant feedback with encouraging animations; auto-graded
+	•	Curriculum hierarchy: Subject → Grade/Level → Unit → Lesson → Exercises, mapped to Saudi curriculum grade levels (KG1 through Grade 12)
+	•	Progression system: XP points, streak counter, badges for younger bands; mastery % and weak-topic detection for older bands
+	•	Search and continue-where-you-left-off on every child profile
+Parent Dashboard
+	•	Overview cards per child: time spent this week, lessons completed, current streak, subjects covered
+	•	Weekly progress detail: strengths and topics where the child is struggling (based on exercise scores)
+	•	Screen-time controls: optional daily usage limit per child profile
+	•	Subscription management: view plan, update payment method, cancel, invoices
+	•	Weekly summary email digest per child (automated)
+Payments & Subscription
+	•	Integrate Stripe for subscription billing (structure the payment module so a local Saudi gateway like Moyasar or Tap can be swapped in later — abstract the payment provider behind one service file)
+	•	7-day free trial with card capture, auto-converts to paid; prorated upgrades from monthly to annual
+	•	Handle failed payments with a 5-day grace period and email reminders before access is paused
+	•	Coupon/promo code support (for founding-family discounts)
+Teacher/Admin Panel
+	•	Lesson builder: upload video, write description, attach exercises via a form-based quiz builder — no code needed
+	•	Drag-and-drop ordering of units and lessons; draft/published states
+	•	Bulk CSV import for quiz questions
+	•	Analytics dashboard: total subscribers, trial conversion rate, churn, MRR, most/least completed lessons, daily active children
+	•	User management: search parents, view subscription status, issue refunds/extend trials
+Child Safety & Compliance (critical — do not skip)
+	•	No ads anywhere, no external links inside child-facing screens, no chat or social features between users, no public profiles
+	•	Collect only minimal child data: first name, birth month/year, avatar — never full birth date, photos, or location
+	•	Parent email verification at signup; children cannot access account settings or billing
+	•	All child-facing screens must have a persistent “back to parent zone” gate protected by the parent’s PIN
+	•	Add a cookie consent banner and a data-deletion request flow in the parent dashboard
+Design Direction
+	•	Warm, trustworthy, modern — not childish on the marketing site (parents are the buyers), but playful inside the Explorers/Builders bands
+	•	Color system that shifts per band (e.g., bright warm palette for 4–7, cooler confident palette for 16–18)
+	•	Include empty states, loading states, and error states throughout — the app should feel finished
+Seed Data
+Populate the database with realistic demo content so the platform is immediately reviewable:
+	•	2 subjects (Math and Arabic) × 2 bands (Explorers, Builders)
+	•	3 units per subject, 4 lessons per unit, 5 exercises per lesson (placeholder videos are fine)
+	•	1 demo parent account with 2 child profiles (ages 6 and 10), 1 teacher account, 1 admin account — print the login credentials in the README
+Deliverables
+	•	Fully working app deployed on Replit with all four roles functional end-to-end: signup → trial → child profile → complete a lesson → parent sees progress → admin sees analytics
+	•	Clean, commented code with a README covering setup, environment variables, how to swap the payment provider, and how to add new subjects/bands
+	•	A short ADMIN_GUIDE.md explaining how a non-technical person adds a new lesson
+Build the marketing website and the platform as one application with clear route separation (/ for marketing, /app for the platform, /admin for administration). Prioritize: authentication + child profiles first, then lesson player + exercises, then payments, then dashboards, then admin panel.
