@@ -36,6 +36,8 @@ import ChildSafety from '@/pages/ChildSafety';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { KidLayout } from '@/components/layout/KidLayout';
 
+import VerifyEmail from '@/pages/VerifyEmail';
+
 // Placeholder Pages
 const Placeholder = ({ title }: { title: string }) => (
   <div className="flex flex-col items-center justify-center h-[60vh] text-center p-8">
@@ -54,6 +56,7 @@ function App() {
             {/* Auth Routes */}
             <Route path="/login" component={Login} />
             <Route path="/signup" component={Signup} />
+            <Route path="/verify-email" component={VerifyEmail} />
 
             {/* Parent App Routes */}
             <Route path="/app/*">

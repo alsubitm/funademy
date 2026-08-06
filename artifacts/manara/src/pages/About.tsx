@@ -3,8 +3,17 @@ import { useI18n } from '@/lib/i18n';
 import { BookOpen, Target, Users, ShieldCheck, Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function About() {
   const { t } = useI18n();
+
+  useSeo(
+    'عن منارة',
+    'أكاديمية منارة هي الرفيق الموثوق للأسرة السعودية في رحلة تعليم أبنائها.',
+    'About Us',
+    'Manara Academy is the trusted companion for the Saudi family in their children\'s educational journey.'
+  );
 
   return (
     <div className="py-24 bg-background min-h-screen">

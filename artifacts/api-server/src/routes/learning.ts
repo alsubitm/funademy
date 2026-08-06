@@ -258,4 +258,76 @@ router.get("/child/home", requireAuth, async (req, res): Promise<void> => {
   });
 });
 
+router.get("/search/lessons", async (req, res): Promise<void> => {
+  const q =
+    typeof req.query["q"] === "string" ? (req.query["q"] as string).trim() : "";
+  if (!q) {
+    res.json([]);
+    return;
+  }
+  const session = await getSession(req);
+  const band = session?.child?.band;
+  const needle = q.toLowerCase();
+
+  const units = await db
+    .select()
+    .from(unitsTable)
+    .where(
+      band
+        ? and(eq(unitsTable.status, "published"), eq(unitsTable.band, band))
+        : eq(unitsTable.status, "published"),
+    );
+  const unitIds = units.map((u) => u.id);
+  if (unitIds.length === 0) {
+    res.json([]);
+    return;
+  }
+  const lessons = await db
+    .select()
+    .from(lessonsTable)
+    .where(
+      and(
+        inArray(lessonsTable.unitId, unitIds),
+        eq(lessonsTable.status, "published"),
+      ),
+    );
+  const subjects = await db.select().from(subjectsTable);
+  const unitById = new Map(units.map((u) => [u.id, u]));
+  const done = session?.child
+    ? new Set(
+        (
+          await db
+            .select({ lessonId: completionsTable.lessonId })
+            .from(completionsTable)
+            .where(eq(completionsTable.childId, session.child.id))
+        ).map((r) => r.lessonId),
+      )
+    : null;
+
+  const results = lessons
+    .filter(
+      (l) =>
+        l.titleAr.toLowerCase().includes(needle) ||
+        l.titleEn.toLowerCase().includes(needle) ||
+        l.descriptionAr.toLowerCase().includes(needle),
+    )
+    .slice(0, 20)
+    .map((l) => {
+      const unit = unitById.get(l.unitId);
+      const subject = subjects.find((s) => s.id === unit?.subjectId);
+      return {
+        id: l.id,
+        titleAr: l.titleAr,
+        titleEn: l.titleEn,
+        unitTitleAr: unit?.titleAr ?? "",
+        subjectNameAr: subject?.nameAr ?? "",
+        subjectColor: subject?.color ?? "#888888",
+        subjectIcon: subject?.icon ?? "book",
+        durationMinutes: l.durationMinutes,
+        completed: done ? done.has(l.id) : null,
+      };
+    });
+  res.json(results);
+});
+
 export default router;

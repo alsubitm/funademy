@@ -9,27 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Search, MoreVertical, CalendarPlus, ShieldAlert } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-
-// Note: Ensure `useDebounce` hook exists or use a simple timeout approach.
-function useDebouncedValue<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-  return debouncedValue;
-}
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function AdminUsers() {
   const { t } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 500);
+  const debouncedSearch = useDebounce(search, 500);
 
   const { data: users, isLoading } = useListAdminUsers({ search: debouncedSearch || undefined }, { 
     query: { queryKey: getListAdminUsersQueryKey({ search: debouncedSearch || undefined }) }

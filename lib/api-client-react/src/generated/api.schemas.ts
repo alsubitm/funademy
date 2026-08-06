@@ -79,12 +79,28 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
+  emailVerified?: boolean;
   activeChild?: ChildProfile | null;
   /**
      * none | trial | active | past_due | cancelled
      * @nullable
      */
   subscriptionStatus?: string | null;
+}
+
+export interface EmailVerification {
+  /** @minLength 1 */
+  token: string;
+}
+
+export interface ExercisesCsvImport {
+  /**
+     * Columns: type,promptAr,promptEn,options(|-separated),correctAnswer
+     * @minLength 1
+     */
+  csv: string;
+  /** Replace existing exercises (default false = append) */
+  replace?: boolean;
 }
 
 export interface ChildProfileInput {
@@ -513,5 +529,40 @@ band?: Band;
 
 export type ListAdminUsersParams = {
 search?: string;
+};
+
+export type ResendVerification200 = {
+  message: string;
+  /**
+     * Present in development when no email provider is configured
+     * @nullable
+     */
+  devVerificationUrl?: string | null;
+};
+
+export type SearchLessonsParams = {
+/**
+ * @minLength 1
+ */
+q: string;
+};
+
+export type SearchLessons200Item = {
+  id: number;
+  titleAr: string;
+  titleEn: string;
+  unitTitleAr?: string;
+  subjectNameAr: string;
+  subjectColor: string;
+  subjectIcon: string;
+  durationMinutes: number;
+  /** @nullable */
+  completed?: boolean | null;
+};
+
+export type ImportExercisesCsv200 = {
+  imported: number;
+  skipped: number;
+  errors?: string[];
 };
 

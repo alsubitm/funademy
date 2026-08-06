@@ -13,6 +13,7 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
+  emailVerified?: boolean;
   activeChild?: ChildProfile | null;
   /**
      * none | trial | active | past_due | cancelled

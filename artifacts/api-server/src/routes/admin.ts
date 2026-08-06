@@ -16,6 +16,7 @@ import {
   CreateLessonBody,
   UpdateLessonBody,
   UpdateAdminUserBody,
+  ImportExercisesCsvBody,
 } from "@workspace/api-zod";
 import { requireRole } from "../lib/auth";
 
@@ -194,6 +195,134 @@ router.delete("/lessons/:id", staff, async (req, res): Promise<void> => {
   }
   res.json({ message: "Lesson deleted" });
 });
+
+const EXERCISE_TYPES = new Set([
+  "multiple_choice",
+  "matching",
+  "fill_blank",
+  "picture_select",
+]);
+
+/** Minimal CSV line parser supporting double-quoted fields. */
+function parseCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]!;
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      cells.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  cells.push(cur);
+  return cells.map((c) => c.trim());
+}
+
+router.post(
+  "/lessons/:id/exercises/csv",
+  staff,
+  async (req, res): Promise<void> => {
+    const lessonId = parseId(req.params["id"] as string);
+    const parsed = ImportExercisesCsvBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ message: "Invalid CSV payload" });
+      return;
+    }
+    const [lesson] = await db
+      .select()
+      .from(lessonsTable)
+      .where(eq(lessonsTable.id, lessonId));
+    if (!lesson) {
+      res.status(404).json({ message: "Lesson not found" });
+      return;
+    }
+
+    const lines = parsed.data.csv
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    // Skip a header row if present
+    if (lines[0] && /^type\s*,/i.test(lines[0])) lines.shift();
+
+    const errors: string[] = [];
+    const rows: Array<{
+      type: string;
+      promptAr: string;
+      promptEn: string;
+      options: string[];
+      correctAnswer: string;
+    }> = [];
+    lines.forEach((line, idx) => {
+      const cells = parseCsvLine(line);
+      const [type, promptAr, promptEn, options, correctAnswer] = cells;
+      if (!type || !EXERCISE_TYPES.has(type)) {
+        errors.push(`سطر ${idx + 1}: نوع تمرين غير معروف "${type ?? ""}"`);
+        return;
+      }
+      if (!promptAr || !correctAnswer) {
+        errors.push(`سطر ${idx + 1}: السؤال أو الإجابة الصحيحة مفقودة`);
+        return;
+      }
+      const opts = options
+        ? options.split("|").map((o) => o.trim()).filter(Boolean)
+        : [];
+      if (
+        (type === "multiple_choice" || type === "picture_select") &&
+        !opts.includes(correctAnswer)
+      ) {
+        errors.push(
+          `سطر ${idx + 1}: الإجابة الصحيحة يجب أن تكون أحد الخيارات`,
+        );
+        return;
+      }
+      rows.push({
+        type,
+        promptAr,
+        promptEn: promptEn ?? "",
+        options: opts,
+        correctAnswer,
+      });
+    });
+
+    if (parsed.data.replace) {
+      await db
+        .delete(exercisesTable)
+        .where(eq(exercisesTable.lessonId, lessonId));
+    }
+    if (rows.length > 0) {
+      const [{ max }] = await db
+        .select({ max: sql<number>`coalesce(max(${exercisesTable.position}), -1)::int` })
+        .from(exercisesTable)
+        .where(eq(exercisesTable.lessonId, lessonId));
+      await db.insert(exercisesTable).values(
+        rows.map((r, i) => ({
+          lessonId,
+          ...r,
+          position: (max ?? -1) + 1 + i,
+        })),
+      );
+    }
+    res.json({
+      imported: rows.length,
+      skipped: errors.length,
+      errors,
+    });
+  },
+);
 
 // ---- Analytics ----
 

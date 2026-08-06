@@ -5,6 +5,8 @@ import { Link, useLocation } from 'wouter';
 import { BookOpen, User, Menu, X, LogOut, LayoutDashboard, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+import { CookieConsent } from '@/components/layout/CookieConsent';
+
 export function MarketingLayout({ children }: { children: React.ReactNode }) {
   const { lang, setLang, t, dir } = useI18n();
   const { data: user } = useGetMe();
@@ -170,6 +172,7 @@ export function MarketingLayout({ children }: { children: React.ReactNode }) {
           © {new Date().getFullYear()} {t('أكاديمية منارة. جميع الحقوق محفوظة.', 'Manara Academy. All rights reserved.')}
         </div>
       </footer>
+      <CookieConsent />
     </div>
   );
 }

@@ -1,8 +1,17 @@
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function Terms() {
   const { t } = useI18n();
+
+  useSeo(
+    'الشروط والأحكام',
+    'الشروط والأحكام لاستخدام منصة منارة.',
+    'Terms of Service',
+    'Terms and conditions for using the Manara platform.'
+  );
 
   return (
     <div className="py-24 bg-background min-h-screen">

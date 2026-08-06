@@ -39,6 +39,7 @@ export const RegisterResponse = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.enum(['parent', 'teacher', 'admin']),
+  "emailVerified": zod.boolean().optional(),
   "activeChild": zod.union([zod.object({
   "id": zod.int(),
   "name": zod.string(),
@@ -68,6 +69,7 @@ export const LoginResponse = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.enum(['parent', 'teacher', 'admin']),
+  "emailVerified": zod.boolean().optional(),
   "activeChild": zod.union([zod.object({
   "id": zod.int(),
   "name": zod.string(),
@@ -100,6 +102,7 @@ export const GetMeResponse = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.enum(['parent', 'teacher', 'admin']),
+  "emailVerified": zod.boolean().optional(),
   "activeChild": zod.union([zod.object({
   "id": zod.int(),
   "name": zod.string(),
@@ -133,6 +136,7 @@ export const VerifyParentGateResponse = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.enum(['parent', 'teacher', 'admin']),
+  "emailVerified": zod.boolean().optional(),
   "activeChild": zod.union([zod.object({
   "id": zod.int(),
   "name": zod.string(),
@@ -268,6 +272,7 @@ export const SelectChildResponse = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "role": zod.enum(['parent', 'teacher', 'admin']),
+  "emailVerified": zod.boolean().optional(),
   "activeChild": zod.union([zod.object({
   "id": zod.int(),
   "name": zod.string(),
@@ -982,6 +987,93 @@ export const UpdateAdminUserResponse = zod.object({
   "subscriptionStatus": zod.string(),
   "plan": zod.string(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Verify the parent email with a token from the verification email
+ */
+
+
+
+export const VerifyEmailBody = zod.object({
+  "token": zod.string().min(1)
+})
+
+export const VerifyEmailResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['parent', 'teacher', 'admin']),
+  "emailVerified": zod.boolean().optional(),
+  "activeChild": zod.union([zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "avatar": zod.string().describe('avatar key, e.g. fox, owl, cat'),
+  "band": zod.enum(['explorers', 'builders', 'achievers', 'graduates']),
+  "birthYear": zod.int(),
+  "birthMonth": zod.int(),
+  "xp": zod.int(),
+  "streak": zod.int(),
+  "badges": zod.array(zod.string()),
+  "dailyLimitMinutes": zod.int().nullish()
+}),zod.null()]).optional(),
+  "subscriptionStatus": zod.string().nullish().describe('none | trial | active | past_due | cancelled')
+})
+
+
+/**
+ * @summary Resend the email verification link to the logged-in parent
+ */
+export const ResendVerificationResponse = zod.object({
+  "message": zod.string(),
+  "devVerificationUrl": zod.string().nullish().describe('Present in development when no email provider is configured')
+})
+
+
+/**
+ * @summary Search published lessons (band-scoped for child sessions)
+ */
+
+
+
+export const SearchLessonsQueryParams = zod.object({
+  "q": zod.coerce.string().min(1)
+})
+
+export const SearchLessonsResponseItem = zod.object({
+  "id": zod.int(),
+  "titleAr": zod.string(),
+  "titleEn": zod.string(),
+  "unitTitleAr": zod.string().optional(),
+  "subjectNameAr": zod.string(),
+  "subjectColor": zod.string(),
+  "subjectIcon": zod.string(),
+  "durationMinutes": zod.int(),
+  "completed": zod.boolean().nullish()
+})
+export const SearchLessonsResponse = zod.array(SearchLessonsResponseItem)
+
+
+/**
+ * @summary Bulk-import exercises for a lesson from CSV text (teacher/admin)
+ */
+export const ImportExercisesCsvParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const ImportExercisesCsvBody = zod.object({
+  "csv": zod.string().min(1).describe('Columns: type,promptAr,promptEn,options(|-separated),correctAnswer'),
+  "replace": zod.boolean().optional().describe('Replace existing exercises (default false = append)')
+})
+
+export const ImportExercisesCsvResponse = zod.object({
+  "imported": zod.int(),
+  "skipped": zod.int(),
+  "errors": zod.array(zod.string()).optional()
 })
 
 

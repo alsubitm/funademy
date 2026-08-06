@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Search, Edit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
+import { SubjectManager } from '@/components/admin/SubjectManager';
+
 export default function AdminCurriculum() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -17,6 +19,11 @@ export default function AdminCurriculum() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({ nameAr: '', nameEn: '', slug: '', icon: '📚', color: '#0077B6' });
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
+
+  if (selectedSubjectId) {
+    return <SubjectManager subjectId={selectedSubjectId} onBack={() => setSelectedSubjectId(null)} />;
+  }
 
   const handleSave = () => {
     if (!formData.nameAr || !formData.slug) return;
@@ -100,7 +107,7 @@ export default function AdminCurriculum() {
                   <span className="text-muted-foreground">{subject.lessonCount || 0} Lessons</span>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <Button variant="outline" size="sm" className="w-full">Manage Units</Button>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => setSelectedSubjectId(subject.id)}>Manage Units</Button>
                 </div>
               </CardContent>
             </Card>

@@ -1,9 +1,10 @@
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
-import { useGetMe, logout } from '@workspace/api-client-react';
+import { useGetMe, logout, useResendVerification } from '@workspace/api-client-react';
 import { Link, useLocation, useRoute } from 'wouter';
-import { Users, CreditCard, Settings, LogOut, LayoutDashboard, Menu, X, BookOpen, PlaySquare } from 'lucide-react';
+import { Users, CreditCard, Settings, LogOut, LayoutDashboard, Menu, X, BookOpen, PlaySquare, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 function NavItem({ href, icon: Icon, label, onClick }: { href: string; icon: any; label: string; onClick?: () => void }) {
   const [isActive] = useRoute(href);
@@ -22,6 +23,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading } = useGetMe();
   const [, setLocation] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [hideVerificationBanner, setHideVerificationBanner] = React.useState(false);
+  const { toast } = useToast();
+  const resendMutation = useResendVerification();
 
   React.useEffect(() => {
     if (!isLoading && (!user || user.role !== 'parent')) {
@@ -32,6 +36,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     await logout();
     window.location.href = '/';
+  };
+
+  const handleResend = () => {
+    resendMutation.mutate(undefined, {
+      onSuccess: (res) => {
+        if (res.devVerificationUrl) {
+          toast({
+            title: t('تم الإرسال (وضع المطور)', 'Sent (Dev Mode)'),
+            description: (
+              <div className="mt-2 flex flex-col gap-2">
+                <span>{t('اضغط على الرابط أدناه:', 'Click the link below:')}</span>
+                <a href={res.devVerificationUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline break-all">
+                  {res.devVerificationUrl}
+                </a>
+              </div>
+            ),
+            duration: 10000,
+          });
+        } else {
+          toast({
+            title: t('تم الإرسال', 'Sent'),
+            description: t('تم إرسال رابط التوثيق لبريدك الإلكتروني.', 'Verification link sent to your email.'),
+          });
+        }
+      }
+    });
   };
 
   if (isLoading || !user) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-pulse w-8 h-8 rounded-full bg-primary" /></div>;
@@ -111,8 +141,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 w-full max-w-5xl mx-auto overflow-x-hidden">
-        {children}
+      <main className="flex-1 w-full max-w-5xl mx-auto overflow-x-hidden flex flex-col">
+        {user.emailVerified === false && !hideVerificationBanner && (
+          <div className="bg-amber-100 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900/50 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
+            <div className="flex items-center gap-3 text-amber-800 dark:text-amber-200">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="text-sm font-medium">
+                {t('الرجاء تأكيد بريدك الإلكتروني للوصول الكامل للميزات.', 'Please verify your email to access all features.')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button size="sm" variant="outline" className="bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 hover:bg-amber-200 border-amber-300 dark:border-amber-800" onClick={handleResend} disabled={resendMutation.isPending}>
+                {t('إرسال الرابط مجدداً', 'Resend Link')}
+              </Button>
+              <Button size="sm" variant="ghost" className="text-amber-700 hover:bg-amber-200/50" onClick={() => setHideVerificationBanner(true)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+        <div className="p-4 md:p-8 flex-1">
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
+import { useSeo } from '@/hooks/use-seo';
+
 const contactSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Valid email is required'),
@@ -22,6 +24,13 @@ type ContactForm = z.infer<typeof contactSchema>;
 export default function Contact() {
   const { t, dir } = useI18n();
   const { toast } = useToast();
+
+  useSeo(
+    'تواصل معنا',
+    'نحن هنا للإجابة على استفساراتك ومساعدتك.',
+    'Contact Us',
+    'We are here to answer your questions and help you.'
+  );
 
   const form = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),

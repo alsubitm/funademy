@@ -25,6 +25,7 @@ export function serializeSessionUser(
     name: user.name,
     email: user.email,
     role: user.role as "parent" | "teacher" | "admin",
+    emailVerified: user.emailVerified,
     activeChild: child ? serializeChild(child) : null,
     subscriptionStatus: subscription?.status ?? "none",
   };

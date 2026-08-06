@@ -5,11 +5,21 @@ import { Button } from '@/components/ui/button';
 import { PlayCircle, CheckCircle2, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function Curriculum() {
   const { t, lang, dir } = useI18n();
   const { data: curriculum, isLoading } = useGetCurriculumOutline();
   const [selectedBand, setSelectedBand] = useState<string>('explorers');
   const [playingLessonId, setPlayingLessonId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useSeo(
+    'المناهج',
+    'نغطي المنهج السعودي بالكامل من رياض الأطفال إلى الثانوية العامة.',
+    'Curriculum',
+    'We cover the full Saudi curriculum from kindergarten to high school.'
+  );
 
   const bands = [
     { id: 'explorers', labelAr: 'المستكشفون', labelEn: 'Explorers', age: '4-7' },
@@ -37,7 +47,7 @@ export default function Curriculum() {
         </div>
 
         {/* Band Selector */}
-        <div className="flex flex-wrap justify-center gap-4 mb-16">
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
           {bands.map((band) => (
             <button
               key={band.id}
@@ -52,6 +62,17 @@ export default function Curriculum() {
               <span className="block text-sm font-normal opacity-80 mt-1">{band.age} {t('سنوات', 'years')}</span>
             </button>
           ))}
+        </div>
+
+        <div className="max-w-md mx-auto mb-16 relative">
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground ltr:left-4 ltr:right-auto" />
+          <input
+            type="text"
+            placeholder={t('ابحث في المناهج...', 'Search curriculum...')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-12 rounded-full border border-border bg-card px-12 text-sm focus:border-primary outline-none shadow-sm transition-colors"
+          />
         </div>
 
         {isLoading ? (
@@ -69,7 +90,13 @@ export default function Curriculum() {
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
-              {currentOutline.subjects.map((subject, idx) => (
+              {currentOutline.subjects
+                .filter(subject => 
+                  !searchQuery || 
+                  subject.nameAr.includes(searchQuery) || 
+                  subject.nameEn.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((subject, idx) => (
                 <div key={idx} className="bg-card rounded-[2.5rem] p-8 shadow-sm border border-border/50 hover:shadow-md transition-shadow relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-48 h-48 opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" style={{ backgroundColor: subject.color }} />
                   

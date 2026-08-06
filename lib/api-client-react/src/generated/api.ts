@@ -34,7 +34,10 @@ import type {
   ChildReport,
   CompletionResult,
   DataDeletionRequest,
+  EmailVerification,
+  ExercisesCsvImport,
   HealthStatus,
+  ImportExercisesCsv200,
   Invoice,
   LessonCompletion,
   LessonDetail,
@@ -47,6 +50,9 @@ import type {
   ParentOverview,
   ParentRegistration,
   PinCheck,
+  ResendVerification200,
+  SearchLessons200Item,
+  SearchLessonsParams,
   SessionUser,
   Subject,
   SubjectDetail,
@@ -2903,5 +2909,303 @@ export const useUpdateAdminUser = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateAdminUserMutationOptions(options));
+    }
+
+export const getVerifyEmailUrl = () => {
+
+
+
+
+  return `/api/auth/verify-email`
+}
+
+/**
+ * @summary Verify the parent email with a token from the verification email
+ */
+export const verifyEmail = async (emailVerification: EmailVerification, options?: Parameters<typeof customFetch>[1]): Promise<SessionUser> => {
+
+  return customFetch<SessionUser>(getVerifyEmailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(emailVerification)
+  }
+);}
+
+
+
+
+
+export const getVerifyEmailMutationOptions = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyEmail>>, TError,{data: BodyType<EmailVerification>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyEmail>>, TError,{data: BodyType<EmailVerification>}, TContext> => {
+
+const mutationKey = ['verifyEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyEmail>>, {data: BodyType<EmailVerification>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyEmail(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyEmailMutationResult = NonNullable<Awaited<ReturnType<typeof verifyEmail>>>
+    export type VerifyEmailMutationBody = BodyType<EmailVerification>
+    export type VerifyEmailMutationError = ErrorType<ApiMessage>
+
+    /**
+ * @summary Verify the parent email with a token from the verification email
+ */
+export const useVerifyEmail = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyEmail>>, TError,{data: BodyType<EmailVerification>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyEmail>>,
+        TError,
+        {data: BodyType<EmailVerification>},
+        TContext
+      > => {
+      return useMutation(getVerifyEmailMutationOptions(options));
+    }
+
+export const getResendVerificationUrl = () => {
+
+
+
+
+  return `/api/auth/resend-verification`
+}
+
+/**
+ * @summary Resend the email verification link to the logged-in parent
+ */
+export const resendVerification = async ( options?: Parameters<typeof customFetch>[1]): Promise<ResendVerification200> => {
+
+  return customFetch<ResendVerification200>(getResendVerificationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResendVerificationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendVerification>>, TError,void, TContext> => {
+
+const mutationKey = ['resendVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendVerification>>, void> = () => {
+
+
+          return  resendVerification(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof resendVerification>>>
+
+    export type ResendVerificationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Resend the email verification link to the logged-in parent
+ */
+export const useResendVerification = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendVerification>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getResendVerificationMutationOptions(options));
+    }
+
+export const getSearchLessonsUrl = (params: SearchLessonsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/search/lessons?${stringifiedParams}` : `/api/search/lessons`
+}
+
+/**
+ * @summary Search published lessons (band-scoped for child sessions)
+ */
+export const searchLessons = async (params: SearchLessonsParams, options?: Parameters<typeof customFetch>[1]): Promise<SearchLessons200Item[]> => {
+
+  return customFetch<SearchLessons200Item[]>(getSearchLessonsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchLessonsQueryKey = (params?: SearchLessonsParams,) => {
+    return [
+    `/api/search/lessons`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchLessonsQueryOptions = <TData = Awaited<ReturnType<typeof searchLessons>>, TError = ErrorType<unknown>>(params: SearchLessonsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchLessons>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchLessonsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchLessons>>> = ({ signal }) => searchLessons(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchLessons>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchLessonsQueryResult = NonNullable<Awaited<ReturnType<typeof searchLessons>>>
+export type SearchLessonsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Search published lessons (band-scoped for child sessions)
+ */
+
+export function useSearchLessons<TData = Awaited<ReturnType<typeof searchLessons>>, TError = ErrorType<unknown>>(
+ params: SearchLessonsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchLessons>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchLessonsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getImportExercisesCsvUrl = (id: number,) => {
+
+
+
+
+  return `/api/lessons/${id}/exercises/csv`
+}
+
+/**
+ * @summary Bulk-import exercises for a lesson from CSV text (teacher/admin)
+ */
+export const importExercisesCsv = async (id: number,
+    exercisesCsvImport: ExercisesCsvImport, options?: Parameters<typeof customFetch>[1]): Promise<ImportExercisesCsv200> => {
+
+  return customFetch<ImportExercisesCsv200>(getImportExercisesCsvUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(exercisesCsvImport)
+  }
+);}
+
+
+
+
+
+export const getImportExercisesCsvMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importExercisesCsv>>, TError,{id: number;data: BodyType<ExercisesCsvImport>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importExercisesCsv>>, TError,{id: number;data: BodyType<ExercisesCsvImport>}, TContext> => {
+
+const mutationKey = ['importExercisesCsv'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importExercisesCsv>>, {id: number;data: BodyType<ExercisesCsvImport>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  importExercisesCsv(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportExercisesCsvMutationResult = NonNullable<Awaited<ReturnType<typeof importExercisesCsv>>>
+    export type ImportExercisesCsvMutationBody = BodyType<ExercisesCsvImport>
+    export type ImportExercisesCsvMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Bulk-import exercises for a lesson from CSV text (teacher/admin)
+ */
+export const useImportExercisesCsv = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importExercisesCsv>>, TError,{id: number;data: BodyType<ExercisesCsvImport>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importExercisesCsv>>,
+        TError,
+        {id: number;data: BodyType<ExercisesCsvImport>},
+        TContext
+      > => {
+      return useMutation(getImportExercisesCsvMutationOptions(options));
     }
 

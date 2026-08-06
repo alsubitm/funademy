@@ -3,8 +3,17 @@ import { useI18n } from '@/lib/i18n';
 import { ShieldCheck, ShieldOff, EyeOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function ChildSafety() {
   const { t } = useI18n();
+
+  useSeo(
+    'حماية الطفل أولوية',
+    'بنينا منارة لتكون المساحة الرقمية الأكثر أماناً لطفلك.',
+    'Child Safety',
+    'We built Manara to be the safest digital space for your child.'
+  );
 
   return (
     <div className="py-24 bg-background min-h-screen">

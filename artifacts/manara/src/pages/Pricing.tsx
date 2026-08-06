@@ -6,9 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Check, Shield } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function Pricing() {
   const { t } = useI18n();
   const { data, isLoading } = useGetMarketingContent();
+
+  useSeo(
+    'الأسعار',
+    'باقة عائلية واحدة للجميع. بدون رسوم خفية، اشتراك واحد يغطي جميع أبنائك.',
+    'Pricing',
+    'One family plan for everyone. No hidden fees, one subscription covers all your children.'
+  );
 
   const features = [
     t('حساب عائلي واحد', 'One family account'),

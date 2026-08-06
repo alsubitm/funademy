@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowRight, CalendarDays, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function BlogPostDetail() {
   const { t, dir } = useI18n();
   const params = useParams();
@@ -14,6 +16,13 @@ export default function BlogPostDetail() {
   const { data: post, isLoading } = useGetBlogPost(slug, { 
     query: { enabled: !!slug, queryKey: getGetBlogPostQueryKey(slug) } 
   });
+
+  useSeo(
+    post?.titleAr || 'مدونة منارة',
+    post?.excerptAr || '',
+    post?.titleAr || 'Manara Blog', // Fallback to Arabic if English title missing in schema
+    post?.excerptAr || ''
+  );
   
   const ArrowIcon = dir === 'rtl' ? ArrowRight : ArrowLeft;
 

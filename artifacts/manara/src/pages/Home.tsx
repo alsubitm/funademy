@@ -5,9 +5,18 @@ import { Button } from '@/components/ui/button';
 import { PlayCircle, ShieldCheck, Star, Brain, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useGetMarketingContent } from '@workspace/api-client-react';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function Home() {
   const { t, dir } = useI18n();
   const { data: marketing, isLoading } = useGetMarketingContent();
+
+  useSeo(
+    'الرئيسية', 
+    'الرفيق الموثوق لتعليم أبنائك المنهج السعودي بشغف ومتعة. تجربة تعليمية مخصصة وممتعة لجميع أفراد العائلة.',
+    'Home',
+    'The trusted companion for your children to learn the Saudi curriculum with passion and joy. A personalized educational experience.'
+  );
 
   const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 

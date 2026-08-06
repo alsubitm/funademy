@@ -6,9 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { ArrowLeft, ArrowRight, CalendarDays, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function Blog() {
   const { t, dir } = useI18n();
   const { data: posts, isLoading } = useListBlogPosts();
+
+  useSeo(
+    'مدونة منارة',
+    'نصائح للآباء، تحديثات المنصة، ومقالات حول تعليم وتربية الأطفال.',
+    'Manara Blog',
+    'Tips for parents, platform updates, and articles on education and parenting.'
+  );
   
   const ArrowIcon = dir === 'rtl' ? ArrowLeft : ArrowRight;
 

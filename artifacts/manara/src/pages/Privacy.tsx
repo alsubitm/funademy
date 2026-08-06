@@ -1,8 +1,17 @@
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
 
+import { useSeo } from '@/hooks/use-seo';
+
 export default function Privacy() {
   const { t } = useI18n();
+
+  useSeo(
+    'سياسة الخصوصية',
+    'نحن نأخذ خصوصية عائلتك على محمل الجد.',
+    'Privacy Policy',
+    'We take your family\'s privacy very seriously.'
+  );
 
   return (
     <div className="py-24 bg-background min-h-screen">
