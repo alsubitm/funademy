@@ -55,7 +55,7 @@ router.post("/watan/bricks", async (req, res): Promise<void> => {
 
 const NATIONAL_DAY = "2026-09-23";
 
-router.get("/watan/stats", async (_req, res): Promise<void> => {
+router.get("/watan/stats", requireRole("admin"), async (_req, res): Promise<void> => {
   const [counterRow] = await db
     .select()
     .from(campaignCountersTable)

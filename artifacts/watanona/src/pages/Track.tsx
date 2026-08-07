@@ -14,7 +14,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { Link } from 'wouter';
-import { ArrowRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ArrowRight, TrendingUp, TrendingDown, Minus, Lock } from 'lucide-react';
 
 const chartConfig = {
   count: {
@@ -62,10 +62,57 @@ function StatCard({
   );
 }
 
+function AccessDenied() {
+  return (
+    <main
+      dir="rtl"
+      className="min-h-screen w-full bg-background text-white flex items-center justify-center px-4"
+    >
+      <div className="max-w-sm w-full text-center space-y-6">
+        <div className="flex justify-center">
+          <div className="rounded-full bg-white/10 p-5">
+            <Lock className="h-10 w-10 text-white/60" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold">لوحة إدارية</h1>
+          <p className="text-white/60 text-sm">
+            هذه الصفحة مخصصة للمشرفين فقط. سجّل دخولك بحساب أدمن منارة للمتابعة.
+          </p>
+        </div>
+        <a
+          href="/"
+          className="inline-block w-full rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+        >
+          العودة للصفحة الرئيسية
+        </a>
+        <a
+          href="/login"
+          className="inline-block w-full rounded-xl bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+        >
+          تسجيل دخول منارة
+        </a>
+      </div>
+    </main>
+  );
+}
+
 export default function Track() {
-  const { data, isLoading, isError } = useGetWatanStats({
-    query: { queryKey: ['watan-stats'], refetchInterval: 30000 },
+  const { data, isLoading, isError, error } = useGetWatanStats({
+    query: { queryKey: ['watan-stats'], refetchInterval: 30000, retry: false },
   });
+
+  // Check if the error is an auth error (401 or 403)
+  const isAuthError =
+    isError &&
+    error != null &&
+    typeof (error as { status?: number }).status === 'number' &&
+    ((error as { status: number }).status === 401 ||
+      (error as { status: number }).status === 403);
+
+  if (isAuthError) {
+    return <AccessDenied />;
+  }
 
   return (
     <main
@@ -94,7 +141,7 @@ export default function Track() {
           </Link>
         </header>
 
-        {isError && (
+        {isError && !isAuthError && (
           <Card className="border-destructive/50 bg-destructive/10">
             <CardContent className="py-6 text-center text-white/80">
               تعذّر تحميل إحصاءات الحملة. حاول تحديث الصفحة.
