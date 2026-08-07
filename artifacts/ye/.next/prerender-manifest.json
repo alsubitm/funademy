@@ -1,1 +1,11 @@
-{"version":4,"routes":{"/programs/big-builders":{},"/programs/smartivo":{},"/programs/bricks-challenge":{},"/programs/algoplay-robotoys":{},"/programs/galileo-technic":{},"/programs/algoc":{}},"dynamicRoutes":{"/programs/[slug]":{"dataRoute":null,"dataRouteRegex":null,"fallback":null,"fallbackRevalidate":false,"fallbackSourceRoute":"/programs/[slug]","routeRegex":"^\\/programs\\/([^/]+?)(?:\\/)?$","allowHeader":[]}},"notFoundRoutes":[],"preview":{"previewModeId":"c9c85d6892542dfbee5aec32e44b4fef","previewModeSigningKey":"9c0dd6b68cd1eb91212d9c161d21b266ac7c70301237b335497c10236d4134c8","previewModeEncryptionKey":"9b22ec54d3e2ef768f38958bb9cb3328ece2e3fe58084e3e8813b7f5eec1a0aa"}}
+{
+  "version": 4,
+  "routes": {},
+  "dynamicRoutes": {},
+  "notFoundRoutes": [],
+  "preview": {
+    "previewModeId": "11fdfb39f80f0490d02e055c87b30139",
+    "previewModeSigningKey": "e170bde4df8f4a48a4081d9ab4f40615a0f39892d325c6e2e83c56ab1468cdb7",
+    "previewModeEncryptionKey": "66d9e24274cc2165283495f20e86d19ebe1b5cdbaedb53bd46a965c2feaacf45"
+  }
+}
