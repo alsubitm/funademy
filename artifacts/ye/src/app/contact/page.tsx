@@ -58,19 +58,6 @@ export default function ContactPage() {
         </div>
 
         <div className="terr-box wrap">
-          <h3>{d.territoryTitle}</h3>
-          <p>{d.territoryDesc}</p>
-          <div className="terr-tags">
-            <span className="terr-tag">الياسمين</span>
-            <span className="terr-tag">النرجس</span>
-            <span className="terr-tag">الصحافة</span>
-            <span className="terr-tag">الندى</span>
-            <span className="terr-tag">النفل</span>
-            <span className="terr-tag">الفلاح</span>
-            <span className="terr-tag">الغدير</span>
-            <span className="terr-tag">التعاون</span>
-            <span className="terr-tag">حي الملك سلمان</span>
-          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '30px', borderTop: '1px solid var(--line)', paddingTop: '30px' }}>
             <div>

@@ -2,7 +2,6 @@ export const dict = {
   ar: {
     topBanner: "🎓 التسجيل للعام الدراسي الجديد مفتوح — أونلاين مباشر وحضوري",
     whatsapp: "واتساب",
-    brandSub: "منطقة مرخصة",
     navPath: "مسار التعلم",
     navPrograms: "البرامج",
     navWorkshop: "معمل البرمجة",
@@ -27,7 +26,6 @@ export const dict = {
   en: {
     topBanner: "🎓 New school year enrollment open — live online & in-person",
     whatsapp: "WhatsApp",
-    brandSub: "Licensed Territory",
     navPath: "Learning path",
     navPrograms: "Programs",
     navWorkshop: "Coding lab",

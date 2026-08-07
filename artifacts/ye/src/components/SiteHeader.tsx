@@ -25,7 +25,7 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
             <FlipMark size={42} />
             <Wordmark lang={lang} style={{ fontSize: 26, lineHeight: 1 }} />
             <div className="ter">
-              {lang === 'ar' ? 'الرياض' : 'Riyadh'}<span>{d.brandSub}</span>
+              {lang === 'ar' ? 'الرياض' : 'Riyadh'}
             </div>
           </Link>
           <div className="links">

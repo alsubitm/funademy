@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { bookDict } from '@/app/book/dict';
-import { NEIGHBORHOODS, waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
+import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 
 type BookingFlowProps = {
   programs: any[];
@@ -30,7 +30,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
   const [phone, setPhone] = useState('');
   const [childFirstName, setChildFirstName] = useState('');
   const [childBirthYear, setChildBirthYear] = useState('');
-  const [neighborhood, setNeighborhood] = useState('');
+  const neighborhood = 'riyadh';
   
   const [error, setError] = useState('');
 
@@ -38,7 +38,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
   const filteredSlots = slots.filter((s) => s.programId === programId);
   const selectedProgram = programs.find(p => p.id === programId);
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 14 }, (_, i) => currentYear - 16 + i).reverse();
+  const years = Array.from({ length: 15 }, (_, i) => currentYear - 18 + i).reverse();
   const weekdays = lang === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN;
 
   const nextStep = () => {
@@ -63,7 +63,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
 
   const onSubmit = () => {
     setError('');
-    if (!parentName || !phone || !childFirstName || !childBirthYear || !neighborhood) {
+    if (!parentName || !phone || !childFirstName || !childBirthYear) {
       setError(d.valError);
       return;
     }
@@ -223,16 +223,6 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
                 <option value="">--</option>
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
-            </div>
-            <div className="f-group" style={{ gridColumn: '1 / -1' }}>
-              <label>{d.neighborhood}</label>
-              <select value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} disabled={isPending}>
-                <option value="">--</option>
-                {NEIGHBORHOODS.map(n => <option key={n.id} value={n.id}>{lang === 'ar' ? n.ar : n.en}</option>)}
-              </select>
-              {neighborhood === 'other' && (
-                <div className="alert-box">{d.otherHoodAlert}</div>
-              )}
             </div>
           </div>
         )}

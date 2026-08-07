@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { NEIGHBORHOODS } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +27,7 @@ export async function POST(req: NextRequest) {
     !parentName ||
     !childFirstName ||
     !/^(\+?966|0)?5\d{8}$/.test(phone.replace(/[\s-]/g, '')) ||
-    !(childBirthYear >= currentYear - 16 && childBirthYear <= currentYear - 3) ||
-    !NEIGHBORHOODS.some((n) => n.id === neighborhood)
+    !(childBirthYear >= currentYear - 19 && childBirthYear <= currentYear - 3)
   ) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }

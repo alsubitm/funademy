@@ -21,7 +21,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
               {lang === 'ar' ? 'Funademy — حيث المتعة تلتقي بالأكاديمية' : 'funademy — where fun meets academy'}
               <br />
               e² Young Engineers Riyadh<br />
-              Licensed Territory · Falcon Eye Ltd.
+              Falcon Eye Ltd.
             </p>
           </div>
           <div>
