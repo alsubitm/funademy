@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Oh9bxphhenCFOEZVsoo6O"
+uri = "file://attached_assets/Funademy_Design_Updates_2026-08.html"
+type = "unspecified"
+title = "Funademy — التحديثات والإضافات الجديدة"
+description = "ملف HTML مستقل يعرض لوحة الألوان الجديدة، الصور، عناصر التصميم المحسّنة، وآخر تحديثات المحتوى."
