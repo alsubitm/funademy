@@ -15,16 +15,16 @@ export function Territory({ lang }: { lang: 'ar' | 'en' }) {
           </span>
           {lang === 'ar' ? (
             <>
-              <h2>بفخر نخدم شمال الرياض</h2>
+              <h2>بفخر نخدم الرياض</h2>
               <p className="sub">
-                بصفتنا الوكيل المعتمد حصرياً لمنطقة شمال الرياض، نحن ملتزمون بتقديم معايير e² Young Engineers العالمية لأطفالكم.
+                بصفتنا الوكيل المعتمد حصرياً لمنطقة الرياض، نحن ملتزمون بتقديم معايير e² Young Engineers العالمية لأطفالكم.
               </p>
             </>
           ) : (
             <>
-              <h2>Proudly serving North Riyadh</h2>
+              <h2>Proudly serving Riyadh</h2>
               <p className="sub">
-                As the officially licensed partner for the North Riyadh territory, we are committed to bringing the global standard of e² Young Engineers to your neighborhood.
+                As the officially licensed partner for the Riyadh territory, we are committed to bringing the global standard of e² Young Engineers to your neighborhood.
               </p>
             </>
           )}

@@ -91,6 +91,15 @@ h4 {
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* Funademy Kite-Cap flip — hover/tap: the kite lands and becomes the cap */
+.flipmark{position:relative;display:inline-block;cursor:pointer;flex-shrink:0}
+.flipmark svg{position:absolute;inset:0;width:100%;height:100%;transition:opacity .5s ease,transform .7s cubic-bezier(.6,-0.2,.3,1.3)}
+.flipmark .kiteV{opacity:1;transform:rotate(0)}
+.flipmark .capV{opacity:0;transform:rotate(-45deg) scale(.9)}
+.flipmark:hover .kiteV,.flipmark.on .kiteV{opacity:0;transform:rotate(45deg) scale(.9)}
+.flipmark:hover .capV,.flipmark.on .capV{opacity:1;transform:rotate(0)}
+@media(prefers-reduced-motion:reduce){.flipmark svg{transition:none}}
+
 /* Funademy Kite-Cap mark — gentle sway */
 @keyframes kite-sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
 .kite-sway{animation:kite-sway 5s ease-in-out infinite;transform-origin:50% 18%}

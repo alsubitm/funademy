@@ -53,7 +53,7 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
                 <small>SAR</small> 380 <small>{lang === 'ar' ? '/ شهر' : '/ mo'}</small>
               </div>
               <ul dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                <li>{lang === 'ar' ? 'في مراكزنا بشمال الرياض' : 'At our North Riyadh centers'}</li>
+                <li>{lang === 'ar' ? 'في مراكزنا بالرياض' : 'At our Riyadh centers'}</li>
                 <li>{lang === 'ar' ? 'بيئة تفاعلية اجتماعية' : 'Interactive social environment'}</li>
                 <li>{lang === 'ar' ? 'العدة متوفرة بالمركز' : 'Kit provided at center'}</li>
                 <li>{lang === 'ar' ? 'تنمية مهارات العمل الجماعي' : 'Teamwork skill building'}</li>

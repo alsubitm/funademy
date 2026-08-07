@@ -1,6 +1,6 @@
-# فناديمي Funademy — Young Engineers Riyadh North
+# فناديمي Funademy — Young Engineers Riyadh
 
-Production bilingual website (Arabic-first RTL at `/`, English at `/en`) for **فناديمي Funademy** (Falcon Eye Ltd), the official e² YOUNG ENGINEERS Riyadh North licensee.
+Production bilingual website (Arabic-first RTL at `/`, English at `/en`) for **فناديمي Funademy** (Falcon Eye Ltd), the official e² YOUNG ENGINEERS Riyadh licensee.
 
 ## Brand identity — the Kite-Cap
 

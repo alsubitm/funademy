@@ -14,7 +14,7 @@ export function Stats({ lang }: { lang: 'ar' | 'en' }) {
         </div>
         <div>
           <div className="n">750<small>K</small></div>
-          <div className="l">{lang === 'ar' ? 'نطاق التغطية (شمال الرياض)' : 'Residents in territory'}</div>
+          <div className="l">{lang === 'ar' ? 'نطاق التغطية (الرياض)' : 'Residents in territory'}</div>
         </div>
         <div>
           <div className="n">8–12</div>
