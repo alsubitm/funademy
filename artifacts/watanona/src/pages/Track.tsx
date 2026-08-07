@@ -112,6 +112,35 @@ export default function Track() {
 
         {data && (
           <>
+            <Card className="bg-card/60 border-white/10 backdrop-blur">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex flex-wrap items-baseline justify-between gap-2 text-lg">
+                  <span>هدف الحملة قبل اليوم الوطني</span>
+                  <span className="text-sm font-normal text-white/60">
+                    {numberFormatter.format(data.goal)} مكعب
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-l from-primary to-secondary transition-all duration-700"
+                    style={{ width: `${Math.min(100, data.progressPercent)}%` }}
+                  />
+                </div>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="font-bold text-primary">
+                    اكتمل {numberFormatter.format(data.progressPercent)}٪
+                  </span>
+                  <span className="text-white/60">
+                    {data.remaining > 0
+                      ? `متبقٍّ ${numberFormatter.format(data.remaining)} مكعب لتحقيق الهدف`
+                      : 'تحقّق الهدف — مبروك! 🎉'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
               <StatCard
                 label="إجمالي المكعبات"

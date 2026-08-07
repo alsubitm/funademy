@@ -8,4 +8,6 @@
 
 export interface BrickCount {
   count: number;
+  /** Campaign goal (bricks before National Day) */
+  goal?: number;
 }

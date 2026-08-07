@@ -67,6 +67,7 @@ export function useBrickWall() {
 
   return {
     count: localCount,
+    goal: serverCountData?.goal ?? null,
     handlePlaceBrick
   };
 }

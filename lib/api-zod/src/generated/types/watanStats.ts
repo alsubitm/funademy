@@ -9,6 +9,9 @@ import type { WatanStatsDailyItem } from './watanStatsDailyItem';
 
 export interface WatanStats {
   total: number;
+  goal: number;
+  remaining: number;
+  progressPercent: number;
   today: number;
   yesterday: number;
   /** @nullable */

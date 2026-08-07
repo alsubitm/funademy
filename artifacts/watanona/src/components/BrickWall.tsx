@@ -14,7 +14,9 @@ const BRICK_COLORS = [
 ];
 
 export function BrickWall() {
-  const { count, handlePlaceBrick } = useBrickWall();
+  const { count, goal, handlePlaceBrick } = useBrickWall();
+  const progressPercent =
+    goal && goal > 0 ? Math.min(100, Math.round((count / goal) * 1000) / 10) : null;
   const [wallUsed, setWallUsed] = useState(false);
   const wallRef = useRef<HTMLDivElement>(null);
   
@@ -76,6 +78,30 @@ export function BrickWall() {
             BRICKS PLACED BY FAMILIES OF RIYADH NORTH
           </small>
         </div>
+
+        {goal !== null && progressPercent !== null && (
+          <div className="mt-8 w-full max-w-xl" dir="rtl">
+            <div className="flex items-baseline justify-between text-sm mb-2">
+              <span className="font-bold text-secondary">
+                اكتمل {progressPercent.toLocaleString('ar-EG')}٪
+              </span>
+              <span className="text-muted-foreground">
+                الهدف: {goal.toLocaleString('ar-EG')} مكعب قبل اليوم الوطني
+              </span>
+            </div>
+            <div className="h-3 w-full overflow-hidden rounded-full bg-card border border-accent/20">
+              <div
+                className="h-full rounded-full bg-gradient-to-l from-primary to-secondary transition-all duration-700"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground text-center">
+              {goal - count > 0
+                ? `متبقٍّ ${(goal - count).toLocaleString('ar-EG')} مكعب لنكمل الجدار معاً`
+                : 'تحقّق الهدف — مبروك! 🎉'}
+            </p>
+          </div>
+        )}
 
         <div 
           ref={wallRef}

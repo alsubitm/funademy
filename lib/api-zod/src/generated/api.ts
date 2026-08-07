@@ -1081,7 +1081,8 @@ export const ImportExercisesCsvResponse = zod.object({
  * @summary Shared community brick counter for the Watanona campaign page
  */
 export const GetBrickCountResponse = zod.object({
-  "count": zod.int()
+  "count": zod.int(),
+  "goal": zod.int().optional().describe('Campaign goal (bricks before National Day)')
 })
 
 
@@ -1097,7 +1098,8 @@ export const PlaceBrickBody = zod.object({
 })
 
 export const PlaceBrickResponse = zod.object({
-  "count": zod.int()
+  "count": zod.int(),
+  "goal": zod.int().optional().describe('Campaign goal (bricks before National Day)')
 })
 
 
@@ -1106,6 +1108,9 @@ export const PlaceBrickResponse = zod.object({
  */
 export const GetWatanStatsResponse = zod.object({
   "total": zod.int(),
+  "goal": zod.int(),
+  "remaining": zod.int(),
+  "progressPercent": zod.number(),
   "today": zod.int(),
   "yesterday": zod.int(),
   "growthPercent": zod.number().nullable(),

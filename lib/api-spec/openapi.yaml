@@ -898,6 +898,9 @@ components:
       required: [count]
       properties:
         count: { type: integer }
+        goal:
+          type: integer
+          description: Campaign goal (bricks before National Day)
     BrickPlacement:
       type: object
       properties:
@@ -909,9 +912,23 @@ components:
     WatanStats:
       type: object
       required:
-        [total, today, yesterday, growthPercent, daysRemaining, nationalDay, daily]
+        [
+          total,
+          goal,
+          remaining,
+          progressPercent,
+          today,
+          yesterday,
+          growthPercent,
+          daysRemaining,
+          nationalDay,
+          daily,
+        ]
       properties:
         total: { type: integer }
+        goal: { type: integer }
+        remaining: { type: integer }
+        progressPercent: { type: number }
         today: { type: integer }
         yesterday: { type: integer }
         growthPercent: { type: ["number", "null"] }

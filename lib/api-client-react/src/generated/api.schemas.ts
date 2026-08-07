@@ -90,6 +90,8 @@ export interface SessionUser {
 
 export interface BrickCount {
   count: number;
+  /** Campaign goal (bricks before National Day) */
+  goal?: number;
 }
 
 export interface BrickPlacement {
@@ -108,6 +110,9 @@ export type WatanStatsDailyItem = {
 
 export interface WatanStats {
   total: number;
+  goal: number;
+  remaining: number;
+  progressPercent: number;
   today: number;
   yesterday: number;
   /** @nullable */

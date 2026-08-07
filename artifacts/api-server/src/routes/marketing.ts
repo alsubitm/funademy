@@ -16,13 +16,15 @@ import { priceFor } from "../lib/payments";
 const router: IRouter = Router();
 
 const BRICK_KEY = "watan-bricks";
+// Campaign goal: bricks to reach before National Day (Sep 23)
+const CAMPAIGN_GOAL = 100000;
 
 router.get("/watan/bricks", async (_req, res): Promise<void> => {
   const [row] = await db
     .select()
     .from(campaignCountersTable)
     .where(eq(campaignCountersTable.key, BRICK_KEY));
-  res.json({ count: row?.count ?? 0 });
+  res.json({ count: row?.count ?? 0, goal: CAMPAIGN_GOAL });
 });
 
 router.post("/watan/bricks", async (req, res): Promise<void> => {
@@ -101,8 +103,15 @@ router.get("/watan/stats", async (_req, res): Promise<void> => {
     Math.ceil((nationalDayDate.getTime() - now.getTime()) / 86400000),
   );
 
+  const total = counterRow?.count ?? 0;
+  const progressPercent =
+    Math.round(Math.min(100, (total / CAMPAIGN_GOAL) * 100) * 10) / 10;
+
   res.json({
-    total: counterRow?.count ?? 0,
+    total,
+    goal: CAMPAIGN_GOAL,
+    remaining: Math.max(0, CAMPAIGN_GOAL - total),
+    progressPercent,
     today,
     yesterday,
     growthPercent,
