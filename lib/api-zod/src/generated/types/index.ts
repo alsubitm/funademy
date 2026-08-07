@@ -16,6 +16,8 @@ export * from './bandOutline';
 export * from './bandOutlineSubjectsItem';
 export * from './blogPost';
 export * from './blogPostInput';
+export * from './brickCount';
+export * from './brickPlacement';
 export * from './childHome';
 export * from './childOverviewCard';
 export * from './childProfile';

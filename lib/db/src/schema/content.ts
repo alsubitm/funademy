@@ -21,6 +21,11 @@ export const blogPostsTable = pgTable("blog_posts", {
     .defaultNow(),
 });
 
+export const campaignCountersTable = pgTable("campaign_counters", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+});
+
 export const dataDeletionRequestsTable = pgTable("data_deletion_requests", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")

@@ -770,6 +770,35 @@ paths:
                   errors:
                     type: array
                     items: { type: string }
+  /watan/bricks:
+    get:
+      operationId: getBrickCount
+      tags: [marketing]
+      summary: Shared community brick counter for the Watanona campaign page
+      responses:
+        "200":
+          description: Current count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrickCount"
+    post:
+      operationId: placeBrick
+      tags: [marketing]
+      summary: Add bricks to the shared community wall
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrickPlacement"
+      responses:
+        "200":
+          description: Updated count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrickCount"
 components:
   parameters:
     IdParam:
@@ -852,6 +881,19 @@ components:
           type: array
           items: { type: string }
         dailyLimitMinutes: { type: ["integer", "null"] }
+    BrickCount:
+      type: object
+      required: [count]
+      properties:
+        count: { type: integer }
+    BrickPlacement:
+      type: object
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+          maximum: 20
+          description: Number of bricks to add (default 1)
     EmailVerification:
       type: object
       required: [token]

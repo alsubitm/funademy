@@ -1077,3 +1077,27 @@ export const ImportExercisesCsvResponse = zod.object({
 })
 
 
+/**
+ * @summary Shared community brick counter for the Watanona campaign page
+ */
+export const GetBrickCountResponse = zod.object({
+  "count": zod.int()
+})
+
+
+/**
+ * @summary Add bricks to the shared community wall
+ */
+export const placeBrickBodyAmountMax = 20;
+
+
+
+export const PlaceBrickBody = zod.object({
+  "amount": zod.int().min(1).max(placeBrickBodyAmountMax).optional().describe('Number of bricks to add (default 1)')
+})
+
+export const PlaceBrickResponse = zod.object({
+  "count": zod.int()
+})
+
+

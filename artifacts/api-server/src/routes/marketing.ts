@@ -6,12 +6,43 @@ import {
   lessonsTable,
   subjectsTable,
   blogPostsTable,
+  campaignCountersTable,
 } from "@workspace/db";
-import { CreateBlogPostBody } from "@workspace/api-zod";
+import { CreateBlogPostBody, PlaceBrickBody } from "@workspace/api-zod";
 import { requireRole } from "../lib/auth";
 import { priceFor } from "../lib/payments";
 
 const router: IRouter = Router();
+
+const BRICK_KEY = "watan-bricks";
+
+router.get("/watan/bricks", async (_req, res): Promise<void> => {
+  const [row] = await db
+    .select()
+    .from(campaignCountersTable)
+    .where(eq(campaignCountersTable.key, BRICK_KEY));
+  res.json({ count: row?.count ?? 0 });
+});
+
+router.post("/watan/bricks", async (req, res): Promise<void> => {
+  const parsed = PlaceBrickBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: "Invalid amount" });
+    return;
+  }
+  const amount = parsed.data.amount ?? 1;
+  const [row] = await db
+    .insert(campaignCountersTable)
+    .values({ key: BRICK_KEY, count: amount })
+    .onConflictDoUpdate({
+      target: campaignCountersTable.key,
+      set: {
+        count: sql`${campaignCountersTable.count} + ${amount}`,
+      },
+    })
+    .returning();
+  res.json({ count: row!.count });
+});
 
 const TESTIMONIALS = [
   {

@@ -88,6 +88,19 @@ export interface SessionUser {
   subscriptionStatus?: string | null;
 }
 
+export interface BrickCount {
+  count: number;
+}
+
+export interface BrickPlacement {
+  /**
+     * Number of bricks to add (default 1)
+     * @minimum 1
+     * @maximum 20
+     */
+  amount?: number;
+}
+
 export interface EmailVerification {
   /** @minLength 1 */
   token: string;

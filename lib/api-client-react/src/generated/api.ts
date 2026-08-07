@@ -27,6 +27,8 @@ import type {
   BandOutline,
   BlogPost,
   BlogPostInput,
+  BrickCount,
+  BrickPlacement,
   ChildHome,
   ChildProfile,
   ChildProfileInput,
@@ -3207,5 +3209,153 @@ export const useImportExercisesCsv = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getImportExercisesCsvMutationOptions(options));
+    }
+
+export const getGetBrickCountUrl = () => {
+
+
+
+
+  return `/api/watan/bricks`
+}
+
+/**
+ * @summary Shared community brick counter for the Watanona campaign page
+ */
+export const getBrickCount = async ( options?: Parameters<typeof customFetch>[1]): Promise<BrickCount> => {
+
+  return customFetch<BrickCount>(getGetBrickCountUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrickCountQueryKey = () => {
+    return [
+    `/api/watan/bricks`
+    ] as const;
+    }
+
+
+export const getGetBrickCountQueryOptions = <TData = Awaited<ReturnType<typeof getBrickCount>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrickCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrickCountQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrickCount>>> = ({ signal }) => getBrickCount({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrickCount>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrickCountQueryResult = NonNullable<Awaited<ReturnType<typeof getBrickCount>>>
+export type GetBrickCountQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Shared community brick counter for the Watanona campaign page
+ */
+
+export function useGetBrickCount<TData = Awaited<ReturnType<typeof getBrickCount>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrickCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrickCountQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPlaceBrickUrl = () => {
+
+
+
+
+  return `/api/watan/bricks`
+}
+
+/**
+ * @summary Add bricks to the shared community wall
+ */
+export const placeBrick = async (brickPlacement: BrickPlacement, options?: Parameters<typeof customFetch>[1]): Promise<BrickCount> => {
+
+  return customFetch<BrickCount>(getPlaceBrickUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(brickPlacement)
+  }
+);}
+
+
+
+
+
+export const getPlaceBrickMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof placeBrick>>, TError,{data: BodyType<BrickPlacement>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof placeBrick>>, TError,{data: BodyType<BrickPlacement>}, TContext> => {
+
+const mutationKey = ['placeBrick'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof placeBrick>>, {data: BodyType<BrickPlacement>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  placeBrick(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PlaceBrickMutationResult = NonNullable<Awaited<ReturnType<typeof placeBrick>>>
+    export type PlaceBrickMutationBody = BodyType<BrickPlacement>
+    export type PlaceBrickMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add bricks to the shared community wall
+ */
+export const usePlaceBrick = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof placeBrick>>, TError,{data: BodyType<BrickPlacement>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof placeBrick>>,
+        TError,
+        {data: BodyType<BrickPlacement>},
+        TContext
+      > => {
+      return useMutation(getPlaceBrickMutationOptions(options));
     }
 
