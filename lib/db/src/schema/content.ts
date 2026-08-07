@@ -4,6 +4,7 @@ import {
   serial,
   integer,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -25,6 +26,19 @@ export const campaignCountersTable = pgTable("campaign_counters", {
   key: text("key").primaryKey(),
   count: integer("count").notNull().default(0),
 });
+
+export const campaignBrickEventsTable = pgTable(
+  "campaign_brick_events",
+  {
+    id: serial("id").primaryKey(),
+    key: text("key").notNull(),
+    amount: integer("amount").notNull().default(1),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("campaign_brick_events_key_created_at_idx").on(t.key, t.createdAt)],
+);
 
 export const dataDeletionRequestsTable = pgTable("data_deletion_requests", {
   id: serial("id").primaryKey(),

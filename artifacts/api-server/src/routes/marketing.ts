@@ -7,6 +7,7 @@ import {
   subjectsTable,
   blogPostsTable,
   campaignCountersTable,
+  campaignBrickEventsTable,
 } from "@workspace/db";
 import { CreateBlogPostBody, PlaceBrickBody } from "@workspace/api-zod";
 import { requireRole } from "../lib/auth";
@@ -31,17 +32,84 @@ router.post("/watan/bricks", async (req, res): Promise<void> => {
     return;
   }
   const amount = parsed.data.amount ?? 1;
-  const [row] = await db
-    .insert(campaignCountersTable)
-    .values({ key: BRICK_KEY, count: amount })
-    .onConflictDoUpdate({
-      target: campaignCountersTable.key,
-      set: {
-        count: sql`${campaignCountersTable.count} + ${amount}`,
-      },
+  const count = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(campaignCountersTable)
+      .values({ key: BRICK_KEY, count: amount })
+      .onConflictDoUpdate({
+        target: campaignCountersTable.key,
+        set: {
+          count: sql`${campaignCountersTable.count} + ${amount}`,
+        },
+      })
+      .returning();
+    await tx
+      .insert(campaignBrickEventsTable)
+      .values({ key: BRICK_KEY, amount });
+    return row!.count;
+  });
+  res.json({ count });
+});
+
+const NATIONAL_DAY = "2026-09-23";
+
+router.get("/watan/stats", async (_req, res): Promise<void> => {
+  const [counterRow] = await db
+    .select()
+    .from(campaignCountersTable)
+    .where(eq(campaignCountersTable.key, BRICK_KEY));
+
+  const dailyRows = await db
+    .select({
+      date: sql<string>`to_char((${campaignBrickEventsTable.createdAt} at time zone 'Asia/Riyadh')::date, 'YYYY-MM-DD')`,
+      count: sql<number>`coalesce(sum(${campaignBrickEventsTable.amount}), 0)::int`,
     })
-    .returning();
-  res.json({ count: row!.count });
+    .from(campaignBrickEventsTable)
+    .where(eq(campaignBrickEventsTable.key, BRICK_KEY))
+    .groupBy(
+      sql`(${campaignBrickEventsTable.createdAt} at time zone 'Asia/Riyadh')::date`,
+    )
+    .orderBy(
+      sql`(${campaignBrickEventsTable.createdAt} at time zone 'Asia/Riyadh')::date`,
+    );
+
+  // Build a continuous series over the last 14 days (Riyadh time)
+  const now = new Date();
+  const riyadhNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  const todayStr = riyadhNow.toISOString().slice(0, 10);
+  const byDate = new Map(dailyRows.map((r) => [r.date, r.count]));
+  const daily: { date: string; count: number }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(riyadhNow.getTime() - i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().slice(0, 10);
+    daily.push({ date: key, count: byDate.get(key) ?? 0 });
+  }
+
+  const today = byDate.get(todayStr) ?? 0;
+  const yesterdayStr = new Date(riyadhNow.getTime() - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const yesterday = byDate.get(yesterdayStr) ?? 0;
+  const growthPercent =
+    yesterday > 0
+      ? Math.round(((today - yesterday) / yesterday) * 1000) / 10
+      : null;
+
+  const nationalDayDate = new Date(`${NATIONAL_DAY}T00:00:00+03:00`);
+  const daysRemaining = Math.max(
+    0,
+    Math.ceil((nationalDayDate.getTime() - now.getTime()) / 86400000),
+  );
+
+  res.json({
+    total: counterRow?.count ?? 0,
+    today,
+    yesterday,
+    growthPercent,
+    daysRemaining,
+    nationalDay: NATIONAL_DAY,
+    daily,
+  });
 });
 
 const TESTIMONIALS = [

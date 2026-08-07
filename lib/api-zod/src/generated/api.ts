@@ -1101,3 +1101,20 @@ export const PlaceBrickResponse = zod.object({
 })
 
 
+/**
+ * @summary Campaign tracking stats — daily brick counts and growth before National Day
+ */
+export const GetWatanStatsResponse = zod.object({
+  "total": zod.int(),
+  "today": zod.int(),
+  "yesterday": zod.int(),
+  "growthPercent": zod.number().nullable(),
+  "daysRemaining": zod.int(),
+  "nationalDay": zod.string(),
+  "daily": zod.array(zod.object({
+  "date": zod.string(),
+  "count": zod.int()
+}))
+})
+
+

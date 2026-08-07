@@ -799,6 +799,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrickCount"
+  /watan/stats:
+    get:
+      operationId: getWatanStats
+      tags: [marketing]
+      summary: Campaign tracking stats — daily brick counts and growth before National Day
+      responses:
+        "200":
+          description: Campaign stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatanStats"
 components:
   parameters:
     IdParam:
@@ -894,6 +906,25 @@ components:
           minimum: 1
           maximum: 20
           description: Number of bricks to add (default 1)
+    WatanStats:
+      type: object
+      required:
+        [total, today, yesterday, growthPercent, daysRemaining, nationalDay, daily]
+      properties:
+        total: { type: integer }
+        today: { type: integer }
+        yesterday: { type: integer }
+        growthPercent: { type: ["number", "null"] }
+        daysRemaining: { type: integer }
+        nationalDay: { type: string }
+        daily:
+          type: array
+          items:
+            type: object
+            required: [date, count]
+            properties:
+              date: { type: string }
+              count: { type: integer }
     EmailVerification:
       type: object
       required: [token]

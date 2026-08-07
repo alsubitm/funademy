@@ -1,0 +1,219 @@
+import { useGetWatanStats } from '@workspace/api-client-react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Link } from 'wouter';
+import { ArrowRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
+const chartConfig = {
+  count: {
+    label: 'مكعبات',
+    color: 'hsl(142 71% 45%)',
+  },
+} satisfies ChartConfig;
+
+const dayFormatter = new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', {
+  day: 'numeric',
+  month: 'short',
+});
+
+function formatDay(iso: string) {
+  return dayFormatter.format(new Date(`${iso}T12:00:00+03:00`));
+}
+
+const numberFormatter = new Intl.NumberFormat('ar-SA-u-nu-latn');
+
+function StatCard({
+  label,
+  value,
+  hint,
+  accent,
+}: {
+  label: string;
+  value: string;
+  hint?: React.ReactNode;
+  accent?: string;
+}) {
+  return (
+    <Card className="bg-card/60 border-white/10 backdrop-blur">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-normal text-white/60">
+          {label}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className={`text-3xl font-bold ${accent ?? 'text-white'}`}>
+          {value}
+        </div>
+        {hint && <div className="mt-1 text-xs text-white/50">{hint}</div>}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function Track() {
+  const { data, isLoading, isError } = useGetWatanStats({
+    query: { queryKey: ['watan-stats'], refetchInterval: 30000 },
+  });
+
+  return (
+    <main
+      dir="rtl"
+      className="min-h-screen w-full bg-background text-white px-4 py-10 md:px-10"
+    >
+      <div className="mx-auto max-w-5xl space-y-8">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-sm text-secondary font-medium mb-1">
+              أطفالنا يبنون وطننا
+            </p>
+            <h1 className="text-3xl md:text-4xl font-bold">
+              لوحة تتبّع الحملة
+            </h1>
+            <p className="mt-2 text-white/60">
+              عدد المكعبات المضافة يومياً ونمو الحملة قبل اليوم الوطني
+            </p>
+          </div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+          >
+            العودة للحملة
+            <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+          </Link>
+        </header>
+
+        {isError && (
+          <Card className="border-destructive/50 bg-destructive/10">
+            <CardContent className="py-6 text-center text-white/80">
+              تعذّر تحميل إحصاءات الحملة. حاول تحديث الصفحة.
+            </CardContent>
+          </Card>
+        )}
+
+        {isLoading && (
+          <div className="grid gap-4 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-28 rounded-xl bg-white/5" />
+            ))}
+          </div>
+        )}
+
+        {data && (
+          <>
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              <StatCard
+                label="إجمالي المكعبات"
+                value={numberFormatter.format(data.total)}
+                accent="text-primary"
+              />
+              <StatCard
+                label="مكعبات اليوم"
+                value={numberFormatter.format(data.today)}
+                hint={`أمس: ${numberFormatter.format(data.yesterday)}`}
+              />
+              <StatCard
+                label="النمو اليومي"
+                value={
+                  data.growthPercent === null
+                    ? '—'
+                    : `${numberFormatter.format(Math.abs(data.growthPercent))}٪`
+                }
+                accent={
+                  data.growthPercent === null
+                    ? 'text-white/60'
+                    : data.growthPercent >= 0
+                      ? 'text-primary'
+                      : 'text-destructive'
+                }
+                hint={
+                  data.growthPercent === null ? (
+                    'لا توجد بيانات للمقارنة'
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      {data.growthPercent > 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : data.growthPercent < 0 ? (
+                        <TrendingDown className="h-3 w-3" />
+                      ) : (
+                        <Minus className="h-3 w-3" />
+                      )}
+                      مقارنة بالأمس
+                    </span>
+                  )
+                }
+              />
+              <StatCard
+                label="أيام حتى اليوم الوطني"
+                value={numberFormatter.format(data.daysRemaining)}
+                accent="text-secondary"
+                hint="23 سبتمبر"
+              />
+            </div>
+
+            <Card className="bg-card/60 border-white/10 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  المكعبات المضافة يومياً — آخر 14 يوماً
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-72 w-full">
+                  <BarChart data={data.daily} margin={{ left: -10, right: 10 }}>
+                    <CartesianGrid
+                      vertical={false}
+                      stroke="rgba(255,255,255,0.08)"
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatDay}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
+                      reversed
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tickLine={false}
+                      axisLine={false}
+                      orientation="right"
+                      tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          labelFormatter={(value) => formatDay(String(value))}
+                        />
+                      }
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="var(--color-count)"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={40}
+                    />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <p className="text-center text-xs text-white/40">
+              تُحدَّث البيانات تلقائياً كل 30 ثانية · التواريخ بتوقيت الرياض
+            </p>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}

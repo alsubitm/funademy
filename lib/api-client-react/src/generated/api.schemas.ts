@@ -101,6 +101,22 @@ export interface BrickPlacement {
   amount?: number;
 }
 
+export type WatanStatsDailyItem = {
+  date: string;
+  count: number;
+};
+
+export interface WatanStats {
+  total: number;
+  today: number;
+  yesterday: number;
+  /** @nullable */
+  growthPercent: number | null;
+  daysRemaining: number;
+  nationalDay: string;
+  daily: WatanStatsDailyItem[];
+}
+
 export interface EmailVerification {
   /** @minLength 1 */
   token: string;

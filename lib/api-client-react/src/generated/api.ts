@@ -63,7 +63,8 @@ import type {
   SubscriptionStart,
   Unit,
   UnitInput,
-  UnitUpdate
+  UnitUpdate,
+  WatanStats
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -3358,4 +3359,81 @@ export const usePlaceBrick = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getPlaceBrickMutationOptions(options));
     }
+
+export const getGetWatanStatsUrl = () => {
+
+
+
+
+  return `/api/watan/stats`
+}
+
+/**
+ * @summary Campaign tracking stats — daily brick counts and growth before National Day
+ */
+export const getWatanStats = async ( options?: Parameters<typeof customFetch>[1]): Promise<WatanStats> => {
+
+  return customFetch<WatanStats>(getGetWatanStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWatanStatsQueryKey = () => {
+    return [
+    `/api/watan/stats`
+    ] as const;
+    }
+
+
+export const getGetWatanStatsQueryOptions = <TData = Awaited<ReturnType<typeof getWatanStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWatanStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWatanStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWatanStats>>> = ({ signal }) => getWatanStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWatanStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWatanStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getWatanStats>>>
+export type GetWatanStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Campaign tracking stats — daily brick counts and growth before National Day
+ */
+
+export function useGetWatanStats<TData = Awaited<ReturnType<typeof getWatanStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWatanStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWatanStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

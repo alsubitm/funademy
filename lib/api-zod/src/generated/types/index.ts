@@ -67,3 +67,5 @@ export * from './unit';
 export * from './unitInput';
 export * from './unitUpdate';
 export * from './unitWithLessons';
+export * from './watanStats';
+export * from './watanStatsDailyItem';
