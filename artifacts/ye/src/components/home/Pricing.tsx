@@ -30,10 +30,10 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
             <div className="inner">
               <h3>{lang === 'ar' ? 'أونلاين مباشر' : 'Live Online'}</h3>
               <div className="pr">
-                <small>SAR</small> 330 <small>{lang === 'ar' ? '/ شهر' : '/ mo'}</small>
+                <small>SAR</small> 1380 <small>{lang === 'ar' ? '/ للبرنامج' : '/ program'}</small>
               </div>
               <ul dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                <li>{lang === 'ar' ? 'حصص أسبوعية مباشرة' : 'Weekly live sessions'}</li>
+                <li>{lang === 'ar' ? '٤-٦ حصص شهرياً' : '4–6 sessions per month'}</li>
                 <li>{lang === 'ar' ? 'عدد طلاب محدود (٤-٨)' : 'Small groups (4-8 kids)'}</li>
                 <li>{lang === 'ar' ? 'العدة تُشحن للمنزل' : 'Kit shipped to home'}</li>
                 <li>{lang === 'ar' ? 'متابعة وتواصل مستمر' : 'Continuous follow-up'}</li>
@@ -50,9 +50,10 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
             <div className="inner">
               <h3>{lang === 'ar' ? 'حضوري' : 'In-Person'}</h3>
               <div className="pr">
-                <small>SAR</small> 380 <small>{lang === 'ar' ? '/ شهر' : '/ mo'}</small>
+                <small>SAR</small> 1380 <small>{lang === 'ar' ? '/ للبرنامج' : '/ program'}</small>
               </div>
               <ul dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                <li>{lang === 'ar' ? '٤-٦ حصص شهرياً' : '4–6 sessions per month'}</li>
                 <li>{lang === 'ar' ? 'في مراكزنا بالرياض' : 'At our Riyadh centers'}</li>
                 <li>{lang === 'ar' ? 'بيئة تفاعلية اجتماعية' : 'Interactive social environment'}</li>
                 <li>{lang === 'ar' ? 'العدة متوفرة بالمركز' : 'Kit provided at center'}</li>
@@ -66,7 +67,7 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
         </div>
 
         <ScrollReveal className="pnote">
-          {lang === 'ar' ? 'خصم ١٠٪ للأخوة. تُدفع الرسوم كدفعة واحدة للفصل الدراسي (١٢ أسبوع).' : '10% sibling discount. Fees are paid as a single payment per semester (12 weeks).'}
+          {lang === 'ar' ? 'السعر ١٣٨٠ ريال للطفل الواحد بمعدل ٤-٦ حصص شهرياً. خصم ١٠٪ للأخوة.' : 'SAR 1380 per child, at 4–6 sessions per month. 10% sibling discount.'}
         </ScrollReveal>
       </div>
     </section>

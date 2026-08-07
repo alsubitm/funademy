@@ -9,7 +9,7 @@ export function Stats({ lang }: { lang: 'ar' | 'en' }) {
           <div className="l">{lang === 'ar' ? 'برامج معتمدة' : 'Official programs'}</div>
         </div>
         <div>
-          <div className="n">4–15</div>
+          <div className="n">4–18</div>
           <div className="l">{lang === 'ar' ? 'سنوات العمر' : 'Ages covered'}</div>
         </div>
         <div>

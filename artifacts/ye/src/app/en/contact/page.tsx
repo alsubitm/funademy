@@ -8,7 +8,7 @@ import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constan
 import '@/app/contact/page.css';
 
 export const metadata = {
-  title: 'Contact Us | فناديمي Funademy',
+  title: 'Contact Us | Funademy',
   description: 'Contact the Young Engineers team for any inquiries.',
 };
 

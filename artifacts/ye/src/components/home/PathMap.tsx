@@ -10,7 +10,7 @@ export function PathMap({ lang }: { lang: 'ar' | 'en' }) {
       <div className="wrap" style={{ position: 'relative' }}>
         <ScrollReveal style={{ textAlign: 'center' }}>
           <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>
-            THE ENGINEERING PATH · 4 → 15
+            THE ENGINEERING PATH · 4 → 18
           </span>
           {lang === 'ar' ? (
             <>

@@ -51,7 +51,7 @@ export function CapMark({ size = 84, className }: MarkProps) {
   );
 }
 
-/** Wordmark — فناديمي with فن revealed in gold (or funademy / fun). */
+/** Wordmark — Funademy with فن revealed in gold (or funademy / fun). */
 export function Wordmark({
   lang = 'ar',
   className,
@@ -65,17 +65,9 @@ export function Wordmark({
     <span
       className={className}
       style={{ fontFamily: "'Baloo Bhaijaan 2', sans-serif", fontWeight: 800, ...style }}
-      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+      dir="ltr"
     >
-      {lang === 'ar' ? (
-        <>
-          <span style={{ color: 'var(--wordmark-fn, #D9A600)' }}>فن</span>اديمي
-        </>
-      ) : (
-        <>
-          <span style={{ color: 'var(--wordmark-fn, #D9A600)' }}>fun</span>ademy
-        </>
-      )}
+      <span style={{ color: 'var(--wordmark-fn, #D9A600)' }}>Fun</span>ademy
     </span>
   );
 }

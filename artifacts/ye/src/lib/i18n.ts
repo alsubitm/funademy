@@ -22,7 +22,7 @@ export const dict = {
 
     // Pricing
     pricingTitle: "استثمر في مستقبلهم الهندسي",
-    pricingSub: "باقة الفصل الدراسي (١٢ أسبوع)",
+    pricingSub: "١٣٨٠ ريال للطفل — بمعدل ٤-٦ حصص شهرياً",
   },
   en: {
     topBanner: "🎓 New school year enrollment open — live online & in-person",

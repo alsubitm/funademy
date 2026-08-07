@@ -1,10 +1,10 @@
-# فناديمي Funademy — Young Engineers Riyadh
+# Funademy — Young Engineers Riyadh
 
-Production bilingual website (Arabic-first RTL at `/`, English at `/en`) for **فناديمي Funademy** (Falcon Eye Ltd), the official e² YOUNG ENGINEERS Riyadh licensee.
+Production bilingual website (Arabic-first RTL at `/`, English at `/en`) for **Funademy** (Falcon Eye Ltd), the official e² YOUNG ENGINEERS Riyadh licensee.
 
 ## Brand identity — the Kite-Cap
 
-The Funademy mark is the **Kite-Cap**: a gold diamond that reads as a flying kite (kids/marketing) and as a mortarboard seen from above (academic mode). Wordmark فناديمي / funademy renders the first letters (فن / fun) in gold. All marks are inline SVG in `src/components/brand/FunademyMark.tsx` (`KiteMark`, `CapMark`, `Wordmark`); favicon at `src/app/icon.svg`. Source of truth: `attached_assets/Funademy_KiteCap_Identity_*.html`.
+The Funademy mark is the **Kite-Cap**: a gold diamond that reads as a flying kite (kids/marketing) and as a mortarboard seen from above (academic mode). Wordmark Funademy / funademy renders the first letters (فن / fun) in gold. All marks are inline SVG in `src/components/brand/FunademyMark.tsx` (`KiteMark`, `CapMark`, `Wordmark`); favicon at `src/app/icon.svg`. Source of truth: `attached_assets/Funademy_KiteCap_Identity_*.html`.
 
 **Stack:** Next.js 15 (App Router) · Prisma 6 · PostgreSQL · Tailwind CSS v4
 
@@ -46,7 +46,7 @@ The e² Young Engineers logo is trademarked and is **not** bundled. Dashed place
 ## Editing schedule & pricing
 
 - **Schedule slots:** manage them in `/admin` (no code changes needed). Slots power both the LIVE ticker and the booking flow.
-- **Pricing:** displayed prices (SAR 330 online / SAR 380 in-person / −10% family discount) live in the home + pricing components under `src/components/`.
+- **Pricing:** displayed prices (SAR 1380 per child per program, 4–6 sessions/month, −10% sibling discount) live in the home + pricing components under `src/components/`.
 - **Seed data:** `prisma/seed.ts` (6 programs, 12 slots, 3 testimonials, 6 FAQs, brick counter baseline 1,847). Run `pnpm run db:seed` (idempotent).
 
 ## Database — IMPORTANT

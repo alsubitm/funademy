@@ -5,7 +5,7 @@ import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import './page.css';
 
 export const metadata = {
-  title: 'لوحة التحكم | فناديمي Funademy',
+  title: 'لوحة التحكم | Funademy',
   robots: { index: false, follow: false }
 };
 
