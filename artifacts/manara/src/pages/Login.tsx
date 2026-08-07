@@ -1,6 +1,6 @@
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
-import { useLogin, useGetMe } from '@workspace/api-client-react';
+import { useLogin, useGetMe, logout } from '@workspace/api-client-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, Loader2 } from 'lucide-react';
+import { BookOpen, Loader2, ShieldAlert, LogOut } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -17,6 +17,12 @@ const loginSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
+
+function isAdminOnlyRedirect(redirect: string): boolean {
+  // Admin-only destinations: Manara admin pages and the Watanona tracking dashboard
+  const path = redirect.split('?')[0].split('#')[0];
+  return path.includes('/admin') || path.includes('/track');
+}
 
 function getSafeRedirect(): string | null {
   const raw = new URLSearchParams(window.location.search).get('redirect');
@@ -37,6 +43,37 @@ export default function Login() {
   const { toast } = useToast();
   const { data: user, isLoading: isUserLoading } = useGetMe();
   const loginMutation = useLogin();
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [loggedOut, setLoggedOut] = React.useState(false);
+
+  const isAdminUser = (role: string) => role === 'admin' || role === 'teacher';
+
+  const redirect = getSafeRedirect();
+  const needsAdminAccount = Boolean(
+    !loggedOut &&
+      user &&
+      !isUserLoading &&
+      redirect &&
+      isAdminOnlyRedirect(redirect) &&
+      (user.activeChild || !isAdminUser(user.role))
+  );
+
+  const handleSwitchAccount = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      setLoggedOut(true);
+      form.reset();
+    } catch {
+      toast({
+        title: t('تعذّر تسجيل الخروج', 'Logout failed'),
+        description: t('حاول مرة أخرى', 'Please try again'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -47,9 +84,13 @@ export default function Login() {
   });
 
   React.useEffect(() => {
-    if (user && !isUserLoading) {
+    if (user && !isUserLoading && !loggedOut) {
       const redirect = getSafeRedirect();
       if (redirect) {
+        if (isAdminOnlyRedirect(redirect) && (user.activeChild || !isAdminUser(user.role))) {
+          // Don't redirect blindly — the destination requires an admin account.
+          return;
+        }
         window.location.href = redirect;
         return;
       }
@@ -68,8 +109,13 @@ export default function Login() {
       { data },
       {
         onSuccess: (res) => {
+          setLoggedOut(false);
           const redirect = getSafeRedirect();
           if (redirect) {
+            if (isAdminOnlyRedirect(redirect) && (res.activeChild || !isAdminUser(res.role))) {
+              // Logged in with a non-admin account while heading to an admin page
+              return;
+            }
             window.location.href = redirect;
             return;
           }
@@ -91,6 +137,54 @@ export default function Login() {
       }
     );
   };
+
+  if (needsAdminAccount) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
+        <div className="max-w-md w-full bg-card rounded-2xl shadow-xl border p-8">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive mb-4">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <h1 className="text-2xl font-bold">{t('هذه الصفحة تتطلب حساب مشرف', 'Admin account required')}</h1>
+            <p className="text-muted-foreground mt-2">
+              {t(
+                'أنت مسجّل الدخول حالياً بحساب لا يملك صلاحيات الإدارة، والصفحة المطلوبة مخصصة للمشرفين فقط. سجّل الخروج ثم ادخل بحساب مشرف للمتابعة.',
+                'You are currently signed in with an account that does not have admin permissions, and the requested page is for admins only. Log out and sign in with an admin account to continue.'
+              )}
+            </p>
+            <Button
+              onClick={handleSwitchAccount}
+              disabled={isLoggingOut}
+              className="w-full h-12 text-lg mt-6"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="w-5 h-5 mr-2 rtl:ml-2 rtl:mr-0 animate-spin" />
+              ) : (
+                <LogOut className="w-5 h-5 mr-2 rtl:ml-2 rtl:mr-0" />
+              )}
+              {t('تسجيل الخروج والدخول بحساب مشرف', 'Log out and sign in as admin')}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full h-12 mt-3"
+              onClick={() => {
+                if (user?.activeChild) {
+                  setLocation('/kid');
+                } else if (user?.role === 'parent') {
+                  setLocation('/app');
+                } else {
+                  setLocation('/');
+                }
+              }}
+            >
+              {t('البقاء في حسابي الحالي', 'Stay in my current account')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
