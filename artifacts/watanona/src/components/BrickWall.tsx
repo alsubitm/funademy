@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useBrickWall } from '@/hooks/use-brick-wall';
 import { BrickIcon } from './Icons';
+import { ShareCard } from './ShareCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BRICK_COLORS = [
@@ -109,6 +110,10 @@ export function BrickWall() {
             </div>
           ))}
         </div>
+
+        <AnimatePresence>
+          {wallUsed && <ShareCard />}
+        </AnimatePresence>
       </div>
     </section>
   );
