@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { KiteMark, Wordmark } from '@/components/brand/FunademyMark';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 
@@ -20,7 +21,8 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
       <nav>
         <div className="wrap nav-in">
           <Link href={lang === 'ar' ? '/' : '/en'} className="brand">
-            <div className="logo-slot">[ OFFICIAL e² YE LOGO ]</div>
+            <KiteMark size={40} full={false} className="kite-sway" />
+            <Wordmark lang={lang} style={{ fontSize: 26, lineHeight: 1 }} />
             <div className="ter">
               Riyadh North<span>{d.brandSub}</span>
             </div>

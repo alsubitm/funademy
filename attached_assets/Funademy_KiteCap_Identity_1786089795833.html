@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funademy — The Kite-Cap · فناديمي: الطيّارة والقبعة</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bp:#0D2B6B;--bp-deep:#071A45;--blue:#2764D6;--gold:#FFC400;--gold-d:#D9A600;
+    --sand1:#F7E3B2;--sand2:#F2CD7E;--amber:#E5AE4A;--amber-d:#C98A1E;--cyan:#37C8F5;--saudi:#0E6B3A;
+    --ink:#101A38;--mut:#54618C;--line:#E4E9F5;--bg:#F5F8FF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'IBM Plex Sans Arabic',sans-serif;color:var(--ink);background:#fff;line-height:1.6}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  section{padding:72px 0;border-bottom:1px solid var(--line)}
+  h2{font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:clamp(25px,3.4vw,36px);line-height:1.18}
+  .num{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.22em;color:var(--blue);font-weight:600;margin-bottom:10px;display:block}
+  .lede{color:var(--mut);font-size:15.5px;max-width:700px;margin-top:10px}
+  .cap{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);text-align:center}
+
+  .cover{background:linear-gradient(180deg,#0A1F52,var(--bp-deep));color:#fff;padding:80px 0 70px;text-align:center;position:relative;overflow:hidden}
+  .bpgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(120,175,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(120,175,255,.12) 1px,transparent 1px);background-size:110px 110px}
+  .cover h1{font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:clamp(28px,4.4vw,50px);position:relative}
+  .cover p{color:#C4D7FF;position:relative;margin-top:8px;font-size:15.5px}
+  .hero-mark{width:min(330px,74vw);margin:8px auto 0;position:relative}
+  @keyframes sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+  .kite-sway{animation:sway 5s ease-in-out infinite;transform-origin:50% 18%}
+  @media(prefers-reduced-motion:reduce){.kite-sway{animation:none}}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:34px}
+  .card{border:1px solid var(--line);border-radius:16px;padding:26px 18px;display:flex;flex-direction:column;align-items:center;gap:14px;min-height:220px;justify-content:center;background:#fff;box-shadow:0 8px 22px rgba(16,26,56,.05)}
+  .card.dark{background:var(--bp-deep);border-color:var(--bp-deep)}
+  .card.dark .cap{color:#7FA5F0}
+  .why{margin-top:30px;background:var(--bg);border:1.5px dashed #C9D6F2;border-radius:14px;padding:22px 26px}
+  .why b{font-family:'Baloo Bhaijaan 2';font-size:15.5px}
+  .why p{font-size:14px;color:#33475b;margin-top:6px}
+
+  /* flip demo */
+  .flip{position:relative;width:230px;height:230px;cursor:pointer}
+  .flip svg{position:absolute;inset:0;transition:opacity .5s ease,transform .7s cubic-bezier(.6,-0.2,.3,1.3)}
+  .flip .kiteV{opacity:1;transform:rotate(0)}
+  .flip .capV{opacity:0;transform:rotate(-45deg) scale(.9)}
+  .flip:hover .kiteV,.flip.on .kiteV{opacity:0;transform:rotate(45deg) scale(.9)}
+  .flip:hover .capV,.flip.on .capV{opacity:1;transform:rotate(0)}
+  .flipcap{text-align:center;margin-top:8px}
+
+  .wordm{font-family:'Baloo Bhaijaan 2';font-weight:800}
+  .wordm .fn{color:var(--gold-d)}
+  .appicon{width:96px;height:96px;border-radius:24px;background:var(--bp);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(16,26,56,.25)}
+
+  .apps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:34px}
+  .app{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 10px 26px rgba(16,26,56,.06)}
+  .app .mock{height:210px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .app .nm{padding:12px 16px;font-weight:700;font-size:13.5px;border-top:1px solid var(--line)}
+  .ig{background:linear-gradient(165deg,var(--bp),var(--bp-deep))}
+  .seal{background:#F7EFDD}
+  .sign{background:var(--bg)}
+  footer{padding:40px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--mut)}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER: THE MARK ============ -->
+<div class="cover">
+  <div class="bpgrid"></div>
+  <div class="hero-mark kite-sway">
+    <!-- THE KITE-CAP -->
+    <svg viewBox="0 0 340 420">
+      <!-- string -->
+      <path d="M170 316 Q 120 360 92 404" fill="none" stroke="#7FA5F0" stroke-width="3" stroke-dasharray="1 8" stroke-linecap="round"/>
+      <!-- tail -->
+      <path d="M170 316 Q 214 356 200 392 Q 190 416 226 414" fill="none" stroke="#C98A1E" stroke-width="7" stroke-linecap="round"/>
+      <!-- tail bows -->
+      <g stroke="#101A38" stroke-width="5" stroke-linejoin="round">
+        <rect x="196" y="338" width="22" height="22" rx="5" fill="#37C8F5" transform="rotate(45 207 349)"/>
+        <rect x="186" y="378" width="20" height="20" rx="5" fill="#F2CD7E" transform="rotate(45 196 388)"/>
+      </g>
+      <path d="M240 402 l7 15 15 7 -15 7 -7 15 -7 -15 -15 -7 15 -7z" fill="#FFC400" stroke="#101A38" stroke-width="5"/>
+      <!-- kite body = mortarboard from above -->
+      <g stroke="#101A38" stroke-linejoin="round">
+        <polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke-width="10"/>
+        <!-- spars -->
+        <line x1="170" y1="36" x2="170" y2="316" stroke-width="6" opacity=".9"/>
+        <line x1="34" y1="176" x2="306" y2="176" stroke-width="6" opacity=".9"/>
+        <!-- sheen quarter -->
+        <polygon points="170,36 306,176 170,176" fill="#FFD84D" stroke="none" opacity=".55"/>
+        <!-- cap button -->
+        <circle cx="170" cy="176" r="16" fill="#0D2B6B" stroke-width="7"/>
+      </g>
+    </svg>
+  </div>
+  <h1>الطيّارة التي هي قبعة — The Kite-Cap</h1>
+  <p>الأطفال يرون طيّارة تحلّق. الأهالي يرون قبعة التخرّج. الشعار واحد.</p>
+</div>
+
+<!-- ============ 01 THE ILLUSION ============ -->
+<section>
+  <div class="wrap">
+    <span class="num">01 · THE IDEA — TRY IT YOURSELF</span>
+    <h2>One diamond, two truths</h2>
+    <p class="lede">A mortarboard seen from above is a diamond. A diamond with a tail is a kite. So the Funademy mark is both at once: <b>fun flying on the outside, academy hiding in plain sight.</b> Hover (or tap) the mark below — the kite lands and becomes the cap.</p>
+    <div class="cards">
+      <div class="card" style="grid-column:span 1">
+        <div class="flip" onclick="this.classList.toggle('on')">
+          <!-- kite view -->
+          <svg class="kiteV" viewBox="0 0 260 260">
+            <path d="M130 226 Q 158 246 152 256" fill="none" stroke="#C98A1E" stroke-width="6" stroke-linecap="round"/>
+            <g stroke="#101A38" stroke-linejoin="round">
+              <polygon points="130,26 226,126 130,226 34,126" fill="#FFC400" stroke-width="9"/>
+              <line x1="130" y1="26" x2="130" y2="226" stroke-width="5"/>
+              <line x1="34" y1="126" x2="226" y2="126" stroke-width="5"/>
+              <circle cx="130" cy="126" r="13" fill="#0D2B6B" stroke-width="6"/>
+            </g>
+          </svg>
+          <!-- cap view -->
+          <svg class="capV" viewBox="0 0 260 260">
+            <g stroke="#101A38" stroke-linejoin="round">
+              <polygon points="130,60 240,116 130,172 20,116" fill="#FFC400" stroke-width="9"/>
+              <line x1="130" y1="60" x2="130" y2="172" stroke-width="5" opacity=".5"/>
+              <line x1="20" y1="116" x2="240" y2="116" stroke-width="5" opacity=".5"/>
+              <path d="M78 152 L78 196 Q130 224 182 196 L182 152" fill="#FFC400" stroke-width="9"/>
+              <circle cx="130" cy="116" r="12" fill="#0D2B6B" stroke-width="6"/>
+              <path d="M130 116 Q 196 130 200 178" fill="none" stroke="#C98A1E" stroke-width="6" stroke-linecap="round"/>
+              <path d="M200 178 l5 11 11 5 -11 5 -5 11 -5 -11 -11 -5 11 -5z" fill="#FFC400" stroke="#101A38" stroke-width="4"/>
+            </g>
+          </svg>
+        </div>
+        <div class="cap flipcap">HOVER / TAP — الطيّارة تهبط فتصير قبعة</div>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 340 420" width="130">
+          <path d="M170 316 Q 214 356 200 392 Q 190 416 226 414" fill="none" stroke="#C98A1E" stroke-width="7" stroke-linecap="round"/>
+          <g stroke="#101A38" stroke-width="5" stroke-linejoin="round">
+            <rect x="196" y="338" width="22" height="22" rx="5" fill="#37C8F5" transform="rotate(45 207 349)"/>
+            <rect x="186" y="378" width="20" height="20" rx="5" fill="#F2CD7E" transform="rotate(45 196 388)"/>
+          </g>
+          <path d="M240 402 l7 15 15 7 -15 7 -7 15 -7 -15 -15 -7 15 -7z" fill="#FFC400" stroke="#101A38" stroke-width="5"/>
+          <g stroke="#101A38" stroke-linejoin="round">
+            <polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke-width="10"/>
+            <line x1="170" y1="36" x2="170" y2="316" stroke-width="6"/>
+            <line x1="34" y1="176" x2="306" y2="176" stroke-width="6"/>
+            <polygon points="170,36 306,176 170,176" fill="#FFD84D" stroke="none" opacity=".55"/>
+            <circle cx="170" cy="176" r="16" fill="#0D2B6B" stroke-width="7"/>
+          </g>
+        </svg>
+        <div class="cap">Primary — the flying kite (kids, marketing)</div>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 260 240" width="130">
+          <g stroke="#101A38" stroke-linejoin="round">
+            <polygon points="130,44 246,104 130,164 14,104" fill="#FFC400" stroke-width="9"/>
+            <path d="M76 142 L76 188 Q130 216 184 188 L184 142" fill="#FFC400" stroke-width="9"/>
+            <circle cx="130" cy="104" r="12" fill="#0D2B6B" stroke-width="6"/>
+            <path d="M130 104 Q 198 118 202 168" fill="none" stroke="#C98A1E" stroke-width="6" stroke-linecap="round"/>
+            <path d="M202 168 l5.5 12 12 5.5 -12 5.5 -5.5 12 -5.5 -12 -12 -5.5 12 -5.5z" fill="#FFC400" stroke="#101A38" stroke-width="4.5"/>
+          </g>
+        </svg>
+        <div class="cap">Academic mode — the cap (certificates, diplomas)</div>
+      </div>
+      <div class="card dark">
+        <svg viewBox="0 0 340 420" width="118">
+          <path d="M170 316 Q 214 356 200 392 Q 190 416 226 414" fill="none" stroke="#F2CD7E" stroke-width="7" stroke-linecap="round"/>
+          <g stroke="#F5F8FF" stroke-width="5" stroke-linejoin="round">
+            <rect x="196" y="338" width="22" height="22" rx="5" fill="#37C8F5" transform="rotate(45 207 349)"/>
+            <rect x="186" y="378" width="20" height="20" rx="5" fill="#F2CD7E" transform="rotate(45 196 388)"/>
+          </g>
+          <path d="M240 402 l7 15 15 7 -15 7 -7 15 -7 -15 -15 -7 15 -7z" fill="#FFC400" stroke="#F5F8FF" stroke-width="5"/>
+          <g stroke="#F5F8FF" stroke-linejoin="round">
+            <polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke-width="10"/>
+            <line x1="170" y1="36" x2="170" y2="316" stroke-width="6"/>
+            <line x1="34" y1="176" x2="306" y2="176" stroke-width="6"/>
+            <circle cx="170" cy="176" r="16" fill="#0D2B6B" stroke-width="7"/>
+          </g>
+        </svg>
+        <div class="cap">Dark surfaces</div>
+      </div>
+    </div>
+    <div class="why"><b>Why this is outside the box:</b><p>It's not a symbol <i>about</i> the brand — it's the brand promise working as an optical illusion. Fun (the kite) and Academy (the cap) are literally the same shape, which is exactly Funademy's claim: play and learning are one thing. It animates natively (kites fly, sway, land), it's unlike anything in Saudi education, and the two-mode system gives you a playful mark for marketing and a dignified one for certificates — same geometry, zero confusion.</p></div>
+  </div>
+</section>
+
+<!-- ============ 02 THE WORDMARK ============ -->
+<section style="background:var(--bg)">
+  <div class="wrap">
+    <span class="num">02 · THE WORDMARK — الاكتشاف الثاني</span>
+    <h2>فناديمي = فن + أكاديمي</h2>
+    <p class="lede">Your name hides a gift: the first two letters of فناديمي spell <b>فن</b> — art, craft, joy. The Arabic wordmark simply reveals it in gold: the brand explains itself every time it's written. In English, "fun" gets the same treatment.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="wordm" style="font-size:52px;direction:rtl"><span class="fn">فن</span>اديمي</div>
+        <div class="cap">Arabic wordmark — فن revealed in gold</div>
+      </div>
+      <div class="card">
+        <div class="wordm" style="font-size:44px"><span class="fn">fun</span>ademy</div>
+        <div class="cap">English wordmark</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;direction:rtl">
+          <svg viewBox="0 0 340 420" width="40"><path d="M170 316 Q 214 356 200 392" fill="none" stroke="#C98A1E" stroke-width="9" stroke-linecap="round"/><g stroke="#101A38" stroke-linejoin="round"><polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke-width="12"/><line x1="170" y1="36" x2="170" y2="316" stroke-width="7"/><line x1="34" y1="176" x2="306" y2="176" stroke-width="7"/><circle cx="170" cy="176" r="16" fill="#0D2B6B" stroke-width="8"/></g></svg>
+          <div class="wordm" style="font-size:30px"><span class="fn">فن</span>اديمي</div>
+        </div>
+        <div class="cap">Horizontal lockup — mark + wordmark</div>
+      </div>
+      <div class="card">
+        <div class="appicon">
+          <svg viewBox="0 0 340 420" width="52"><path d="M170 316 Q 214 356 200 392" fill="none" stroke="#F2CD7E" stroke-width="10" stroke-linecap="round"/><g stroke="#F5F8FF" stroke-linejoin="round"><polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke-width="13"/><line x1="170" y1="36" x2="170" y2="316" stroke-width="8"/><line x1="34" y1="176" x2="306" y2="176" stroke-width="8"/><circle cx="170" cy="176" r="17" fill="#0D2B6B" stroke-width="9"/></g></svg>
+        </div>
+        <div class="cap">App icon / avatar — kite fills the diamond</div>
+      </div>
+    </div>
+    <p class="lede" style="margin-top:24px"><b>Tagline lockup:</b> «فناديمي — حيث الفن يلتقي بالأكاديمية» / "funademy — where fun meets academy." The name, the mark, and the tagline all make the same promise three different ways.</p>
+  </div>
+</section>
+
+<!-- ============ 03 IN USE ============ -->
+<section>
+  <div class="wrap">
+    <span class="num">03 · THE MARK IN USE</span>
+    <h2>It was born to move</h2>
+    <div class="apps">
+      <div class="app"><div class="mock ig">
+        <div style="text-align:center">
+          <svg viewBox="0 0 340 420" width="84" class="kite-sway"><path d="M170 316 Q 214 356 200 392 Q 190 416 226 414" fill="none" stroke="#F2CD7E" stroke-width="7" stroke-linecap="round"/><path d="M240 402 l7 15 15 7 -15 7 -7 15 -7 -15 -15 -7 15 -7z" fill="#FFC400" stroke="#F5F8FF" stroke-width="5"/><g stroke="#F5F8FF" stroke-linejoin="round"><polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke-width="10"/><line x1="170" y1="36" x2="170" y2="316" stroke-width="6"/><line x1="34" y1="176" x2="306" y2="176" stroke-width="6"/><circle cx="170" cy="176" r="16" fill="#0D2B6B" stroke-width="7"/></g></svg>
+          <div class="wordm" style="color:#fff;font-size:20px;margin-top:6px"><span style="color:var(--gold)">فن</span>اديمي</div>
+        </div>
+      </div><div class="nm">@funademy — the kite sways gently in stories & reels</div></div>
+
+      <div class="app"><div class="mock seal">
+        <svg viewBox="0 0 200 200" width="140">
+          <circle cx="100" cy="100" r="86" fill="none" stroke="#101A38" stroke-width="3"/>
+          <circle cx="100" cy="100" r="72" fill="none" stroke="#101A38" stroke-width="1.6" stroke-dasharray="4 3"/>
+          <g transform="translate(100,96) scale(.34) translate(-130,-104)">
+            <g stroke="#101A38" stroke-linejoin="round">
+              <polygon points="130,44 246,104 130,164 14,104" fill="#FFC400" stroke-width="9"/>
+              <path d="M76 142 L76 188 Q130 216 184 188 L184 142" fill="#FFC400" stroke-width="9"/>
+              <circle cx="130" cy="104" r="12" fill="#0D2B6B" stroke-width="6"/>
+            </g>
+          </g>
+          <text x="100" y="162" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" letter-spacing="2" fill="#101A38">FUNADEMY · فناديمي</text>
+        </svg>
+      </div><div class="nm">Certificate seal — cap mode, dignified</div></div>
+
+      <div class="app"><div class="mock sign">
+        <div style="background:var(--bp);border-radius:14px;padding:18px 26px;display:flex;align-items:center;gap:14px;box-shadow:0 14px 30px rgba(16,26,56,.3)">
+          <svg viewBox="0 0 340 420" width="34"><g stroke="#F5F8FF" stroke-linejoin="round"><polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke-width="12"/><line x1="170" y1="36" x2="170" y2="316" stroke-width="7"/><line x1="34" y1="176" x2="306" y2="176" stroke-width="7"/><circle cx="170" cy="176" r="16" fill="#0D2B6B" stroke-width="8"/></g></svg>
+          <div class="wordm" style="color:#fff;font-size:24px"><span style="color:var(--gold)">fun</span>ademy</div>
+        </div>
+      </div><div class="nm">Signage — the diamond reads at any distance</div></div>
+
+      <div class="app"><div class="mock" style="background:#fff">
+        <div style="display:flex;gap:26px;align-items:center">
+          <div style="text-align:center"><svg viewBox="0 0 340 420" width="30"><polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke="#101A38" stroke-width="14"/><circle cx="170" cy="176" r="18" fill="#0D2B6B"/></svg><div class="cap" style="margin-top:6px">16px</div></div>
+          <div style="text-align:center"><svg viewBox="0 0 340 420" width="48"><polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke="#101A38" stroke-width="12"/><line x1="170" y1="36" x2="170" y2="316" stroke="#101A38" stroke-width="8"/><line x1="34" y1="176" x2="306" y2="176" stroke="#101A38" stroke-width="8"/><circle cx="170" cy="176" r="17" fill="#0D2B6B"/></svg><div class="cap" style="margin-top:6px">32px</div></div>
+          <div style="text-align:center"><svg viewBox="0 0 340 420" width="74"><path d="M170 316 Q 214 356 200 392" fill="none" stroke="#C98A1E" stroke-width="9" stroke-linecap="round"/><g stroke="#101A38" stroke-linejoin="round"><polygon points="170,36 306,176 170,316 34,176" fill="#FFC400" stroke-width="11"/><line x1="170" y1="36" x2="170" y2="316" stroke-width="7"/><line x1="34" y1="176" x2="306" y2="176" stroke-width="7"/><circle cx="170" cy="176" r="16" fill="#0D2B6B" stroke-width="7"/></g></svg><div class="cap" style="margin-top:6px">FULL</div></div>
+        </div>
+      </div><div class="nm">Scales to favicon — diamond survives at 16px</div></div>
+    </div>
+    <div class="why"><b>System note:</b><p>Kite mode = marketing, social, kids, camps (tail, bows, star, motion). Cap mode = certificates, diplomas, official letters (band, tassel, stillness). Same diamond, same button, same gold — one brand with two postures. The YE endorsement lockups from the master identity stay unchanged; only the Funademy mark is upgraded.</p></div>
+  </div>
+</section>
+
+<footer>FUNADEMY — THE KITE-CAP · فناديمي: فن + أكاديمي · FALCON EYE LTD · ALL MARKS AS INLINE SVG</footer>
+
+</body>
+</html>

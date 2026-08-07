@@ -1,3 +1,4 @@
+import { KiteMark, Wordmark } from '@/components/brand/FunademyMark';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER, EMAIL } from '@/lib/constants';
 
@@ -9,8 +10,16 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
       <div className="wrap">
         <div className="fgrid">
           <div>
-            <div className="logo-slot on-dark mb-4">[ OFFICIAL e² YE LOGO ]</div>
+            <div className="mb-4 flex items-center gap-3">
+              <KiteMark size={44} dark />
+              <Wordmark
+                lang={lang}
+                style={{ fontSize: 26, color: '#fff', ['--wordmark-fn' as never]: '#FFC400' }}
+              />
+            </div>
             <p className="text-sm mt-2 opacity-80" style={{ maxWidth: '300px' }}>
+              {lang === 'ar' ? 'فناديمي — حيث الفن يلتقي بالأكاديمية' : 'funademy — where fun meets academy'}
+              <br />
               e² Young Engineers Riyadh North<br />
               Licensed Territory · Falcon Eye Ltd.
             </p>

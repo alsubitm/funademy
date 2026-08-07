@@ -9,7 +9,7 @@ import { bookDict } from '@/app/book/dict';
 import '@/app/book/page.css';
 
 export const metadata = {
-  title: 'Book a Trial | Young Engineers Riyadh North',
+  title: 'Book a Trial | فناديمي Funademy',
   description: 'Register your child for a free trial class to experience the Young Engineer journey.',
 };
 

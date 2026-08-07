@@ -5,6 +5,7 @@ import { BookingsTab } from './BookingsTab';
 import { SlotsTab } from './SlotsTab';
 import { ContentTab } from './ContentTab';
 import { BricksTab } from './BricksTab';
+import { KiteMark, Wordmark } from '@/components/brand/FunademyMark';
 
 export function AdminDashboard({ programs }: { programs: any[] }) {
   const [activeTab, setActiveTab] = useState('bookings');
@@ -41,8 +42,12 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
     <div className="admin-wrap" dir="rtl">
       <aside className="admin-sidebar">
         <div className="p-6 border-b border-[#26325C]">
-          <div className="logo-slot on-dark mb-4 w-full h-12 text-sm flex items-center justify-center">
-            [ OFFICIAL e² YE LOGO ]
+          <div className="mb-4 w-full h-12 flex items-center justify-center gap-2">
+            <KiteMark size={34} dark full={false} />
+            <Wordmark
+              lang="ar"
+              style={{ fontSize: 22, color: '#fff', ['--wordmark-fn' as never]: '#FFC400' }}
+            />
           </div>
           <h2 className="font-display font-bold text-lg text-[#FFC400]">لوحة التحكم</h2>
           <div className="text-xs text-[#9DA9CF] font-mono mt-1">v2.0 Admin Panel</div>

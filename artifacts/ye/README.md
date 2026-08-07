@@ -1,6 +1,10 @@
-# Young Engineers Riyadh North — Website
+# فناديمي Funademy — Young Engineers Riyadh North
 
-Production bilingual website (Arabic-first RTL at `/`, English at `/en`) for **Young Engineers Riyadh North**, operated by Falcon Eye Ltd — official e² YOUNG ENGINEERS licensee.
+Production bilingual website (Arabic-first RTL at `/`, English at `/en`) for **فناديمي Funademy** (Falcon Eye Ltd), the official e² YOUNG ENGINEERS Riyadh North licensee.
+
+## Brand identity — the Kite-Cap
+
+The Funademy mark is the **Kite-Cap**: a gold diamond that reads as a flying kite (kids/marketing) and as a mortarboard seen from above (academic mode). Wordmark فناديمي / funademy renders the first letters (فن / fun) in gold. All marks are inline SVG in `src/components/brand/FunademyMark.tsx` (`KiteMark`, `CapMark`, `Wordmark`); favicon at `src/app/icon.svg`. Source of truth: `attached_assets/Funademy_KiteCap_Identity_*.html`.
 
 **Stack:** Next.js 15 (App Router) · Prisma 6 · PostgreSQL · Tailwind CSS v4
 

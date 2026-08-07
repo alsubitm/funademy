@@ -9,7 +9,7 @@ import { bookDict } from './dict';
 import './page.css';
 
 export const metadata = {
-  title: 'حجز حصة تجريبية | Young Engineers Riyadh North',
+  title: 'حجز حصة تجريبية | فناديمي Funademy',
   description: 'سجّل طفلك في حصة تجريبية مجانية ليعيش تجربة المهندس الصغير.',
 };
 

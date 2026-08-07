@@ -91,6 +91,11 @@ h4 {
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* Funademy Kite-Cap mark — gentle sway */
+@keyframes kite-sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+.kite-sway{animation:kite-sway 5s ease-in-out infinite;transform-origin:50% 18%}
+@media(prefers-reduced-motion:reduce){.kite-sway{animation:none}}
+
 /* Base styles replicated from original design */
 .mono{font-family:var(--font-mono)}
 .wrap{max-width:1150px;margin:0 auto;padding:0 22px}

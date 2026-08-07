@@ -21,9 +21,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'المهندسون الصغار — شمال الرياض | Young Engineers Riyadh North',
+  title: 'فناديمي | Funademy — e² Young Engineers شمال الرياض',
   description:
-    'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٥ سنة — حصص أونلاين وحضورية في شمال الرياض. e² Young Engineers، ترخيص فالكون آي.',
+    'فناديمي — حيث الفن يلتقي بالأكاديمية. تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٥ سنة — حصص أونلاين وحضورية في شمال الرياض. e² Young Engineers، ترخيص فالكون آي.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
