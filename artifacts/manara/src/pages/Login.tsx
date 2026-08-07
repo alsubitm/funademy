@@ -18,6 +18,19 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+function getSafeRedirect(): string | null {
+  const raw = new URLSearchParams(window.location.search).get('redirect');
+  if (!raw) return null;
+  try {
+    const url = new URL(raw, window.location.origin);
+    // Only allow same-origin redirects to avoid open-redirect abuse
+    if (url.origin !== window.location.origin) return null;
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return null;
+  }
+}
+
 export default function Login() {
   const { t, dir } = useI18n();
   const [, setLocation] = useLocation();
@@ -35,6 +48,11 @@ export default function Login() {
 
   React.useEffect(() => {
     if (user && !isUserLoading) {
+      const redirect = getSafeRedirect();
+      if (redirect) {
+        window.location.href = redirect;
+        return;
+      }
       if (user.activeChild) {
         setLocation('/kid');
       } else if (user.role === 'parent') {
@@ -50,6 +68,11 @@ export default function Login() {
       { data },
       {
         onSuccess: (res) => {
+          const redirect = getSafeRedirect();
+          if (redirect) {
+            window.location.href = redirect;
+            return;
+          }
           if (res.activeChild) {
             setLocation('/kid');
           } else if (res.role === 'parent') {
