@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Wordmark } from '@/components/brand/FunademyMark';
+import { Wordmark } from '@/components/brand/FunAdemyMark';
 import { FlipMark } from '@/components/brand/FlipMark';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';

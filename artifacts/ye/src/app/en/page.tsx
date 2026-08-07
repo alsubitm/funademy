@@ -14,6 +14,8 @@ import { Territory } from '@/components/home/Territory';
 import { Testimonials } from '@/components/home/Testimonials';
 import { Pricing } from '@/components/home/Pricing';
 import { FAQ } from '@/components/home/FAQ';
+import { WatanTeaser } from '@/components/home/WatanTeaser';
+import { Certificate } from '@/components/home/Certificate';
 
 export default async function EnglishHomePage() {
   const slots = await prisma.scheduleSlot.findMany({
@@ -42,9 +44,11 @@ export default async function EnglishHomePage() {
       <PathMap lang="en" />
       <Kits programs={programs} lang="en" />
       <Workshop lang="en" />
+      <WatanTeaser lang="en" />
       <Territory lang="en" />
       <Testimonials lang="en" />
       <Pricing lang="en" />
+      <Certificate lang="en" />
       <FAQ faqs={faqs} lang="en" />
       <SandStripe />
       <SiteFooter lang="en" />

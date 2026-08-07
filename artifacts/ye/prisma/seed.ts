@@ -2,54 +2,61 @@ import { PrismaClient, Format } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+/**
+ * OFFICIAL PROGRAM CATALOG — FunAdemy Master Spec (Aug 2026)
+ * Three fields → seven programs. Ages 4–18 sitewide.
+ */
 const programs = [
+  // ——— العالم من حولنا · The World Around Us ———
   {
     slug: 'big-builders',
-    kitCode: 'KIT-01',
+    kitCode: 'WORLD-01',
     nameEn: 'Big Builders',
     nameAr: 'البنّاؤون الصغار',
     ageMin: 4,
     ageMax: 6,
     format: Format.in_person,
-    color: '#FFC400',
+    color: '#FFCA17',
     level: 1,
-    taglineEn: 'First engineering concepts through guided LEGO® builds and stories — motor skills meet imagination.',
-    taglineAr: 'أولى مفاهيم الهندسة عبر بناء نماذج LEGO® موجّهة وقصص ممتعة — مهارات حركية تلتقي بالخيال.',
+    taglineEn: 'Little ones build the world around them — first science concepts through bricks and stories.',
+    taglineAr: 'يبني الصغار العالم من حولهم — أول مفاهيم العلوم بالمكعّبات والقصص',
     descEn:
-      'Big Builders introduces children aged 4–6 to the world of engineering through storytelling and hands-on LEGO® building. Each session pairs a story with a themed model — bridges, animals, vehicles — developing fine motor skills, spatial thinking, and early math vocabulary.',
+      'Big Builders introduces children aged 4–6 to the world around them through storytelling and hands-on LEGO® building. Each 45-minute session pairs a story with a themed model — bridges, animals, vehicles — developing fine motor skills, spatial thinking, and early science vocabulary.',
     descAr:
-      'يقدّم برنامج البنّاؤون الصغار للأطفال من ٤ إلى ٦ سنوات عالم الهندسة عبر القصص والبناء العملي بمكعبات LEGO®. كل حصة تجمع بين قصة ونموذج بموضوع مختلف — جسور وحيوانات ومركبات — لتنمية المهارات الحركية الدقيقة والتفكير المكاني ومفردات الرياضيات المبكرة.',
+      'يقدّم برنامج البنّاؤون الصغار للأطفال من ٤ إلى ٦ سنوات العالم من حولهم عبر القصص والبناء العملي بمكعبات LEGO®. كل حصة (٤٥ دقيقة) تجمع بين قصة ونموذج بموضوع مختلف — جسور وحيوانات ومركبات — لتنمية المهارات الحركية الدقيقة والتفكير المكاني ومفردات العلوم المبكرة.',
     buildsEn: ['Story bridges & towers', 'Animal models with moving parts', 'Simple vehicles & pulleys'],
     buildsAr: ['جسور وأبراج القصص', 'نماذج حيوانات بأجزاء متحركة', 'مركبات بسيطة وبكرات'],
-    termsEn: ['3 terms per year · 12 sessions each', '60-minute sessions', 'Small groups of 8–12'],
-    termsAr: ['٣ فصول في السنة · ١٢ حصة لكل فصل', 'مدة الحصة ٦٠ دقيقة', 'مجموعات صغيرة ٨–١٢ طفلاً'],
+    termsEn: ['45-minute sessions', 'Class cap: 12 kids', 'In-person'],
+    termsAr: ['مدة الحصة ٤٥ دقيقة', 'الحد الأقصى ١٢ طفلاً', 'حضوري'],
     position: 1,
   },
+  // ——— البرمجة والروبوتات · Coding & Robotics ———
   {
     slug: 'smartivo',
-    kitCode: 'KIT-02',
+    kitCode: 'CODE-01',
     nameEn: 'Smartivo',
     nameAr: 'سمارتيفو',
     ageMin: 4,
-    ageMax: 8,
+    ageMax: 6,
     format: Format.online,
-    color: '#37C8F5',
+    color: '#22DAFF',
     level: 2,
-    taglineEn: 'Playful screen-based logic — patterns, sequences and digital confidence for the youngest engineers.',
-    taglineAr: 'منطق رقمي ممتع — أنماط وتسلسلات وثقة تقنية لأصغر المهندسين.',
+    taglineEn: 'All the coding foundations for little ones — hands-on or on screen.',
+    taglineAr: 'جميع أساسيات البرمجة للصغار — ملموسة أو على الشاشة',
     descEn:
-      'Smartivo builds early computational thinking for ages 4–8 in live online classes. Kids solve pattern puzzles, sequence challenges, and interactive logic games with a live teacher and a small group — the only screen time that builds real skills.',
+      'Smartivo builds early computational thinking for ages 4–6 in live 45-minute classes, online or in person. Kids solve pattern puzzles, sequence challenges, and interactive logic games with a live teacher and a small group.',
     descAr:
-      'يبني سمارتيفو التفكير الحاسوبي المبكر للأعمار ٤–٨ في حصص مباشرة أونلاين. يحلّ الأطفال ألغاز الأنماط وتحديات التسلسل وألعاب المنطق التفاعلية مع معلّم مباشر ومجموعة صغيرة — وقت الشاشة الوحيد الذي يبني مهارات حقيقية.',
+      'يبني سمارتيفو التفكير الحاسوبي المبكر للأعمار ٤–٦ في حصص مباشرة مدتها ٤٥ دقيقة، أونلاين أو حضورياً. يحلّ الأطفال ألغاز الأنماط وتحديات التسلسل وألعاب المنطق التفاعلية مع معلّم مباشر ومجموعة صغيرة.',
     buildsEn: ['Pattern & sequence puzzles', 'Interactive logic games', 'Early digital literacy'],
     buildsAr: ['ألغاز الأنماط والتسلسل', 'ألعاب منطق تفاعلية', 'ثقافة رقمية مبكرة'],
-    termsEn: ['3 terms per year · 12 sessions each', '45-minute live sessions', 'Groups of 6–10'],
-    termsAr: ['٣ فصول في السنة · ١٢ حصة لكل فصل', 'حصص مباشرة ٤٥ دقيقة', 'مجموعات من ٦–١٠'],
+    termsEn: ['45-minute live sessions', 'Class cap: 12 kids', 'Live online / in-person'],
+    termsAr: ['حصص مباشرة ٤٥ دقيقة', 'الحد الأقصى ١٢ طفلاً', 'مباشر أونلاين / حضوري'],
     position: 2,
   },
+  // ——— الهندسة الميكانيكية · Mechanical Engineering ———
   {
     slug: 'bricks-challenge',
-    kitCode: 'KIT-03',
+    kitCode: 'MECH-01',
     nameEn: 'Bricks Challenge',
     nameAr: 'تحدي المكعبات',
     ageMin: 6,
@@ -57,111 +64,140 @@ const programs = [
     format: Format.in_person,
     color: '#E5AE4A',
     level: 3,
-    taglineEn: 'Real physics — gears, levers, torque and motors — through motorized models kids build themselves.',
-    taglineAr: 'فيزياء حقيقية — تروس وروافع وعزم ومحركات — عبر نماذج متحركة يبنيها الأطفال بأنفسهم.',
+    taglineEn: 'Classical mechanics fundamentals: gears, levers and models that move with real motors.',
+    taglineAr: 'أساسيات الميكانيكا الكلاسيكية: تروس وروافع ونماذج تتحرك بمحركات حقيقية',
     descEn:
-      'The flagship e² Young Engineers program. Ages 6–10 build a new motorized LEGO® model every session — cranes, carousels, catapults — while learning the physics principle behind it: gear ratios, torque, center of gravity, and more.',
+      'The flagship e² Young Engineers program. Ages 6–10 build a new motorized LEGO® model every 75-minute session — cranes, carousels, catapults — while learning the physics principle behind it: gear ratios, torque, center of gravity, and more.',
     descAr:
-      'البرنامج الرائد لدى e² Young Engineers. يبني الأطفال من ٦ إلى ١٠ سنوات نموذج LEGO® متحركاً جديداً في كل حصة — رافعات ودوّارات ومقاليع — مع تعلّم المبدأ الفيزيائي خلفه: نسب التروس والعزم ومركز الثقل وغيرها.',
+      'البرنامج الرائد لدى e² Young Engineers. يبني الأطفال من ٦ إلى ١٠ سنوات نموذج LEGO® متحركاً جديداً في كل حصة (٧٥ دقيقة) — رافعات ودوّارات ومقاليع — مع تعلّم المبدأ الفيزيائي خلفه: نسب التروس والعزم ومركز الثقل وغيرها.',
     buildsEn: ['Motorized crane & carousel', 'Catapults & racing cars', '40+ models across the year'],
     buildsAr: ['رافعة ودوّارة بمحرك', 'مقاليع وسيارات سباق', 'أكثر من ٤٠ نموذجاً خلال السنة'],
-    termsEn: ['3 terms per year · 12 sessions each', '75-minute sessions @ Al Yasmin', 'Official YE kits provided'],
-    termsAr: ['٣ فصول في السنة · ١٢ حصة لكل فصل', 'حصص ٧٥ دقيقة في الياسمين', 'مجموعات أدوات YE الرسمية متوفرة'],
+    termsEn: ['75-minute sessions', 'Class cap: 16 kids', 'In-person'],
+    termsAr: ['حصص ٧٥ دقيقة', 'الحد الأقصى ١٦ طفلاً', 'حضوري'],
     position: 3,
   },
   {
-    slug: 'algoplay-robotoys',
-    kitCode: 'KIT-04',
-    nameEn: 'AlgoPlay · RoboToys',
-    nameAr: 'ألجوبلاي · روبوتويز',
-    ageMin: 7,
-    ageMax: 11,
+    slug: 'algoplay',
+    kitCode: 'CODE-02',
+    nameEn: 'AlgoPlay',
+    nameAr: 'ألجوبلاي',
+    ageMin: 6,
+    ageMax: 10,
     format: Format.online,
-    color: '#2764D6',
+    color: '#1C54CB',
     level: 4,
-    taglineEn: 'Algorithmic thinking and robotics logic — loops, conditions and commands through live challenges.',
-    taglineAr: 'تفكير خوارزمي ومنطق روبوتات — حلقات وشروط وأوامر عبر تحديات مباشرة.',
+    taglineEn: 'Robotics fundamentals: building and programming on screen.',
+    taglineAr: 'أساسيات الروبوتات: تركيب وبرمجة على الشاشة',
     descEn:
-      'AlgoPlay and RoboToys take ages 7–11 from play to programming. In live online sessions, kids command virtual robots, chain loops and conditions, and debug their own solutions — the bridge between building and coding.',
+      'AlgoPlay takes ages 6–10 from play to programming. In live 75-minute online sessions, kids command virtual robots, chain loops and conditions, and debug their own solutions — the bridge between building and coding.',
     descAr:
-      'ينقل ألجوبلاي وروبوتويز الأطفال من ٧ إلى ١١ سنة من اللعب إلى البرمجة. في حصص مباشرة أونلاين يوجّه الأطفال روبوتات افتراضية ويربطون الحلقات والشروط ويصحّحون حلولهم بأنفسهم — الجسر بين البناء والبرمجة.',
+      'ينقل ألجوبلاي الأطفال من ٦ إلى ١٠ سنوات من اللعب إلى البرمجة. في حصص مباشرة أونلاين (٧٥ دقيقة) يوجّه الأطفال روبوتات افتراضية ويربطون الحلقات والشروط ويصحّحون حلولهم بأنفسهم — الجسر بين البناء والبرمجة.',
     buildsEn: ['Virtual robot missions', 'Loop & condition challenges', 'Debugging workshops'],
     buildsAr: ['مهمات روبوت افتراضية', 'تحديات الحلقات والشروط', 'ورش تصحيح الأخطاء'],
-    termsEn: ['3 terms per year · 12 sessions each', '60-minute live sessions', 'Level certificates per term'],
-    termsAr: ['٣ فصول في السنة · ١٢ حصة لكل فصل', 'حصص مباشرة ٦٠ دقيقة', 'شهادة مستوى لكل فصل'],
+    termsEn: ['75-minute live sessions', 'Class cap: 16 kids', 'Live online'],
+    termsAr: ['حصص مباشرة ٧٥ دقيقة', 'الحد الأقصى ١٦ طفلاً', 'مباشر أونلاين'],
     position: 4,
   },
   {
     slug: 'galileo-technic',
-    kitCode: 'KIT-05',
+    kitCode: 'MECH-02',
     nameEn: 'Galileo Technic',
     nameAr: 'غاليليو تكنيك',
-    ageMin: 8,
-    ageMax: 12,
+    ageMin: 7,
+    ageMax: 10,
     format: Format.in_person,
-    color: '#C98A1E',
-    level: 4,
-    taglineEn: 'Advanced mechanical engineering — complex machines for builders ready for the next challenge.',
-    taglineAr: 'هندسة ميكانيكية متقدمة — آلات معقّدة للبنّائين المستعدين للتحدي التالي.',
+    color: '#D3901B',
+    level: 5,
+    taglineEn: 'Advanced mechanics for builders ready for the bigger challenge.',
+    taglineAr: 'الميكانيكا المتقدمة لبنّائين جاهزين للتحدي الأكبر',
     descEn:
-      'For graduates of Bricks Challenge and ambitious builders aged 8–12. Galileo Technic tackles complex machines — differential gears, transmissions, walking mechanisms — with deeper engineering theory each session.',
+      'For graduates of Bricks Challenge and ambitious builders aged 7–10. Galileo Technic tackles complex machines — differential gears, transmissions, walking mechanisms — with deeper engineering theory in every 75-minute session.',
     descAr:
-      'لخرّيجي تحدي المكعبات والبنّائين الطموحين من ٨ إلى ١٢ سنة. يتناول غاليليو تكنيك آلات معقّدة — تروس تفاضلية وناقلات حركة وآليات مشي — مع نظرية هندسية أعمق في كل حصة.',
+      'لخرّيجي تحدي المكعبات والبنّائين الطموحين من ٧ إلى ١٠ سنوات. يتناول غاليليو تكنيك آلات معقّدة — تروس تفاضلية وناقلات حركة وآليات مشي — مع نظرية هندسية أعمق في كل حصة (٧٥ دقيقة).',
     buildsEn: ['Differential gear systems', 'Walking machines', 'Transmission mechanisms'],
     buildsAr: ['أنظمة تروس تفاضلية', 'آلات مشي', 'آليات نقل الحركة'],
-    termsEn: ['3 terms per year · 12 sessions each', '90-minute sessions @ Al Yasmin', 'Prerequisite: Bricks Challenge or trial assessment'],
-    termsAr: ['٣ فصول في السنة · ١٢ حصة لكل فصل', 'حصص ٩٠ دقيقة في الياسمين', 'المتطلب: تحدي المكعبات أو تقييم تجريبي'],
+    termsEn: ['75-minute sessions', 'Class cap: 16 kids', 'In-person'],
+    termsAr: ['حصص ٧٥ دقيقة', 'الحد الأقصى ١٦ طفلاً', 'حضوري'],
     position: 5,
   },
   {
+    slug: 'robotoys',
+    kitCode: 'CODE-03',
+    nameEn: 'RoboToys',
+    nameAr: 'روبوتويز',
+    ageMin: 9,
+    ageMax: 12,
+    format: Format.online,
+    color: '#11388E',
+    level: 6,
+    taglineEn: 'Advanced robotics — deeper projects and smarter logic.',
+    taglineAr: 'الروبوتات المتقدمة — مشاريع أعمق ومنطق أذكى',
+    descEn:
+      'RoboToys takes ages 9–12 into advanced robotics in live 90-minute online sessions — richer projects, smarter logic, sensors and real problem solving that prepares them for written code.',
+    descAr:
+      'ينقل روبوتويز الأعمار ٩–١٢ إلى الروبوتات المتقدمة في حصص مباشرة أونلاين (٩٠ دقيقة) — مشاريع أغنى ومنطق أذكى وحسّاسات وحلّ مشكلات حقيقي يمهّد للكود المكتوب.',
+    buildsEn: ['Sensor-driven robots', 'Multi-step missions', 'Smart logic projects'],
+    buildsAr: ['روبوتات بحسّاسات', 'مهمات متعددة الخطوات', 'مشاريع منطق ذكية'],
+    termsEn: ['90-minute live sessions', 'Class cap: 16 kids', 'Live online'],
+    termsAr: ['حصص مباشرة ٩٠ دقيقة', 'الحد الأقصى ١٦ طفلاً', 'مباشر أونلاين'],
+    position: 6,
+  },
+  {
     slug: 'algoc',
-    kitCode: 'KIT-06',
+    kitCode: 'CODE-04',
     nameEn: 'AlgoC',
     nameAr: 'ألجو سي',
-    ageMin: 10,
-    ageMax: 15,
+    ageMin: 13,
+    ageMax: 18,
     format: Format.online,
     color: '#101A38',
-    level: 5,
-    taglineEn: 'From visual logic to written code — real programming foundations for future developers.',
-    taglineAr: 'من المنطق المرئي إلى الكود المكتوب — أساسيات برمجة حقيقية لمطوّري المستقبل.',
+    level: 7,
+    taglineEn: 'Software & robotics engineering for teens — the road to real development.',
+    taglineAr: 'هندسة البرمجة والروبوتات للمراهقين — الطريق إلى التطوير الحقيقي',
     descEn:
-      'AlgoC graduates kids aged 10–15 from blocks to real written code. Live online sessions cover variables, functions, and problem decomposition, ending each term with a coding project they present to the class.',
+      'AlgoC graduates teens aged 13–18 from blocks to real written code. Live 90-minute online sessions — max 8 students — cover variables, functions, and problem decomposition, ending each term with a coding project they present to the class.',
     descAr:
-      'ينقل ألجو سي الأطفال من ١٠ إلى ١٥ سنة من المكعبات البرمجية إلى الكود الحقيقي. تغطي الحصص المباشرة المتغيرات والدوال وتفكيك المشكلات، وينتهي كل فصل بمشروع برمجي يعرضه الطالب أمام زملائه.',
+      'ينقل ألجو سي المراهقين من ١٣ إلى ١٨ سنة من المكعبات البرمجية إلى الكود الحقيقي. حصص مباشرة أونلاين (٩٠ دقيقة) — ٨ طلاب كحد أقصى — تغطي المتغيرات والدوال وتفكيك المشكلات، وينتهي كل فصل بمشروع برمجي يعرضه الطالب أمام زملائه.',
     buildsEn: ['Real written code', 'Term coding projects', 'Problem decomposition skills'],
     buildsAr: ['كود برمجي حقيقي', 'مشاريع برمجية فصلية', 'مهارات تفكيك المشكلات'],
-    termsEn: ['3 terms per year · 12 sessions each', '75-minute live sessions', 'Project showcase each term'],
-    termsAr: ['٣ فصول في السنة · ١٢ حصة لكل فصل', 'حصص مباشرة ٧٥ دقيقة', 'عرض مشاريع نهاية كل فصل'],
-    position: 6,
+    termsEn: ['90-minute live sessions', 'Class cap: 8 students', 'Live online'],
+    termsAr: ['حصص مباشرة ٩٠ دقيقة', '٨ طلاب كحد أقصى', 'مباشر أونلاين'],
+    position: 7,
   },
 ];
 
-// weekday: 0=Sunday .. 6=Saturday
+// weekday: 0=Sunday .. 6=Saturday — 14 slots.
+// Evening online slots match program durations (45/75/90); Saturday mornings
+// in-person for the three building programs.
 const slotsBySlug: Record<string, { weekday: number; time: string; format: Format; location?: string; capacity: number; seatsLeft: number }[]> = {
   'big-builders': [
-    { weekday: 6, time: '09:00', format: Format.in_person, location: 'Al Yasmin partner school', capacity: 12, seatsLeft: 7 },
-    { weekday: 6, time: '12:00', format: Format.in_person, location: 'Al Yasmin partner school', capacity: 12, seatsLeft: 9 },
+    { weekday: 6, time: '09:00', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 12, seatsLeft: 7 },
+    { weekday: 6, time: '10:00', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 12, seatsLeft: 2 },
   ],
   smartivo: [
-    { weekday: 0, time: '17:00', format: Format.online, capacity: 10, seatsLeft: 3 },
-    { weekday: 2, time: '17:00', format: Format.online, capacity: 10, seatsLeft: 6 },
+    { weekday: 0, time: '17:00', format: Format.online, capacity: 12, seatsLeft: 5 },
+    { weekday: 2, time: '17:00', format: Format.online, capacity: 12, seatsLeft: 3 },
+    { weekday: 6, time: '09:00', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 12, seatsLeft: 6 },
   ],
   'bricks-challenge': [
-    { weekday: 6, time: '10:30', format: Format.in_person, location: 'Al Yasmin partner school', capacity: 12, seatsLeft: 4 },
-    { weekday: 6, time: '14:00', format: Format.in_person, location: 'Al Yasmin partner school', capacity: 12, seatsLeft: 8 },
+    { weekday: 6, time: '10:30', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 16, seatsLeft: 3 },
+    { weekday: 6, time: '12:00', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 16, seatsLeft: 9 },
   ],
-  'algoplay-robotoys': [
-    { weekday: 1, time: '17:30', format: Format.online, capacity: 10, seatsLeft: 0 },
-    { weekday: 3, time: '17:00', format: Format.online, capacity: 10, seatsLeft: 2 },
+  algoplay: [
+    { weekday: 1, time: '17:30', format: Format.online, capacity: 16, seatsLeft: 6 },
+    { weekday: 3, time: '17:30', format: Format.online, capacity: 16, seatsLeft: 2 },
   ],
   'galileo-technic': [
-    { weekday: 6, time: '16:00', format: Format.in_person, location: 'Al Yasmin partner school', capacity: 10, seatsLeft: 6 },
-    { weekday: 4, time: '17:30', format: Format.in_person, location: 'Al Yasmin partner school', capacity: 10, seatsLeft: 9 },
+    { weekday: 6, time: '11:45', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 16, seatsLeft: 8 },
+    { weekday: 4, time: '17:30', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 16, seatsLeft: 11 },
+  ],
+  robotoys: [
+    { weekday: 1, time: '18:30', format: Format.online, capacity: 16, seatsLeft: 4 },
+    { weekday: 3, time: '18:30', format: Format.online, capacity: 16, seatsLeft: 7 },
   ],
   algoc: [
-    { weekday: 2, time: '18:00', format: Format.online, capacity: 10, seatsLeft: 5 },
-    { weekday: 0, time: '18:30', format: Format.online, capacity: 10, seatsLeft: 7 },
+    { weekday: 0, time: '19:00', format: Format.online, capacity: 8, seatsLeft: 2 },
+    { weekday: 2, time: '19:00', format: Format.online, capacity: 8, seatsLeft: 5 },
   ],
 };
 
@@ -169,7 +205,7 @@ const testimonials = [
   {
     name: 'Um Khalid',
     nameAr: 'أم خالد',
-    area: 'An Narjis',
+    area: 'Riyadh',
     programEn: 'Bricks Challenge',
     programAr: 'تحدي المكعبات',
     quoteEn: 'My son built a motorized crane in his third class and explained gears to me at dinner. I was speechless.',
@@ -179,21 +215,21 @@ const testimonials = [
   {
     name: 'Abu Lama',
     nameAr: 'أبو لمى',
-    area: 'Al Sahafah',
-    programEn: 'AlgoPlay Online',
-    programAr: 'ألجوبلاي أونلاين',
-    quoteEn: "The online AlgoPlay class is the only screen time I don't feel guilty about. Live teacher, small group, real learning.",
-    quoteAr: 'حصة ألجوبلاي أونلاين هي وقت الشاشة الوحيد الذي لا أشعر بالذنب تجاهه. معلّم مباشر ومجموعة صغيرة وتعلّم حقيقي.',
+    area: 'Riyadh',
+    programEn: 'AlgoPlay',
+    programAr: 'ألجوبلاي',
+    quoteEn: "The live AlgoPlay class is the only screen time I don't feel guilty about. Live teacher, small group, real learning.",
+    quoteAr: 'حصة ألجوبلاي المباشرة هي وقت الشاشة الوحيد الذي لا أشعر بالذنب تجاهه. معلّم مباشر ومجموعة صغيرة وتعلّم حقيقي.',
     position: 2,
   },
   {
     name: 'Um Yara',
     nameAr: 'أم يارا',
-    area: 'Al Yasmin',
+    area: 'Riyadh',
     programEn: 'Smartivo',
     programAr: 'سمارتيفو',
-    quoteEn: 'She started at Smartivo age 5. The path to real coding at 10 is exactly why we chose Young Engineers.',
-    quoteAr: 'بدأت في سمارتيفو بعمر ٥ سنوات. المسار الواضح نحو البرمجة الحقيقية بعمر ١٠ هو سبب اختيارنا للمهندسين الصغار.',
+    quoteEn: 'She started at Smartivo age 5. The clear path all the way to real coding at 13 is exactly why we chose FunAdemy.',
+    quoteAr: 'بدأت في سمارتيفو بعمر ٥ سنوات. المسار الواضح وصولاً إلى البرمجة الحقيقية بعمر ١٣ هو سبب اختيارنا FunAdemy.',
     position: 3,
   },
 ];
@@ -203,9 +239,9 @@ const faqs = [
     questionEn: "Which program is right for my child's age?",
     questionAr: 'أي برنامج يناسب عمر طفلي؟',
     answerEn:
-      'Follow the Learning Path: ages 4–6 start with Big Builders or Smartivo, 6–10 with Bricks Challenge, 7–11 with AlgoPlay/RoboToys, 8–12 with Galileo Technic, and 10–15 with AlgoC. The free trial confirms the perfect fit.',
+      'Follow the Learning Path: ages 4–6 start with Big Builders or Smartivo, 6–10 with Bricks Challenge or AlgoPlay, 7–10 with Galileo Technic, 9–12 with RoboToys, and 13–18 with AlgoC. The free trial confirms the perfect fit.',
     answerAr:
-      'اتبع مسار التعلّم: الأعمار ٤–٦ تبدأ بالبنّائين الصغار أو سمارتيفو، و٦–١٠ بتحدي المكعبات، و٧–١١ بألجوبلاي/روبوتويز، و٨–١٢ بغاليليو تكنيك، و١٠–١٥ بألجو سي. الحصة التجريبية المجانية تؤكد الاختيار الأنسب.',
+      'اتبع مسار التعلّم: الأعمار ٤–٦ تبدأ بالبنّائين الصغار أو سمارتيفو، و٦–١٠ بتحدي المكعبات أو ألجوبلاي، و٧–١٠ بغاليليو تكنيك، و٩–١٢ بروبوتويز، و١٣–١٨ بألجو سي. الحصة التجريبية المجانية تؤكد الاختيار الأنسب.',
     position: 1,
   },
   {
@@ -216,10 +252,12 @@ const faqs = [
     position: 2,
   },
   {
-    questionEn: 'Where do in-person classes take place?',
-    questionAr: 'أين تُقام الحصص الحضورية؟',
-    answerEn: 'At our partner school in Al Yasmin, North Riyadh — serving families across the 9 neighborhoods of our territory. Online programs are open to all of Riyadh North.',
-    answerAr: 'في مدرستنا الشريكة بحي الياسمين شمال الرياض — نخدم العائلات في الأحياء التسعة ضمن نطاقنا. البرامج الأونلاين متاحة لكل شمال الرياض.',
+    questionEn: 'Are classes online or in person?',
+    questionAr: 'هل الحصص أونلاين أم حضورية؟',
+    answerEn:
+      'Both. The building programs (Big Builders, Bricks Challenge, Galileo Technic) run in person in Riyadh, coding programs (AlgoPlay, RoboToys, AlgoC) run live online, and Smartivo is available both ways. Online classes are open to everyone.',
+    answerAr:
+      'كلاهما. برامج البناء (البنّاؤون الصغار، تحدي المكعبات، غاليليو تكنيك) حضورية في الرياض، وبرامج البرمجة (ألجوبلاي، روبوتويز، ألجو سي) مباشرة أونلاين، وسمارتيفو متاح بالطريقتين. الحصص الأونلاين متاحة للجميع.',
     position: 3,
   },
   {
@@ -239,14 +277,26 @@ const faqs = [
   {
     questionEn: 'How does pricing work?',
     questionAr: 'كيف تعمل الأسعار؟',
-    answerEn: 'Online programs are SAR 330/month and in-person SAR 380/month, each with one class per week. Families with 2+ children get 10% off every subscription.',
-    answerAr: 'البرامج الأونلاين ٣٣٠ ريالاً شهرياً والحضورية ٣٨٠ ريالاً شهرياً، بواقع حصة أسبوعياً. العائلات التي لديها طفلان أو أكثر تحصل على خصم ١٠٪ على كل اشتراك.',
+    answerEn:
+      'One simple plan: SAR 1,380 per child per program monthly, including 4–6 sessions per month (session length by age: 45/75/90 minutes). Families with 2+ children get 10% off each additional child, and the first trial class is free.',
+    answerAr:
+      'خطة واحدة بسيطة: ١٣٨٠ ريالاً للطفل للبرنامج شهرياً، وتشمل ٤–٦ حصص في الشهر (مدة الحصة حسب العمر: ٤٥/٧٥/٩٠ دقيقة). العائلات التي لديها طفلان أو أكثر تحصل على خصم ١٠٪ لكل طفل إضافي، والحصة التجريبية الأولى مجانية.',
     position: 6,
   },
 ];
 
 async function main() {
-  console.log('Seeding YE database…');
+  console.log('Seeding FunAdemy database…');
+
+  const force = process.env.FORCE_RESEED === '1';
+  if (force) {
+    await prisma.booking.deleteMany();
+    await prisma.scheduleSlot.deleteMany();
+    await prisma.testimonial.deleteMany();
+    await prisma.faqEntry.deleteMany();
+    // Remove programs not in the official catalog
+    await prisma.program.deleteMany({ where: { slug: { notIn: programs.map((p) => p.slug) } } });
+  }
 
   for (const p of programs) {
     const { slug, ...data } = p;

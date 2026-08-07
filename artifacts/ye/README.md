@@ -1,10 +1,10 @@
-# Funademy — Young Engineers Riyadh
+# FunAdemy — Young Engineers Riyadh
 
-Production bilingual website (Arabic-first RTL at `/`, English at `/en`) for **Funademy** (Falcon Eye Ltd), the official e² YOUNG ENGINEERS Riyadh licensee.
+Production bilingual website (Arabic-first RTL at `/`, English at `/en`) for **FunAdemy** (Falcon Eye Ltd), the official e² YOUNG ENGINEERS Riyadh licensee.
 
 ## Brand identity — the Kite-Cap
 
-The Funademy mark is the **Kite-Cap**: a gold diamond that reads as a flying kite (kids/marketing) and as a mortarboard seen from above (academic mode). Wordmark Funademy / funademy renders the first letters (فن / fun) in gold. All marks are inline SVG in `src/components/brand/FunademyMark.tsx` (`KiteMark`, `CapMark`, `Wordmark`); favicon at `src/app/icon.svg`. Source of truth: `attached_assets/Funademy_KiteCap_Identity_*.html`.
+The FunAdemy mark is the **Kite-Cap**: a gold diamond that reads as a flying kite (kids/marketing) and as a mortarboard seen from above (academic mode). Wordmark FunAdemy / funademy renders the first letters (فن / fun) in gold. All marks are inline SVG in `src/components/brand/FunAdemyMark.tsx` (`KiteMark`, `CapMark`, `Wordmark`); favicon at `src/app/icon.svg`. Source of truth: `attached_assets/FunAdemy_KiteCap_Identity_*.html`.
 
 **Stack:** Next.js 15 (App Router) · Prisma 6 · PostgreSQL · Tailwind CSS v4
 

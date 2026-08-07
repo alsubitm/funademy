@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { WatanonaPage } from './WatanonaPage';
 
 export const metadata: Metadata = {
-  title: 'أطفالنا يبنون وطننا | Funademy',
+  title: 'أطفالنا يبنون وطننا | FunAdemy',
   description: 'شارك معنا في أضخم خريطة للمملكة مبنية بمكعبات ليغو®. مبادرة وطنية بمناسبة اليوم الوطني برعاية Young Engineers الرياض.',
 };
 

@@ -59,7 +59,7 @@ export function BookingsTab() {
               <th>التاريخ</th>
               <th>ولي الأمر / الهاتف</th>
               <th>الطفل / العمر</th>
-              <th>الحي</th>
+              <th>المدينة</th>
               <th>البرنامج / الموعد</th>
               <th>الحالة</th>
               <th>إجراءات</th>

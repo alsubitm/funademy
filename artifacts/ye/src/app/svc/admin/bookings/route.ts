@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (req.nextUrl.searchParams.get('format') === 'csv') {
-    const header = 'id,created_at,parent_name,phone,child_first_name,child_birth_year,neighborhood,program,weekday,time,format,status';
+    const header = 'id,created_at,parent_name,phone,child_first_name,child_birth_year,city,program,weekday,time,format,status';
     const esc = (v: unknown) => `"${String(v).replace(/"/g, '""')}"`;
     const rows = bookings.map((b) =>
       [

@@ -59,7 +59,7 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
   return (
     <div className="brick-wall-sec" id="wall">
       <div className="wrap">
-        <span className="kick" style={{ color: 'var(--color-green)', borderColor: 'var(--color-green)' }}>
+        <span className="kick" style={{ color: 'var(--color-cyan)', borderColor: 'var(--color-cyan)' }}>
           {d.wallKick}
         </span>
         <h2>{d.wallTitle}</h2>
@@ -88,7 +88,7 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
           {error ? (
             <span style={{ color: '#FF7B74' }}>{error}</span>
           ) : remaining !== null ? (
-            <span style={{ color: 'var(--color-green)' }}>{d.wallRemaining(remaining)}</span>
+            <span style={{ color: 'var(--color-gold)' }}>{d.wallRemaining(remaining)}</span>
           ) : (
             <span>{displayCount} {d.wallCountLbl}</span>
           )}

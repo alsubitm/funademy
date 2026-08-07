@@ -1,3 +1,4 @@
+import { CATALOG, FIELDS } from '@/lib/catalog';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
@@ -49,7 +50,7 @@ export function ProgramDetail({
     <>
       <SiteHeader lang={lang} />
       
-      <header className="prog-hero" style={{ '--kit-color': program.color } as React.CSSProperties}>
+      <header className="prog-hero" style={{ '--kit-color': program.color, '--field-tint': FIELDS[CATALOG[program.slug]?.field ?? 'mech'].tint } as React.CSSProperties}>
         <div className="bpgrid"></div>
         <div className="wrap prog-hero-in">
           <div>
@@ -69,7 +70,7 @@ export function ProgramDetail({
                   ))}
                 </span>
               </span>
-              <span className="pm-badge"><i>{d.format}</i> {program.format === 'online' ? d.online : d.inPerson}</span>
+              <span className="pm-badge"><i>{d.format}</i> {CATALOG[program.slug] ? (lang === 'ar' ? CATALOG[program.slug].formatAr : CATALOG[program.slug].formatEn) : (program.format === 'online' ? d.online : d.inPerson)}</span>
             </div>
 
             <div className="hcta">
@@ -107,11 +108,11 @@ export function ProgramDetail({
         <i style={{background: '#F7E3B2'}}></i>
         <i style={{background: '#F2CD7E'}}></i>
         <i style={{background: '#E5AE4A'}}></i>
-        <i style={{background: '#C98A1E'}}></i>
+        <i style={{background: '#E5AE4A'}}></i>
         <i style={{background: '#F7E3B2'}}></i>
         <i style={{background: '#F2CD7E'}}></i>
         <i style={{background: '#E5AE4A'}}></i>
-        <i style={{background: '#C98A1E'}}></i>
+        <i style={{background: '#E5AE4A'}}></i>
       </div>
 
       <section className="prog-body">

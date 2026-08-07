@@ -8,7 +8,7 @@ import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constan
 import './page.css';
 
 export const metadata = {
-  title: 'تواصل معنا | Funademy',
+  title: 'تواصل معنا | FunAdemy',
   description: 'تواصل مع فريق المهندس الصغير للإجابة على جميع استفساراتك.',
 };
 

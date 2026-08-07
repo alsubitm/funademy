@@ -26,7 +26,7 @@ export const watanonaDict = {
     jSteps: [
       { title: '١. التسجيل', desc: 'سجل طفلك في أحد برامجنا.' },
       { title: '٢. البناء في الحصة', desc: 'يتعلم ويبني جزءاً من الخريطة أسبوعياً.' },
-      { title: '٣. إنجاز الحي', desc: 'نجمع ما بناه أطفال كل حي.' },
+      { title: '٣. إنجاز المدينة', desc: 'نجمع ما بناه أطفالنا من كل أنحاء الرياض.' },
       { title: '٤. المعرض الختامي', desc: 'نركب الأجزاء لنشكل خريطة الوطن.' }
     ],
 
@@ -73,7 +73,7 @@ export const watanonaDict = {
     jSteps: [
       { title: '1. Enroll', desc: 'Register your child in our programs.' },
       { title: '2. Build in Class', desc: 'They learn and build parts of the map weekly.' },
-      { title: '3. Neighborhood Milestones', desc: 'We combine builds from each district.' },
+      { title: '3. City Milestones', desc: 'We combine builds from across Riyadh.' },
       { title: '4. The Unveiling', desc: 'All parts connect at the grand exhibition.' }
     ],
 

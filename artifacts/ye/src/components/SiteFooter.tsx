@@ -1,4 +1,4 @@
-import { KiteMark, Wordmark } from '@/components/brand/FunademyMark';
+import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER, EMAIL } from '@/lib/constants';
 
@@ -14,14 +14,11 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
               <KiteMark size={44} dark />
               <Wordmark
                 lang={lang}
-                style={{ fontSize: 26, color: '#fff', ['--wordmark-fn' as never]: '#FFC400' }}
+                style={{ fontSize: 26, color: '#fff', ['--wm-fun' as never]: '#FFCA17', ['--wm-ademy' as never]: '#fff' }}
               />
             </div>
             <p className="text-sm mt-2 opacity-80" style={{ maxWidth: '300px' }}>
-              {lang === 'ar' ? 'Funademy — حيث المتعة تلتقي بالأكاديمية' : 'funademy — where fun meets academy'}
-              <br />
-              e² Young Engineers Riyadh<br />
-              Falcon Eye Ltd.
+              {lang === 'ar' ? 'FunAdemy — حيث تلتقي المتعة بالأكاديمية' : 'FunAdemy — WHERE FUN MEETS ACADEMY'}
             </p>
           </div>
           <div>
@@ -38,6 +35,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
           </div>
         </div>
         <div className="fbot">
+          <span>FunAdemy · e² Young Engineers · Falcon Eye Ltd — License 4030388340</span>
           <span>© {new Date().getFullYear()} Falcon Eye Ltd. All rights reserved.</span>
           <span>LEGO® is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this site.</span>
         </div>

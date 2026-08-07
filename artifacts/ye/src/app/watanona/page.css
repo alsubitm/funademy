@@ -1,5 +1,5 @@
 .watanona-hero {
-  background: linear-gradient(165deg, var(--color-bp) 0%, var(--color-green) 100%);
+  background: linear-gradient(165deg, var(--color-bp) 0%, var(--color-blue-deep) 100%);
   color: #fff;
   padding: 100px 0 120px;
   text-align: center;
@@ -89,7 +89,7 @@
 .mini-brick {
   width: 24px;
   height: 12px;
-  background: var(--color-green);
+  background: var(--color-gold);
   border-radius: 2px;
   box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.1);
   position: relative;
@@ -101,7 +101,7 @@
   left: 4px;
   width: 6px;
   height: 2px;
-  background: var(--color-green);
+  background: var(--color-gold);
   border-radius: 1px 1px 0 0;
 }
 .mini-brick::after {
@@ -111,7 +111,7 @@
   right: 4px;
   width: 6px;
   height: 2px;
-  background: var(--color-green);
+  background: var(--color-gold);
   border-radius: 1px 1px 0 0;
 }
 
@@ -124,9 +124,9 @@
 }
 
 .btn-brick {
-  background: var(--color-green);
+  background: var(--color-gold);
   color: #fff;
-  box-shadow: 0 7px 0 #094726;
+  box-shadow: 0 7px 0 #D9A600;
   font-size: 20px;
   padding: 16px 36px;
   border: none;
@@ -141,17 +141,17 @@
 }
 .btn-brick:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 0 #094726;
+  box-shadow: 0 10px 0 #D9A600;
 }
 .btn-brick:active {
   transform: translateY(4px);
-  box-shadow: 0 0 0 #094726;
+  box-shadow: 0 0 0 #D9A600;
 }
 .btn-brick:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0 7px 0 #094726;
+  box-shadow: 0 7px 0 #D9A600;
 }
 
 .journey-sec {
@@ -177,7 +177,7 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: var(--color-green);
+  background: var(--color-gold);
   color: #fff;
   font-family: var(--font-display);
   font-weight: 800;

@@ -14,8 +14,8 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
           {lang === 'ar' ? (
             <>
               <h1 className="ar" style={{ color: '#fff', marginTop: 0 }}>
-                لا نعلّم الأطفال عن الهندسة.<br />
-                <span className="y">نحن نصنعهم</span> <span className="u">مهندسين.</span>
+                لا نعلّم أطفالنا عن الهندسة —<br />
+                <span className="y">بل نصنع منهم</span> <span className="u">مهندسين.</span>
               </h1>
               <p className="lead">
                 ميكانيكا، روبوتات، وبرمجة حقيقية مبنية على LEGO® للأعمار ٤-١٨ — حصص مباشرة بالعربية، أونلاين من المنزل أو حضوري في الرياض.
@@ -46,7 +46,7 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
             </a>
           </div>
           <div className="hticks">
-            <span>{lang === 'ar' ? 'مباشر، غير مسجل' : 'Live, never recorded'}</span>
+            <span>{lang === 'ar' ? 'حصص مباشرة دائماً' : 'Always live classes'}</span>
             <span>{lang === 'ar' ? 'مدربون معتمدون' : 'Certified instructors'}</span>
             <span>{lang === 'ar' ? 'الأعمار ٤-١٨' : 'Ages 4–18'}</span>
           </div>

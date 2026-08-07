@@ -2,7 +2,7 @@
 
 /**
  * Kite-Cap flip mark — hover (or tap) and the kite lands, becoming the cap.
- * Animation replicated from the Funademy Kite-Cap identity file.
+ * Animation replicated from the FunAdemy Kite-Cap identity file.
  */
 export function FlipMark({ size = 44, className = '' }: { size?: number; className?: string }) {
   return (

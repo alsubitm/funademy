@@ -5,7 +5,7 @@ import { BookingsTab } from './BookingsTab';
 import { SlotsTab } from './SlotsTab';
 import { ContentTab } from './ContentTab';
 import { BricksTab } from './BricksTab';
-import { KiteMark, Wordmark } from '@/components/brand/FunademyMark';
+import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
 
 export function AdminDashboard({ programs }: { programs: any[] }) {
   const [activeTab, setActiveTab] = useState('bookings');
@@ -46,7 +46,7 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
             <KiteMark size={34} dark full={false} />
             <Wordmark
               lang="ar"
-              style={{ fontSize: 22, color: '#fff', ['--wordmark-fn' as never]: '#FFC400' }}
+              style={{ fontSize: 22, color: '#fff', ['--wm-fun' as never]: '#FFCA17', ['--wm-ademy' as never]: '#fff' }}
             />
           </div>
           <h2 className="font-display font-bold text-lg text-[#FFC400]">لوحة التحكم</h2>

@@ -25,6 +25,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
     return null;
   });
   const [slotId, setSlotId] = useState<number | null>(null);
+  const [formatFilter, setFormatFilter] = useState<'all' | 'online' | 'in_person'>('all');
   
   const [parentName, setParentName] = useState('');
   const [phone, setPhone] = useState('');
@@ -35,7 +36,9 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
   const [error, setError] = useState('');
 
   // Derived
-  const filteredSlots = slots.filter((s) => s.programId === programId);
+  const programSlots = slots.filter((s) => s.programId === programId);
+  const hasBothFormats = new Set(programSlots.map((s) => s.format)).size > 1;
+  const filteredSlots = programSlots.filter((s) => formatFilter === 'all' || s.format === formatFilter);
   const selectedProgram = programs.find(p => p.id === programId);
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 15 }, (_, i) => currentYear - 18 + i).reverse();
@@ -163,6 +166,23 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
           </div>
         )}
 
+        {step === 2 && hasBothFormats && (
+          <div className="fmt-question">
+            <span className="fmt-q-label">{d.formatQ}</span>
+            <div className="fmt-q-opts">
+              {(['all', 'online', 'in_person'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={`fmt-q-btn ${formatFilter === f ? 'sel' : ''}`}
+                  onClick={() => { setFormatFilter(f); setSlotId(null); }}
+                >
+                  {f === 'all' ? d.formatAll : f === 'online' ? d.online : d.inPerson}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {step === 2 && (
           <div className="slot-list">
             {filteredSlots.length === 0 ? (

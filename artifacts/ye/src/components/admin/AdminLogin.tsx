@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KiteMark } from '@/components/brand/FunademyMark';
+import { KiteMark } from '@/components/brand/FunAdemyMark';
 
 export function AdminLogin() {
   const [password, setPassword] = useState('');
@@ -39,7 +39,7 @@ export function AdminLogin() {
             <KiteMark size={40} dark full={false} />
           </div>
           <h1 className="font-display text-2xl font-bold text-[#101A38]">تسجيل الدخول</h1>
-          <p className="text-[#54618C] text-sm mt-2">بوابة إدارة Funademy</p>
+          <p className="text-[#54618C] text-sm mt-2">بوابة إدارة FunAdemy</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">

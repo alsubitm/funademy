@@ -9,7 +9,7 @@ import { bookDict } from '@/app/book/dict';
 import '@/app/book/page.css';
 
 export const metadata = {
-  title: 'Book a Trial | Funademy',
+  title: 'Book a Trial | FunAdemy',
   description: 'Register your child for a free trial class to experience the Young Engineer journey.',
 };
 

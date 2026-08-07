@@ -71,7 +71,7 @@ model Booking {
   phone          String
   childFirstName String
   childBirthYear Int
-  neighborhood   String // one of the 9 territory neighborhoods or "other"
+  neighborhood   String // legacy field — always "riyadh" (city-level only)
   status         BookingStatus @default(new)
   createdAt      DateTime     @default(now())
 
@@ -92,7 +92,7 @@ model Testimonial {
   id        Int     @id @default(autoincrement())
   name      String // e.g. "Um Khalid"
   nameAr    String
-  area      String // neighborhood
+  area      String // city (Riyadh)
   programEn String
   programAr String
   quoteEn   String
