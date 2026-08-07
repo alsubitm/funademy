@@ -1,0 +1,44 @@
+import Link from 'next/link';
+import { dict } from '@/lib/i18n';
+import { PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
+
+export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
+  const d = dict[lang];
+
+  return (
+    <>
+      <div className="top">
+        <div className="wrap">
+          <span>{d.topBanner}</span>
+          <span dir="ltr">
+            📞 <a href={`tel:+${WHATSAPP_NUMBER}`}>{PHONE_DISPLAY}</a> ·{' '}
+            <a href={`https://wa.me/${WHATSAPP_NUMBER}`}>{d.whatsapp}</a>
+          </span>
+        </div>
+      </div>
+
+      <nav>
+        <div className="wrap nav-in">
+          <Link href={lang === 'ar' ? '/' : '/en'} className="brand">
+            <div className="logo-slot">[ OFFICIAL e² YE LOGO ]</div>
+            <div className="ter">
+              Riyadh North<span>{d.brandSub}</span>
+            </div>
+          </Link>
+          <div className="links">
+            <a href="#path">{d.navPath}</a>
+            <a href="#programs">{d.navPrograms}</a>
+            <a href="#workshop">{d.navWorkshop}</a>
+            <a href="#pricing">{d.navPricing}</a>
+            <Link href={d.navLangLink} style={{ fontWeight: 800 }}>
+              {d.navLang}
+            </Link>
+            <a className="btn y" href="#pricing">
+              {d.navTrial}
+            </a>
+          </div>
+        </div>
+      </nav>
+    </>
+  );
+}

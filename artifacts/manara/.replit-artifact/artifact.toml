@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/"
+previewPath = "/manara/"
 title = "Manara Academy | أكاديمية منارة"
 description = "An Arabic-first, RTL subscription e-learning platform for Saudi families with children aged 4-18. Includes a marketing website, parent accounts with child profiles (avatar + PIN), age-banded learning experiences, video lessons with auto-graded exercises, XP/streaks/badges, a parent progress dashboard, and teacher/admin panels."
 version = "1.0.0"
@@ -8,7 +8,7 @@ router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
+paths = [ "/manara/" ]
 localPort = 25425
 
 [services.development]
@@ -25,4 +25,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "25425"
-BASE_PATH = "/"
+BASE_PATH = "/manara/"

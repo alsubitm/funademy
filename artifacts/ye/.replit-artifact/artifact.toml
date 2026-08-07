@@ -1,0 +1,36 @@
+kind = "web"
+previewPath = "/"
+title = "Young Engineers Riyadh North"
+description = "Production bilingual (Arabic-first RTL / English) website for Young Engineers Riyadh North, operated by Falcon Eye Ltd — official e² Young Engineers licensee. Sells live online and in-person kids' engineering classes (ages 4–15), hosts the أطفالنا يبنون وطننا national campaign with a shared brick wall, a free-trial booking flow, and an admin panel for schedule slots and bookings."
+version = "1.0.0"
+id = "artifacts/ye"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25793
+
+[services.development]
+run = "pnpm --filter @workspace/ye run dev"
+
+[services.production]
+
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/ye", "run", "build" ]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = [ "pnpm", "--filter", "@workspace/ye", "run", "start" ]
+
+[services.production.run.env]
+PORT = "25793"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/"
+
+[services.env]
+PORT = "25793"

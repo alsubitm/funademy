@@ -1,0 +1,143 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["ye"]
+}
+
+model Program {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  kitCode     String // KIT-01 ... KIT-06
+  nameEn      String
+  nameAr      String
+  ageMin      Int
+  ageMax      Int
+  format      Format
+  color       String // hex from the brand system
+  level       Int // 1-5 level meter
+  taglineEn   String
+  taglineAr   String
+  descEn      String
+  descAr      String
+  buildsEn    String[] // what kids build
+  buildsAr    String[]
+  termsEn     String[] // term structure lines
+  termsAr     String[]
+  position    Int      @default(0)
+  slots       ScheduleSlot[]
+  bookings    Booking[]
+
+  @@map("ye_programs")
+  @@schema("ye")
+}
+
+enum Format {
+  online
+  in_person
+
+  @@map("ye_format")
+  @@schema("ye")
+}
+
+model ScheduleSlot {
+  id        Int      @id @default(autoincrement())
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId Int
+  weekday   Int // 0=Sunday ... 6=Saturday
+  time      String // "17:00"
+  format    Format
+  location  String? // e.g. "Al Yasmin partner school" for in-person
+  capacity  Int      @default(12)
+  seatsLeft Int      @default(12)
+  active    Boolean  @default(true)
+  bookings  Booking[]
+
+  @@map("ye_schedule_slots")
+  @@schema("ye")
+}
+
+model Booking {
+  id             Int          @id @default(autoincrement())
+  program        Program      @relation(fields: [programId], references: [id])
+  programId      Int
+  slot           ScheduleSlot @relation(fields: [slotId], references: [id])
+  slotId         Int
+  parentName     String
+  phone          String
+  childFirstName String
+  childBirthYear Int
+  neighborhood   String // one of the 9 territory neighborhoods or "other"
+  status         BookingStatus @default(new)
+  createdAt      DateTime     @default(now())
+
+  @@map("ye_bookings")
+  @@schema("ye")
+}
+
+enum BookingStatus {
+  new
+  contacted
+  enrolled
+
+  @@map("ye_booking_status")
+  @@schema("ye")
+}
+
+model Testimonial {
+  id        Int     @id @default(autoincrement())
+  name      String // e.g. "Um Khalid"
+  nameAr    String
+  area      String // neighborhood
+  programEn String
+  programAr String
+  quoteEn   String
+  quoteAr   String
+  stars     Int     @default(5)
+  published Boolean @default(true)
+  position  Int     @default(0)
+
+  @@map("ye_testimonials")
+  @@schema("ye")
+}
+
+model FaqEntry {
+  id        Int     @id @default(autoincrement())
+  questionEn String
+  questionAr String
+  answerEn  String
+  answerAr  String
+  published Boolean @default(true)
+  position  Int     @default(0)
+
+  @@map("ye_faqs")
+  @@schema("ye")
+}
+
+model BrickEvent {
+  id        Int      @id @default(autoincrement())
+  ipHash    String
+  amount    Int
+  day       String // YYYY-MM-DD (Asia/Riyadh)
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, day])
+  @@map("ye_brick_events")
+  @@schema("ye")
+}
+
+model ClickEvent {
+  id    Int    @id @default(autoincrement())
+  kind  String // e.g. "whatsapp"
+  page  String
+  day   String // YYYY-MM-DD
+  count Int    @default(0)
+
+  @@unique([kind, page, day])
+  @@map("ye_click_events")
+  @@schema("ye")
+}

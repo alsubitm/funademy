@@ -1,1 +1,2 @@
 - [Schema changes flow](schema-changes-flow.md) — no migration files; drizzle push in dev, Replit Publish diffs schema to prod automatically.
+- [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages only the "ye" schema (db push drops undeclared tables!); /api owned by api-server, YE uses /svc; shared brick counter via raw SQL.
