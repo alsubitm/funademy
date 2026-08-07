@@ -1,4 +1,5 @@
 import { ScrollReveal } from '@/components/ScrollReveal';
+import Image from 'next/image';
 
 export function Testimonials({ lang }: { lang: 'ar' | 'en' }) {
   // Using static for testimonials & polaroids as it's heavily design-driven in HTML
@@ -6,7 +7,7 @@ export function Testimonials({ lang }: { lang: 'ar' | 'en' }) {
     <section className="proof" id="testimonials">
       <div className="wrap proof-in">
         <ScrollReveal className="qs">
-          <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>
+          <span className="kick" style={{ color: 'var(--blue)', borderColor: 'rgba(28, 84, 203, 0.3)', background: 'rgba(28, 84, 203, 0.08)' }}>
             TRUSTED BY PARENTS
           </span>
           {lang === 'ar' ? (
@@ -42,17 +43,23 @@ export function Testimonials({ lang }: { lang: 'ar' | 'en' }) {
         <ScrollReveal className="polas" dir="ltr">
           <div className="pola po1">
             <div className="tape"></div>
-            <div className="ph2">[ PHOTO OF KID BUILDING ]</div>
+            <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
+              <Image src="/hero-kids.jpg" alt="Building" fill style={{ objectFit: 'cover' }} />
+            </div>
             <div className="cap2">Bricks Challenge</div>
           </div>
           <div className="pola po2">
             <div className="tape"></div>
-            <div className="ph2">[ PHOTO OF LAPTOP ]</div>
+            <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
+              <Image src="/workshop-coding.jpg" alt="Coding" fill style={{ objectFit: 'cover' }} />
+            </div>
             <div className="cap2">AlgoPlay Code</div>
           </div>
           <div className="pola po3">
             <div className="tape"></div>
-            <div className="ph2">[ PHOTO OF GROUP ]</div>
+            <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
+              <Image src="/group-class.jpg" alt="Group" fill style={{ objectFit: 'cover' }} />
+            </div>
             <div className="cap2">Class of 2024</div>
           </div>
         </ScrollReveal>

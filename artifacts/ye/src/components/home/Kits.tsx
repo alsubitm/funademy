@@ -31,7 +31,7 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
     <section className="bg-white" id="programs">
       <div className="wrap">
         <ScrollReveal style={{ textAlign: 'center' }}>
-          <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>THE KITS</span>
+          <span className="kick">THE KITS</span>
           {lang === 'ar' ? (
             <>
               <h2>برامجنا المعتمدة</h2>

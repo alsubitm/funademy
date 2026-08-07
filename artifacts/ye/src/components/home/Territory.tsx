@@ -2,10 +2,10 @@ import { ScrollReveal } from '@/components/ScrollReveal';
 
 export function Territory({ lang }: { lang: 'ar' | 'en' }) {
   return (
-    <section className="bg-sand-1" id="territory" style={{ background: '#F5F8FF' }}>
+    <section className="bg-sand-1" id="territory">
       <div className="wrap split">
         <ScrollReveal>
-          <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>
+          <span className="kick">
             FALCON EYE LTD
           </span>
           {lang === 'ar' ? (

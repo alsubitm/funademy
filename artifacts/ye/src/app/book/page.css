@@ -5,40 +5,42 @@
 }
 
 .w-box {
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 16px 40px rgba(16, 26, 56, 0.08);
-  border: 1px solid var(--line);
-  padding: 30px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  box-shadow: 0 32px 64px rgba(7, 17, 42, 0.08), 0 8px 16px rgba(7, 17, 42, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 48px;
   max-width: 800px;
-  margin: 40px auto 0;
+  margin: 60px auto 0;
   position: relative;
   z-index: 2;
 }
 
 .w-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
 .w-steps {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 36px;
+  gap: 16px;
+  margin-bottom: 48px;
   flex-wrap: wrap;
 }
 
 .w-step {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 15px;
-  padding: 8px 18px;
+  font-size: 16px;
+  padding: 10px 24px;
   border-radius: 999px;
   background: var(--bg);
   color: var(--mut);
-  border: 1.5px dashed #C9D6F2;
-  transition: 0.3s;
+  border: 1.5px dashed var(--line);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .w-step.active {
@@ -46,7 +48,8 @@
   color: #fff;
   border-style: solid;
   border-color: var(--blue);
-  box-shadow: 0 4px 12px rgba(39, 100, 214, 0.3);
+  box-shadow: 0 12px 24px rgba(28, 84, 203, 0.3);
+  transform: scale(1.05);
 }
 
 .w-step.done {
@@ -73,10 +76,10 @@
 
 .prog-card {
   border: 2px solid var(--line);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 24px;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   background: #fff;
   text-align: center;
   position: relative;
@@ -84,14 +87,15 @@
 }
 
 .prog-card:hover {
-  border-color: var(--cyan);
-  transform: translateY(-2px);
+  border-color: rgba(28, 84, 203, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(7, 17, 42, 0.08);
 }
 
 .prog-card.sel {
   border-color: var(--blue);
-  background: #F0F5FF;
-  box-shadow: 0 8px 20px rgba(39, 100, 214, 0.15);
+  background: #F4F8FF;
+  box-shadow: 0 12px 24px rgba(28, 84, 203, 0.15), inset 0 0 0 1px var(--blue);
 }
 
 .prog-card .p-code {
@@ -280,13 +284,13 @@
 .f-group input,
 .f-group select {
   font-family: inherit;
-  font-size: 15px;
-  padding: 12px 16px;
+  font-size: 16px;
+  padding: 16px 20px;
   border: 2px solid var(--line);
-  border-radius: 8px;
-  background: #FAFCFF;
+  border-radius: 12px;
+  background: var(--bg);
   color: var(--ink);
-  transition: 0.2s;
+  transition: all 0.25s ease;
   outline: none;
 }
 
@@ -294,7 +298,7 @@
 .f-group select:focus {
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(39, 100, 214, 0.1);
+  box-shadow: 0 0 0 4px rgba(28, 84, 203, 0.15);
 }
 
 .alert-box {

@@ -1,14 +1,18 @@
 import { dict } from '@/lib/i18n';
 import { ScrollReveal } from '@/components/ScrollReveal';
+import Image from 'next/image';
 
 export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
 
   return (
     <section className="price" id="pricing">
-      <div className="wrap">
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.15, mixBlendMode: 'overlay', pointerEvents: 'none' }}>
+        <Image src="/pattern-bricks.jpg" alt="" fill style={{ objectFit: 'cover' }} />
+      </div>
+      <div className="wrap" style={{ position: 'relative', zIndex: 2 }}>
         <ScrollReveal style={{ textAlign: 'center' }}>
-          <span className="kick" style={{ color: 'var(--yellow)', borderColor: 'var(--yellow)' }}>
+          <span className="kick" style={{ color: 'var(--yellow)', borderColor: 'rgba(255,202,23,0.3)', background: 'rgba(255,202,23,0.1)' }}>
             PRICING & REGISTRATION
           </span>
           {lang === 'ar' ? (

@@ -9,7 +9,7 @@ export function PathMap({ lang }: { lang: 'ar' | 'en' }) {
       <div className="bpgrid light"></div>
       <div className="wrap" style={{ position: 'relative' }}>
         <ScrollReveal style={{ textAlign: 'center' }}>
-          <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>
+          <span className="kick">
             THE ENGINEERING PATH · 4 → 18
           </span>
           {lang === 'ar' ? (
@@ -45,47 +45,47 @@ export function PathMap({ lang }: { lang: 'ar' | 'en' }) {
             {/* stations */}
             <g fontFamily="var(--font-display)" fontWeight="800" textAnchor="middle">
               <g transform="translate(60,250)">
-                <circle r="30" fill="#FFC400" stroke="#101A38" strokeWidth="5" />
+                <circle r="30" fill="var(--yellow)" stroke="var(--ink)" strokeWidth="5" />
                 <text y="9" fontSize="26">🧱</text>
-                <text y="56" fontSize="15" fill="#101A38">{lang === 'ar' ? 'البناة الصغار' : 'Big Builders'}</text>
-                <text y="74" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="#54618C">AGES 4–6</text>
+                <text y="56" fontSize="15" fill="var(--ink)">{lang === 'ar' ? 'البناة الصغار' : 'Big Builders'}</text>
+                <text y="74" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="var(--mut)">AGES 4–6</text>
               </g>
               <g transform="translate(340,110)">
-                <circle r="30" fill="#37C8F5" stroke="#101A38" strokeWidth="5" />
+                <circle r="30" fill="var(--cyan)" stroke="var(--ink)" strokeWidth="5" />
                 <text y="9" fontSize="26">🎮</text>
-                <text y="-44" fontSize="15" fill="#101A38">Smartivo</text>
-                <text y="-26" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="#54618C">AGES 4–8 · ONLINE</text>
+                <text y="-44" fontSize="15" fill="var(--ink)">Smartivo</text>
+                <text y="-26" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="var(--mut)">AGES 4–8 · ONLINE</text>
               </g>
               <g transform="translate(600,250)">
-                <circle r="30" fill="#E5AE4A" stroke="#101A38" strokeWidth="5" />
+                <circle r="30" fill="var(--green)" stroke="var(--ink)" strokeWidth="5" />
                 <text y="9" fontSize="26">⚙️</text>
-                <text y="56" fontSize="15" fill="#101A38">{lang === 'ar' ? 'تحدي المكعبات' : 'Bricks Challenge'}</text>
-                <text y="74" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="#54618C">AGES 6–10</text>
+                <text y="56" fontSize="15" fill="var(--ink)">{lang === 'ar' ? 'تحدي المكعبات' : 'Bricks Challenge'}</text>
+                <text y="74" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="var(--mut)">AGES 6–10</text>
               </g>
               <g transform="translate(860,110)">
-                <circle r="30" fill="#2764D6" stroke="#101A38" strokeWidth="5" />
+                <circle r="30" fill="var(--blue)" stroke="var(--ink)" strokeWidth="5" />
                 <text y="9" fontSize="26">🤖</text>
-                <text y="-44" fontSize="15" fill="#101A38">AlgoPlay · RoboToys</text>
-                <text y="-26" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="#54618C">AGES 7–11 · ONLINE</text>
+                <text y="-44" fontSize="15" fill="var(--ink)">AlgoPlay · RoboToys</text>
+                <text y="-26" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="var(--mut)">AGES 7–11 · ONLINE</text>
               </g>
               <g transform="translate(1040,200)">
-                <circle r="30" fill="#101A38" stroke="#101A38" strokeWidth="5" />
+                <circle r="30" fill="var(--ink)" stroke="var(--ink)" strokeWidth="5" />
                 <text y="9" fontSize="24">💻</text>
-                <text y="56" fontSize="15" fill="#101A38">AlgoC</text>
-                <text y="74" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="#54618C">AGES 10–15 · ONLINE</text>
+                <text y="56" fontSize="15" fill="var(--ink)">AlgoC</text>
+                <text y="74" fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="var(--mut)">AGES 10–15 · ONLINE</text>
               </g>
               {/* side branch: Galileo */}
               <path d="M600 250 C 660 300 720 300 780 292" fill="none" stroke="#C9D6F2" strokeWidth="10" strokeLinecap="round" />
               <g transform="translate(800,290)">
-                <circle r="24" fill="#C98A1E" stroke="#101A38" strokeWidth="5" />
+                <circle r="24" fill="var(--red)" stroke="var(--ink)" strokeWidth="5" />
                 <text y="8" fontSize="20">🔭</text>
-                <text y="46" fontSize="14" fill="#101A38">Galileo Technic</text>
-                <text y="62" fontSize="11" fontFamily="var(--font-mono)" fontWeight="600" fill="#54618C">AGES 8–12</text>
+                <text y="46" fontSize="14" fill="var(--ink)">Galileo Technic</text>
+                <text y="62" fontSize="11" fontFamily="var(--font-mono)" fontWeight="600" fill="var(--mut)">AGES 8–12</text>
               </g>
               {/* flag */}
               <g transform="translate(1040,140)">
-                <line x1="0" y1="0" x2="0" y2="34" stroke="#101A38" strokeWidth="4" />
-                <path d="M0 0 L34 8 L0 16Z" fill="#FFC400" stroke="#101A38" strokeWidth="3" />
+                <line x1="0" y1="0" x2="0" y2="34" stroke="var(--ink)" strokeWidth="4" />
+                <path d="M0 0 L34 8 L0 16Z" fill="var(--yellow)" stroke="var(--ink)" strokeWidth="3" />
               </g>
             </g>
           </svg>

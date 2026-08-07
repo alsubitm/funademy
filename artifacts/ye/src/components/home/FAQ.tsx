@@ -15,7 +15,7 @@ export function FAQ({ faqs, lang }: { faqs: FaqEntry[]; lang: 'ar' | 'en' }) {
     <section className="faq" id="faq">
       <div className="wrap" style={{ maxWidth: '800px' }}>
         <ScrollReveal style={{ textAlign: 'center' }}>
-          <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>FAQ</span>
+          <span className="kick">FAQ</span>
           <h2>{lang === 'ar' ? 'الأسئلة الشائعة' : 'Frequently Asked Questions'}</h2>
         </ScrollReveal>
         
