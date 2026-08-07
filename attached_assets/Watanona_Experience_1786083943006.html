@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>أطفالنا يبنون وطننا — التجربة</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#071A45;--night2:#04102E;--blue:#2764D6;--yellow:#FFC400;--yellow-d:#D9A600;
+    --red:#EF3E36;--green:#33B24A;--saudi:#0E6B3A;--cyan:#37C8F5;--ink:#101A38;--mut:#54618C;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:auto}
+  body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--night2);color:#fff;line-height:1.6;overflow-x:hidden}
+  .mono{font-family:'IBM Plex Mono',monospace}
+
+  /* ---------- INTRO ---------- */
+  .intro{min-height:92vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 22px;position:relative;background:radial-gradient(900px 500px at 50% 110%,rgba(39,100,214,.25),transparent 60%),var(--night2)}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.2em;color:var(--yellow);border:1.5px dashed rgba(255,196,0,.5);border-radius:8px;padding:9px 18px;margin-bottom:26px}
+  .intro h1{font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:clamp(44px,8.5vw,96px);line-height:1.08}
+  .intro h1 .y{color:var(--yellow)}
+  .intro .en{font-family:'IBM Plex Mono',monospace;font-size:clamp(11px,1.6vw,15px);letter-spacing:.4em;color:#7FA5F0;margin-top:14px;direction:ltr}
+  .intro p{color:#B9CDF5;max-width:520px;margin-top:22px;font-size:17px}
+  .scrollcue{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);text-align:center;color:#7FA5F0;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.24em}
+  .scrollcue .arrow{width:24px;height:24px;margin:10px auto 0;border-right:3px solid var(--yellow);border-bottom:3px solid var(--yellow);transform:rotate(45deg);animation:dip 1.6s infinite}
+  @keyframes dip{0%,100%{transform:rotate(45deg) translate(0,0);opacity:1}50%{transform:rotate(45deg) translate(7px,7px);opacity:.4}}
+  @media(prefers-reduced-motion:reduce){.scrollcue .arrow{animation:none}}
+
+  /* ---------- STORY (scrollytelling) ---------- */
+  .story{height:520vh;position:relative}
+  .stagefix{position:sticky;top:0;height:100vh;overflow:hidden;background:linear-gradient(180deg,#0A1F52 0%,var(--night) 60%,#05123A 100%)}
+  .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(120,175,255,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(120,175,255,.10) 1px,transparent 1px);background-size:110px 110px}
+  .word{position:absolute;top:7vh;left:0;right:0;text-align:center;pointer-events:none}
+  .word span{position:absolute;left:0;right:0;font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:clamp(46px,8vw,92px);opacity:0;transition:opacity .5s;line-height:1}
+  .word .cap{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.34em;margin-top:10px;color:#7FA5F0}
+  .scenewrap{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(1100px,110vw)}
+  .scenewrap svg{width:100%;height:auto;display:block}
+  .el{opacity:0;transform:translateY(34px);transition:opacity .55s ease,transform .55s ease}
+  .el.on{opacity:1;transform:none}
+  .rail{position:fixed;left:auto;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:14px;z-index:5;opacity:0;transition:.4s;pointer-events:none}
+  html[dir="rtl"] .rail{right:auto;left:18px}
+  .rail.show{opacity:1}
+  .rail i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.22);transition:.3s}
+  .rail i.on{background:var(--yellow);box-shadow:0 0 12px rgba(255,196,0,.8)}
+
+  /* ---------- BRICK WALL (interactive) ---------- */
+  .wall-sec{padding:90px 22px;text-align:center;background:linear-gradient(180deg,#05123A,#071A45)}
+  .wall-sec h2{font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:clamp(30px,5vw,52px)}
+  .wall-sec h2 .y{color:var(--yellow)}
+  .wall-sec .en2{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.3em;color:#7FA5F0;margin-top:8px;direction:ltr}
+  .wall-sec p.g{color:#B9CDF5;max-width:520px;margin:18px auto 0;font-size:16px}
+  .counter{font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:clamp(34px,6vw,58px);color:var(--yellow);margin-top:26px}
+  .counter small{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.26em;color:#7FA5F0;font-weight:600;margin-top:4px}
+  .wall{max-width:760px;margin:30px auto 0;background:#04102E;border:2px dashed rgba(120,175,255,.35);border-radius:16px;padding:14px;cursor:pointer;position:relative;min-height:240px;display:flex;align-items:flex-end}
+  .wall .hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#7FA5F0;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.2em;pointer-events:none;transition:.4s}
+  .wall.used .hint{opacity:0}
+  .cols{display:flex;gap:5px;width:100%;align-items:flex-end}
+  .col{flex:1;display:flex;flex-direction:column-reverse;gap:5px;min-height:1px}
+  .brk{height:20px;border-radius:5px;border:2px solid #04102E;position:relative;animation:pop .3s ease}
+  .brk::before,.brk::after{content:"";position:absolute;top:-6px;width:9px;height:6px;border-radius:3px 3px 0 0;background:inherit}
+  .brk::before{left:5px}.brk::after{right:5px}
+  @keyframes pop{0%{transform:scale(.4) translateY(-30px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--yellow);color:var(--ink);font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:15px;padding:12px 24px;border-radius:999px;transition:.35s;z-index:99;box-shadow:0 12px 30px rgba(255,196,0,.4)}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+
+  /* ---------- CTA ---------- */
+  .cta{padding:90px 22px;text-align:center;background:linear-gradient(165deg,var(--saudi) 0%,#0A4F2B 100%)}
+  .cta h2{font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:clamp(28px,4.6vw,46px);line-height:1.2}
+  .cta p{color:#BFE8CF;margin-top:12px;font-size:16px}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:17px;padding:17px 34px;border-radius:14px;text-decoration:none;transition:.15s;border:none;cursor:pointer;margin-top:28px}
+  .btn.y{background:var(--yellow);color:var(--ink);box-shadow:0 7px 0 var(--yellow-d)}
+  .btn:hover{transform:translateY(-3px)}
+  footer{background:#04102E;color:#7284B8;padding:32px 22px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;direction:ltr}
+</style>
+</head>
+<body>
+
+<!-- ============ INTRO ============ -->
+<div class="intro">
+  <div class="badge">YOUNG ENGINEERS RIYADH NORTH · حملة ٢٠٢٦/٢٧</div>
+  <h1>أطفالنا يبنون <span class="y">وطننا</span></h1>
+  <div class="en">OUR KIDS BUILD OUR HOMELAND</div>
+  <p>هذه ليست صفحة تُقرأ.<br>هذه تجربة — <b style="color:#fff">أنت من سيبني الوطن الآن.</b></p>
+  <div class="scrollcue">اسحب للأسفل لتبدأ البناء<div class="arrow"></div></div>
+</div>
+
+<!-- ============ STORY ============ -->
+<div class="story" id="story">
+  <div class="stagefix">
+    <div class="grid"></div>
+
+    <!-- stage word -->
+    <div class="word">
+      <span id="w0" style="color:var(--red)">بيتي<em class="cap">MY HOME · TERM 1</em></span>
+      <span id="w1" style="color:var(--green)">حيّي<em class="cap">MY NEIGHBORHOOD · TERM 2</em></span>
+      <span id="w2" style="color:var(--cyan)">مدينتي<em class="cap">MY CITY · TERM 3</em></span>
+      <span id="w3" style="color:#4ADE80">وطننا<em class="cap">OUR HOMELAND · 23 SEP</em></span>
+    </div>
+
+    <div class="scenewrap">
+      <svg viewBox="0 0 1100 560">
+        <!-- stars (phase 4 brighten) -->
+        <g id="stars" opacity=".25">
+          <circle cx="120" cy="70" r="4" fill="#FFC400"/><circle cx="300" cy="120" r="3" fill="#fff"/>
+          <circle cx="900" cy="80" r="4" fill="#FFC400"/><circle cx="760" cy="50" r="3" fill="#fff"/>
+          <path d="M200 40 l6 13 13 6 -13 6 -6 13 -6 -13 -13 -6 13 -6z" fill="#FFC400"/>
+          <path d="M980 150 l5 11 11 5 -11 5 -5 11 -5 -11 -11 -5 11 -5z" fill="#fff"/>
+        </g>
+
+        <!-- ground -->
+        <rect x="0" y="500" width="1100" height="60" fill="#04102E"/>
+        <line x1="0" y1="500" x2="1100" y2="500" stroke="#37C8F5" stroke-width="2" stroke-dasharray="12 9" opacity=".4"/>
+
+        <!-- CRANE (always) -->
+        <g stroke="#FFC400" stroke-width="7" fill="none" stroke-linecap="round" opacity=".95">
+          <line x1="700" y1="500" x2="700" y2="130"/>
+          <line x1="700" y1="130" x2="470" y2="130"/>
+          <line x1="700" y1="130" x2="800" y2="130"/>
+          <line x1="700" y1="96" x2="700" y2="130"/>
+          <line x1="700" y1="96" x2="510" y2="130"/><line x1="700" y1="96" x2="782" y2="130"/>
+        </g>
+
+        <!-- PHASE 1: HOUSE assembling -->
+        <g stroke="#04102E" stroke-width="6" stroke-linejoin="round">
+          <rect class="el" id="row1" x="440" y="436" width="160" height="34" fill="#FFC400"/>
+          <rect class="el" id="row2" x="440" y="400" width="160" height="34" fill="#FFC400"/>
+          <rect class="el" id="row3" x="440" y="364" width="160" height="34" fill="#FFC400"/>
+          <rect class="el" id="row4" x="440" y="328" width="160" height="34" fill="#FFC400"/>
+          <g class="el" id="doorwin">
+            <rect x="498" y="404" width="44" height="66" rx="4" fill="#2764D6"/>
+            <circle cx="534" cy="438" r="4" fill="#FFC400" stroke="none"/>
+            <rect x="454" y="342" width="32" height="30" rx="4" fill="#37C8F5"/>
+            <rect x="554" y="342" width="32" height="30" rx="4" fill="#37C8F5"/>
+          </g>
+        </g>
+        <!-- roof rig: JS-driven Y -->
+        <g id="roofrig">
+          <line x1="520" y1="130" x2="520" y2="196" stroke="#C4D7FF" stroke-width="3" id="cable"/>
+          <g transform="translate(520,222)">
+            <path d="M-92 26 L0 -32 L92 26 Z" fill="#EF3E36" stroke="#04102E" stroke-width="6" stroke-linejoin="round"/>
+            <circle cx="0" cy="-36" r="7" fill="#C4D7FF"/>
+          </g>
+        </g>
+
+        <!-- PHASE 2: NEIGHBORHOOD -->
+        <g stroke="#04102E" stroke-width="5.5" stroke-linejoin="round">
+          <g class="el" id="mosque">
+            <rect x="250" y="410" width="120" height="60" fill="#F1F4FB"/>
+            <path d="M258 410 Q310 356 362 410 Z" fill="#33B24A"/>
+            <line x1="236" y1="470" x2="236" y2="360" stroke-width="7"/>
+            <circle cx="236" cy="352" r="9" fill="#FFC400"/>
+            <rect x="292" y="430" width="34" height="40" rx="16" fill="#0D2B6B"/>
+          </g>
+          <g class="el" id="house2">
+            <rect x="660" y="424" width="110" height="46" fill="#33B24A"/>
+            <path d="M652 424 L715 386 L778 424 Z" fill="#EF3E36"/>
+            <rect x="698" y="440" width="30" height="30" rx="4" fill="#37C8F5"/>
+          </g>
+          <g class="el" id="trees">
+            <line x1="400" y1="470" x2="400" y2="440" stroke-width="7"/>
+            <circle cx="400" cy="424" r="22" fill="#33B24A"/>
+            <line x1="812" y1="470" x2="812" y2="444" stroke-width="7"/>
+            <circle cx="812" cy="430" r="18" fill="#33B24A"/>
+          </g>
+        </g>
+
+        <!-- PHASE 3: CITY -->
+        <g class="el" id="kingdom">
+          <path d="M60 500 L60 300 Q60 220 118 220 Q176 220 176 300 L176 500 Z" fill="#14337A"/>
+          <path d="M82 500 L82 322 Q82 264 118 264 Q154 264 154 322 L154 500 Z" fill="#0A1F52"/>
+          <rect x="106" y="230" width="24" height="18" fill="#37C8F5" opacity=".85"/>
+        </g>
+        <g class="el" id="mukaab">
+          <rect x="880" y="300" width="190" height="200" fill="#14337A" stroke="#2A55B0" stroke-width="3"/>
+          <g stroke="#2A55B0" stroke-width="2" opacity=".85">
+            <line x1="880" y1="350" x2="1070" y2="350"/><line x1="880" y1="400" x2="1070" y2="400"/><line x1="880" y1="450" x2="1070" y2="450"/>
+            <line x1="928" y1="300" x2="928" y2="500"/><line x1="976" y1="300" x2="976" y2="500"/><line x1="1024" y1="300" x2="1024" y2="500"/>
+          </g>
+          <rect x="958" y="386" width="28" height="28" fill="#FFC400" opacity=".9"/>
+        </g>
+        <g id="metro">
+          <rect x="0" y="486" width="100" height="20" rx="10" fill="#37C8F5"/>
+          <rect x="10" y="490" width="16" height="9" rx="2" fill="#0A1F52"/><rect x="32" y="490" width="16" height="9" rx="2" fill="#0A1F52"/><rect x="54" y="490" width="16" height="9" rx="2" fill="#0A1F52"/>
+        </g>
+
+        <!-- PHASE 4: FLAG + FIREWORKS -->
+        <g class="el" id="flag">
+          <line x1="604" y1="328" x2="604" y2="252" stroke="#04102E" stroke-width="6"/>
+          <path d="M604 252 L664 264 L604 276 Z" fill="#0E6B3A" stroke="#04102E" stroke-width="4"/>
+        </g>
+        <g class="el" id="fw1" stroke="#FFC400" stroke-width="4" stroke-linecap="round">
+          <g transform="translate(330,180)">
+            <line x1="0" y1="-26" x2="0" y2="-12"/><line x1="0" y1="12" x2="0" y2="26"/>
+            <line x1="-26" y1="0" x2="-12" y2="0"/><line x1="12" y1="0" x2="26" y2="0"/>
+            <line x1="-18" y1="-18" x2="-9" y2="-9"/><line x1="9" y1="9" x2="18" y2="18"/>
+            <line x1="18" y1="-18" x2="9" y2="-9"/><line x1="-9" y1="9" x2="-18" y2="18"/>
+          </g>
+        </g>
+        <g class="el" id="fw2" stroke="#4ADE80" stroke-width="4" stroke-linecap="round">
+          <g transform="translate(840,160)">
+            <line x1="0" y1="-22" x2="0" y2="-10"/><line x1="0" y1="10" x2="0" y2="22"/>
+            <line x1="-22" y1="0" x2="-10" y2="0"/><line x1="10" y1="0" x2="22" y2="0"/>
+            <line x1="-15" y1="-15" x2="-7" y2="-7"/><line x1="7" y1="7" x2="15" y2="15"/>
+            <line x1="15" y1="-15" x2="7" y2="-7"/><line x1="-7" y1="7" x2="-15" y2="15"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- progress rail -->
+<div class="rail" id="rail"><i></i><i></i><i></i><i></i></div>
+
+<!-- ============ BRICK WALL ============ -->
+<section class="wall-sec">
+  <h2>الآن... ضع <span class="y">مكعّبك</span> في الوطن 🧱</h2>
+  <div class="en2">PLACE YOUR BRICK IN THE HOMELAND</div>
+  <p class="g">كل عائلة تزور هذه الصفحة تضيف مكعّباً إلى جدار الوطن — والجدار الحقيقي يكتمل في معرض <b style="color:#fff">وطن مصغّر</b> بيوم الوطن.</p>
+  <div class="counter"><span id="cnt">0</span> 🧱<small>BRICKS PLACED BY FAMILIES OF RIYADH NORTH</small></div>
+  <div class="wall" id="wall">
+    <div class="hint">اضغط في أي مكان لتضيف مكعّبك ↓ TAP ANYWHERE TO ADD YOUR BRICK</div>
+    <div class="cols" id="cols"></div>
+  </div>
+</section>
+
+<div class="toast" id="toast">🧱 مكعّبك أصبح جزءاً من الوطن!</div>
+
+<!-- ============ CTA ============ -->
+<section class="cta">
+  <h2>مكعّبك وُضع.<br>الآن احجز مكان طفلك بين البُناة الحقيقيين.</h2>
+  <p>الحصة الأولى مجانية · أونلاين أو حضوري · شمال الرياض</p>
+  <a class="btn y" href="https://wa.me/966505558387?text=أريد%20تسجيل%20طفلي%20في%20حملة%20أطفالنا%20يبنون%20وطننا">سجّل طفلك الآن — واتساب</a>
+</section>
+
+<footer>© 2026 FALCON EYE LTD · OFFICIAL LICENSEE · e² YOUNG ENGINEERS · RIYADH NORTH</footer>
+
+<script>
+(function(){
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var story=document.getElementById('story');
+  var rail=document.getElementById('rail');
+  var dots=rail.querySelectorAll('i');
+  var words=[0,1,2,3].map(function(i){return document.getElementById('w'+i)});
+  var stars=document.getElementById('stars');
+  var roof=document.getElementById('roofrig');
+  var cable=document.getElementById('cable');
+  var metro=document.getElementById('metro');
+  var seq=[
+    ['row1',.03],['row2',.06],['row3',.09],['row4',.12],['doorwin',.16],
+    ['mosque',.30],['house2',.36],['trees',.42],
+    ['kingdom',.54],['mukaab',.61],
+    ['flag',.80],['fw1',.86],['fw2',.90]
+  ];
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+  function update(){
+    var vh=window.innerHeight;
+    var r=story.getBoundingClientRect();
+    var total=story.offsetHeight-vh;
+    var p=clamp(-r.top/total,0,1);
+    var inStory=r.top<vh*.5&&r.bottom>vh*.5;
+    rail.classList.toggle('show',inStory);
+    // reveal sequence
+    seq.forEach(function(s){
+      var el=document.getElementById(s[0]);
+      if(el)el.classList.toggle('on',p>=s[1]||reduce);
+    });
+    // roof lowering: p .18->.26 maps translateY 0 -> 78 (roof lands on house)
+    var rp=clamp((p-.18)/.08,0,1); if(reduce)rp=1;
+    roof.setAttribute('transform','translate(0,'+(rp*78)+')');
+    cable.setAttribute('y2',196+rp*78);
+    // metro crossing: p .55->.75 maps x 0 -> 1000
+    var mp=clamp((p-.55)/.20,0,1); if(reduce)mp=1;
+    metro.setAttribute('transform','translate('+(mp*980-80)+',0)');
+    // stars brighten in phase 4
+    stars.setAttribute('opacity',(.25+clamp((p-.75)/.25,0,1)*.75).toFixed(2));
+    // stage word
+    var idx=p<.27?0:p<.52?1:p<.77?2:3;
+    words.forEach(function(w,i){w.style.opacity=(i===idx&&inStory)?1:0});
+    dots.forEach(function(d,i){d.classList.toggle('on',i<=idx)});
+  }
+  update();
+  window.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+
+  // ===== interactive brick wall =====
+  var COLORS=['#EF3E36','#FFC400','#33B24A','#2764D6','#0E6B3A','#8E5CD9'];
+  var NCOLS=14,MAXROWS=9;
+  var cols=document.getElementById('cols');
+  for(var i=0;i<NCOLS;i++){var c=document.createElement('div');c.className='col';cols.appendChild(c)}
+  var wall=document.getElementById('wall');
+  var cntEl=document.getElementById('cnt');
+  var toast=document.getElementById('toast');
+  var count=0,tmr=null,saveTmr=null;
+
+  function render(n){
+    cntEl.textContent=n.toLocaleString('ar-EG');
+  }
+  function addBrickVisual(colIndex){
+    var col=cols.children[colIndex];
+    if(col.children.length>=MAXROWS){ // wall full: clear softly and keep counting
+      Array.prototype.forEach.call(cols.children,function(c){c.innerHTML=''});
+      col=cols.children[colIndex];
+    }
+    var b=document.createElement('div');
+    b.className='brk';
+    b.style.background=COLORS[Math.floor(Math.random()*COLORS.length)];
+    col.appendChild(b);
+  }
+  function showToast(){
+    toast.classList.add('show');
+    clearTimeout(tmr);tmr=setTimeout(function(){toast.classList.remove('show')},1600);
+  }
+  async function loadCount(){
+    try{
+      var res=await window.storage.get('watan-bricks',true);
+      if(res&&res.value){count=parseInt(res.value)||0}
+    }catch(e){count=0}
+    render(count);
+  }
+  function saveCount(){
+    clearTimeout(saveTmr);
+    saveTmr=setTimeout(async function(){
+      try{await window.storage.set('watan-bricks',String(count),true)}catch(e){}
+    },600);
+  }
+  wall.addEventListener('click',function(ev){
+    wall.classList.add('used');
+    var rect=cols.getBoundingClientRect();
+    var x=clamp(ev.clientX-rect.left,0,rect.width-1);
+    var ci=Math.floor(x/rect.width*NCOLS);
+    addBrickVisual(clamp(ci,0,NCOLS-1));
+    count++;render(count);saveCount();showToast();
+  });
+  loadCount();
+})();
+</script>
+
+</body>
+</html>
