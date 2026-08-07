@@ -1,4 +1,5 @@
-import { useGetWatanStats } from '@workspace/api-client-react';
+import { useGetWatanStats, logout } from '@workspace/api-client-react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -62,7 +63,19 @@ function StatCard({
   );
 }
 
-function AccessDenied() {
+function AccessDenied({ isForbidden }: { isForbidden: boolean }) {
+  const [switching, setSwitching] = useState(false);
+
+  const handleSwitchAccount = async () => {
+    setSwitching(true);
+    try {
+      await logout();
+    } catch {
+      // ignore — proceed to the login page either way
+    }
+    window.location.href = `/manara/login?redirect=${encodeURIComponent(window.location.href)}`;
+  };
+
   return (
     <main
       dir="rtl"
@@ -86,12 +99,25 @@ function AccessDenied() {
         >
           العودة للصفحة الرئيسية
         </a>
-        <a
-          href={`/manara/login?redirect=${encodeURIComponent(window.location.href)}`}
-          className="inline-block w-full rounded-xl bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
-        >
-          تسجيل دخول منارة
-        </a>
+        {isForbidden ? (
+          <button
+            type="button"
+            onClick={handleSwitchAccount}
+            disabled={switching}
+            className="inline-block w-full rounded-xl bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {switching
+              ? 'جارٍ تسجيل الخروج…'
+              : 'تسجيل الخروج والدخول بحساب آخر'}
+          </button>
+        ) : (
+          <a
+            href={`/manara/login?redirect=${encodeURIComponent(window.location.href)}`}
+            className="inline-block w-full rounded-xl bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+          >
+            تسجيل دخول منارة
+          </a>
+        )}
       </div>
     </main>
   );
@@ -111,7 +137,11 @@ export default function Track() {
       (error as { status: number }).status === 403);
 
   if (isAuthError) {
-    return <AccessDenied />;
+    return (
+      <AccessDenied
+        isForbidden={(error as { status: number }).status === 403}
+      />
+    );
   }
 
   return (
