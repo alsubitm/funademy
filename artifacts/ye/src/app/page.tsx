@@ -34,6 +34,11 @@ export default async function HomePage() {
     orderBy: { position: 'asc' },
   });
 
+  const testimonials = await prisma.testimonial.findMany({
+    where: { published: true },
+    orderBy: { position: 'asc' },
+  });
+
   return (
     <>
       <SiteHeader lang="ar" />
@@ -46,7 +51,7 @@ export default async function HomePage() {
       <Workshop lang="ar" />
       <WatanTeaser lang="ar" />
       <Territory lang="ar" />
-      <Testimonials lang="ar" />
+      <Testimonials lang="ar" testimonials={testimonials} />
       <Pricing lang="ar" />
       <Certificate lang="ar" />
       <FAQ faqs={faqs} lang="ar" />

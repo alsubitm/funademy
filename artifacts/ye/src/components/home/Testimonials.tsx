@@ -1,8 +1,8 @@
 import { ScrollReveal } from '@/components/ScrollReveal';
 import Image from 'next/image';
+import type { Testimonial } from '@prisma/client';
 
-export function Testimonials({ lang }: { lang: 'ar' | 'en' }) {
-  // Using static for testimonials & polaroids as it's heavily design-driven in HTML
+export function Testimonials({ lang, testimonials }: { lang: 'ar' | 'en'; testimonials: Testimonial[] }) {
   return (
     <section className="proof" id="testimonials">
       <div className="wrap proof-in">
@@ -23,20 +23,15 @@ export function Testimonials({ lang }: { lang: 'ar' | 'en' }) {
           )}
 
           <div className="mt-8">
-            <div className="q">
-              <p>{lang === 'ar' ? 'ابني كان يقضي وقته على الآيباد، الآن ينتظر حصة المهندسين الصغار بفارغ الصبر. يبني النماذج ويشرح لي كيف تعمل.' : 'My son used to spend his time on the iPad, now he eagerly waits for his Young Engineers class. He builds models and explains to me how they work.'}</p>
-              <div className="w">
-                {lang === 'ar' ? 'أم خالد' : 'Um Khalid'} <span>— {lang === 'ar' ? 'الرياض' : 'Riyadh'}</span>
-                <div className="stars">★★★★★</div>
+            {testimonials.map((t) => (
+              <div className="q" key={t.id}>
+                <p>{lang === 'ar' ? t.quoteAr : t.quoteEn}</p>
+                <div className="w">
+                  {lang === 'ar' ? t.nameAr : t.name} <span>— {lang === 'ar' ? t.programAr : t.programEn}</span>
+                  <div className="stars">{'★'.repeat(t.stars)}</div>
+                </div>
               </div>
-            </div>
-            <div className="q">
-              <p>{lang === 'ar' ? 'فريق رائع ومحترف. التطور الذي رأيته في طريقة تفكير ابنتي وحلها للمشكلات ملحوظ جداً.' : 'A wonderful and professional team. The development I have seen in my daughter\'s thinking and problem solving is very noticeable.'}</p>
-              <div className="w">
-                {lang === 'ar' ? 'أبو ريما' : 'Abu Rima'} <span>— {lang === 'ar' ? 'الرياض' : 'Riyadh'}</span>
-                <div className="stars">★★★★★</div>
-              </div>
-            </div>
+            ))}
           </div>
         </ScrollReveal>
 
