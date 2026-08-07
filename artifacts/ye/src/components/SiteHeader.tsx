@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Wordmark } from '@/components/brand/FunAdemyMark';
 import { FlipMark } from '@/components/brand/FlipMark';
+import { YELogo } from '@/components/brand/YELogo';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 
@@ -27,6 +28,7 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
             <div className="ter">
               {lang === 'ar' ? 'الرياض' : 'Riyadh'}
             </div>
+            <YELogo height={28} className="opacity-70 hover:opacity-100 transition-opacity" />
           </Link>
           <div className="links">
             <a href="#path">{d.navPath}</a>

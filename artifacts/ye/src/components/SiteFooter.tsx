@@ -1,4 +1,5 @@
 import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
+import { YELogo } from '@/components/brand/YELogo';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER, EMAIL } from '@/lib/constants';
 
@@ -20,6 +21,10 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
             <p className="text-sm mt-2 opacity-80" style={{ maxWidth: '300px' }}>
               {lang === 'ar' ? 'FunAdemy — حيث تلتقي المتعة بالأكاديمية' : 'FunAdemy — WHERE FUN MEETS ACADEMY'}
             </p>
+            {/* Official e² YE partner logo */}
+            <div className="mt-5">
+              <YELogo height={30} onDark />
+            </div>
           </div>
           <div>
             <h4>{lang === 'ar' ? 'تواصل معنا' : 'Contact'}</h4>
