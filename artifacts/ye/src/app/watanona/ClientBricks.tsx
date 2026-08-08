@@ -14,6 +14,19 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
   const [visualBricks, setVisualBricks] = useState<{ id: number; fresh: boolean }[]>([]);
   const brickId = useRef(initialCount);
 
+  // Signed message bricks (approved ones shown publicly; new ones go to moderation)
+  const [wallMsgs, setWallMsgs] = useState<{ id: number; authorName: string; color: string; message: string }[]>([]);
+  const [authorName, setAuthorName] = useState('');
+  const [message, setMessage] = useState('');
+  const [pendingNote, setPendingNote] = useState(false);
+
+  useEffect(() => {
+    fetch('/svc/bricks')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.wall) setWallMsgs(d.wall); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const initVisuals = [];
     const maxVis = Math.min(initialCount, 300); // cap visual bricks at 300 for performance
@@ -27,10 +40,20 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
   const placeBrick = async () => {
     if (loading) return;
     setError(null);
+    setPendingNote(false);
     setLoading(true);
 
     try {
-      const res = await fetch('/svc/bricks', { method: 'POST' });
+      const hasMsg = authorName.trim() && message.trim();
+      const res = await fetch('/svc/bricks', {
+        method: 'POST',
+        ...(hasMsg
+          ? {
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ authorName: authorName.trim(), message: message.trim().slice(0, 120) }),
+            }
+          : {}),
+      });
       const data = await res.json();
       
       if (res.status === 429) {
@@ -44,6 +67,11 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
         setRemaining(data.remainingToday);
         const newId = ++brickId.current;
         setVisualBricks(prev => [...prev, { id: newId, fresh: true }].slice(-300));
+        if (data.pendingReview) {
+          setPendingNote(true);
+          setAuthorName('');
+          setMessage('');
+        }
       } else {
         setError(d.wallError);
       }
@@ -76,6 +104,29 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
           </div>
         </div>
 
+        <div style={{ maxWidth: 460, margin: '20px auto 0', display: 'grid', gap: 10, textAlign: 'start' }}>
+          <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)' }}>{d.wallNameLbl}</label>
+          <input
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            maxLength={30}
+            placeholder={d.wallNamePh}
+            style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(159,192,255,0.3)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontFamily: 'inherit' }}
+          />
+          {authorName.trim() && (
+            <>
+              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)' }}>{d.wallMsgLbl}</label>
+              <input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                maxLength={120}
+                placeholder={d.wallMsgPh}
+                style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(159,192,255,0.3)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontFamily: 'inherit' }}
+              />
+            </>
+          )}
+        </div>
+
         <button 
           className="btn-brick" 
           onClick={placeBrick} 
@@ -83,6 +134,37 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
         >
           {d.wallPlaceBtn}
         </button>
+
+        {pendingNote && (
+          <div style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: 'var(--color-gold)' }}>{d.wallPendingNote}</div>
+        )}
+
+        {wallMsgs.length > 0 && (
+          <div style={{ marginTop: 40 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{d.wallMsgsTitle}</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', maxWidth: 760, margin: '0 auto' }}>
+              {wallMsgs.map((m) => (
+                <div
+                  key={m.id}
+                  style={{
+                    background: m.color,
+                    color: m.color === '#FFCA17' || m.color === '#22DAFF' ? '#101A38' : '#fff',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    maxWidth: 230,
+                    textAlign: 'start',
+                    boxShadow: '0 3px 0 rgba(0,0,0,0.25)',
+                  }}
+                >
+                  <div style={{ opacity: 0.85, fontSize: 11, marginBottom: 2 }}>{m.authorName}</div>
+                  {m.message}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 text-sm font-mono font-semibold" style={{ color: 'var(--color-mut)', marginTop: '16px' }}>
           {error ? (

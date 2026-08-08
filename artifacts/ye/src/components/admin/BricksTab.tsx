@@ -1,6 +1,92 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+function BrickModeration() {
+  const [status, setStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [bricks, setBricks] = useState<any[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+
+  const fetchQueue = useCallback(async (st = status) => {
+    const res = await fetch(`/svc/admin/brick-wall?status=${st}`);
+    if (res.ok) {
+      const data = await res.json();
+      setBricks(data.bricks || []);
+      setCounts(data.counts || {});
+    }
+    setLoading(false);
+  }, [status]);
+
+  useEffect(() => { fetchQueue(); }, [fetchQueue]);
+
+  const moderate = async (id: number, newStatus: 'approved' | 'rejected') => {
+    setBricks((prev) => prev.filter((b) => b.id !== id));
+    setCounts((prev) => ({ ...prev, [status]: (prev[status] || 1) - 1, [newStatus]: (prev[newStatus] || 0) + 1 }));
+    const res = await fetch('/svc/admin/brick-wall', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: newStatus }),
+    });
+    if (!res.ok) fetchQueue();
+  };
+
+  const tabs: { id: 'pending' | 'approved' | 'rejected'; label: string }[] = [
+    { id: 'pending', label: 'بانتظار المراجعة' },
+    { id: 'approved', label: 'معتمدة' },
+    { id: 'rejected', label: 'مرفوضة' },
+  ];
+
+  return (
+    <div className="bg-white p-6 sm:p-8 rounded-[24px] shadow-[0_8px_30px_rgba(7,17,42,0.04)] border border-[#DFE5F2]">
+      <h2 className="text-2xl font-display font-bold text-[#101A38] mb-2">مراجعة مكعبات جدار وطنّا</h2>
+      <p className="text-sm text-[#5F6B92] font-medium mb-5">المكعبات المعتمدة فقط تظهر على الجدار العام</p>
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => { setStatus(t.id); setLoading(true); }}
+            className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+              status === t.id ? 'bg-[#101A38] text-white border-[#101A38]' : 'bg-white text-[#5F6B92] border-[#DFE5F2]'
+            }`}
+          >
+            {t.label} ({counts[t.id] || 0})
+          </button>
+        ))}
+      </div>
+      {loading ? (
+        <div className="py-10 text-center text-[#5F6B92] font-mono font-bold text-sm">LOADING...</div>
+      ) : bricks.length === 0 ? (
+        <div className="py-10 text-center text-[#5F6B92] font-bold border-2 border-dashed border-[#DFE5F2] rounded-2xl">لا توجد مكعبات في هذه القائمة.</div>
+      ) : (
+        <div className="space-y-3">
+          {bricks.map((b) => (
+            <div key={b.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl border border-[#DFE5F2]">
+              <div className="w-8 h-8 rounded-lg flex-shrink-0 border border-black/10" style={{ background: b.color }} />
+              <div className="flex-1 min-w-0">
+                <div className="font-display font-bold text-[#101A38]">{b.authorName}</div>
+                <div className="text-sm text-[#5F6B92] break-words">{b.message}</div>
+                <div className="text-[11px] font-mono text-[#5F6B92] mt-1" dir="ltr">{new Date(b.createdAt).toLocaleString('en-GB')}</div>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                {status !== 'approved' && (
+                  <button onClick={() => moderate(b.id, 'approved')} className="px-4 py-2 rounded-xl text-sm font-bold bg-[rgba(28,84,203,0.1)] text-[#1C54CB] border border-[rgba(28,84,203,0.2)] hover:bg-[rgba(28,84,203,0.18)]">
+                    اعتماد ✓
+                  </button>
+                )}
+                {status !== 'rejected' && (
+                  <button onClick={() => moderate(b.id, 'rejected')} className="px-4 py-2 rounded-xl text-sm font-bold bg-[#FFF5F5] text-[#e11d48] border border-[#e11d48]/20 hover:bg-[#e11d48] hover:text-white">
+                    رفض ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function BricksTab() {
   const [data, setData] = useState({ count: 0, placedToday: 0, clicks: {} as Record<string, number> });
@@ -134,6 +220,8 @@ export function BricksTab() {
           </button>
         </div>
       </div>
+
+      <BrickModeration />
     </div>
   );
 }
