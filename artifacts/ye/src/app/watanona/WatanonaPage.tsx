@@ -4,6 +4,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { ClientBricks } from './ClientBricks';
+import { WatanScrolly } from './WatanScrolly';
 import { Countdown } from './Countdown';
 import { watanonaDict } from './dictionary';
 import { waLink } from '@/lib/constants';
@@ -46,6 +47,9 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
       </section>
 
       <SandStripe />
+
+      {/* Scrollytelling journey: بيتي → حيّي → مدينتي → وطننا */}
+      <WatanScrolly lang={lang} />
 
       {/* Interactive Bricks */}
       <ClientBricks initialCount={initialCount} lang={lang} />

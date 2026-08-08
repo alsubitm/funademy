@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { prisma } from '@/lib/db';
 import { getBrickCount } from '@/lib/bricks';
 import { BRICK_DAILY_LIMIT, riyadhDay } from '@/lib/constants';
+import { getFamilyId } from '@/lib/family-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,8 +20,8 @@ export async function GET() {
   return NextResponse.json({ count, wall });
 }
 
-// Brand colors allowed on the wall
-const BRICK_COLORS = ['#1C54CB', '#FFCA17', '#22DAFF', '#101A38'];
+// Brand palette only (blue / gold / cyan / sand) — never rainbow colors.
+const BRICK_COLORS = ['#1C54CB', '#FFCA17', '#22DAFF', '#E5AE4A'];
 
 function ipHashOf(req: NextRequest): string {
   const ip =
@@ -34,18 +35,35 @@ export async function POST(req: NextRequest) {
   const ipHash = ipHashOf(req);
   const day = riyadhDay();
 
-  // Optional signed message brick: { authorName, message, color? } — goes to
-  // the moderation queue (pending) and appears on the wall only once approved.
-  let brick: { authorName: string; message: string; color: string } | null = null;
+  // Optional signed message brick: { color?, authorName?, message?, studentId? } —
+  // goes to the moderation queue (pending) and appears on the wall only once
+  // approved. When the family is logged in, the brick links to their child.
+  let brick: { authorName: string; message: string; color: string; studentId?: number } | null = null;
   const body = await req.json().catch(() => null);
-  if (body && (body.authorName !== undefined || body.message !== undefined)) {
-    const authorName = String(body.authorName ?? '').trim().slice(0, 30);
-    const message = String(body.message ?? '').trim();
+
+  // studentId is validated independently of message presence: it always
+  // requires a family session and child ownership.
+  let linkedStudent: { id: number; firstName: string } | null = null;
+  if (body && body.studentId !== undefined && body.studentId !== null) {
+    const sid = Number(body.studentId);
+    const familyId = await getFamilyId();
+    if (!familyId || !Number.isInteger(sid)) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
+    const student = await prisma.student.findFirst({ where: { id: sid, familyId } });
+    if (!student) return NextResponse.json({ error: 'not_your_child' }, { status: 403 });
+    linkedStudent = { id: student.id, firstName: student.firstName };
+  }
+
+  if (body && String(body.message ?? '').trim()) {
+    const message = String(body.message).trim();
     const color = BRICK_COLORS.includes(String(body.color)) ? String(body.color) : BRICK_COLORS[0];
-    if (!authorName || !message || message.length > 120) {
+    const authorName = (String(body.authorName ?? '').trim() || linkedStudent?.firstName || '').slice(0, 30);
+
+    if (!authorName || message.length > 120) {
       return NextResponse.json({ error: 'validation' }, { status: 400 });
     }
-    brick = { authorName, message, color };
+    brick = { authorName, message, color, ...(linkedStudent ? { studentId: linkedStudent.id } : {}) };
   }
 
   // Atomic quota check + event insert + counter increment in one transaction.

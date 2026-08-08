@@ -36,6 +36,20 @@ export const watanonaDict = {
       { title: '٤. المعرض الختامي', desc: 'نركب الأجزاء لنشكل خريطة الوطن.' }
     ],
 
+    scrollyKick: 'رحلة البناء',
+    scrollyTitle: 'من بيتي إلى وطننا',
+    scrollyStages: [
+      { key: 'home', title: 'بيتي', desc: 'يبدأ كل شيء من البيت — أول مكعب يضعه طفلك بيده الصغيرة.' },
+      { key: 'hood', title: 'حيّي', desc: 'تتجاور البيوت وتكبر الفكرة — مكعبات أصدقائه تنضم إلى مكعباته.' },
+      { key: 'city', title: 'مدينتي', desc: 'أحياء تكتمل ومدينة تنبض — آلاف المكعبات من كل أنحاء الرياض.' },
+      { key: 'nation', title: 'وطننا', desc: 'وفي المعرض الختامي، تتحد المدن لتشكّل أكبر خريطة للمملكة بأيادي أطفالنا.' },
+    ],
+
+    brickTapHint: 'اضغط أي مكعب لقراءة رسالته',
+    brickColorLbl: 'اختر لون مكعبك',
+    brickChildLbl: 'مكعب باسم',
+    brickAnonOpt: 'بدون اسم طفل مسجل',
+
     exhibKick: 'المعرض الختامي',
     exhibTitle: 'معرض "وطننا الصغير"',
     exhibDesc: 'انضم إلينا يوم 23 سبتمبر للكشف عن أضخم خريطة للمملكة مبنية بأيادي أطفال الرياض.',
@@ -88,6 +102,20 @@ export const watanonaDict = {
       { title: '3. City Milestones', desc: 'We combine builds from across Riyadh.' },
       { title: '4. The Unveiling', desc: 'All parts connect at the grand exhibition.' }
     ],
+
+    scrollyKick: 'The Building Journey',
+    scrollyTitle: 'From My Home to Our Homeland',
+    scrollyStages: [
+      { key: 'home', title: 'My Home', desc: 'It all starts at home — the first brick your child places with their own hands.' },
+      { key: 'hood', title: 'My Neighborhood', desc: 'Homes come together and the idea grows — friends\' bricks join theirs.' },
+      { key: 'city', title: 'My City', desc: 'Districts complete, a city comes alive — thousands of bricks from across Riyadh.' },
+      { key: 'nation', title: 'Our Homeland', desc: 'At the grand exhibition, cities unite into the Kingdom\'s largest map, built by our kids.' },
+    ],
+
+    brickTapHint: 'Tap any brick to read its message',
+    brickColorLbl: 'Pick your brick color',
+    brickChildLbl: 'Brick in the name of',
+    brickAnonOpt: 'No registered child',
 
     exhibKick: 'Grand Exhibition',
     exhibTitle: '"Mini Watan" Exhibition',

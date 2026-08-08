@@ -25,6 +25,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
     return null;
   });
   const [slotId, setSlotId] = useState<number | null>(null);
+  const [ageFilter, setAgeFilter] = useState<number | null>(null);
   const [formatFilter, setFormatFilter] = useState<'all' | 'online' | 'in_person'>('all');
   
   const [parentName, setParentName] = useState('');
@@ -151,8 +152,22 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
 
       <div className="w-content">
         {step === 1 && (
+          <>
+          <div className="fmt-question">
+            <span className="fmt-q-label">{lang === 'ar' ? 'كم عمر طفلك؟' : 'How old is your child?'}</span>
+            <div className="fmt-q-opts" style={{ flexWrap: 'wrap' }}>
+              <button type="button" className={`fmt-q-btn ${ageFilter === null ? 'sel' : ''}`} onClick={() => setAgeFilter(null)}>
+                {lang === 'ar' ? 'الكل' : 'All'}
+              </button>
+              {Array.from({ length: 15 }, (_, i) => i + 4).map((a) => (
+                <button key={a} type="button" className={`fmt-q-btn ${ageFilter === a ? 'sel' : ''}`} onClick={() => setAgeFilter(a)}>
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="prog-grid">
-            {programs.map((p) => {
+            {programs.filter((p) => ageFilter === null || (ageFilter >= p.ageMin && ageFilter <= p.ageMax) || p.id === programId).map((p) => {
               const isSelected = p.id === programId;
               return (
                 <div key={p.id} className={`prog-card ${isSelected ? 'sel' : ''}`} onClick={() => { setProgramId(p.id); setSlotId(null); }}>
@@ -164,6 +179,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
               );
             })}
           </div>
+          </>
         )}
 
         {step === 2 && hasBothFormats && (

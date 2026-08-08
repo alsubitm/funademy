@@ -265,3 +265,132 @@
 }
 .exhib-card h2 { color: var(--color-bp); }
 .exhib-card p { font-size: 18px; margin: 20px 0; }
+
+/* ————— Scrollytelling journey (بيتي → حيّي → مدينتي → وطننا) ————— */
+.scrolly-sec {
+  position: relative;
+  padding: 90px 0 110px;
+  background: var(--color-ink, #0B1B4B);
+  color: #fff;
+  overflow: hidden;
+}
+.scrolly-track {
+  max-width: 720px;
+  margin: 50px auto 0;
+  position: relative;
+}
+.scrolly-stage {
+  position: relative;
+  display: flex;
+  gap: 22px;
+  padding-bottom: 70px;
+}
+.scrolly-line {
+  position: relative;
+  width: 44px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+.scrolly-line::before {
+  content: '';
+  position: absolute;
+  top: 44px;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(to bottom, rgba(34,218,255,0.5) 0 8px, transparent 8px 16px);
+}
+.scrolly-stage:last-child .scrolly-line::before { display: none; }
+.scrolly-dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--color-cyan, #22DAFF);
+  color: var(--color-cyan, #22DAFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  background: rgba(34,218,255,0.08);
+  transition: background 0.6s, color 0.6s, box-shadow 0.6s;
+}
+.scrolly-card {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(159,192,255,0.25);
+  border-radius: 20px;
+  padding: 26px 28px;
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.scrolly-card h3 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  margin: 14px 0 8px;
+  color: var(--color-gold, #FFCA17);
+}
+.scrolly-card p { color: #D6E0FF; font-size: 16px; line-height: 1.8; margin: 0; }
+.scrolly-art { width: 120px; height: 90px; display: block; }
+.scrolly-art .draw {
+  stroke-dasharray: 320;
+  stroke-dashoffset: 320;
+  transition: stroke-dashoffset 1.6s ease 0.25s;
+}
+.scrolly-stage.on .scrolly-card { opacity: 1; transform: none; }
+.scrolly-stage.on .scrolly-art .draw { stroke-dashoffset: 0; }
+.scrolly-stage.on .scrolly-dot {
+  background: var(--color-cyan, #22DAFF);
+  color: var(--color-ink, #0B1B4B);
+  box-shadow: 0 0 18px rgba(34,218,255,0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .scrolly-card { opacity: 1; transform: none; transition: none; }
+  .scrolly-art .draw { stroke-dasharray: none; stroke-dashoffset: 0; transition: none; }
+  .scrolly-dot { transition: none; }
+  .mini-brick.anim-in { animation: none; }
+}
+
+/* ————— DB brick wall (approved bricks with messages) ————— */
+.wallgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  max-width: 720px;
+  margin: 26px auto 0;
+}
+.wallbrick {
+  width: 46px;
+  height: 24px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  box-shadow: inset 0 3px 0 rgba(255,255,255,0.3), inset 0 -3px 0 rgba(0,0,0,0.18), 0 2px 0 rgba(0,0,0,0.25);
+  transition: transform 0.15s;
+}
+.wallbrick:hover { transform: translateY(-2px); }
+.wallbrick.open { outline: 3px solid #fff; outline-offset: 2px; }
+.wallbrick-msg {
+  background: #fff;
+  color: var(--color-ink, #0B1B4B);
+  border-radius: 14px;
+  padding: 14px 18px;
+  max-width: 420px;
+  margin: 14px auto 0;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+.wallbrick-msg .who { font-size: 12px; opacity: 0.65; margin-bottom: 4px; }
+.color-pick { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.color-pick button {
+  width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+  border: 3px solid transparent;
+  box-shadow: inset 0 3px 0 rgba(255,255,255,0.3), inset 0 -3px 0 rgba(0,0,0,0.18);
+}
+.color-pick button.sel { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.4), inset 0 3px 0 rgba(255,255,255,0.3); }
