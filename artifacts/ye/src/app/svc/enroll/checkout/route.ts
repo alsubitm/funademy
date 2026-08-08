@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
 import { CART_COOKIE, priceCart, readCart } from '@/lib/cart';
 import { createPayment, PAYMENT_PROVIDERS, type PaymentProvider } from '@/lib/payments';
+import { addOneMonth } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +87,40 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ error: 'payment_failed' }, { status: 402 });
   }
+
+  // Record the payment + receipt lines and mark the first paid month.
+  const periodStart = new Date();
+  const periodEnd = addOneMonth(periodStart);
+  const enrollmentIds = outcome.enrollmentIds;
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.create({
+      data: {
+        familyId,
+        kind: 'enrollment',
+        provider,
+        reference: payment.reference,
+        status: 'paid',
+        subtotalSar: cart.subtotalSar,
+        discountSar: cart.discountSar,
+        totalSar: cart.totalSar,
+        simulated: payment.simulated === true,
+        items: {
+          create: cart.items.map((item, i) => ({
+            enrollmentId: enrollmentIds[i],
+            studentName: item.studentName,
+            programAr: item.programNameAr,
+            programEn: item.programNameEn,
+            periodStart,
+            periodEnd,
+            baseSar: item.baseSar,
+            discountPct: item.discountPct,
+            totalSar: Math.round(item.totalSar),
+          })),
+        },
+      },
+    });
+    await tx.enrollment.updateMany({ where: { id: { in: enrollmentIds } }, data: { paidThrough: periodEnd } });
+  });
 
   const res = NextResponse.json({
     paid: true,

@@ -133,6 +133,50 @@
 .ptl-skill .lbl { flex: 1; }
 .ptl-skill .state { font-size: 11px; color: var(--mut); font-weight: 700; }
 
+/* payments & subscription */
+.ptl-tag.sub-paid { background: rgba(34, 218, 255, 0.15); color: #0e7a94; }
+.ptl-tag.sub-due_soon { background: rgba(255, 202, 23, 0.2); color: #8a6d00; }
+.ptl-tag.sub-due, .ptl-tag.sub-none { background: rgba(211, 144, 27, 0.15); color: #9a6a0e; }
+.ptl-sub-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+
+.ptl-pay { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; flex-wrap: wrap; }
+.ptl-pay:last-child { border-bottom: none; }
+.ptl-pay .d { font-family: var(--font-mono); font-size: 12px; color: var(--blue-deep); direction: ltr; min-width: 90px; }
+.ptl-pay .p { flex: 1; min-width: 150px; color: var(--ink); font-weight: 600; }
+.ptl-pay .amt { font-family: var(--font-display); font-weight: 800; color: var(--blue-deep); white-space: nowrap; }
+.ptl-pay .rcpt { font-size: 12.5px; font-weight: 700; color: var(--blue); text-decoration: none; border: 1.5px solid rgba(28, 84, 203, 0.3); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.ptl-pay .rcpt:hover { background: rgba(28, 84, 203, 0.06); }
+
+.ptl-renew-btn {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  background: var(--yellow);
+  color: var(--ink);
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 18px;
+  cursor: pointer;
+}
+.ptl-renew-btn:hover { filter: brightness(0.96); }
+
+.ptl-renew-box { width: 100%; border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; margin-top: 6px; background: var(--bg); }
+.ptl-renew-box .lbl { font-size: 13px; font-weight: 700; color: var(--mut); margin-bottom: 8px; }
+.ptl-renew-box .provs { display: flex; gap: 8px; flex-wrap: wrap; }
+.ptl-renew-box .prov { border: 1.5px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; color: var(--ink); }
+.ptl-renew-box .prov.sel { border-color: var(--blue); background: rgba(28, 84, 203, 0.08); color: var(--blue); }
+.ptl-renew-box .sim { font-size: 11.5px; color: #8a6d00; background: rgba(255, 202, 23, 0.14); border-radius: 8px; padding: 5px 10px; margin-top: 10px; display: inline-block; }
+.ptl-renew-box .err { color: #b3261e; font-size: 12.5px; font-weight: 700; margin-top: 8px; }
+.ptl-renew-box .ok { color: #0e7a94; font-weight: 800; text-align: center; padding: 8px 0; }
+.ptl-renew-box .acts { display: flex; gap: 10px; margin-top: 12px; }
+.ptl-renew-box .go { flex: 1; background: var(--blue); color: #fff; border: 0; border-radius: 10px; padding: 11px 16px; font-family: var(--font-display); font-weight: 800; font-size: 14px; cursor: pointer; }
+.ptl-renew-box .go:disabled { opacity: 0.6; cursor: wait; }
+.ptl-renew-box .cx { background: #fff; border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 16px; font-size: 13px; font-weight: 700; color: var(--mut); cursor: pointer; }
+
+@media (max-width: 560px) {
+  .ptl-sub-side { width: 100%; flex-direction: row; justify-content: space-between; align-items: center; }
+}
+
 /* badges */
 .ptl-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
 .ptl-badge {

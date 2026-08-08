@@ -100,6 +100,7 @@ model Family {
   locale     String    @default("ar")
   createdAt  DateTime  @default(now())
   students   Student[]
+  payments   Payment[]
 
   @@map("ye_families")
   @@schema("ye")
@@ -198,7 +199,9 @@ model Enrollment {
   monthlyPriceSar Int              @default(1380)
   discountPct     Int              @default(0) // 10 = sibling discount
   startedAt       DateTime?
+  paidThrough     DateTime? // subscription covered until this date (exclusive)
   createdAt       DateTime         @default(now())
+  paymentItems    PaymentItem[]
 
   @@unique([studentId, courseRunId])
   @@index([courseRunId, status])
@@ -213,6 +216,64 @@ enum EnrollmentStatus {
   cancelled
 
   @@map("ye_enrollment_status")
+  @@schema("ye")
+}
+
+// ————————————————————————— Payments & Receipts —————————————————————————
+
+model Payment {
+  id          Int           @id @default(autoincrement())
+  family      Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  familyId    Int
+  kind        PaymentKind
+  provider    String // moyasar_mada | moyasar_applepay | moyasar_stcpay | tamara
+  reference   String // provider reference (SIM-* while simulated)
+  status      PaymentTxStatus @default(paid)
+  subtotalSar Int
+  discountSar Int           @default(0)
+  totalSar    Int
+  simulated   Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  items       PaymentItem[]
+
+  @@index([familyId, createdAt])
+  @@map("ye_payments")
+  @@schema("ye")
+}
+
+model PaymentItem {
+  id           Int         @id @default(autoincrement())
+  payment      Payment     @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  paymentId    Int
+  enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  enrollmentId Int?
+  studentName  String // snapshot for receipts even if student is deleted
+  programAr    String
+  programEn    String
+  periodStart  DateTime // month covered by this line
+  periodEnd    DateTime
+  baseSar      Int
+  discountPct  Int         @default(0)
+  totalSar     Int
+
+  @@index([paymentId])
+  @@map("ye_payment_items")
+  @@schema("ye")
+}
+
+enum PaymentKind {
+  enrollment
+  renewal
+
+  @@map("ye_payment_kind")
+  @@schema("ye")
+}
+
+enum PaymentTxStatus {
+  paid
+  refunded
+
+  @@map("ye_payment_tx_status")
   @@schema("ye")
 }
 
