@@ -188,7 +188,7 @@ router.get("/watan/og-image.png", async (_req, res): Promise<void> => {
       throw new Error("OG image fonts not found on disk");
     }
 
-    const svg = buildOgSvg(count, CAMPAIGN_GOAL);
+    const svg = buildOgSvg(count, await getCampaignGoal());
     const resvg = new Resvg(svg, {
       fitTo: { mode: "width", value: 1200 },
       font: {

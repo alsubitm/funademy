@@ -20,6 +20,8 @@ export const childrenTable = pgTable("children", {
   band: text("band").notNull(), // explorers | builders | achievers | graduates
   birthYear: integer("birth_year").notNull(),
   birthMonth: integer("birth_month").notNull(),
+  // scrypt "salt:hash" of the 4-digit child PIN (legacy rows may still be
+  // plaintext until lazily upgraded on first successful verification).
   pin: text("pin").notNull(),
   xp: integer("xp").notNull().default(0),
   streak: integer("streak").notNull().default(0),

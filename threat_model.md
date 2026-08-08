@@ -42,12 +42,12 @@ Exercise scoring is graded server-side: the client submits only `{ exerciseId, a
 
 ### Information Disclosure
 
-- Parent and child PINs are stored as plaintext text columns. A database breach directly exposes all PINs.
+- Parent and child PINs are stored as scrypt `salt:hash` values (same scheme as passwords) and verified with constant-time comparison. Rows created before this hardening may still hold plaintext PINs; they are verified in constant time and lazily re-hashed on the first successful PIN check.
 - The dev email provider logs verification tokens to stdout. In production this provider must be replaced; the code guards `devVerificationUrl` behind a `NODE_ENV !== production` check so it is not leaked via the API in production.
 
 ### Denial of Service
 
-No rate limiting exists on authentication endpoints (`/api/auth/login`, `/api/auth/register`, `/api/children/:id/select`, `/api/auth/parent-gate`). These are exposed to brute-force or credential-stuffing without friction.
+Authentication endpoints are rate limited per client IP (`trust proxy` is enabled so the real IP is used behind the Replit proxy): `/api/auth/login` and `/api/auth/register` allow 10 failed attempts per 15 minutes; the PIN endpoints `/api/auth/parent-gate` and `/api/children/:id/select` allow 5 failed attempts per 15 minutes. Successful requests are not counted. Limits are in-memory per process, so they reset on restart and are not shared across instances.
 
 ### Elevation of Privilege
 

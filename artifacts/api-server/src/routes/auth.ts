@@ -13,9 +13,12 @@ import {
   getSession,
   hashPassword,
   verifyPassword,
+  hashPin,
+  verifyPin,
   setSessionCookie,
   clearSessionCookie,
 } from "../lib/auth";
+import { authLimiter, pinLimiter } from "../lib/rateLimit";
 import { serializeSessionUser } from "../lib/serializers";
 
 const router: IRouter = Router();
@@ -28,7 +31,7 @@ async function subscriptionFor(userId: number) {
   return sub ?? null;
 }
 
-router.post("/auth/register", async (req, res): Promise<void> => {
+router.post("/auth/register", authLimiter, async (req, res): Promise<void> => {
   const parsed = RegisterBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "بيانات غير صالحة" });
@@ -50,7 +53,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       name,
       email: email.toLowerCase(),
       passwordHash: hashPassword(password),
-      pin,
+      pin: hashPin(pin),
       role: "parent",
       verificationToken: hashToken(verificationToken),
       verificationTokenExpires: tokenExpiry(),
@@ -61,7 +64,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   res.status(201).json(serializeSessionUser(user!, null, null));
 });
 
-router.post("/auth/login", async (req, res): Promise<void> => {
+router.post("/auth/login", authLimiter, async (req, res): Promise<void> => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "بيانات غير صالحة" });
@@ -101,16 +104,28 @@ router.get("/auth/me", async (req, res): Promise<void> => {
   );
 });
 
-router.post("/auth/parent-gate", async (req, res): Promise<void> => {
+router.post("/auth/parent-gate", pinLimiter, async (req, res): Promise<void> => {
   const session = await getSession(req);
   if (!session) {
     res.status(401).json({ message: "Not logged in" });
     return;
   }
   const parsed = VerifyParentGateBody.safeParse(req.body);
-  if (!parsed.success || parsed.data.pin !== session.user.pin) {
+  if (!parsed.success) {
     res.status(401).json({ message: "الرقم السري غير صحيح" });
     return;
+  }
+  const check = verifyPin(parsed.data.pin, session.user.pin);
+  if (!check.ok) {
+    res.status(401).json({ message: "الرقم السري غير صحيح" });
+    return;
+  }
+  if (check.legacy) {
+    // Lazily upgrade legacy plaintext PINs to hashed storage.
+    await db
+      .update(usersTable)
+      .set({ pin: hashPin(parsed.data.pin) })
+      .where(eq(usersTable.id, session.user.id));
   }
   setSessionCookie(res, { userId: session.user.id });
   res.json(

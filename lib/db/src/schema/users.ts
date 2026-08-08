@@ -7,6 +7,8 @@ export const usersTable = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  // scrypt "salt:hash" of the 4-digit parent PIN (legacy rows may still be
+  // plaintext until lazily upgraded on first successful verification).
   pin: text("pin").notNull().default("0000"),
   role: text("role").notNull().default("parent"), // parent | teacher | admin
   emailVerified: boolean("email_verified").notNull().default(false),

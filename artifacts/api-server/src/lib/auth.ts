@@ -64,6 +64,31 @@ export function verifyPassword(password: string, stored: string): boolean {
   return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(candidate));
 }
 
+/** PINs are hashed with the same scrypt scheme as passwords. */
+export function hashPin(pin: string): string {
+  return hashPassword(pin);
+}
+
+/**
+ * Verifies a PIN against its stored value.
+ * Supports legacy plaintext rows (no "salt:hash" scrypt format) via a
+ * constant-time comparison; callers should re-hash on successful legacy match.
+ * Returns { ok, legacy } so callers can lazily upgrade plaintext PINs.
+ */
+export function verifyPin(
+  pin: string,
+  stored: string,
+): { ok: boolean; legacy: boolean } {
+  const [salt, hash] = stored.split(":");
+  if (salt && hash && hash.length === 128) {
+    return { ok: verifyPassword(pin, stored), legacy: false };
+  }
+  // Legacy plaintext PIN: constant-time comparison.
+  const a = crypto.createHash("sha256").update(pin).digest();
+  const b = crypto.createHash("sha256").update(stored).digest();
+  return { ok: crypto.timingSafeEqual(a, b), legacy: true };
+}
+
 export function setSessionCookie(
   res: Response,
   payload: Omit<SessionPayload, "exp">,

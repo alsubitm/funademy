@@ -6,7 +6,14 @@ import {
   UpdateChildBody,
   SelectChildBody,
 } from "@workspace/api-zod";
-import { requireAuth, setSessionCookie, bandForBirth } from "../lib/auth";
+import {
+  requireAuth,
+  setSessionCookie,
+  bandForBirth,
+  hashPin,
+  verifyPin,
+} from "../lib/auth";
+import { pinLimiter } from "../lib/rateLimit";
 import { serializeChild, serializeSessionUser } from "../lib/serializers";
 
 const router: IRouter = Router();
@@ -40,7 +47,7 @@ router.post("/children", requireAuth, async (req, res): Promise<void> => {
       band: bandForBirth(d.birthYear, d.birthMonth),
       birthYear: d.birthYear,
       birthMonth: d.birthMonth,
-      pin: d.pin,
+      pin: hashPin(d.pin),
       dailyLimitMinutes: d.dailyLimitMinutes ?? null,
     })
     .returning();
@@ -54,9 +61,12 @@ router.patch("/children/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ message: "بيانات غير صالحة" });
     return;
   }
+  const updates = parsed.data.pin
+    ? { ...parsed.data, pin: hashPin(parsed.data.pin) }
+    : parsed.data;
   const [child] = await db
     .update(childrenTable)
-    .set(parsed.data)
+    .set(updates)
     .where(
       and(
         eq(childrenTable.id, id),
@@ -95,6 +105,7 @@ router.delete(
 
 router.post(
   "/children/:id/select",
+  pinLimiter,
   requireAuth,
   async (req, res): Promise<void> => {
     const id = parseId(req.params["id"] as string);
@@ -116,9 +127,17 @@ router.post(
       res.status(404).json({ message: "Profile not found" });
       return;
     }
-    if (child.pin !== parsed.data.pin) {
+    const check = verifyPin(parsed.data.pin, child.pin);
+    if (!check.ok) {
       res.status(401).json({ message: "الرقم السري غير صحيح" });
       return;
+    }
+    if (check.legacy) {
+      // Lazily upgrade legacy plaintext PINs to hashed storage.
+      await db
+        .update(childrenTable)
+        .set({ pin: hashPin(parsed.data.pin) })
+        .where(eq(childrenTable.id, child.id));
     }
     setSessionCookie(res, { userId: req.auth!.user.id, childId: child.id });
     const [sub] = await db

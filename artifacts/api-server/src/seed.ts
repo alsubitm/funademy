@@ -15,7 +15,7 @@ import {
   invoicesTable,
   blogPostsTable,
 } from "@workspace/db";
-import { hashPassword } from "./lib/auth";
+import { hashPassword, hashPin } from "./lib/auth";
 
 const SAMPLE_VIDEOS = [
   "https://www.youtube.com/watch?v=Xn9SC7EowXA",
@@ -58,7 +58,7 @@ async function main() {
       name: "أحمد العتيبي",
       email: "parent@demo.manara.sa",
       passwordHash: hashPassword("Demo1234"),
-      pin: "1234",
+      pin: hashPin("1234"),
       role: "parent",
     })
     .returning();
@@ -68,7 +68,7 @@ async function main() {
       name: "أ. نورة القحطاني",
       email: "teacher@demo.manara.sa",
       passwordHash: hashPassword("Demo1234"),
-      pin: "1234",
+      pin: hashPin("1234"),
       role: "teacher",
     })
     .returning();
@@ -76,7 +76,7 @@ async function main() {
     name: "مشرف المنصة",
     email: "admin@demo.manara.sa",
     passwordHash: hashPassword("Demo1234"),
-    pin: "1234",
+    pin: hashPin("1234"),
     role: "admin",
   });
 
@@ -89,7 +89,7 @@ async function main() {
       band: "explorers",
       birthYear: 2020,
       birthMonth: 3,
-      pin: "1111",
+      pin: hashPin("1111"),
       xp: 150,
       streak: 2,
       badges: ["first_lesson"],
@@ -105,7 +105,7 @@ async function main() {
       band: "builders",
       birthYear: 2016,
       birthMonth: 9,
-      pin: "2222",
+      pin: hashPin("2222"),
       xp: 400,
       streak: 5,
       badges: ["first_lesson", "five_lessons", "streak_3"],
