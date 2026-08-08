@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useBrickWall } from '@/hooks/use-brick-wall';
 import { BrickIcon } from './Icons';
 import { ShareCard } from './ShareCard';
+import { MilestoneCelebration } from './MilestoneCelebration';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BRICK_COLORS = [
@@ -140,6 +141,8 @@ export function BrickWall() {
         <AnimatePresence>
           {wallUsed && <ShareCard />}
         </AnimatePresence>
+
+        <MilestoneCelebration progressPercent={progressPercent} />
       </div>
     </section>
   );

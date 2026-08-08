@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { Link } from 'wouter';
 import { ArrowRight, TrendingUp, TrendingDown, Minus, Lock } from 'lucide-react';
+import { MilestoneCelebration } from '@/components/MilestoneCelebration';
 
 const chartConfig = {
   count: {
@@ -189,6 +190,7 @@ export default function Track() {
 
         {data && (
           <>
+            <MilestoneCelebration progressPercent={data.progressPercent} />
             <Card className="bg-card/60 border-white/10 backdrop-blur">
               <CardHeader className="pb-3">
                 <CardTitle className="flex flex-wrap items-baseline justify-between gap-2 text-lg">
