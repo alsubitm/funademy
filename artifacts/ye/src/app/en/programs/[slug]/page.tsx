@@ -10,7 +10,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!program) return {};
   
   return {
-    title: `${program.nameEn} - Young Engineers Riyadh`,
+    title: `${program.nameEn} - FunAdemy · e² Young Engineers`,
     description: program.taglineEn,
   };
 }
