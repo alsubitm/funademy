@@ -132,15 +132,6 @@ router.post(
       res.status(400).json({ message: "Invalid completion" });
       return;
     }
-    const [lesson] = await db
-      .select()
-      .from(lessonsTable)
-      .where(eq(lessonsTable.id, lessonId));
-    if (!lesson) {
-      res.status(404).json({ message: "Lesson not found" });
-      return;
-    }
-
     // Server-side grading: never trust client-reported correctness.
     // Re-evaluate each submitted answer against the stored correct answer,
     // and score over ALL of the lesson's exercises so omitting hard
