@@ -79,6 +79,28 @@
 .ptl-sess .d { font-family: var(--font-mono); font-size: 12.5px; color: var(--blue-deep); direction: ltr; min-width: 118px; }
 .ptl-sess .p { flex: 1; color: var(--ink); font-weight: 600; }
 
+.ptl-sess .loc { display: block; font-size: 12px; color: var(--mut); font-weight: 500; margin-top: 2px; }
+
+/* makeup requests */
+.ptl-makeup-btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--blue);
+  background: rgba(28, 84, 203, 0.08);
+  border: 1.5px solid rgba(28, 84, 203, 0.35);
+  border-radius: 999px;
+  padding: 4px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ptl-makeup-btn:disabled { opacity: 0.6; cursor: default; }
+.ptl-mk { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 3px 12px; white-space: nowrap; }
+.ptl-mk.pending { background: rgba(255, 202, 23, 0.2); color: #8a6d00; }
+.ptl-mk.approved { background: rgba(34, 218, 255, 0.15); color: #0e7a94; }
+.ptl-mk.rejected { background: rgba(95, 107, 146, 0.12); color: var(--mut); }
+.ptl-mk-row { flex-wrap: wrap; }
+
 /* attendance chips */
 .ptl-att { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 3px 12px; }
 .ptl-att.present { background: rgba(34, 218, 255, 0.15); color: #0e7a94; }

@@ -8,6 +8,7 @@ import { BricksTab } from './BricksTab';
 import { RunsTab } from './RunsTab';
 import { ProgressTab } from './ProgressTab';
 import { KpisTab } from './KpisTab';
+import { MakeupTab } from './MakeupTab';
 import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
 
 export function AdminDashboard({ programs }: { programs: any[] }) {
@@ -33,6 +34,11 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
       id: 'progress',
       label: 'التقدم',
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    },
+    {
+      id: 'makeup',
+      label: 'التعويض',
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
     },
     { 
       id: 'bookings', 
@@ -143,6 +149,7 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
           {activeTab === 'kpis' && <KpisTab />}
           {activeTab === 'runs' && <RunsTab programs={programs} />}
           {activeTab === 'progress' && <ProgressTab />}
+          {activeTab === 'makeup' && <MakeupTab />}
           {activeTab === 'bookings' && <BookingsTab />}
           {activeTab === 'slots' && <SlotsTab programs={programs} />}
           {activeTab === 'content' && <ContentTab />}

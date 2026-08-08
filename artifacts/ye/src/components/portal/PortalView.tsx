@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { portalDict } from '@/app/portal/dict';
+import { MakeupButton } from './MakeupButton';
 
 type Lang = 'ar' | 'en';
 
@@ -37,7 +38,7 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
   const child = students.find((s) => s.id === selectedChild) ?? students[0];
   const now = new Date();
 
-  const [enrollments, attendance, studentSkills, studentBadges] = await Promise.all([
+  const [enrollments, attendance, studentSkills, makeupRequests, studentBadges] = await Promise.all([
     prisma.enrollment.findMany({
       where: { studentId: child.id, status: { not: 'cancelled' } },
       include: { courseRun: { include: { program: true } } },
@@ -50,6 +51,11 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
       take: 20,
     }),
     prisma.studentSkill.findMany({ where: { studentId: child.id } }),
+    prisma.makeupRequest.findMany({
+      where: { studentId: child.id },
+      include: { session: { include: { courseRun: { include: { program: true } } } } },
+      orderBy: { createdAt: 'desc' },
+    }),
     prisma.studentBadge.findMany({
       where: { studentId: child.id },
       include: { badge: true },
@@ -80,6 +86,8 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
     active: d.statusActive, pending: d.statusPending, paused: d.statusPaused, cancelled: d.statusCancelled,
   };
   const attLabel: Record<string, string> = { present: d.present, absent: d.absent, late: d.late, excused: d.excused };
+  const mkLabel: Record<string, string> = { pending: d.mkPending, approved: d.mkApproved, rejected: d.mkRejected };
+  const makeupBySession = new Map(makeupRequests.map((m) => [m.sessionId, m]));
   const skillLabel: Record<string, string> = { mastered: d.mastered, in_progress: d.inProgress, locked: d.locked };
 
   return (
@@ -136,7 +144,12 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
           upcoming.map((s) => (
             <div key={s.id} className="ptl-sess">
               <span className="d">{fmtDate(lang, s.date)}</span>
-              <span className="p">{progName(s.courseRun.program)} — {weekdays[s.courseRun.weekday]} {s.courseRun.time}</span>
+              <span className="p">
+                {progName(s.courseRun.program)} — {weekdays[s.courseRun.weekday]} {fmt(lang, s.courseRun.time)}
+                <span className="loc">
+                  {s.courseRun.format === 'online' ? `💻 ${d.online}` : `📍 ${s.courseRun.location ?? d.inPerson}`}
+                </span>
+              </span>
             </div>
           ))
         )}
@@ -148,15 +161,45 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
         {attendance.length === 0 ? (
           <div className="ptl-empty">{d.noAttendance}</div>
         ) : (
-          attendance.map((a) => (
-            <div key={a.id} className="ptl-sess">
-              <span className="d">{fmtDate(lang, a.session.date)}</span>
-              <span className="p">{progName(a.session.courseRun.program)}</span>
-              <span className={`ptl-att ${a.status}`}>{attLabel[a.status] ?? a.status}</span>
-            </div>
-          ))
+          attendance.map((a) => {
+            const missed = a.status === 'absent' || a.status === 'excused';
+            const mk = makeupBySession.get(a.sessionId);
+            return (
+              <div key={a.id} className="ptl-sess">
+                <span className="d">{fmtDate(lang, a.session.date)}</span>
+                <span className="p">{progName(a.session.courseRun.program)}</span>
+                <span className={`ptl-att ${a.status}`}>{attLabel[a.status] ?? a.status}</span>
+                {missed && (mk ? (
+                  <span className={`ptl-mk ${mk.status}`}>{mkLabel[mk.status]}</span>
+                ) : (
+                  <MakeupButton
+                    studentId={child.id}
+                    sessionId={a.sessionId}
+                    labels={{ request: d.mkRequest, sending: d.mkSending, failed: d.mkFailed }}
+                  />
+                ))}
+              </div>
+            );
+          })
         )}
       </div>
+
+      {/* makeup requests */}
+      {makeupRequests.length > 0 && (
+        <div className="ptl-card">
+          <h3><span className="ico">🔁</span>{d.makeups}</h3>
+          {makeupRequests.map((m) => (
+            <div key={m.id} className="ptl-sess ptl-mk-row">
+              <span className="d">{fmtDate(lang, m.session.date)}</span>
+              <span className="p">
+                {progName(m.session.courseRun.program)}
+                {m.adminNote && <span className="loc">💬 {m.adminNote}</span>}
+              </span>
+              <span className={`ptl-mk ${m.status}`}>{mkLabel[m.status]}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* skill map */}
       <div className="ptl-card">
