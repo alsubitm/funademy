@@ -8,6 +8,8 @@ import {
   lessonsTable,
   exercisesTable,
   completionsTable,
+  subscriptionsTable,
+  type Subscription,
 } from "@workspace/db";
 import { CompleteLessonBody } from "@workspace/api-zod";
 import { getSession, requireAuth } from "../lib/auth";
@@ -15,6 +17,18 @@ import { gradeAnswers } from "../lib/grading";
 import { serializeChild } from "../lib/serializers";
 
 const router: IRouter = Router();
+
+function hasActiveSubscription(sub: Subscription | null): boolean {
+  if (!sub) return false;
+  const now = Date.now();
+  if (sub.status === "trial") {
+    return sub.trialEndsAt != null && sub.trialEndsAt.getTime() > now;
+  }
+  if (sub.status === "active") {
+    return sub.currentPeriodEnd == null || sub.currentPeriodEnd.getTime() > now;
+  }
+  return false;
+}
 
 router.get("/lessons/:id", async (req, res): Promise<void> => {
   const raw = req.params["id"];
@@ -32,6 +46,18 @@ router.get("/lessons/:id", async (req, res): Promise<void> => {
   if (!lesson.isFreeSample && !session) {
     res.status(404).json({ message: "Lesson not found" });
     return;
+  }
+  // Paid lessons additionally require an active (or in-trial) subscription
+  // on the parent account — a bare session is not enough.
+  if (!lesson.isFreeSample && session) {
+    const [sub] = await db
+      .select()
+      .from(subscriptionsTable)
+      .where(eq(subscriptionsTable.userId, session.user.id));
+    if (!hasActiveSubscription(sub ?? null)) {
+      res.status(403).json({ message: "يتطلب هذا الدرس اشتراكاً فعّالاً" });
+      return;
+    }
   }
   const exercises = await db
     .select()
@@ -81,6 +107,26 @@ router.post(
       Array.isArray(raw) ? raw[0]! : (raw as string),
       10,
     );
+    const [lesson] = await db
+      .select()
+      .from(lessonsTable)
+      .where(eq(lessonsTable.id, lessonId));
+    if (!lesson) {
+      res.status(404).json({ message: "Lesson not found" });
+      return;
+    }
+    // Paid lessons require an active (or in-trial) subscription on the
+    // parent account before progress/XP can be recorded.
+    if (!lesson.isFreeSample) {
+      const [sub] = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(eq(subscriptionsTable.userId, req.auth!.user.id));
+      if (!hasActiveSubscription(sub ?? null)) {
+        res.status(403).json({ message: "يتطلب هذا الدرس اشتراكاً فعّالاً" });
+        return;
+      }
+    }
     const parsed = CompleteLessonBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ message: "Invalid completion" });
