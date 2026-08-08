@@ -56,6 +56,7 @@ export function AdminLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="رمز الدخول..."
+                aria-label="رمز الدخول"
                 className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:border-[#FFCA17] focus:bg-white/10 text-center text-xl tracking-[0.2em] text-white transition-all font-mono placeholder:text-white/20"
                 dir="ltr"
                 autoFocus

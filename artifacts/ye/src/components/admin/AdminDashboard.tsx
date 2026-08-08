@@ -116,7 +116,7 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
               <div className="text-[10px] text-[#5F6B92] font-mono tracking-wider">MISSION CONTROL</div>
             </div>
           </div>
-          <button onClick={handleLogout} className="w-10 h-10 flex items-center justify-center bg-white border border-[#DFE5F2] rounded-xl text-[#5F6B92] shadow-sm">
+          <button onClick={handleLogout} aria-label="تسجيل الخروج" className="w-10 h-10 flex items-center justify-center bg-white border border-[#DFE5F2] rounded-xl text-[#5F6B92] shadow-sm">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>

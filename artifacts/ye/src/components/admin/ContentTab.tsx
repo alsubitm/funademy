@@ -74,7 +74,8 @@ export function ContentTab() {
                   <input 
                     defaultValue={faq.questionEn}
                     onBlur={e => e.target.value !== faq.questionEn && updateItem('faq', faq.id, { questionEn: e.target.value })}
-                    className="w-full text-sm font-medium bg-[#F7FAFF] px-3 py-2 rounded-lg border border-transparent focus:border-[#1C54CB]/20 outline-none dir-ltr text-left transition-colors"
+                    className="w-full text-sm font-medium bg-[#F7FAFF] px-3 py-2 rounded-lg border border-transparent focus:border-[#1C54CB]/20 outline-none text-left transition-colors"
+                    dir="ltr"
                   />
                 </div>
                 <div>
@@ -82,7 +83,8 @@ export function ContentTab() {
                   <textarea 
                     defaultValue={faq.answerEn}
                     onBlur={e => e.target.value !== faq.answerEn && updateItem('faq', faq.id, { answerEn: e.target.value })}
-                    className="w-full text-sm font-medium bg-[#F7FAFF] px-3 py-2 rounded-lg border border-transparent focus:border-[#1C54CB]/20 outline-none dir-ltr text-left min-h-[60px] resize-y transition-colors"
+                    className="w-full text-sm font-medium bg-[#F7FAFF] px-3 py-2 rounded-lg border border-transparent focus:border-[#1C54CB]/20 outline-none text-left min-h-[60px] resize-y transition-colors"
+                    dir="ltr"
                   />
                 </div>
               </div>
@@ -146,7 +148,8 @@ export function ContentTab() {
                  <textarea 
                    defaultValue={t.quoteEn}
                    onBlur={e => e.target.value !== t.quoteEn && updateItem('testimonial', t.id, { quoteEn: e.target.value })}
-                   className="w-full text-sm font-medium bg-[#F7FAFF] px-3 py-2 rounded-lg border border-transparent focus:border-[#1C54CB]/20 outline-none dir-ltr text-left min-h-[60px] resize-y transition-colors"
+                   className="w-full text-sm font-medium bg-[#F7FAFF] px-3 py-2 rounded-lg border border-transparent focus:border-[#1C54CB]/20 outline-none text-left min-h-[60px] resize-y transition-colors"
+                   dir="ltr"
                    placeholder="Quote translation..."
                  />
                </div>

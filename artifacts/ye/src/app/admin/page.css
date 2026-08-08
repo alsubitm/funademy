@@ -138,9 +138,15 @@
     color: var(--mut);
     flex-shrink: 0;
   }
-  .data-table td > div, .data-table td > span, .data-table td > select, .data-table td > button {
-    text-align: left;
-    margin-right: auto;
+  .data-table td > span, .data-table td > select, .data-table td > button {
+    margin-inline-start: auto;
+  }
+  .data-table td > div {
+    margin-inline-start: auto;
+    text-align: start;
+  }
+  .data-table td > div > * {
+    display: block;
   }
 }
 
