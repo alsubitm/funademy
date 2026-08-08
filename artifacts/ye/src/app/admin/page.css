@@ -57,7 +57,11 @@
   .mobile-bottom-nav {
     display: flex;
     position: fixed;
+    top: auto; /* override global `nav { top: 0 }` which stretched this over the whole screen */
     bottom: 0;
+    height: auto;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     left: 0;
     right: 0;
     background: var(--ink);

@@ -6,6 +6,7 @@ export function BricksTab() {
   const [data, setData] = useState({ count: 0, placedToday: 0, clicks: {} as Record<string, number> });
   const [loading, setLoading] = useState(true);
   const [newCount, setNewCount] = useState('');
+  const [saved, setSaved] = useState(false);
 
   const fetchBricks = async () => {
     try {
@@ -34,6 +35,8 @@ export function BricksTab() {
     if (res.ok) {
       setNewCount('');
       fetchBricks();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     }
   };
 
@@ -110,6 +113,12 @@ export function BricksTab() {
             تحديث
           </button>
         </div>
+        
+        {saved && (
+          <div className="mb-6 text-sm font-bold text-[#1C54CB] bg-[#1C54CB]/10 border border-[#1C54CB]/20 px-4 py-2.5 rounded-xl">
+            تم تحديث العداد بنجاح
+          </div>
+        )}
         
         <div className="bg-[#FFF5F5] border border-[#FFE4E6] p-5 rounded-2xl">
           <h3 className="text-sm font-bold text-[#e11d48] mb-3 flex items-center gap-2">
