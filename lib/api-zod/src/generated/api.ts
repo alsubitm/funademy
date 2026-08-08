@@ -1104,6 +1104,21 @@ export const PlaceBrickResponse = zod.object({
 
 
 /**
+ * @summary Update the campaign goal (admin only)
+ */
+
+
+
+export const UpdateCampaignGoalBody = zod.object({
+  "goal": zod.int().min(1).describe('New campaign goal (bricks before National Day)')
+})
+
+export const UpdateCampaignGoalResponse = zod.object({
+  "goal": zod.int()
+})
+
+
+/**
  * @summary Campaign tracking stats — daily brick counts and growth before National Day
  */
 export const GetWatanStatsResponse = zod.object({

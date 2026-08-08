@@ -103,6 +103,18 @@ export interface BrickPlacement {
   amount?: number;
 }
 
+export interface CampaignGoalUpdate {
+  /**
+     * New campaign goal (bricks before National Day)
+     * @minimum 1
+     */
+  goal: number;
+}
+
+export interface CampaignGoal {
+  goal: number;
+}
+
 export type WatanStatsDailyItem = {
   date: string;
   count: number;

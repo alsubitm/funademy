@@ -18,6 +18,8 @@ export * from './blogPost';
 export * from './blogPostInput';
 export * from './brickCount';
 export * from './brickPlacement';
+export * from './campaignGoal';
+export * from './campaignGoalUpdate';
 export * from './childHome';
 export * from './childOverviewCard';
 export * from './childProfile';

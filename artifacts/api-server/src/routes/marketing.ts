@@ -9,23 +9,57 @@ import {
   campaignCountersTable,
   campaignBrickEventsTable,
 } from "@workspace/db";
-import { CreateBlogPostBody, PlaceBrickBody } from "@workspace/api-zod";
+import {
+  CreateBlogPostBody,
+  PlaceBrickBody,
+  UpdateCampaignGoalBody,
+} from "@workspace/api-zod";
 import { requireRole } from "../lib/auth";
 import { priceFor } from "../lib/payments";
 
 const router: IRouter = Router();
 
 const BRICK_KEY = "watan-bricks";
-// Campaign goal: bricks to reach before National Day (Sep 23)
-const CAMPAIGN_GOAL = 100000;
+const GOAL_KEY = "watan-goal";
+// Default campaign goal: bricks to reach before National Day (Sep 23)
+const DEFAULT_CAMPAIGN_GOAL = 100000;
+
+async function getCampaignGoal(): Promise<number> {
+  const [row] = await db
+    .select()
+    .from(campaignCountersTable)
+    .where(eq(campaignCountersTable.key, GOAL_KEY));
+  return row?.count ?? DEFAULT_CAMPAIGN_GOAL;
+}
 
 router.get("/watan/bricks", async (_req, res): Promise<void> => {
   const [row] = await db
     .select()
     .from(campaignCountersTable)
     .where(eq(campaignCountersTable.key, BRICK_KEY));
-  res.json({ count: row?.count ?? 0, goal: CAMPAIGN_GOAL });
+  res.json({ count: row?.count ?? 0, goal: await getCampaignGoal() });
 });
+
+router.put(
+  "/watan/goal",
+  requireRole("admin"),
+  async (req, res): Promise<void> => {
+    const parsed = UpdateCampaignGoalBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ message: "Invalid goal" });
+      return;
+    }
+    const [row] = await db
+      .insert(campaignCountersTable)
+      .values({ key: GOAL_KEY, count: parsed.data.goal })
+      .onConflictDoUpdate({
+        target: campaignCountersTable.key,
+        set: { count: parsed.data.goal },
+      })
+      .returning();
+    res.json({ goal: row!.count });
+  },
+);
 
 router.post("/watan/bricks", async (req, res): Promise<void> => {
   const parsed = PlaceBrickBody.safeParse(req.body);
@@ -60,6 +94,7 @@ router.get("/watan/stats", requireRole("admin"), async (_req, res): Promise<void
     .select()
     .from(campaignCountersTable)
     .where(eq(campaignCountersTable.key, BRICK_KEY));
+  const campaignGoal = await getCampaignGoal();
 
   const dailyRows = await db
     .select({
@@ -105,12 +140,12 @@ router.get("/watan/stats", requireRole("admin"), async (_req, res): Promise<void
 
   const total = counterRow?.count ?? 0;
   const progressPercent =
-    Math.round(Math.min(100, (total / CAMPAIGN_GOAL) * 100) * 10) / 10;
+    Math.round(Math.min(100, (total / campaignGoal) * 100) * 10) / 10;
 
   res.json({
     total,
-    goal: CAMPAIGN_GOAL,
-    remaining: Math.max(0, CAMPAIGN_GOAL - total),
+    goal: campaignGoal,
+    remaining: Math.max(0, campaignGoal - total),
     progressPercent,
     today,
     yesterday,

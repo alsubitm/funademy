@@ -799,6 +799,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrickCount"
+  /watan/goal:
+    put:
+      operationId: updateCampaignGoal
+      tags: [marketing]
+      summary: Update the campaign goal (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignGoalUpdate"
+      responses:
+        "200":
+          description: Updated goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignGoal"
+        "400":
+          description: Invalid goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
   /watan/stats:
     get:
       operationId: getWatanStats
@@ -909,6 +933,19 @@ components:
           minimum: 1
           maximum: 20
           description: Number of bricks to add (default 1)
+    CampaignGoalUpdate:
+      type: object
+      required: [goal]
+      properties:
+        goal:
+          type: integer
+          minimum: 1
+          description: New campaign goal (bricks before National Day)
+    CampaignGoal:
+      type: object
+      required: [goal]
+      properties:
+        goal: { type: integer }
     WatanStats:
       type: object
       required:

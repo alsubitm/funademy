@@ -29,6 +29,8 @@ import type {
   BlogPostInput,
   BrickCount,
   BrickPlacement,
+  CampaignGoal,
+  CampaignGoalUpdate,
   ChildHome,
   ChildProfile,
   ChildProfileInput,
@@ -3358,6 +3360,77 @@ export const usePlaceBrick = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getPlaceBrickMutationOptions(options));
+    }
+
+export const getUpdateCampaignGoalUrl = () => {
+
+
+
+
+  return `/api/watan/goal`
+}
+
+/**
+ * @summary Update the campaign goal (admin only)
+ */
+export const updateCampaignGoal = async (campaignGoalUpdate: CampaignGoalUpdate, options?: Parameters<typeof customFetch>[1]): Promise<CampaignGoal> => {
+
+  return customFetch<CampaignGoal>(getUpdateCampaignGoalUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(campaignGoalUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateCampaignGoalMutationOptions = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCampaignGoal>>, TError,{data: BodyType<CampaignGoalUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCampaignGoal>>, TError,{data: BodyType<CampaignGoalUpdate>}, TContext> => {
+
+const mutationKey = ['updateCampaignGoal'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCampaignGoal>>, {data: BodyType<CampaignGoalUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateCampaignGoal(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCampaignGoalMutationResult = NonNullable<Awaited<ReturnType<typeof updateCampaignGoal>>>
+    export type UpdateCampaignGoalMutationBody = BodyType<CampaignGoalUpdate>
+    export type UpdateCampaignGoalMutationError = ErrorType<ApiMessage>
+
+    /**
+ * @summary Update the campaign goal (admin only)
+ */
+export const useUpdateCampaignGoal = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCampaignGoal>>, TError,{data: BodyType<CampaignGoalUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCampaignGoal>>,
+        TError,
+        {data: BodyType<CampaignGoalUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCampaignGoalMutationOptions(options));
     }
 
 export const getGetWatanStatsUrl = () => {
