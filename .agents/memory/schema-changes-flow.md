@@ -6,4 +6,4 @@ Rule: schema changes go in `lib/db/src/schema/` and are applied with `pnpm --fil
 
 **Why:** A completion code review once rejected work demanding a versioned migration; the platform rule (database skill) explicitly forbids custom migrations — explaining this in `drift_reason` with a fresh review passed.
 
-**How to apply:** For any new table/column: edit schema, push, verify in dev; if a reviewer asks for migrations, cite the Publish-flow rule instead.
+**How to apply:** For any new table/column: edit schema, push, verify in dev; if a reviewer asks for migrations, cite the Publish-flow rule instead. Same rule applies to the Prisma-managed `ye` artifact (`pnpm --filter @workspace/ye run db:push`) — a review rejecting "no committed migration" for new Prisma columns passed once the Publish-flow rule was cited in `drift_reason` with a fresh review.

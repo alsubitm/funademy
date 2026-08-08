@@ -10,6 +10,15 @@ function isValidTime(t: string): boolean {
   return h >= 0 && h <= 23 && m >= 0 && m <= 59;
 }
 
+function isHttpUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 /** Generate weekly session dates. `time` is Riyadh local (UTC+3); stored as UTC — same convention as prisma/seed.ts. */
 function weeklyDates(start: Date, end: Date, weekday: number, time: string): Date[] {
   const [h, m] = time.split(':').map(Number);
@@ -67,6 +76,9 @@ export async function POST(req: NextRequest) {
   ) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
+  const meetingUrl = b?.meetingUrl ? String(b.meetingUrl).slice(0, 500) : null;
+  if (meetingUrl && !isHttpUrl(meetingUrl)) return NextResponse.json({ error: 'bad_url' }, { status: 400 });
+
   const program = await prisma.program.findUnique({ where: { id: programId } });
   if (!program) return NextResponse.json({ error: 'program_not_found' }, { status: 404 });
 
@@ -87,6 +99,7 @@ export async function POST(req: NextRequest) {
       capacity,
       seatsLeft: capacity,
       monthlyPriceSar,
+      meetingUrl: format === 'online' ? meetingUrl : null,
       sessions: { createMany: { data: dates.map((date) => ({ date })) } },
     },
     include: { _count: { select: { sessions: true } } },
@@ -107,6 +120,11 @@ export async function PATCH(req: NextRequest) {
   if (typeof b?.active === 'boolean') data.active = b.active;
   if (b?.titleAr !== undefined) data.titleAr = b.titleAr ? String(b.titleAr).slice(0, 80) : null;
   if (b?.location !== undefined) data.location = b.location ? String(b.location).slice(0, 120) : null;
+  if (b?.meetingUrl !== undefined) {
+    const url = b.meetingUrl ? String(b.meetingUrl).slice(0, 500) : null;
+    if (url && !isHttpUrl(url)) return NextResponse.json({ error: 'bad_url' }, { status: 400 });
+    data.meetingUrl = url;
+  }
   if (b?.time !== undefined) {
     if (!isValidTime(String(b.time))) return NextResponse.json({ error: 'validation' }, { status: 400 });
     data.time = String(b.time);

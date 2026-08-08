@@ -5,6 +5,7 @@ import { portalDict } from '@/app/portal/dict';
 import { MakeupButton } from './MakeupButton';
 import { effectiveMonthlySar, subscriptionState } from '@/lib/billing';
 import { RenewButton } from '@/components/portal/RenewButton';
+import { portalSessions, joinUrlFor } from '@/lib/portal-sessions';
 
 type Lang = 'ar' | 'en';
 
@@ -65,18 +66,10 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
     }),
   ]);
 
-  const runIds = enrollments.filter((e) => e.status === 'active' || e.status === 'pending').map((e) => e.courseRunId);
   const programIds = [...new Set(enrollments.map((e) => e.courseRun.programId))];
 
-  const [upcoming, programSkills] = await Promise.all([
-    runIds.length
-      ? prisma.classSession.findMany({
-          where: { courseRunId: { in: runIds }, date: { gte: now }, status: 'scheduled' },
-          include: { courseRun: { include: { program: true } } },
-          orderBy: { date: 'asc' },
-          take: 6,
-        })
-      : Promise.resolve([]),
+  const [{ upcoming, recorded }, programSkills] = await Promise.all([
+    portalSessions(child.id, now),
     programIds.length
       ? prisma.skill.findMany({ where: { programId: { in: programIds } }, orderBy: [{ programId: 'asc' }, { position: 'asc' }] })
       : Promise.resolve([]),
@@ -146,19 +139,43 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
         {upcoming.length === 0 ? (
           <div className="ptl-empty">{d.noUpcoming}</div>
         ) : (
-          upcoming.map((s) => (
-            <div key={s.id} className="ptl-sess">
-              <span className="d">{fmtDate(lang, s.date)}</span>
-              <span className="p">
-                {progName(s.courseRun.program)} — {weekdays[s.courseRun.weekday]} {fmt(lang, s.courseRun.time)}
-                <span className="loc">
-                  {s.courseRun.format === 'online' ? `💻 ${d.online}` : `📍 ${s.courseRun.location ?? d.inPerson}`}
+          upcoming.map((s) => {
+            const joinUrl = joinUrlFor(s);
+            return (
+              <div key={s.id} className="ptl-sess">
+                <span className="d">{fmtDate(lang, s.date)}</span>
+                <span className="p">
+                  {progName(s.courseRun.program)} — {weekdays[s.courseRun.weekday]} {fmt(lang, s.courseRun.time)}
+                  <span className="loc">
+                    {s.courseRun.format === 'online' ? `💻 ${d.online}` : `📍 ${s.courseRun.location ?? d.inPerson}`}
+                  </span>
                 </span>
-              </span>
-            </div>
-          ))
+                {joinUrl && (
+                  <a className="ptl-live" href={joinUrl} target="_blank" rel="noopener noreferrer">
+                    🎥 {d.joinLive}
+                  </a>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
+
+      {/* recorded classes */}
+      {recorded.length > 0 && (
+        <div className="ptl-card">
+          <h3><span className="ico">🎬</span>{d.recordings}</h3>
+          {recorded.map((s) => (
+            <div key={s.id} className="ptl-sess">
+              <span className="d">{fmtDate(lang, s.date)}</span>
+              <span className="p">{progName(s.courseRun.program)}</span>
+              <a className="ptl-rec" href={s.recordingUrl!} target="_blank" rel="noopener noreferrer">
+                ▶️ {d.watchRecording}
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* attendance history */}
       <div className="ptl-card">

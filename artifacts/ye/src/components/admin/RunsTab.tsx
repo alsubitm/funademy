@@ -29,6 +29,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
   const [location, setLocation] = useState('');
   const [capacity, setCapacity] = useState('12');
   const [price, setPrice] = useState('1380');
+  const [meetUrl, setMeetUrl] = useState('');
 
   // drill-down
   const [openRun, setOpenRun] = useState<any | null>(null);
@@ -55,6 +56,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
   const [eCap, setECap] = useState('');
   const [ePrice, setEPrice] = useState('');
   const [eLoc, setELoc] = useState('');
+  const [eMeet, setEMeet] = useState('');
   const [saving, setSaving] = useState(false);
 
   const startEdit = (run: any) => {
@@ -63,6 +65,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
     setECap(String(run.capacity));
     setEPrice(String(run.monthlyPriceSar));
     setELoc(run.location || '');
+    setEMeet(run.meetingUrl || '');
     setEditing(true);
   };
 
@@ -75,6 +78,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
       body: JSON.stringify({
         id: openRun.id, titleAr: eTitle || null, time: eTime,
         capacity: Number(eCap), monthlyPriceSar: Number(ePrice), location: eLoc || null,
+        ...(openRun.format === 'online' ? { meetingUrl: eMeet.trim() || null } : {}),
       }),
     });
     if (res.ok) {
@@ -87,6 +91,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
       alert(
         err === 'capacity_below_enrolled' ? 'لا يمكن تقليل السعة تحت عدد المسجلين الحالي.' :
         err === 'conflict_retry' ? 'تغيّرت بيانات المقاعد أثناء الحفظ — أعد المحاولة.' :
+        err === 'bad_url' ? 'رابط الاجتماع غير صالح — يجب أن يبدأ بـ https://' :
         'تأكد من صحة البيانات.',
       );
     }
@@ -105,10 +110,40 @@ export function RunsTab({ programs }: { programs: any[] }) {
     }
   };
 
+  // session links (meeting override + recording)
+  const [sMeet, setSMeet] = useState('');
+  const [sRec, setSRec] = useState('');
+  const [sSaving, setSSaving] = useState(false);
+
   const openAttendance = async (session: any) => {
     setOpenSession(session);
+    setSMeet(session.meetingUrl || '');
+    setSRec(session.recordingUrl || '');
     const res = await fetch(`/svc/admin/attendance?sessionId=${session.id}`);
     if (res.ok) setAttStudents((await res.json()).students || []);
+  };
+
+  const saveSessionLinks = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSSaving(true);
+    const res = await fetch('/svc/admin/sessions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: openSession.id,
+        ...(openRun.format === 'online' ? { meetingUrl: sMeet.trim() || null } : {}),
+        recordingUrl: sRec.trim() || null,
+      }),
+    });
+    if (res.ok) {
+      const { session } = await res.json();
+      setOpenSession({ ...openSession, ...session });
+      setSessions((prev) => prev.map((s) => (s.id === session.id ? { ...s, ...session } : s)));
+    } else {
+      const err = (await res.json().catch(() => ({}))).error;
+      alert(err === 'bad_url' ? 'رابط غير صالح — يجب أن يبدأ بـ https://' : 'تعذّر الحفظ — حاول مجدداً.');
+    }
+    setSSaving(false);
   };
 
   const mark = async (studentId: number, status: string) => {
@@ -131,16 +166,22 @@ export function RunsTab({ programs }: { programs: any[] }) {
         programId: Number(programId), titleAr: titleAr || null, startDate, endDate,
         weekday: Number(weekday), time, format,
         location: format === 'in_person' ? location : null,
+        meetingUrl: format === 'online' ? meetUrl.trim() || null : null,
         capacity: Number(capacity), monthlyPriceSar: Number(price),
       }),
     });
     if (res.ok) {
       setShowForm(false);
       setTitleAr('');
+      setMeetUrl('');
       await fetchRuns();
     } else {
       const err = (await res.json().catch(() => ({}))).error;
-      alert(err === 'no_sessions_in_range' ? 'لا توجد جلسات ضمن الفترة المحددة — تحقق من التواريخ واليوم.' : 'تأكد من صحة البيانات.');
+      alert(
+        err === 'no_sessions_in_range' ? 'لا توجد جلسات ضمن الفترة المحددة — تحقق من التواريخ واليوم.' :
+        err === 'bad_url' ? 'رابط الاجتماع غير صالح — يجب أن يبدأ بـ https://' :
+        'تأكد من صحة البيانات.',
+      );
     }
     setSubmitting(false);
   };
@@ -170,6 +211,23 @@ export function RunsTab({ programs }: { programs: any[] }) {
         <div className="bg-white p-6 rounded-[24px] border border-[#DFE5F2] shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
           <h2 className="text-xl font-display font-bold text-[#101A38]">تحضير جلسة {fmtDate(openSession.date)}</h2>
           <p className="text-sm text-[#5F6B92] mt-1">{openRun.program?.nameAr} · {WEEKDAYS_AR[openRun.weekday]} {openRun.time}</p>
+          <form onSubmit={saveSessionLinks} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 pt-5 border-t border-[#DFE5F2]">
+            {openRun.format === 'online' && (
+              <div>
+                <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">رابط اجتماع خاص بهذه الجلسة (يتجاوز رابط الدفعة — اختياري)</label>
+                <input type="url" value={sMeet} onChange={(e) => setSMeet(e.target.value)} className="input-hq font-mono text-sm" dir="ltr" placeholder={openRun.meetingUrl || 'https://zoom.us/j/...'} />
+              </div>
+            )}
+            <div>
+              <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">رابط تسجيل الحصة (يظهر للأهالي بعد الجلسة)</label>
+              <input type="url" value={sRec} onChange={(e) => setSRec(e.target.value)} className="input-hq font-mono text-sm" dir="ltr" placeholder="https://..." />
+            </div>
+            <div className="sm:col-span-2 flex justify-end">
+              <button disabled={sSaving} type="submit" className="bg-[#1C54CB] text-white px-6 py-2.5 rounded-xl font-display font-bold shadow-[0_4px_0_#11388E] disabled:opacity-70">
+                {sSaving ? 'جاري الحفظ…' : 'حفظ الروابط'}
+              </button>
+            </div>
+          </form>
         </div>
         <div className="space-y-3">
           {attStudents.map((s) => (
@@ -233,6 +291,12 @@ export function RunsTab({ programs }: { programs: any[] }) {
                 <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">الموقع</label>
                 <input value={eLoc} onChange={(e) => setELoc(e.target.value)} className="input-hq" />
               </div>
+              {openRun.format === 'online' && (
+                <div className="sm:col-span-2">
+                  <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">رابط الاجتماع (Zoom/Meet)</label>
+                  <input type="url" value={eMeet} onChange={(e) => setEMeet(e.target.value)} className="input-hq font-mono text-sm" dir="ltr" placeholder="https://zoom.us/j/..." />
+                </div>
+              )}
               <div className="flex items-end">
                 <button disabled={saving} type="submit" className="w-full bg-[#1C54CB] text-white px-6 py-3 rounded-xl font-display font-bold shadow-[0_4px_0_#11388E] disabled:opacity-70">
                   {saving ? 'جاري الحفظ…' : 'حفظ التعديلات'}
@@ -348,6 +412,12 @@ export function RunsTab({ programs }: { programs: any[] }) {
             <div className="lg:col-span-3">
               <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">الموقع (اختياري)</label>
               <input value={location} onChange={(e) => setLocation(e.target.value)} className="input-hq" placeholder="مثال: مدرسة أطياف، حي الصحافة..." />
+            </div>
+          )}
+          {format === 'online' && (
+            <div className="lg:col-span-3">
+              <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">رابط الاجتماع (Zoom/Meet — اختياري)</label>
+              <input type="url" value={meetUrl} onChange={(e) => setMeetUrl(e.target.value)} className="input-hq font-mono text-sm" dir="ltr" placeholder="https://zoom.us/j/..." />
             </div>
           )}
           <div className="lg:col-span-4 flex justify-end">

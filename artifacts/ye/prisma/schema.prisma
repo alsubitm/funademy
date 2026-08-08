@@ -156,6 +156,7 @@ model CourseRun {
   capacity        Int            @default(12)
   seatsLeft       Int            @default(12)
   monthlyPriceSar Int            @default(1380)
+  meetingUrl      String? // run-level meeting link for online runs (Zoom/Meet)
   active          Boolean        @default(true)
   sessions        ClassSession[]
   enrollments     Enrollment[]
@@ -172,6 +173,8 @@ model ClassSession {
   date        DateTime
   status      SessionStatus @default(scheduled)
   note        String?
+  meetingUrl   String? // per-session override of courseRun.meetingUrl
+  recordingUrl String? // link to the class recording after the session
   attendance  Attendance[]
   makeupRequests MakeupRequest[]
 
