@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollReveal } from '@/components/ScrollReveal';
 import Link from 'next/link';
 import { CATALOG, FIELDS, PATH_ORDER, type FieldId } from '@/lib/catalog';
 import { arabicDigits } from '@/lib/constants';
+import { getSavedAge, saveAge } from '@/lib/savedAge';
 
 interface Program {
   id: number;
@@ -26,7 +27,16 @@ const FIELD_ORDER: FieldId[] = ['world', 'mech', 'code'];
 const AGE_CHOICES = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
 export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en' }) {
-  const [age, setAge] = useState<number | null>(null);
+  const [age, setAgeState] = useState<number | null>(null);
+
+  useEffect(() => {
+    setAgeState(getSavedAge());
+  }, []);
+
+  const setAge = (a: number | null) => {
+    setAgeState(a);
+    saveAge(a);
+  };
 
   const getIcon = (slug: string) => {
     if (slug.includes('builder')) return '🧱';

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { bookDict } from '@/app/book/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
+import { getSavedAge, saveAge } from '@/lib/savedAge';
 
 type BookingFlowProps = {
   programs: any[];
@@ -26,7 +27,23 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
     return null;
   });
   const [slotId, setSlotId] = useState<number | null>(null);
-  const [ageFilter, setAgeFilter] = useState<number | null>(preselectAge ?? null);
+  const [ageFilter, setAgeFilterState] = useState<number | null>(preselectAge ?? null);
+
+  // Fall back to the age remembered from other pages (sessionStorage);
+  // an explicit ?age= in the URL takes priority.
+  useEffect(() => {
+    if (preselectAge != null) {
+      saveAge(preselectAge);
+      return;
+    }
+    const saved = getSavedAge();
+    if (saved !== null) setAgeFilterState(saved);
+  }, [preselectAge]);
+
+  const setAgeFilter = (a: number | null) => {
+    setAgeFilterState(a);
+    saveAge(a);
+  };
   const [formatFilter, setFormatFilter] = useState<'all' | 'online' | 'in_person'>('all');
   
   const [parentName, setParentName] = useState('');
