@@ -77,6 +77,9 @@ export function ProgramDetail({
               <Link href={lang === 'ar' ? `/book?program=${program.slug}` : `/en/book?program=${program.slug}`} className="btn y">
                 {d.bookTrial}
               </Link>
+              <Link href={lang === 'ar' ? `/enroll?program=${program.slug}` : `/en/enroll?program=${program.slug}`} className="btn b">
+                {lang === 'ar' ? 'التسجيل الشهري' : 'Monthly enrollment'}
+              </Link>
             </div>
           </div>
 

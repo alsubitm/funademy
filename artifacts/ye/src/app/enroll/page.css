@@ -1,0 +1,132 @@
+.enr-pg {
+  background: var(--bg);
+  min-height: 100dvh;
+  padding-bottom: 80px;
+}
+
+.enr-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+  max-width: 1040px;
+  margin: 40px auto 0;
+  position: relative;
+  z-index: 2;
+}
+@media (max-width: 900px) { .enr-grid { grid-template-columns: 1fr; } }
+
+.enr-box {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  box-shadow: 0 32px 64px rgba(7, 17, 42, 0.08), 0 8px 16px rgba(7, 17, 42, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 32px;
+}
+@media (max-width: 640px) { .enr-box { padding: 20px 16px; border-radius: 18px; } }
+
+.enr-box h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.enr-kids { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+.enr-kid {
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 18px;
+  background: #fff;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+  transition: all 0.2s ease;
+}
+.enr-kid.sel {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(28, 84, 203, 0.3);
+}
+.enr-kid small { display: block; font-family: var(--font-body); font-weight: 400; font-size: 11px; opacity: 0.75; }
+
+.enr-runs { display: grid; gap: 12px; }
+
+.enr-run {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+  flex-wrap: wrap;
+}
+.enr-run .r-dot { width: 12px; height: 40px; border-radius: 6px; flex-shrink: 0; }
+.enr-run .r-main { flex: 1; min-width: 180px; }
+.enr-run .r-name { font-family: var(--font-display); font-weight: 800; color: var(--ink); }
+.enr-run .r-meta { font-size: 13px; color: var(--mut); }
+.enr-run .r-price { font-family: var(--font-display); font-weight: 800; color: var(--blue-deep); font-size: 15px; white-space: nowrap; }
+.enr-run .r-seats { font-size: 12px; color: var(--mut); }
+.enr-run .r-seats.low { color: #B0483B; font-weight: 700; }
+
+.enr-cart-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.enr-cart-line .c-info { flex: 1; min-width: 0; }
+.enr-cart-line .c-kid { font-family: var(--font-display); font-weight: 700; color: var(--ink); font-size: 15px; }
+.enr-cart-line .c-prog { font-size: 12.5px; color: var(--mut); }
+.enr-cart-line .c-price { text-align: end; white-space: nowrap; }
+.enr-cart-line .c-price .base.off { text-decoration: line-through; color: var(--mut); font-size: 12px; }
+.enr-cart-line .c-price .final { font-family: var(--font-display); font-weight: 800; color: var(--blue-deep); }
+.enr-cart-line .c-price .tag { display: inline-block; font-size: 10.5px; background: rgba(255, 202, 23, 0.2); color: #8a6d00; border-radius: 999px; padding: 1px 8px; margin-top: 2px; }
+
+.enr-totals { margin-top: 14px; font-size: 14px; }
+.enr-totals .row { display: flex; justify-content: space-between; padding: 4px 0; color: var(--mut); }
+.enr-totals .row.grand { font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--ink); border-top: 2px solid var(--line); margin-top: 8px; padding-top: 10px; }
+
+.enr-pay-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+@media (max-width: 420px) { .enr-pay-opts { grid-template-columns: 1fr; } }
+
+.enr-pay {
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.enr-pay.sel { border-color: var(--blue); background: #f4f8ff; box-shadow: inset 0 0 0 1px var(--blue); }
+
+.enr-stub-note {
+  background: rgba(255, 202, 23, 0.12);
+  border: 1.5px dashed rgba(214, 159, 0, 0.5);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #7a5c00;
+  margin-bottom: 12px;
+}
+
+.enr-done { text-align: center; padding: 20px 0; }
+.enr-done .icon { font-size: 56px; margin-bottom: 8px; }
+.enr-done h2 { font-family: var(--font-display); font-weight: 800; font-size: 26px; color: var(--ink); }
+.enr-done .ref { font-family: var(--font-mono); font-size: 13px; color: var(--mut); direction: ltr; }
+
+.enr-cta-row { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }

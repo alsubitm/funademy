@@ -72,6 +72,10 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
 
         <ScrollReveal className="pnote">
           {lang === 'ar' ? 'السعر ١٣٨٠ ريال للطفل الواحد بمعدل ٤-٦ حصص شهرياً. خصم ١٠٪ للأخوة.' : 'SAR 1380 per child, at 4–6 sessions per month. 10% sibling discount.'}
+          {' '}
+          <a href={lang === 'ar' ? '/enroll' : '/en/enroll'} style={{ color: 'var(--yellow)', fontWeight: 700, textDecoration: 'underline' }}>
+            {lang === 'ar' ? 'سجّل الآن' : 'Enroll now'}
+          </a>
         </ScrollReveal>
       </div>
     </section>
