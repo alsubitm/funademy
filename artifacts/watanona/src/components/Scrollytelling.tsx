@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import { motion, useScroll, useTransform, useReducedMotion, useMotionValue, type MotionValue } from 'framer-motion';
 
 export function Scrollytelling() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -10,7 +10,8 @@ export function Scrollytelling() {
     offset: ["start start", "end end"]
   });
 
-  const progress = shouldReduceMotion ? 1 : scrollYProgress;
+  const staticProgress = useMotionValue(1);
+  const progress = shouldReduceMotion ? staticProgress : scrollYProgress;
 
   // Words Opacity
   const w0 = useTransform(progress, [0, 0.1, 0.2, 0.25], [1, 1, 1, 0]);
@@ -208,7 +209,12 @@ export function Scrollytelling() {
   );
 }
 
-function StageWord({ style, color, ar, en }: any) {
+function StageWord({ style, color, ar, en }: {
+  style: React.ComponentProps<typeof motion.div>['style'];
+  color: string;
+  ar: string;
+  en: string;
+}) {
   return (
     <motion.div style={style} className="absolute flex flex-col items-center top-0">
       <h2 className={`text-4xl md:text-7xl font-black ${color} drop-shadow-xl`}>{ar}</h2>
@@ -217,7 +223,7 @@ function StageWord({ style, color, ar, en }: any) {
   );
 }
 
-function Dot({ progress }: { progress: any }) {
+function Dot({ progress }: { progress: MotionValue<number> }) {
   const bg = useTransform(progress, [0, 1], ["rgba(255,255,255,0.2)", "hsl(var(--secondary))"]);
   const scale = useTransform(progress, [0, 1], [1, 1.3]);
   const shadow = useTransform(progress, [0, 1], ["none", "0 0 12px hsl(var(--secondary))"]);
