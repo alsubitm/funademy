@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '../guard';
 
@@ -29,11 +30,15 @@ export async function PATCH(req: NextRequest) {
     const allowed = ['name', 'nameAr', 'area', 'programEn', 'programAr', 'quoteEn', 'quoteAr', 'stars', 'published', 'position'];
     const data = Object.fromEntries(Object.entries(b.data ?? {}).filter(([k]) => allowed.includes(k)));
     const testimonial = await prisma.testimonial.update({ where: { id }, data });
+    revalidatePath('/');
+    revalidatePath('/en');
     return NextResponse.json({ testimonial });
   }
 
   const allowed = ['questionEn', 'questionAr', 'answerEn', 'answerAr', 'published', 'position'];
   const data = Object.fromEntries(Object.entries(b.data ?? {}).filter(([k]) => allowed.includes(k)));
   const faq = await prisma.faqEntry.update({ where: { id }, data });
+  revalidatePath('/');
+  revalidatePath('/en');
   return NextResponse.json({ faq });
 }
