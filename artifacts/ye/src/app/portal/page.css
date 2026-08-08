@@ -133,6 +133,22 @@
 .ptl-skill .lbl { flex: 1; }
 .ptl-skill .state { font-size: 11px; color: var(--mut); font-weight: 700; }
 
+/* renewal reminder banner */
+.ptl-alert {
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  border: 1.5px solid rgba(255, 202, 23, 0.7);
+  background: rgba(255, 202, 23, 0.12);
+}
+.ptl-alert.due { border-color: rgba(211, 144, 27, 0.7); background: rgba(211, 144, 27, 0.1); }
+.ptl-alert .hd { display: flex; align-items: center; gap: 8px; }
+.ptl-alert .ttl { font-family: var(--font-display); font-weight: 800; font-size: 15.5px; color: var(--ink); }
+.ptl-alert.due .ttl { color: #7a5306; }
+.ptl-alert .sub { font-size: 13px; color: var(--mut); margin: 4px 0 6px; font-weight: 600; }
+.ptl-alert .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px dashed rgba(0, 0, 0, 0.12); }
+.ptl-alert .row .who { flex: 1; min-width: 180px; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+
 /* payments & subscription */
 .ptl-tag.sub-paid { background: rgba(34, 218, 255, 0.15); color: #0e7a94; }
 .ptl-tag.sub-due_soon { background: rgba(255, 202, 23, 0.2); color: #8a6d00; }

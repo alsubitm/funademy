@@ -94,6 +94,9 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
 
   return (
     <>
+      {/* renewal reminder banner */}
+      <RenewalAlert lang={lang} familyId={familyId} d={d} />
+
       {/* child switcher */}
       <div className="ptl-switch">
         {students.map((s) => (
@@ -255,6 +258,44 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
         )}
       </div>
     </>
+  );
+}
+
+async function RenewalAlert({ lang, familyId, d }: { lang: Lang; familyId: number; d: (typeof portalDict)['ar'] }) {
+  const subs = await prisma.enrollment.findMany({
+    where: { student: { familyId }, status: { in: ['active', 'pending'] } },
+    include: { student: true, courseRun: { include: { program: true } } },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const flagged = subs
+    .map((e) => ({ e, st: subscriptionState(e.paidThrough) }))
+    .filter(({ st }) => st === 'due' || st === 'due_soon');
+  if (flagged.length === 0) return null;
+
+  const hasDue = flagged.some(({ st }) => st === 'due');
+  const progName = (p: { nameAr: string; nameEn: string }) => (lang === 'ar' ? p.nameAr : p.nameEn);
+
+  return (
+    <div className={`ptl-alert ${hasDue ? 'due' : 'due_soon'}`} role="alert">
+      <div className="hd">
+        <span className="ico" aria-hidden>{hasDue ? '⚠️' : '⏳'}</span>
+        <span className="ttl">{hasDue ? d.alertDueTitle : d.alertDueSoonTitle}</span>
+      </div>
+      <div className="sub">{d.alertRenewNow}</div>
+      {flagged.map(({ e, st }) => {
+        const amount = Math.round(effectiveMonthlySar(e.monthlyPriceSar, e.discountPct));
+        return (
+          <div key={e.id} className="row">
+            <span className="who">
+              {st === 'due' ? d.alertDue : d.alertDueSoon} {e.student.firstName} — {progName(e.courseRun.program)}
+              {e.paidThrough ? ` (${d.alertOn} ${fmtDate(lang, e.paidThrough)})` : ''}
+            </span>
+            <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} />
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
