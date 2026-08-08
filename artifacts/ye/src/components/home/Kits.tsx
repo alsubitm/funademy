@@ -151,7 +151,7 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
                         <div className="fmt" style={{ background: `${p.color}20`, color: p.color }}>
                           {meta ? (lang === 'ar' ? meta.formatAr : meta.formatEn.toUpperCase()) : p.format}
                         </div>
-                        <Link href={`/book?program=${p.slug}`}>
+                        <Link href={`/book?program=${p.slug}${age !== null ? `&age=${age}` : ''}`}>
                           {lang === 'ar' ? 'احجز تجربة >' : 'Book trial >'}
                         </Link>
                       </div>

@@ -9,9 +9,10 @@ type BookingFlowProps = {
   slots: any[];
   lang: 'ar' | 'en';
   preselectProgramSlug?: string;
+  preselectAge?: number;
 };
 
-export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: BookingFlowProps) {
+export function BookingFlow({ programs, slots, lang, preselectProgramSlug, preselectAge }: BookingFlowProps) {
   const d = bookDict[lang];
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isPending, startTransition] = useTransition();
@@ -25,7 +26,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug }: Boo
     return null;
   });
   const [slotId, setSlotId] = useState<number | null>(null);
-  const [ageFilter, setAgeFilter] = useState<number | null>(null);
+  const [ageFilter, setAgeFilter] = useState<number | null>(preselectAge ?? null);
   const [formatFilter, setFormatFilter] = useState<'all' | 'online' | 'in_person'>('all');
   
   const [parentName, setParentName] = useState('');

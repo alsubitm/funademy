@@ -16,6 +16,8 @@ export const metadata = {
 export default async function BookPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
   const programParam = typeof sp.program === 'string' ? sp.program : undefined;
+  const ageRaw = typeof sp.age === 'string' ? Number(sp.age) : NaN;
+  const ageParam = Number.isInteger(ageRaw) && ageRaw >= 4 && ageRaw <= 18 ? ageRaw : undefined;
   const programs = await prisma.program.findMany({ orderBy: { position: 'asc' } });
   const slots = await prisma.scheduleSlot.findMany({
     where: { active: true },
@@ -43,6 +45,7 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
             slots={slots} 
             lang="ar" 
             preselectProgramSlug={programParam} 
+            preselectAge={ageParam}
           />
         </div>
       </main>
