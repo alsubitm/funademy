@@ -31,6 +31,8 @@ model Program {
   position    Int      @default(0)
   slots       ScheduleSlot[]
   bookings    Booking[]
+  courseRuns  CourseRun[]
+  skills      Skill[]
 
   @@map("ye_programs")
   @@schema("ye")
@@ -85,6 +87,250 @@ enum BookingStatus {
   enrolled
 
   @@map("ye_booking_status")
+  @@schema("ye")
+}
+
+// ————————————————————————— Phase 1: Families & Students —————————————————————————
+
+model Family {
+  id         Int       @id @default(autoincrement())
+  phone      String    @unique // normalized +9665XXXXXXXX
+  parentName String
+  email      String?
+  locale     String    @default("ar")
+  createdAt  DateTime  @default(now())
+  students   Student[]
+
+  @@map("ye_families")
+  @@schema("ye")
+}
+
+model Student {
+  id          Int      @id @default(autoincrement())
+  family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  familyId    Int
+  firstName   String
+  birthYear   Int
+  createdAt   DateTime @default(now())
+  enrollments Enrollment[]
+  attendance  Attendance[]
+  skills      StudentSkill[]
+  badges      StudentBadge[]
+  bricks      WatanBrick[]
+
+  @@index([familyId])
+  @@map("ye_students")
+  @@schema("ye")
+}
+
+model OtpCode {
+  id        Int      @id @default(autoincrement())
+  phone     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone, createdAt])
+  @@map("ye_otp_codes")
+  @@schema("ye")
+}
+
+// ————————————————————— Phase 1: Course Runs, Sessions, Enrollment —————————————————————
+
+model CourseRun {
+  id              Int            @id @default(autoincrement())
+  program         Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId       Int
+  titleAr         String? // optional label e.g. «دفعة سبتمبر»
+  titleEn         String?
+  startDate       DateTime
+  endDate         DateTime
+  weekday         Int // 0=Sunday ... 6=Saturday
+  time            String // "17:00"
+  format          Format
+  location        String?
+  capacity        Int            @default(12)
+  seatsLeft       Int            @default(12)
+  monthlyPriceSar Int            @default(1380)
+  active          Boolean        @default(true)
+  sessions        ClassSession[]
+  enrollments     Enrollment[]
+
+  @@index([programId, active])
+  @@map("ye_course_runs")
+  @@schema("ye")
+}
+
+model ClassSession {
+  id          Int           @id @default(autoincrement())
+  courseRun   CourseRun     @relation(fields: [courseRunId], references: [id], onDelete: Cascade)
+  courseRunId Int
+  date        DateTime
+  status      SessionStatus @default(scheduled)
+  note        String?
+  attendance  Attendance[]
+
+  @@index([courseRunId, date])
+  @@map("ye_class_sessions")
+  @@schema("ye")
+}
+
+enum SessionStatus {
+  scheduled
+  completed
+  cancelled
+
+  @@map("ye_session_status")
+  @@schema("ye")
+}
+
+model Enrollment {
+  id              Int              @id @default(autoincrement())
+  student         Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId       Int
+  courseRun       CourseRun        @relation(fields: [courseRunId], references: [id], onDelete: Cascade)
+  courseRunId     Int
+  status          EnrollmentStatus @default(pending)
+  monthlyPriceSar Int              @default(1380)
+  discountPct     Int              @default(0) // 10 = sibling discount
+  startedAt       DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@unique([studentId, courseRunId])
+  @@index([courseRunId, status])
+  @@map("ye_enrollments")
+  @@schema("ye")
+}
+
+enum EnrollmentStatus {
+  pending
+  active
+  paused
+  cancelled
+
+  @@map("ye_enrollment_status")
+  @@schema("ye")
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  session   ClassSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId Int
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int
+  status    AttendanceStatus
+  note      String?
+  markedAt  DateTime         @default(now())
+
+  // The enrollment is derived (student × session.courseRun) rather than stored,
+  // so attendance can never contradict the enrollment it belongs to.
+  @@unique([sessionId, studentId])
+  @@map("ye_attendance")
+  @@schema("ye")
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+  excused
+
+  @@map("ye_attendance_status")
+  @@schema("ye")
+}
+
+// ————————————————————————— Phase 1: Skills & Badges —————————————————————————
+
+model Skill {
+  id        Int            @id @default(autoincrement())
+  program   Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId Int
+  code      String         @unique // e.g. "mech-01-gears"
+  nameAr    String
+  nameEn    String
+  position  Int            @default(0)
+  students  StudentSkill[]
+
+  @@index([programId])
+  @@map("ye_skills")
+  @@schema("ye")
+}
+
+model StudentSkill {
+  id        Int         @id @default(autoincrement())
+  student   Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int
+  skill     Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  skillId   Int
+  status    SkillStatus @default(in_progress)
+  updatedAt DateTime    @updatedAt
+
+  @@unique([studentId, skillId])
+  @@map("ye_student_skills")
+  @@schema("ye")
+}
+
+enum SkillStatus {
+  in_progress
+  mastered
+
+  @@map("ye_skill_status")
+  @@schema("ye")
+}
+
+model Badge {
+  id       Int            @id @default(autoincrement())
+  code     String         @unique // e.g. "first-build"
+  nameAr   String
+  nameEn   String
+  descAr   String
+  descEn   String
+  iconKey  String         @default("star") // star | gear | rocket | crown | bolt | kite
+  position Int            @default(0)
+  students StudentBadge[]
+
+  @@map("ye_badges")
+  @@schema("ye")
+}
+
+model StudentBadge {
+  id        Int      @id @default(autoincrement())
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  badgeId   Int
+  awardedAt DateTime @default(now())
+
+  @@unique([studentId, badgeId])
+  @@map("ye_student_badges")
+  @@schema("ye")
+}
+
+// ————————————————————————— Phase 1: Watan Bricks —————————————————————————
+
+model WatanBrick {
+  id         Int         @id @default(autoincrement())
+  student    Student?    @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  studentId  Int?
+  authorName String // child first name shown on the wall
+  color      String // brand hex only
+  message    String // short message (≤120 chars, enforced in API)
+  status     BrickStatus @default(pending)
+  createdAt  DateTime    @default(now())
+
+  @@index([status, createdAt])
+  @@map("ye_watan_bricks")
+  @@schema("ye")
+}
+
+enum BrickStatus {
+  pending
+  approved
+  rejected
+
+  @@map("ye_brick_status")
   @@schema("ye")
 }
 

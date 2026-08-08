@@ -285,6 +285,137 @@ const faqs = [
   },
 ];
 
+/**
+ * Phase 1 — course runs (one per program, from the primary slot pattern),
+ * skills per program, and the shared badge shelf.
+ */
+const runsBySlug: Record<string, { weekday: number; time: string; format: Format; location?: string; capacity: number; seatsLeft: number }> = {
+  'big-builders': { weekday: 6, time: '09:00', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 12, seatsLeft: 7 },
+  smartivo: { weekday: 0, time: '17:00', format: Format.online, capacity: 12, seatsLeft: 5 },
+  'bricks-challenge': { weekday: 6, time: '10:30', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 16, seatsLeft: 3 },
+  algoplay: { weekday: 1, time: '17:30', format: Format.online, capacity: 16, seatsLeft: 6 },
+  'galileo-technic': { weekday: 6, time: '11:45', format: Format.in_person, location: 'Partner school, Riyadh', capacity: 16, seatsLeft: 8 },
+  robotoys: { weekday: 1, time: '18:30', format: Format.online, capacity: 16, seatsLeft: 4 },
+  algoc: { weekday: 0, time: '19:00', format: Format.online, capacity: 8, seatsLeft: 2 },
+};
+
+const skillsBySlug: Record<string, { code: string; nameAr: string; nameEn: string }[]> = {
+  'big-builders': [
+    { code: 'world-towers', nameAr: 'بناء الأبراج المتوازنة', nameEn: 'Balanced towers' },
+    { code: 'world-bridges', nameAr: 'الجسور والأقواس', nameEn: 'Bridges & arches' },
+    { code: 'world-wheels', nameAr: 'العجلات والحركة', nameEn: 'Wheels & motion' },
+    { code: 'world-story', nameAr: 'سرد قصة النموذج', nameEn: 'Model storytelling' },
+  ],
+  smartivo: [
+    { code: 'code-patterns', nameAr: 'الأنماط والتسلسل', nameEn: 'Patterns & sequences' },
+    { code: 'code-directions', nameAr: 'الاتجاهات والأوامر', nameEn: 'Directions & commands' },
+    { code: 'code-logic-games', nameAr: 'ألعاب المنطق', nameEn: 'Logic games' },
+    { code: 'code-digital', nameAr: 'الثقافة الرقمية المبكرة', nameEn: 'Early digital literacy' },
+  ],
+  'bricks-challenge': [
+    { code: 'mech-gears', nameAr: 'التروس ونسب النقل', nameEn: 'Gears & ratios' },
+    { code: 'mech-levers', nameAr: 'الروافع', nameEn: 'Levers' },
+    { code: 'mech-pulleys', nameAr: 'البكرات', nameEn: 'Pulleys' },
+    { code: 'mech-gravity', nameAr: 'مركز الثقل والتوازن', nameEn: 'Center of gravity' },
+    { code: 'mech-motors', nameAr: 'المحركات والطاقة', nameEn: 'Motors & power' },
+  ],
+  algoplay: [
+    { code: 'code-loops', nameAr: 'الحلقات التكرارية', nameEn: 'Loops' },
+    { code: 'code-conditions', nameAr: 'الشروط', nameEn: 'Conditions' },
+    { code: 'code-debugging', nameAr: 'تصحيح الأخطاء', nameEn: 'Debugging' },
+    { code: 'code-missions', nameAr: 'تخطيط المهمات', nameEn: 'Mission planning' },
+  ],
+  'galileo-technic': [
+    { code: 'mech-differential', nameAr: 'التروس التفاضلية', nameEn: 'Differential gears' },
+    { code: 'mech-transmission', nameAr: 'نقل الحركة', nameEn: 'Transmission' },
+    { code: 'mech-walkers', nameAr: 'آليات المشي', nameEn: 'Walking mechanisms' },
+    { code: 'mech-structures', nameAr: 'الهياكل المتقدمة', nameEn: 'Advanced structures' },
+  ],
+  robotoys: [
+    { code: 'robo-sensors', nameAr: 'الحسّاسات', nameEn: 'Sensors' },
+    { code: 'robo-multistep', nameAr: 'المهمات متعددة الخطوات', nameEn: 'Multi-step missions' },
+    { code: 'robo-smart-logic', nameAr: 'المنطق الذكي', nameEn: 'Smart logic' },
+    { code: 'robo-problem', nameAr: 'حل المشكلات', nameEn: 'Problem solving' },
+  ],
+  algoc: [
+    { code: 'prog-variables', nameAr: 'المتغيرات', nameEn: 'Variables' },
+    { code: 'prog-functions', nameAr: 'الدوال', nameEn: 'Functions' },
+    { code: 'prog-decomposition', nameAr: 'تفكيك المشكلات', nameEn: 'Problem decomposition' },
+    { code: 'prog-project', nameAr: 'مشروع الفصل', nameEn: 'Term project' },
+  ],
+};
+
+const badges = [
+  { code: 'first-build', nameAr: 'أول نموذج', nameEn: 'First Build', descAr: 'أكمل أول نموذج في الحصة', descEn: 'Completed the first model in class', iconKey: 'star', position: 1 },
+  { code: 'gear-master', nameAr: 'خبير التروس', nameEn: 'Gear Master', descAr: 'أتقن مهارات التروس ونسب النقل', descEn: 'Mastered gears and ratios', iconKey: 'gear', position: 2 },
+  { code: 'perfect-month', nameAr: 'حضور مثالي', nameEn: 'Perfect Month', descAr: 'حضر جميع حصص الشهر', descEn: 'Attended every session in a month', iconKey: 'crown', position: 3 },
+  { code: 'team-player', nameAr: 'روح الفريق', nameEn: 'Team Player', descAr: 'تعاون مميز مع زملائه', descEn: 'Outstanding teamwork', iconKey: 'bolt', position: 4 },
+  { code: 'young-inventor', nameAr: 'المخترع الصغير', nameEn: 'Young Inventor', descAr: 'قدّم فكرة إبداعية خاصة به', descEn: 'Presented an original creative idea', iconKey: 'rocket', position: 5 },
+  { code: 'path-climber', nameAr: 'متسلق المسار', nameEn: 'Path Climber', descAr: 'انتقل إلى برنامج المستوى التالي', descEn: 'Advanced to the next program on the path', iconKey: 'kite', position: 6 },
+];
+
+/** Generate weekly session dates for a run (Asia/Riyadh, stored as UTC noon-ish). */
+function weeklyDates(start: Date, end: Date, weekday: number, time: string): Date[] {
+  const [h, m] = time.split(':').map(Number);
+  const dates: Date[] = [];
+  const d = new Date(start);
+  // JS getUTCDay(): 0=Sunday — matches our weekday convention.
+  while (d.getUTCDay() !== weekday) d.setUTCDate(d.getUTCDate() + 1);
+  while (d <= end) {
+    // store as Riyadh local time (UTC+3)
+    dates.push(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h - 3, m)));
+    d.setUTCDate(d.getUTCDate() + 7);
+  }
+  return dates;
+}
+
+async function seedPhase1() {
+  // Badges (global shelf)
+  for (const b of badges) {
+    const { code, ...data } = b;
+    await prisma.badge.upsert({ where: { code }, update: data, create: { code, ...data } });
+  }
+
+  const allPrograms = await prisma.program.findMany();
+  for (const program of allPrograms) {
+    // Skills per program
+    let pos = 1;
+    for (const s of skillsBySlug[program.slug] ?? []) {
+      await prisma.skill.upsert({
+        where: { code: s.code },
+        update: { nameAr: s.nameAr, nameEn: s.nameEn, position: pos, programId: program.id },
+        create: { ...s, position: pos, programId: program.id },
+      });
+      pos++;
+    }
+
+    // One course run per program (Sep–Dec 2026) with generated weekly sessions
+    const runSpec = runsBySlug[program.slug];
+    if (!runSpec) continue;
+    const existing = await prisma.courseRun.count({ where: { programId: program.id } });
+    if (existing > 0) continue;
+    const startDate = new Date(Date.UTC(2026, 8, 1)); // Sep 1, 2026
+    const endDate = new Date(Date.UTC(2026, 11, 17)); // Dec 17, 2026
+    const run = await prisma.courseRun.create({
+      data: {
+        programId: program.id,
+        titleAr: 'دفعة سبتمبر ٢٠٢٦',
+        titleEn: 'September 2026 cohort',
+        startDate,
+        endDate,
+        ...runSpec,
+        monthlyPriceSar: 1380,
+      },
+    });
+    await prisma.classSession.createMany({
+      data: weeklyDates(startDate, endDate, runSpec.weekday, runSpec.time).map((date) => ({
+        courseRunId: run.id,
+        date,
+      })),
+    });
+  }
+}
+
 async function main() {
   console.log('Seeding FunAdemy database…');
 
@@ -319,6 +450,8 @@ async function main() {
   if ((await prisma.faqEntry.count()) === 0) {
     await prisma.faqEntry.createMany({ data: faqs });
   }
+
+  await seedPhase1();
 
   // Shared brick counter (public.campaign_counters) — set launch value if lower.
   await prisma.$executeRaw`

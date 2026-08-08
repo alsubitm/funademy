@@ -2,6 +2,7 @@ import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
 import { YELogo } from '@/components/brand/YELogo';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER, EMAIL } from '@/lib/constants';
+import { BRAND } from '@/lib/brand';
 
 export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
@@ -19,7 +20,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
               />
             </div>
             <p className="text-sm mt-2 opacity-80" style={{ maxWidth: '300px' }}>
-              {lang === 'ar' ? 'FunAdemy — حيث تلتقي المتعة بالأكاديمية' : 'FunAdemy — WHERE FUN MEETS ACADEMY'}
+              {lang === 'ar' ? BRAND.taglineAr : BRAND.taglineEn}
             </p>
             {/* Official e² YE partner logo */}
             <div className="mt-5">
@@ -40,9 +41,9 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
           </div>
         </div>
         <div className="fbot">
-          <span>FunAdemy · e² Young Engineers · Falcon Eye Ltd — License 4030388340</span>
-          <span>© {new Date().getFullYear()} Falcon Eye Ltd. All rights reserved.</span>
-          <span>LEGO® is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this site.</span>
+          <span>{BRAND.creditLine}</span>
+          <span>{BRAND.copyright(new Date().getFullYear())}</span>
+          <span>{BRAND.legoDisclaimer}</span>
         </div>
       </div>
     </footer>
