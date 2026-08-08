@@ -1,4 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
 import { Router, type IRouter } from "express";
+import { Resvg } from "@resvg/resvg-js";
 import { desc, eq, sql } from "drizzle-orm";
 import {
   db,
@@ -88,6 +91,121 @@ router.post("/watan/bricks", async (req, res): Promise<void> => {
 });
 
 const NATIONAL_DAY = "2026-09-23";
+
+// --- Dynamic OG share image with live brick counter ---
+
+const OG_CACHE_TTL_MS = 60 * 1000;
+let ogCache: { count: number; png: Buffer; at: number } | null = null;
+
+function findFont(file: string): string | null {
+  const candidates = [
+    path.join(process.cwd(), "assets/fonts", file),
+    path.join(process.cwd(), "artifacts/api-server/assets/fonts", file),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildOgSvg(count: number, goal: number): string {
+  // Tajawal lacks glyphs for the Arabic thousands separator (U+066C),
+  // so format with Latin digits + comma, which render cleanly.
+  const arNum = new Intl.NumberFormat("en-US").format(count);
+  const arGoal = new Intl.NumberFormat("en-US").format(goal);
+  const percent = Math.min(100, (count / goal) * 100);
+  const barWidth = Math.max(8, Math.round((1000 * percent) / 100));
+  const barX = 100 + (1000 - barWidth); // fill from the right (RTL)
+
+  // Decorative brick rows at the bottom
+  let bricks = "";
+  const brickColors = ["#00B140", "#043316", "#0D2B6B", "#1e3a8a"];
+  for (let row = 0; row < 2; row++) {
+    const y = 560 + row * 34;
+    const offset = row % 2 === 0 ? 0 : 32;
+    for (let i = 0; i < 20; i++) {
+      const x = -20 + offset + i * 64;
+      const c = brickColors[(i + row) % brickColors.length];
+      bricks += `<rect x="${x}" y="${y}" width="58" height="28" rx="4" fill="${c}" opacity="0.85"/>`;
+    }
+  }
+
+  return `<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#030914"/>
+      <stop offset="100%" stop-color="#08152e"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00B140"/>
+      <stop offset="100%" stop-color="#25D366"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  ${bricks}
+  <text x="600" y="120" text-anchor="middle" font-family="Tajawal" font-weight="700" font-size="56" fill="#F1F4FB">${escapeXml("أطفالنا يبنون وطننا")}</text>
+  <text x="600" y="300" text-anchor="middle" font-family="Tajawal" font-weight="700" font-size="150" fill="#00B140">${escapeXml(arNum)}</text>
+  <text x="600" y="370" text-anchor="middle" font-family="Tajawal" font-size="40" fill="#9db2d9">${escapeXml(`مكعّب وُضع حتى الآن من هدف ${arGoal}`)}</text>
+  <rect x="100" y="430" width="1000" height="26" rx="13" fill="#0a1529" stroke="#1e3a8a" stroke-width="1"/>
+  <rect x="${barX}" y="430" width="${barWidth}" height="26" rx="13" fill="url(#bar)"/>
+  <text x="600" y="510" text-anchor="middle" font-family="Tajawal" font-size="34" fill="#F1F4FB">${escapeXml("انضمّ وضع مكعّبك قبل اليوم الوطني")}</text>
+</svg>`;
+}
+
+router.get("/watan/og-image.png", async (_req, res): Promise<void> => {
+  try {
+    const [row] = await db
+      .select()
+      .from(campaignCountersTable)
+      .where(eq(campaignCountersTable.key, BRICK_KEY));
+    const count = row?.count ?? 0;
+
+    if (
+      ogCache &&
+      ogCache.count === count &&
+      Date.now() - ogCache.at < OG_CACHE_TTL_MS
+    ) {
+      res
+        .type("png")
+        .setHeader("Cache-Control", "public, max-age=60")
+        .send(ogCache.png);
+      return;
+    }
+
+    const fontFiles = [
+      findFont("Tajawal-Regular.ttf"),
+      findFont("Tajawal-Bold.ttf"),
+    ].filter((p): p is string => p !== null);
+    if (fontFiles.length === 0) {
+      throw new Error("OG image fonts not found on disk");
+    }
+
+    const svg = buildOgSvg(count, CAMPAIGN_GOAL);
+    const resvg = new Resvg(svg, {
+      fitTo: { mode: "width", value: 1200 },
+      font: {
+        fontFiles,
+        defaultFontFamily: "Tajawal",
+        loadSystemFonts: false,
+      },
+    });
+    const png = Buffer.from(resvg.render().asPng());
+    ogCache = { count, png, at: Date.now() };
+
+    res.type("png").setHeader("Cache-Control", "public, max-age=60").send(png);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to render share image" });
+    throw err;
+  }
+});
 
 router.get("/watan/stats", requireRole("admin"), async (_req, res): Promise<void> => {
   const [counterRow] = await db
