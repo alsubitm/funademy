@@ -38,7 +38,7 @@ Sessions are HMAC-SHA256 signed cookies with a 30-day TTL. The `SESSION_SECRET` 
 
 ### Tampering
 
-Exercise scoring is computed server-side, but the correctness flags come from the client (`answers[].correct`). A child can submit all answers as `correct: true` to fabricate a perfect score, earn maximum XP, and unlock all badges. The server never re-grades answers against stored correct answers.
+Exercise scoring is graded server-side: the client submits only `{ exerciseId, answer }` and the server re-evaluates each answer against the stored correct answer, scoring over all of the lesson's exercises (duplicate or foreign exercise IDs are ignored). Client-reported correctness flags are no longer part of the API contract. Residual risk: correct answers are still returned to the client with the lesson (needed for instant feedback), so a determined user could read and submit them.
 
 ### Information Disclosure
 

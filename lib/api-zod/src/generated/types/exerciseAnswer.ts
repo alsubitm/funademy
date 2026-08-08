@@ -9,5 +9,4 @@
 export interface ExerciseAnswer {
   exerciseId: number;
   answer: string;
-  correct: boolean;
 }

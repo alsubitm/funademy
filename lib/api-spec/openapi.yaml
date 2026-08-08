@@ -1224,11 +1224,10 @@ components:
           items: { $ref: "#/components/schemas/ExerciseInput" }
     ExerciseAnswer:
       type: object
-      required: [exerciseId, answer, correct]
+      required: [exerciseId, answer]
       properties:
         exerciseId: { type: integer }
         answer: { type: string }
-        correct: { type: boolean }
     LessonCompletion:
       type: object
       required: [answers, timeSpentSeconds]

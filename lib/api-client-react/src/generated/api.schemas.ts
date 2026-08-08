@@ -374,7 +374,6 @@ export interface LessonUpdate {
 export interface ExerciseAnswer {
   exerciseId: number;
   answer: string;
-  correct: boolean;
 }
 
 export interface LessonCompletion {

@@ -522,8 +522,7 @@ export const CompleteLessonParams = zod.object({
 export const CompleteLessonBody = zod.object({
   "answers": zod.array(zod.object({
   "exerciseId": zod.int(),
-  "answer": zod.string(),
-  "correct": zod.boolean()
+  "answer": zod.string()
 })),
   "timeSpentSeconds": zod.int()
 })

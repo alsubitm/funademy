@@ -11,6 +11,7 @@ import {
 } from "@workspace/db";
 import { CompleteLessonBody } from "@workspace/api-zod";
 import { getSession, requireAuth } from "../lib/auth";
+import { gradeAnswers } from "../lib/grading";
 import { serializeChild } from "../lib/serializers";
 
 const router: IRouter = Router();
@@ -85,13 +86,27 @@ router.post(
       res.status(400).json({ message: "Invalid completion" });
       return;
     }
-    const answers = parsed.data.answers;
-    const score =
-      answers.length === 0
-        ? 100
-        : Math.round(
-            (answers.filter((a) => a.correct).length / answers.length) * 100,
-          );
+    const [lesson] = await db
+      .select()
+      .from(lessonsTable)
+      .where(eq(lessonsTable.id, lessonId));
+    if (!lesson) {
+      res.status(404).json({ message: "Lesson not found" });
+      return;
+    }
+
+    // Server-side grading: never trust client-reported correctness.
+    // Re-evaluate each submitted answer against the stored correct answer,
+    // and score over ALL of the lesson's exercises so omitting hard
+    // questions cannot inflate the score.
+    const exercises = await db
+      .select({
+        id: exercisesTable.id,
+        correctAnswer: exercisesTable.correctAnswer,
+      })
+      .from(exercisesTable)
+      .where(eq(exercisesTable.lessonId, lessonId));
+    const { score } = gradeAnswers(parsed.data.answers, exercises);
 
     await db.insert(completionsTable).values({
       childId: child.id,

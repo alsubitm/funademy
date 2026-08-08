@@ -34,7 +34,8 @@ export default function KidLesson() {
     if (!currentExercise) return;
     
     const isCorrect = answer === currentExercise.correctAnswer;
-    setAnswers([...answers, { exerciseId: currentExercise.id, answer, correct: isCorrect }]);
+    const updatedAnswers = [...answers, { exerciseId: currentExercise.id, answer, correct: isCorrect }];
+    setAnswers(updatedAnswers);
 
     if (isCorrect) {
       // Correct answer visual handled by button state
@@ -44,16 +45,16 @@ export default function KidLesson() {
       if (currentExerciseIdx < (lesson.exercises?.length || 0) - 1) {
         setCurrentExerciseIdx(prev => prev + 1);
       } else {
-        finishLesson();
+        finishLesson(updatedAnswers);
       }
     }, 1000);
   };
 
-  const finishLesson = () => {
+  const finishLesson = (finalAnswers = answers) => {
     const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
     completeMutation.mutate({
       id,
-      data: { answers, timeSpentSeconds }
+      data: { answers: finalAnswers.map(({ exerciseId, answer }) => ({ exerciseId, answer })), timeSpentSeconds }
     }, {
       onSuccess: (res) => {
         setRewardData(res);
@@ -132,7 +133,7 @@ export default function KidLesson() {
               </Button>
             )}
             {lesson.exercises?.length === 0 && (
-              <Button size="lg" className="h-16 px-12 text-2xl rounded-full shadow-lg" onClick={finishLesson}>
+              <Button size="lg" className="h-16 px-12 text-2xl rounded-full shadow-lg" onClick={() => finishLesson()}>
                 {t('إنهاء الدرس', 'Finish Lesson')}
               </Button>
             )}
