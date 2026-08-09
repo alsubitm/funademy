@@ -491,7 +491,471 @@ async function main() {
     ON CONFLICT (key) DO UPDATE SET count = GREATEST(campaign_counters.count, 1847)
   `;
 
+  // ── Learning platform curriculum ─────────────────────────────────────────
+  await seedCurriculum();
+
   console.log('Seed complete.');
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Curriculum seed — idempotent (upsert by slug / unique fields)
+// Ported from Manara/API-server seed; 4 subjects × banded units/lessons
+// ────────────────────────────────────────────────────────────────────────────
+
+const YT_VIDEOS = [
+  'https://www.youtube.com/watch?v=Xn9SC7EowXA',
+  'https://www.youtube.com/watch?v=fJ9rUzIMcZQ',
+  'https://www.youtube.com/watch?v=kXYiU_JCYtU',
+];
+
+/** Base exercises for the explorers band (reused per lesson with slight variation) */
+function explorerExercises(lessonIdx: number) {
+  const n = lessonIdx + 2; // 2, 3, 4 …
+  return [
+    {
+      type: 'multiple_choice' as const,
+      promptAr: `في هذا الدرس، كم عدد التفاحات؟`,
+      promptEn: `In this lesson, how many apples?`,
+      options: ['2', '3', '4', '5'],
+      correctAnswer: String(n > 4 ? 3 : n),
+      position: 0,
+    },
+    {
+      type: 'picture_select' as const,
+      promptAr: 'اختر الشكل الدائري',
+      promptEn: 'Select the circle shape',
+      options: ['⬛', '⭕', '🔺', '🔷'],
+      correctAnswer: '⭕',
+      position: 1,
+    },
+    {
+      type: 'multiple_choice' as const,
+      promptAr: '2 + 1 = ?',
+      promptEn: '2 + 1 = ?',
+      options: ['1', '2', '3', '4'],
+      correctAnswer: '3',
+      position: 2,
+    },
+    {
+      type: 'fill_blank' as const,
+      promptAr: 'واحد، اثنان، ____',
+      promptEn: 'One, two, ____',
+      options: ['أربعة', 'ثلاثة', 'خمسة'],
+      correctAnswer: 'ثلاثة',
+      position: 3,
+    },
+    {
+      type: 'multiple_choice' as const,
+      promptAr: 'كم عدد التفاحات في مجموعة ثلاثة؟',
+      promptEn: 'How many apples are in a group of three?',
+      options: ['1', '2', '3', '4'],
+      correctAnswer: '3',
+      position: 4,
+    },
+  ];
+}
+
+/** Base exercises for the builders band.
+ *  Only uses types the lesson player supports: multiple_choice, fill_blank,
+ *  picture_select. The `matching` type is reserved for future implementation
+ *  and is intentionally not seeded here. */
+function builderExercises() {
+  return [
+    {
+      type: 'multiple_choice' as const,
+      promptAr: '3 × 4 = ?',
+      promptEn: '3 × 4 = ?',
+      options: ['10', '12', '14', '16'],
+      correctAnswer: '12',
+      position: 0,
+    },
+    {
+      type: 'multiple_choice' as const,
+      promptAr: 'أي من الكسور التالية يعبّر عن النصف؟',
+      promptEn: 'Which fraction represents one half?',
+      options: ['1/3', '1/2', '2/3', '3/4'],
+      correctAnswer: '1/2',
+      position: 1,
+    },
+    {
+      type: 'fill_blank' as const,
+      promptAr: '5 × 5 = ____',
+      promptEn: '5 × 5 = ____',
+      options: ['20', '25', '30'],
+      correctAnswer: '25',
+      position: 2,
+    },
+    {
+      type: 'multiple_choice' as const,
+      promptAr: 'اختر الجملة الاسمية الصحيحة',
+      promptEn: 'Choose the correct nominal sentence',
+      options: ['يركض الولد', 'السماء صافية', 'ذهبت المدرسة', 'قرأت الكتاب'],
+      correctAnswer: 'السماء صافية',
+      position: 3,
+    },
+    {
+      type: 'multiple_choice' as const,
+      promptAr: '2 × 3 = ?',
+      promptEn: '2 × 3 = ?',
+      options: ['4', '6', '8', '5'],
+      correctAnswer: '6',
+      position: 4,
+    },
+  ];
+}
+
+interface UnitPlan {
+  titleAr: string;
+  titleEn: string;
+  band: 'explorers' | 'builders' | 'achievers' | 'graduates';
+  lessons: Array<{ titleAr: string; titleEn: string; durationMinutes: number; isFreeSample?: boolean }>;
+}
+
+const CURRICULUM: Array<{
+  nameAr: string;
+  nameEn: string;
+  slug: string;
+  icon: string;
+  color: string;
+  units: UnitPlan[];
+}> = [
+  {
+    nameAr: 'الرياضيات',
+    nameEn: 'Math',
+    slug: 'math',
+    icon: '🔢',
+    color: '#2563EB',
+    units: [
+      {
+        titleAr: 'الأعداد من ١ إلى ١٠',
+        titleEn: 'Numbers 1–10',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'تعرّف على الأعداد', titleEn: 'Meet the numbers', durationMinutes: 6, isFreeSample: true },
+          { titleAr: 'ترتيب الأعداد', titleEn: 'Ordering numbers', durationMinutes: 8 },
+          { titleAr: 'الأعداد والأشياء', titleEn: 'Numbers and objects', durationMinutes: 10 },
+          { titleAr: 'العدّ إلى ١٠', titleEn: 'Counting to 10', durationMinutes: 8 },
+        ],
+      },
+      {
+        titleAr: 'الأشكال الهندسية',
+        titleEn: 'Shapes',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'الأشكال حولنا', titleEn: 'Shapes around us', durationMinutes: 6 },
+          { titleAr: 'المثلث والمربع', titleEn: 'Triangle and square', durationMinutes: 8 },
+          { titleAr: 'الدائرة والمستطيل', titleEn: 'Circle and rectangle', durationMinutes: 8 },
+          { titleAr: 'بناء بالأشكال', titleEn: 'Building with shapes', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'الجمع البسيط',
+        titleEn: 'Simple addition',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'ما هو الجمع؟', titleEn: 'What is addition?', durationMinutes: 6 },
+          { titleAr: 'الجمع بالأشياء', titleEn: 'Adding with objects', durationMinutes: 8 },
+          { titleAr: 'تدريب على الجمع', titleEn: 'Addition practice', durationMinutes: 10 },
+          { titleAr: 'مسائل الجمع', titleEn: 'Addition problems', durationMinutes: 8 },
+        ],
+      },
+      {
+        titleAr: 'الضرب والقسمة',
+        titleEn: 'Multiplication and division',
+        band: 'builders',
+        lessons: [
+          { titleAr: 'جداول الضرب', titleEn: 'Multiplication tables', durationMinutes: 8, isFreeSample: true },
+          { titleAr: 'الضرب في العقود', titleEn: 'Multiplying by tens', durationMinutes: 8 },
+          { titleAr: 'مفهوم القسمة', titleEn: 'Division concept', durationMinutes: 10 },
+          { titleAr: 'الضرب والقسمة معاً', titleEn: 'Multiplication and division together', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'الكسور',
+        titleEn: 'Fractions',
+        band: 'builders',
+        lessons: [
+          { titleAr: 'ما هو الكسر؟', titleEn: 'What is a fraction?', durationMinutes: 6 },
+          { titleAr: 'النصف والربع', titleEn: 'Half and quarter', durationMinutes: 8 },
+          { titleAr: 'مقارنة الكسور', titleEn: 'Comparing fractions', durationMinutes: 8 },
+          { titleAr: 'الكسور في الحياة', titleEn: 'Fractions in daily life', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'القياس والهندسة',
+        titleEn: 'Measurement and geometry',
+        band: 'builders',
+        lessons: [
+          { titleAr: 'القياس بالسنتيمتر', titleEn: 'Measuring in centimetres', durationMinutes: 6 },
+          { titleAr: 'المحيط والمساحة', titleEn: 'Perimeter and area', durationMinutes: 8 },
+          { titleAr: 'الأشكال ثلاثية الأبعاد', titleEn: '3D shapes', durationMinutes: 10 },
+          { titleAr: 'تطبيقات القياس', titleEn: 'Measurement applications', durationMinutes: 8 },
+        ],
+      },
+    ],
+  },
+  {
+    nameAr: 'اللغة العربية',
+    nameEn: 'Arabic',
+    slug: 'arabic',
+    icon: '📖',
+    color: '#059669',
+    units: [
+      {
+        titleAr: 'الحروف الهجائية (أ–خ)',
+        titleEn: 'Arabic alphabet (A–Kh)',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'حرف الألف', titleEn: 'Letter alef', durationMinutes: 6, isFreeSample: true },
+          { titleAr: 'حرف الباء والتاء', titleEn: 'Letters ba and ta', durationMinutes: 8 },
+          { titleAr: 'حروف الجيم والحاء', titleEn: 'Letters jeem and ha', durationMinutes: 8 },
+          { titleAr: 'مراجعة أ–خ', titleEn: 'Review A–Kh', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'الحروف الهجائية (د–ص)',
+        titleEn: 'Arabic alphabet (D–S)',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'حرف الدال والذال', titleEn: 'Letters dal and thal', durationMinutes: 6 },
+          { titleAr: 'حروف الراء والزاي', titleEn: 'Letters ra and zay', durationMinutes: 8 },
+          { titleAr: 'حروف السين والشين', titleEn: 'Letters seen and sheen', durationMinutes: 8 },
+          { titleAr: 'مراجعة د–ص', titleEn: 'Review D–S', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'كلماتي الأولى',
+        titleEn: 'My first words',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'كلمات الجسم', titleEn: 'Body words', durationMinutes: 6 },
+          { titleAr: 'كلمات المنزل', titleEn: 'Home words', durationMinutes: 8 },
+          { titleAr: 'كلمات الطبيعة', titleEn: 'Nature words', durationMinutes: 8 },
+          { titleAr: 'جمل قصيرة', titleEn: 'Short sentences', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'القراءة والفهم',
+        titleEn: 'Reading and comprehension',
+        band: 'builders',
+        lessons: [
+          { titleAr: 'قراءة نص قصير', titleEn: 'Reading a short text', durationMinutes: 8, isFreeSample: true },
+          { titleAr: 'فهم المقروء', titleEn: 'Reading comprehension', durationMinutes: 10 },
+          { titleAr: 'الأفكار الرئيسية', titleEn: 'Main ideas', durationMinutes: 8 },
+          { titleAr: 'تلخيص النص', titleEn: 'Summarising text', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'قواعد النحو الأساسية',
+        titleEn: 'Basic grammar rules',
+        band: 'builders',
+        lessons: [
+          { titleAr: 'الجملة الاسمية', titleEn: 'Nominal sentence', durationMinutes: 6 },
+          { titleAr: 'الجملة الفعلية', titleEn: 'Verbal sentence', durationMinutes: 8 },
+          { titleAr: 'المبتدأ والخبر', titleEn: 'Subject and predicate', durationMinutes: 8 },
+          { titleAr: 'الفاعل والمفعول', titleEn: 'Agent and object', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'الإملاء والكتابة',
+        titleEn: 'Spelling and writing',
+        band: 'builders',
+        lessons: [
+          { titleAr: 'قواعد الإملاء', titleEn: 'Spelling rules', durationMinutes: 6 },
+          { titleAr: 'كتابة فقرة', titleEn: 'Writing a paragraph', durationMinutes: 10 },
+          { titleAr: 'التشكيل والحركات', titleEn: 'Diacritics', durationMinutes: 8 },
+          { titleAr: 'تطبيقات الكتابة', titleEn: 'Writing practice', durationMinutes: 10 },
+        ],
+      },
+    ],
+  },
+  {
+    nameAr: 'اللغة الإنجليزية',
+    nameEn: 'English',
+    slug: 'english',
+    icon: '🌐',
+    color: '#D97706',
+    units: [
+      {
+        titleAr: 'أحرف الأبجدية الإنجليزية',
+        titleEn: 'The English alphabet',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'الحروف A–F', titleEn: 'Letters A–F', durationMinutes: 6, isFreeSample: true },
+          { titleAr: 'الحروف G–L', titleEn: 'Letters G–L', durationMinutes: 6 },
+          { titleAr: 'الحروف M–R', titleEn: 'Letters M–R', durationMinutes: 6 },
+          { titleAr: 'الحروف S–Z', titleEn: 'Letters S–Z', durationMinutes: 6 },
+        ],
+      },
+      {
+        titleAr: 'الكلمات الأولى بالإنجليزية',
+        titleEn: 'My first English words',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'الألوان', titleEn: 'Colors', durationMinutes: 8 },
+          { titleAr: 'الأرقام', titleEn: 'Numbers', durationMinutes: 8 },
+          { titleAr: 'الحيوانات', titleEn: 'Animals', durationMinutes: 8 },
+          { titleAr: 'الفواكه', titleEn: 'Fruits', durationMinutes: 8 },
+        ],
+      },
+      {
+        titleAr: 'جمل بسيطة بالإنجليزية',
+        titleEn: 'Simple English sentences',
+        band: 'builders',
+        lessons: [
+          { titleAr: 'I am / You are', titleEn: 'I am / You are', durationMinutes: 8, isFreeSample: true },
+          { titleAr: 'أسئلة بسيطة', titleEn: 'Simple questions', durationMinutes: 8 },
+          { titleAr: 'الوصف بالإنجليزية', titleEn: 'Describing in English', durationMinutes: 10 },
+          { titleAr: 'قصة قصيرة', titleEn: 'Short story', durationMinutes: 10 },
+        ],
+      },
+    ],
+  },
+  {
+    nameAr: 'العلوم',
+    nameEn: 'Science',
+    slug: 'science',
+    icon: '🔬',
+    color: '#7C3AED',
+    units: [
+      {
+        titleAr: 'الكائنات الحية',
+        titleEn: 'Living things',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'ما هي الكائنات الحية؟', titleEn: 'What are living things?', durationMinutes: 6, isFreeSample: true },
+          { titleAr: 'النباتات', titleEn: 'Plants', durationMinutes: 8 },
+          { titleAr: 'الحيوانات', titleEn: 'Animals', durationMinutes: 8 },
+          { titleAr: 'البيئة والكائنات', titleEn: 'Environment and living things', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'المادة وخصائصها',
+        titleEn: 'Matter and its properties',
+        band: 'explorers',
+        lessons: [
+          { titleAr: 'الصلب والسائل والغاز', titleEn: 'Solid, liquid, gas', durationMinutes: 6 },
+          { titleAr: 'خصائص المواد', titleEn: 'Properties of matter', durationMinutes: 8 },
+          { titleAr: 'تغيرات المادة', titleEn: 'Changes of matter', durationMinutes: 8 },
+          { titleAr: 'تجربة علمية', titleEn: 'Science experiment', durationMinutes: 10 },
+        ],
+      },
+      {
+        titleAr: 'الجسم البشري',
+        titleEn: 'The human body',
+        band: 'builders',
+        lessons: [
+          { titleAr: 'أجهزة الجسم', titleEn: 'Body systems', durationMinutes: 8, isFreeSample: true },
+          { titleAr: 'الجهاز الهضمي', titleEn: 'Digestive system', durationMinutes: 8 },
+          { titleAr: 'الجهاز التنفسي', titleEn: 'Respiratory system', durationMinutes: 8 },
+          { titleAr: 'الصحة والنظافة', titleEn: 'Health and hygiene', durationMinutes: 10 },
+        ],
+      },
+    ],
+  },
+];
+
+async function seedCurriculum() {
+  console.log('Seeding learning curriculum...');
+
+  for (let sIdx = 0; sIdx < CURRICULUM.length; sIdx++) {
+    const subjectDef = CURRICULUM[sIdx];
+
+    // Upsert subject by slug
+    const subject = await prisma.lrnSubject.upsert({
+      where: { slug: subjectDef.slug },
+      create: {
+        nameAr: subjectDef.nameAr,
+        nameEn: subjectDef.nameEn,
+        slug: subjectDef.slug,
+        icon: subjectDef.icon,
+        color: subjectDef.color,
+        position: sIdx,
+      },
+      update: {
+        nameAr: subjectDef.nameAr,
+        nameEn: subjectDef.nameEn,
+        icon: subjectDef.icon,
+        color: subjectDef.color,
+        position: sIdx,
+      },
+    });
+
+    // Band-position counters per band within this subject
+    const bandPositions: Record<string, number> = {};
+
+    for (const unitDef of subjectDef.units) {
+      const bandPos = (bandPositions[unitDef.band] = (bandPositions[unitDef.band] ?? -1) + 1);
+
+      // Upsert unit by subject + band + title (best available natural key)
+      const existingUnit = await prisma.lrnUnit.findFirst({
+        where: { subjectId: subject.id, band: unitDef.band, titleEn: unitDef.titleEn },
+      });
+
+      const unit = existingUnit
+        ? await prisma.lrnUnit.update({
+            where: { id: existingUnit.id },
+            data: { position: bandPos, status: 'published' },
+          })
+        : await prisma.lrnUnit.create({
+            data: {
+              subjectId: subject.id,
+              band: unitDef.band,
+              titleAr: unitDef.titleAr,
+              titleEn: unitDef.titleEn,
+              position: bandPos,
+              status: 'published',
+            },
+          });
+
+      for (let lIdx = 0; lIdx < unitDef.lessons.length; lIdx++) {
+        const lessonDef = unitDef.lessons[lIdx];
+
+        const existingLesson = await prisma.lrnLesson.findFirst({
+          where: { unitId: unit.id, titleEn: lessonDef.titleEn },
+        });
+
+        const lesson = existingLesson
+          ? await prisma.lrnLesson.update({
+              where: { id: existingLesson.id },
+              data: {
+                position: lIdx,
+                durationMinutes: lessonDef.durationMinutes,
+                videoUrl: YT_VIDEOS[lIdx % YT_VIDEOS.length],
+                isFreeSample: lessonDef.isFreeSample ?? false,
+                status: 'published',
+              },
+            })
+          : await prisma.lrnLesson.create({
+              data: {
+                unitId: unit.id,
+                titleAr: lessonDef.titleAr,
+                titleEn: lessonDef.titleEn,
+                videoUrl: YT_VIDEOS[lIdx % YT_VIDEOS.length],
+                videoType: 'youtube',
+                durationMinutes: lessonDef.durationMinutes,
+                position: lIdx,
+                status: 'published',
+                isFreeSample: lessonDef.isFreeSample ?? false,
+              },
+            });
+
+        // Seed exercises only if none exist
+        const exerciseCount = await prisma.lrnExercise.count({ where: { lessonId: lesson.id } });
+        if (exerciseCount === 0) {
+          const exercises =
+            unitDef.band === 'explorers' || unitDef.band === 'builders' && unitDef.titleEn.toLowerCase().includes('arabic')
+              ? explorerExercises(lIdx)
+              : builderExercises();
+          await prisma.lrnExercise.createMany({
+            data: exercises.map((e) => ({ ...e, lessonId: lesson.id })),
+          });
+        }
+      }
+    }
+  }
+
+  console.log('Curriculum seed complete.');
 }
 
 main()

@@ -10,7 +10,7 @@
  * Runs against the isolated ye_test database (see global-setup / setup-env),
  * calling the Next.js route handlers directly.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 
 // ——— mock the Google Calendar layer: no real connector calls in tests ———
 vi.mock('@/lib/google-calendar', () => ({
@@ -52,6 +52,11 @@ function jsonReq(url: string, body: unknown) {
 function freshPhone(): string {
   return `+9665${Math.floor(10000000 + Math.random() * 89999999)}`;
 }
+
+// Clear the durable rate-limit table so previous test runs cannot cause 429s.
+beforeAll(async () => {
+  await prisma.rateLimitHit.deleteMany({});
+});
 
 beforeEach(() => {
   mockCreate.mockReset();

@@ -142,6 +142,24 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
         ))}
       </div>
 
+      {/* Learning platform CTA */}
+      <Link
+        href="/learn"
+        className="ptl-card"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
+          background: 'linear-gradient(135deg,#1C54CB,#22DAFF 220%)', color: '#fff',
+          borderRadius: 14, padding: '16px 20px', marginBottom: 0,
+        }}
+      >
+        <span style={{ fontSize: 36 }}>🎓</span>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>منصة التعلّم</div>
+          <div style={{ fontSize: 13, opacity: .85, marginTop: 2 }}>دروس، تمارين، XP وشارات — ابدأ الآن!</div>
+        </div>
+        <span style={{ marginInlineStart: 'auto', fontSize: 20 }}>←</span>
+      </Link>
+
       {/* next session hero */}
       <div className="ptl-card ptl-next">
         <div className="hd">

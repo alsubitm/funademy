@@ -12,6 +12,7 @@ import { KpisTab } from './KpisTab';
 import { MakeupTab } from './MakeupTab';
 import { PaymentsTab } from './PaymentsTab';
 import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
+import CurriculumTab from './CurriculumTab';
 
 export function AdminDashboard({ programs }: { programs: any[] }) {
   const [activeTab, setActiveTab] = useState('bookings');
@@ -71,6 +72,11 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
       id: 'bricks', 
       label: 'الوطن', 
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="2" x2="6" y2="10"/><line x1="18" y1="2" x2="18" y2="10"/><line x1="12" y1="14" x2="12" y2="22"/></svg> 
+    },
+    {
+      id: 'curriculum',
+      label: 'المناهج',
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     },
   ];
 
@@ -168,6 +174,7 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
           {activeTab === 'content' && <ContentTab />}
           {activeTab === 'blog' && <BlogTab />}
           {activeTab === 'bricks' && <BricksTab />}
+          {activeTab === 'curriculum' && <CurriculumTab />}
         </div>
       </main>
     </div>

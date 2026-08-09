@@ -99,8 +99,9 @@ model Family {
   email      String?
   locale     String    @default("ar")
   createdAt  DateTime  @default(now())
-  students   Student[]
-  payments   Payment[]
+  students      Student[]
+  payments      Payment[]
+  lrnChildren   LrnChild[]
 
   @@map("ye_families")
   @@schema("ye")
@@ -556,6 +557,170 @@ model BlogPost {
   @@map("ye_blog_posts")
   @@schema("ye")
 }
+
+// ————————————————————————— Learning Platform —————————————————————————
+
+enum LrnBand {
+  explorers
+  builders
+  achievers
+  graduates
+
+  @@map("ye_lrn_band")
+  @@schema("ye")
+}
+
+enum LrnStatus {
+  draft
+  published
+
+  @@map("ye_lrn_status")
+  @@schema("ye")
+}
+
+enum LrnVideoType {
+  youtube
+  vimeo
+  mp4
+
+  @@map("ye_lrn_video_type")
+  @@schema("ye")
+}
+
+enum LrnExerciseType {
+  multiple_choice
+  matching
+  fill_blank
+  picture_select
+
+  @@map("ye_lrn_exercise_type")
+  @@schema("ye")
+}
+
+model LrnSubject {
+  id       Int         @id @default(autoincrement())
+  nameAr   String
+  nameEn   String
+  slug     String      @unique
+  icon     String      // emoji or icon key
+  color    String      // hex color
+  position Int         @default(0)
+  units    LrnUnit[]
+
+  @@map("ye_lrn_subjects")
+  @@schema("ye")
+}
+
+model LrnUnit {
+  id        Int        @id @default(autoincrement())
+  subject   LrnSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId Int
+  band      LrnBand
+  titleAr   String
+  titleEn   String
+  position  Int        @default(0)
+  status    LrnStatus  @default(published)
+  lessons   LrnLesson[]
+
+  @@index([subjectId, band])
+  @@map("ye_lrn_units")
+  @@schema("ye")
+}
+
+model LrnLesson {
+  id              Int          @id @default(autoincrement())
+  unit            LrnUnit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unitId          Int
+  titleAr         String
+  titleEn         String
+  descAr          String?
+  descEn          String?
+  videoUrl        String?
+  videoType       LrnVideoType @default(youtube)
+  durationMinutes Int          @default(8)
+  position        Int          @default(0)
+  status          LrnStatus    @default(published)
+  isFreeSample    Boolean      @default(false)
+  exercises        LrnExercise[]
+  completions      LrnCompletion[]
+  firstCompletions LrnFirstCompletion[]
+
+  @@index([unitId])
+  @@map("ye_lrn_lessons")
+  @@schema("ye")
+}
+
+model LrnExercise {
+  id            Int             @id @default(autoincrement())
+  lesson        LrnLesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId      Int
+  type          LrnExerciseType @default(multiple_choice)
+  promptAr      String
+  promptEn      String
+  options       String[]
+  correctAnswer String
+  position      Int             @default(0)
+
+  @@index([lessonId])
+  @@map("ye_lrn_exercises")
+  @@schema("ye")
+}
+
+/// Standalone kid profile for the learning platform (not tied to Student enrollment)
+model LrnChild {
+  id                Int             @id @default(autoincrement())
+  family            Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  familyId          Int
+  name              String
+  avatar            String          @default("⭐")
+  band              LrnBand         @default(explorers)
+  pin               String          // scrypt salt:hash
+  xp                Int             @default(0)
+  streak            Int             @default(0)
+  lastActiveDate    String?         // ISO date YYYY-MM-DD
+  badges            String[]        @default([])
+  dailyLimitMinutes Int?
+  createdAt         DateTime        @default(now())
+  completions       LrnCompletion[]
+  firstCompletions  LrnFirstCompletion[]
+
+  @@index([familyId])
+  @@map("ye_lrn_children")
+  @@schema("ye")
+}
+
+model LrnCompletion {
+  id               Int       @id @default(autoincrement())
+  child            LrnChild  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  childId          Int
+  lesson           LrnLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId         Int
+  score            Float     // 0-100
+  timeSpentSeconds Int       @default(0)
+  createdAt        DateTime  @default(now())
+
+  @@index([childId, lessonId])
+  @@map("ye_lrn_completions")
+  @@schema("ye")
+}
+
+/// Durable first-completion claim — unique (childId, lessonId) ensures only
+/// one row can be inserted; used atomically (createMany skipDuplicates in a
+/// transaction) to determine whether XP/badges should be awarded.
+model LrnFirstCompletion {
+  id        Int       @id @default(autoincrement())
+  child     LrnChild  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  childId   Int
+  lesson    LrnLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId  Int
+  claimedAt DateTime  @default(now())
+
+  @@unique([childId, lessonId])
+  @@map("ye_lrn_first_completions")
+  @@schema("ye")
+}
+
+// ————————————————————————— Rate Limit (durable) —————————————————————————
 
 // Durable sliding-window rate-limit counters for public booking endpoints.
 // Persisted in the DB (not process memory) so limits survive server restarts
