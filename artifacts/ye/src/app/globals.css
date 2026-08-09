@@ -174,7 +174,11 @@ nav{position:sticky;top:0;background:rgba(255,255,255,.85);backdrop-filter:blur(
 .links a{color:var(--mut);text-decoration:none;font-weight:700;font-size:15.5px;transition:color 0.2s, transform 0.2s}
 .links a:not(.btn):hover{color:var(--blue);transform:translateY(-1px)}
 @media(max-width:960px){.links a:not(.btn){display:none}}
-.links .btn{padding:14px 28px;font-size:16px}
+.links .btn{padding:10px 20px;font-size:14px}
+/* Calmer header CTA: no chunky 3D drop, subtle outline instead */
+.links .btn.y{background:transparent;color:var(--ink);border:2px solid var(--yellow);box-shadow:none}
+.links .btn.y:hover{background:var(--yellow);box-shadow:none}
+.links .btn.y:active{transform:none;box-shadow:none}
 
 /* ===== HERO — BLUEPRINT SPEC SHEET ===== */
 .hero{background:linear-gradient(165deg,var(--bp) 0%,var(--bp-deep) 100%);color:#fff;padding:110px 0 130px;position:relative;overflow:hidden;z-index:1}
