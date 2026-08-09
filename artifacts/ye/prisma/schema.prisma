@@ -278,6 +278,7 @@ enum PaymentTxStatus {
   paid
   failed    // provider confirmed decline/expiry — seats released, terminal
   expired   // our timeout fired, seats released — still reconcilable if provider later settles
+  refunding // admin refund claimed — provider call in flight (prevents duplicate provider refunds)
   refunded
 
   @@map("ye_payment_tx_status")

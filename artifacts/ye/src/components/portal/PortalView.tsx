@@ -424,6 +424,7 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
               {' — '}
               {p.items.map((i) => i.studentName).join(lang === 'ar' ? '، ' : ', ')}
               {p.simulated && <span className="ptl-tag gold" style={{ marginInlineStart: 8 }}>{d.simulatedPay}</span>}
+              {p.status === 'refunded' && <span className="ptl-tag" style={{ marginInlineStart: 8, background: '#EFE7FD', color: '#6B3FD1' }}>{d.refundedPay}</span>}
             </span>
             <span className="amt">{fmt(lang, p.totalSar)} {d.sar}</span>
             <a className="rcpt" href={`/svc/account/payments/${p.id}/receipt?lang=${lang}`} target="_blank" rel="noopener">

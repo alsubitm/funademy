@@ -35,6 +35,8 @@ import { POST as renewPOST } from '@/app/svc/account/renew/route';
 import { GET as paymentsGET } from '@/app/svc/account/payments/route';
 import { GET as receiptGET } from '@/app/svc/account/payments/[id]/receipt/route';
 import { finalizePayment, sweepStalePayments } from '@/lib/pay-core';
+import { adminToken, ADMIN_COOKIE } from '@/lib/auth';
+import { GET as adminPaymentsGET, POST as adminRefundPOST } from '@/app/svc/admin/payments/route';
 
 const RUN = `pay-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -611,7 +613,9 @@ describe('webhook security', () => {
   }
 
   it('Moyasar webhook: 503 when MOYASAR_WEBHOOK_SECRET is not configured', async () => {
-    // No secret set → fail closed.
+    // No secret set → fail closed. (The workspace may have a real secret in
+    // the environment — remove it so this test is environment-independent.)
+    delete process.env.MOYASAR_WEBHOOK_SECRET;
     const res = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', {}));
     expect(res.status).toBe(503);
   });
@@ -630,6 +634,7 @@ describe('webhook security', () => {
   });
 
   it('Tamara webhook: 503 when TAMARA_NOTIFICATION_TOKEN is not configured', async () => {
+    delete process.env.TAMARA_NOTIFICATION_TOKEN;
     const res = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', {}));
     expect(res.status).toBe(503);
   });
@@ -688,6 +693,206 @@ describe('webhook security', () => {
 
     // Cleanup
     await prisma.payment.delete({ where: { id: tamaraPayment.id } });
+  });
+});
+
+describe('admin refund', () => {
+  const asAdmin = (on: boolean) => {
+    if (on) cookieJar.set(ADMIN_COOKIE, adminToken());
+    else cookieJar.delete(ADMIN_COOKIE);
+  };
+  const refundReq = (body?: unknown) =>
+    adminRefundPOST(jsonReq('/svc/admin/payments', 'POST', body));
+
+  it('requires an admin session (401) and validates input (400)', async () => {
+    asAdmin(false);
+    expect((await adminPaymentsGET()).status).toBe(401);
+    expect((await refundReq({ id: checkoutPaymentId })).status).toBe(401);
+    asAdmin(true);
+    expect((await refundReq()).status).toBe(400);
+    expect((await refundReq({ id: 'abc' })).status).toBe(400);
+  });
+
+  it('404 for an unknown payment, 409 for a non-paid payment', async () => {
+    asAdmin(true);
+    expect((await refundReq({ id: 999999999 })).status).toBe(404);
+    const failed = await prisma.payment.create({
+      data: {
+        familyId: familyA.id, kind: 'renewal', provider: 'moyasar_mada',
+        reference: `SIM-${RUN}-failed`, status: 'failed',
+        subtotalSar: 10, totalSar: 10, simulated: true,
+      },
+    });
+    expect((await refundReq({ id: failed.id })).status).toBe(409);
+    await prisma.payment.delete({ where: { id: failed.id } });
+  });
+
+  it('refunds a simulated paid payment: status → refunded, visible in family history and receipt, idempotent', async () => {
+    asAdmin(true);
+    const res = await refundReq({ id: checkoutPaymentId });
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe('refunded');
+
+    const p = await prisma.payment.findUnique({ where: { id: checkoutPaymentId } });
+    expect(p?.status).toBe('refunded');
+
+    // Listed as refunded in the admin panel.
+    const list = await (await adminPaymentsGET()).json();
+    expect(list.payments.find((x: any) => x.id === checkoutPaymentId)?.status).toBe('refunded');
+
+    // Second refund is a no-op success.
+    expect((await refundReq({ id: checkoutPaymentId })).status).toBe(200);
+
+    // Family history + receipt reflect the refund.
+    asFamily(familyA.id);
+    const hist = await (await paymentsGET()).json();
+    expect(hist.payments.find((x: any) => x.id === checkoutPaymentId)?.status).toBe('refunded');
+    const rc = await receipt(checkoutPaymentId);
+    expect(await rc.text()).toContain('تم استرجاع مبلغ هذه الدفعة');
+  });
+
+  it('concurrent refunds of one payment hit the provider exactly once', async () => {
+    asAdmin(true);
+    const payment = await prisma.payment.create({
+      data: {
+        familyId: familyA.id, kind: 'renewal', provider: 'moyasar_mada',
+        reference: `inv_live_${RUN}`, status: 'paid',
+        subtotalSar: 100, totalSar: 100, simulated: false,
+      },
+    });
+
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+    let refundCalls = 0;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.includes('/v1/invoices/')) {
+        return new Response(JSON.stringify({ payments: [{ id: 'pay_1', status: 'paid' }] }), { status: 200 });
+      }
+      if (url.includes('/v1/payments/pay_1/refund')) {
+        refundCalls += 1;
+        await new Promise((r) => setTimeout(r, 50)); // widen the race window
+        return new Response(JSON.stringify({ status: 'refunded' }), { status: 200 });
+      }
+      throw new Error(`unexpected fetch in test: ${init?.method ?? 'GET'} ${url}`);
+    });
+
+    try {
+      const [r1, r2] = await Promise.all([
+        refundReq({ id: payment.id }),
+        refundReq({ id: payment.id }),
+      ]);
+      expect(refundCalls).toBe(1); // the external financial operation ran once
+      const statuses = [r1.status, r2.status].sort();
+      expect(statuses[0]).toBe(200); // the winner succeeds
+      expect([200, 409]).toContain(statuses[1]); // the loser sees in-progress/refunded
+      const final = await prisma.payment.findUnique({ where: { id: payment.id } });
+      expect(final?.status).toBe('refunded');
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.MOYASAR_SECRET_KEY;
+      await prisma.payment.delete({ where: { id: payment.id } });
+    }
+  });
+
+  it('lost response after provider executed: reconciliation confirms and records the refund', async () => {
+    asAdmin(true);
+    const payment = await prisma.payment.create({
+      data: {
+        familyId: familyA.id, kind: 'renewal', provider: 'moyasar_mada',
+        reference: `inv_lost_${RUN}`, status: 'paid',
+        subtotalSar: 100, totalSar: 100, simulated: false,
+      },
+    });
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes('/v1/invoices/')) {
+        return new Response(JSON.stringify({ payments: [{ id: 'pay_lost', status: 'paid' }] }), { status: 200 });
+      }
+      if (url.includes('/v1/payments/pay_lost/refund')) {
+        throw new Error('socket hang up'); // provider executed, response lost
+      }
+      if (url.includes('/v1/payments/pay_lost')) {
+        return new Response(JSON.stringify({ status: 'refunded' }), { status: 200 }); // reconciliation
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    try {
+      const res = await refundReq({ id: payment.id });
+      expect(res.status).toBe(200);
+      const after = await prisma.payment.findUnique({ where: { id: payment.id } });
+      expect(after?.status).toBe('refunded');
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.MOYASAR_SECRET_KEY;
+      await prisma.payment.delete({ where: { id: payment.id } });
+    }
+  });
+
+  it('unknown outcome keeps the payment in refunding and blocks retries (no duplicate provider refund)', async () => {
+    asAdmin(true);
+    const payment = await prisma.payment.create({
+      data: {
+        familyId: familyA.id, kind: 'renewal', provider: 'moyasar_mada',
+        reference: `inv_unknown_${RUN}`, status: 'paid',
+        subtotalSar: 100, totalSar: 100, simulated: false,
+      },
+    });
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+    let refundCalls = 0;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes('/v1/invoices/')) {
+        return new Response(JSON.stringify({ payments: [{ id: 'pay_unk', status: 'paid' }] }), { status: 200 });
+      }
+      if (url.includes('/v1/payments/pay_unk/refund')) {
+        refundCalls += 1;
+        throw new Error('timeout'); // outcome unknown
+      }
+      throw new Error('reconciliation also unavailable'); // GET payment fails too
+    });
+    try {
+      const res = await refundReq({ id: payment.id });
+      expect(res.status).toBe(502);
+      expect((await res.json()).error).toBe('refund_status_unknown');
+      const after = await prisma.payment.findUnique({ where: { id: payment.id } });
+      expect(after?.status).toBe('refunding'); // fail closed — manual reconciliation required
+
+      // A retry must NOT reach the provider again.
+      const retry = await refundReq({ id: payment.id });
+      expect(retry.status).toBe(409);
+      expect((await retry.json()).error).toBe('refund_in_progress');
+      expect(refundCalls).toBe(1);
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.MOYASAR_SECRET_KEY;
+      await prisma.payment.delete({ where: { id: payment.id } });
+    }
+  });
+
+  it('provider failure rolls the claim back to paid so the admin can retry', async () => {
+    asAdmin(true);
+    const payment = await prisma.payment.create({
+      data: {
+        familyId: familyA.id, kind: 'renewal', provider: 'moyasar_mada',
+        reference: `inv_fail_${RUN}`, status: 'paid',
+        subtotalSar: 100, totalSar: 100, simulated: false,
+      },
+    });
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      new Response(JSON.stringify({ message: 'boom' }), { status: 500 }),
+    );
+    try {
+      const res = await refundReq({ id: payment.id });
+      expect(res.status).toBe(502);
+      const after = await prisma.payment.findUnique({ where: { id: payment.id } });
+      expect(after?.status).toBe('paid'); // claim rolled back — retry allowed
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.MOYASAR_SECRET_KEY;
+      await prisma.payment.delete({ where: { id: payment.id } });
+    }
   });
 });
 

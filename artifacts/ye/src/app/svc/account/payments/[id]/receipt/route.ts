@@ -31,6 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         total: 'الإجمالي المدفوع', simulated: 'دفعة تجريبية — لم يتم خصم مبلغ حقيقي',
         kind: { enrollment: 'تسجيل جديد', renewal: 'تجديد اشتراك' } as Record<string, string>,
         print: 'طباعة / حفظ PDF', brand: 'FunAdemy — e² Young Engineers الرياض',
+        refunded: 'تم استرجاع مبلغ هذه الدفعة بالكامل إلى وسيلة الدفع الأصلية',
       }
     : {
         title: 'Payment receipt', receipt: 'Receipt no.', date: 'Date', payer: 'Parent',
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         total: 'Total paid', simulated: 'Simulated payment — no real charge was made',
         kind: { enrollment: 'New enrollment', renewal: 'Subscription renewal' } as Record<string, string>,
         print: 'Print / Save PDF', brand: 'FunAdemy — e² Young Engineers Riyadh',
+        refunded: 'This payment has been fully refunded to the original payment method',
       };
   const providers: Record<string, string> = {
     moyasar_mada: 'Mada', moyasar_applepay: 'Apple Pay', moyasar_stcpay: 'STC Pay', tamara: 'Tamara',
@@ -73,6 +75,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
   .totals .grand { font-weight: 800; font-size: 17px; border-top: 2px solid #07112a; margin-top: 6px; padding-top: 10px; }
   .sim { background: #fff7db; border: 1px solid #ffca17; color: #8a6d00; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-top: 18px; }
+  .refunded { background: #efe7fd; border: 1px solid #c9b3f2; color: #6b3fd1; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-top: 18px; font-weight: 700; }
   .print { margin-top: 22px; }
   .print button { background: #1c54cb; color: #fff; border: 0; border-radius: 10px; padding: 12px 26px; font-size: 15px; font-weight: 700; cursor: pointer; }
   @media print { .print { display: none; } body { background: #fff; } .sheet { border: 0; margin: 0; } }
@@ -98,6 +101,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       ${payment.discountSar > 0 ? `<div><span>${t.discount}</span><span dir="ltr">−${payment.discountSar} SAR</span></div>` : ''}
       <div class="grand"><span>${t.total}</span><span dir="ltr">${payment.totalSar} SAR</span></div>
     </div>
+    ${payment.status === 'refunded' ? `<div class="refunded">${t.refunded}</div>` : ''}
     ${payment.simulated ? `<div class="sim">${t.simulated}</div>` : ''}
     <div class="print"><button onclick="window.print()">${t.print}</button></div>
   </div>

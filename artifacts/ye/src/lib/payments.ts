@@ -108,6 +108,47 @@ export async function verifyPayment(provider: PaymentProvider, reference: string
   }
 }
 
+/**
+ * `indeterminate: true` means the provider MAY have executed the refund but
+ * we could not confirm either way (network error, timeout, 5xx) even after
+ * reconciliation. Callers must NOT allow an automatic retry in that case —
+ * a second refund request could duplicate a real financial operation.
+ * `indeterminate: false` is a definitive pre-execution rejection: no money
+ * moved, retrying is safe.
+ */
+export type RefundResult =
+  | { ok: true }
+  | { ok: false; error: string; indeterminate: boolean };
+
+/**
+ * Refund a settled payment at the provider.
+ * - SIM-* references succeed immediately (nothing was charged).
+ * - Moyasar: the stored reference is an INVOICE id — we look up the underlying
+ *   paid payment and POST /v1/payments/{id}/refund.
+ * - Tamara: POST /payments/refund with the order id and full amount.
+ * On ambiguous outcomes each provider path re-reads the payment/order state
+ * to reconcile before reporting `indeterminate`.
+ * Callers must only flip the internal status to `refunded` when `ok` is true.
+ */
+export async function refundPayment(
+  provider: PaymentProvider,
+  reference: string,
+  amountSar: number,
+): Promise<RefundResult> {
+  if (reference.startsWith('SIM-')) return { ok: true }; // simulated — no real charge
+  if (!providerLive(provider)) return { ok: false, error: 'provider_not_configured', indeterminate: false };
+  try {
+    return provider === 'tamara'
+      ? await refundTamara(reference, amountSar)
+      : await refundMoyasar(reference);
+  } catch (e) {
+    // Unexpected throw around the refund call — we cannot know whether the
+    // provider executed it. Fail closed.
+    console.error(`[payments] refundPayment ${provider} ${reference} error:`, e);
+    return { ok: false, error: 'provider_error', indeterminate: true };
+  }
+}
+
 /* ----------------------------- Moyasar ----------------------------- */
 
 const moyasarAuth = () =>
@@ -153,6 +194,78 @@ async function verifyMoyasar(invoiceId: string): Promise<VerifyResult> {
   if (data.status === 'paid') return 'paid';
   if (data.status === 'expired' || data.status === 'canceled' || data.status === 'voided' || data.status === 'failed') return 'failed';
   return 'pending';
+}
+
+async function refundMoyasar(invoiceId: string): Promise<RefundResult> {
+  // The stored reference is an invoice id; refunds are made against the
+  // underlying payment, so fetch the invoice to find the paid payment id.
+  // A failure HERE is definitive — the refund itself was never attempted.
+  let inv: { payments?: { id: string; status: string }[] };
+  try {
+    const invRes = await fetch(`${MOYASAR_BASE()}/v1/invoices/${encodeURIComponent(invoiceId)}`, {
+      headers: { Authorization: moyasarAuth() },
+      cache: 'no-store',
+    });
+    inv = (await invRes.json()) as typeof inv;
+    if (!invRes.ok) {
+      console.error('[payments] Moyasar refund: invoice lookup failed:', invRes.status, inv);
+      return { ok: false, error: 'provider_error', indeterminate: false };
+    }
+  } catch (e) {
+    console.error('[payments] Moyasar refund: invoice lookup network error:', e);
+    return { ok: false, error: 'provider_error', indeterminate: false };
+  }
+  const paid = inv.payments?.find((p) => p.status === 'paid' || p.status === 'captured');
+  if (!paid) {
+    // Nothing settled behind this invoice, or already refunded at the provider.
+    const refunded = inv.payments?.find((p) => p.status === 'refunded');
+    if (refunded) return { ok: true }; // already refunded upstream — safe to record
+    console.error('[payments] Moyasar refund: no paid payment on invoice', invoiceId, inv.payments);
+    return { ok: false, error: 'no_paid_payment', indeterminate: false };
+  }
+
+  // The refund call itself — from here on any ambiguity must fail closed.
+  try {
+    const res = await fetch(`${MOYASAR_BASE()}/v1/payments/${encodeURIComponent(paid.id)}/refund`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: moyasarAuth() },
+      body: JSON.stringify({}), // full refund
+    });
+    const data = (await res.json().catch(() => ({}))) as { status?: string; message?: string };
+    if (res.ok && (data.status === 'refunded' || !data.status)) return { ok: true };
+    if (res.status >= 400 && res.status < 500) {
+      // Definitive rejection — Moyasar refused before executing anything.
+      console.error('[payments] Moyasar refund rejected:', res.status, data);
+      return { ok: false, error: 'provider_error', indeterminate: false };
+    }
+    console.error('[payments] Moyasar refund ambiguous response:', res.status, data);
+  } catch (e) {
+    console.error('[payments] Moyasar refund network error (outcome unknown):', e);
+  }
+  // Ambiguous (5xx / network error) — reconcile by re-reading the payment.
+  return reconcileMoyasarRefund(paid.id);
+}
+
+/** After an ambiguous refund response, ask Moyasar what actually happened. */
+async function reconcileMoyasarRefund(paymentId: string): Promise<RefundResult> {
+  try {
+    const res = await fetch(`${MOYASAR_BASE()}/v1/payments/${encodeURIComponent(paymentId)}`, {
+      headers: { Authorization: moyasarAuth() },
+      cache: 'no-store',
+    });
+    const data = (await res.json().catch(() => ({}))) as { status?: string };
+    if (res.ok) {
+      if (data.status === 'refunded') return { ok: true }; // refund did execute
+      if (data.status === 'paid' || data.status === 'captured') {
+        // Refund definitively did not happen — safe to retry later.
+        return { ok: false, error: 'provider_error', indeterminate: false };
+      }
+    }
+  } catch (e) {
+    console.error('[payments] Moyasar refund reconciliation error:', e);
+  }
+  // Still unknown — fail closed, require manual reconciliation.
+  return { ok: false, error: 'refund_status_unknown', indeterminate: true };
 }
 
 /* ------------------------------ Tamara ----------------------------- */
@@ -216,6 +329,71 @@ async function createTamaraCheckout(
     return { status: 'failed', provider: 'tamara', error: 'provider_error' };
   }
   return { status: 'redirect', reference: data.order_id, redirectUrl: data.checkout_url, provider: 'tamara', amountSar };
+}
+
+async function refundTamara(orderId: string, amountSar: number): Promise<RefundResult> {
+  try {
+    const res = await fetch(`${TAMARA_BASE()}/payments/refund`, {
+      method: 'POST',
+      headers: tamaraHeaders(),
+      body: JSON.stringify({
+        order_id: orderId,
+        total_amount: { amount: Math.round(amountSar * 100) / 100, currency: 'SAR' },
+        comment: 'Admin refund from Funademy dashboard',
+      }),
+    });
+    if (res.ok) return { ok: true };
+    const body = await res.text().catch(() => '');
+    if (res.status === 409) {
+      // 409 usually means "already refunded", but don't take the provider's
+      // word for it — reconcile against the order's actual refunded amount.
+      console.error('[payments] Tamara refund 409, reconciling:', body);
+      return reconcileTamaraRefund(orderId, amountSar, /*definitiveOnUnrefunded*/ true);
+    }
+    if (res.status >= 400 && res.status < 500) {
+      // Definitive pre-execution rejection — nothing was refunded.
+      console.error('[payments] Tamara refund rejected:', res.status, body);
+      return { ok: false, error: 'provider_error', indeterminate: false };
+    }
+    console.error('[payments] Tamara refund ambiguous response:', res.status, body);
+  } catch (e) {
+    console.error('[payments] Tamara refund network error (outcome unknown):', e);
+  }
+  // 5xx or lost response — the refund may have executed. Reconcile.
+  return reconcileTamaraRefund(orderId, amountSar, /*definitiveOnUnrefunded*/ false);
+}
+
+/**
+ * Re-read the Tamara order to determine whether a refund actually executed.
+ * `definitiveOnUnrefunded` distinguishes the 409 case (provider explicitly
+ * refused, so an unrefunded order means retry is safe) from the lost-response
+ * case (an unrefunded order still cannot rule out an in-flight refund).
+ */
+async function reconcileTamaraRefund(
+  orderId: string,
+  amountSar: number,
+  definitiveOnUnrefunded: boolean,
+): Promise<RefundResult> {
+  try {
+    const ord = await fetch(`${TAMARA_BASE()}/orders/${encodeURIComponent(orderId)}`, {
+      headers: tamaraHeaders(),
+      cache: 'no-store',
+    });
+    if (ord.ok) {
+      const data = (await ord.json()) as { status?: string; refunded_amount?: { amount?: number } };
+      const status = (data.status || '').toLowerCase();
+      const refundedAmt = data.refunded_amount?.amount ?? 0;
+      if (status === 'refunded' || status === 'fully_refunded' || refundedAmt >= amountSar) {
+        return { ok: true }; // confirmed refunded upstream — safe to record
+      }
+      if (definitiveOnUnrefunded) {
+        return { ok: false, error: 'provider_conflict', indeterminate: false };
+      }
+    }
+  } catch (e) {
+    console.error('[payments] Tamara refund reconciliation error:', e);
+  }
+  return { ok: false, error: 'refund_status_unknown', indeterminate: true };
 }
 
 async function verifyTamara(orderId: string): Promise<VerifyResult> {

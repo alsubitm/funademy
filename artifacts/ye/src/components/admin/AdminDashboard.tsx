@@ -9,6 +9,7 @@ import { RunsTab } from './RunsTab';
 import { ProgressTab } from './ProgressTab';
 import { KpisTab } from './KpisTab';
 import { MakeupTab } from './MakeupTab';
+import { PaymentsTab } from './PaymentsTab';
 import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
 
 export function AdminDashboard({ programs }: { programs: any[] }) {
@@ -29,6 +30,11 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
       id: 'runs',
       label: 'الدفعات',
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    },
+    {
+      id: 'payments',
+      label: 'المدفوعات',
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
     },
     {
       id: 'progress',
@@ -148,6 +154,7 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
         <div className="max-w-7xl mx-auto">
           {activeTab === 'kpis' && <KpisTab />}
           {activeTab === 'runs' && <RunsTab programs={programs} />}
+          {activeTab === 'payments' && <PaymentsTab />}
           {activeTab === 'progress' && <ProgressTab />}
           {activeTab === 'makeup' && <MakeupTab />}
           {activeTab === 'bookings' && <BookingsTab />}
