@@ -535,6 +535,28 @@ model Appointment {
   @@schema("ye")
 }
 
+// Blog posts (migrated from Manara CMS). Arabic is required; English mirror
+// fields are optional — public EN pages fall back to Arabic when absent.
+model BlogPost {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  titleAr     String
+  titleEn     String?
+  excerptAr   String
+  excerptEn   String?
+  contentAr   String
+  contentEn   String?
+  coverEmoji  String   @default("📚")
+  published   Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([published, publishedAt])
+  @@map("ye_blog_posts")
+  @@schema("ye")
+}
+
 // Durable sliding-window rate-limit counters for public booking endpoints.
 // Persisted in the DB (not process memory) so limits survive server restarts
 // and apply across multiple instances.

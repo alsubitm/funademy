@@ -1,0 +1,90 @@
+.blog-pg {
+  background: var(--paper, #f7faff);
+  min-height: 60vh;
+  padding: 56px 0 80px;
+}
+
+.b-hero {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 48px;
+  padding: 0 20px;
+}
+.b-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(32px, 5vw, 48px);
+  color: var(--ink, #101a38);
+  margin: 12px 0 10px;
+}
+.b-hero p { color: var(--mut, #5f6b92); font-size: 17px; line-height: 1.8; }
+
+.b-empty { text-align: center; color: var(--mut, #5f6b92); padding: 60px 20px; }
+
+.b-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.b-card {
+  display: block;
+  background: #fff;
+  border: 1px solid var(--line, #dfe5f2);
+  border-radius: 24px;
+  padding: 28px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 30px rgba(7, 17, 42, 0.04);
+}
+.b-card:hover {
+  border-color: rgba(28, 84, 203, 0.35);
+  box-shadow: 0 12px 40px rgba(28, 84, 203, 0.1);
+  transform: translateY(-3px);
+}
+.b-emoji { font-size: 44px; line-height: 1; margin-bottom: 14px; }
+.b-emoji.big { font-size: 64px; margin: 20px 0 10px; }
+.b-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mut, #5f6b92);
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+.b-card h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--ink, #101a38);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.b-card p { color: var(--mut, #5f6b92); font-size: 14px; line-height: 1.8; margin-bottom: 14px; }
+.b-more { color: var(--blue, #1c54cb); font-weight: 800; font-size: 14px; }
+
+.b-article { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+.b-back {
+  display: inline-block;
+  color: var(--blue, #1c54cb);
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.b-back:hover { text-decoration: underline; }
+.b-article h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(28px, 4.5vw, 40px);
+  color: var(--ink, #101a38);
+  line-height: 1.4;
+  margin: 8px 0 24px;
+}
+.b-body p {
+  color: #2c3654;
+  font-size: 17px;
+  line-height: 2;
+  margin-bottom: 20px;
+}
+.b-body strong { color: var(--ink, #101a38); }

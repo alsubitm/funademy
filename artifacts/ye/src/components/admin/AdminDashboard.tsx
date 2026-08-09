@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { BookingsTab } from './BookingsTab';
 import { SlotsTab } from './SlotsTab';
 import { ContentTab } from './ContentTab';
+import { BlogTab } from './BlogTab';
 import { BricksTab } from './BricksTab';
 import { RunsTab } from './RunsTab';
 import { ProgressTab } from './ProgressTab';
@@ -60,6 +61,11 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
       id: 'content', 
       label: 'المحتوى', 
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 
+    },
+    {
+      id: 'blog',
+      label: 'المدونة',
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     },
     { 
       id: 'bricks', 
@@ -160,6 +166,7 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
           {activeTab === 'bookings' && <BookingsTab />}
           {activeTab === 'slots' && <SlotsTab programs={programs} />}
           {activeTab === 'content' && <ContentTab />}
+          {activeTab === 'blog' && <BlogTab />}
           {activeTab === 'bricks' && <BricksTab />}
         </div>
       </main>

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { prisma } from '@/lib/db';
 
 const PROGRAM_SLUGS = [
   'big-builders',
@@ -15,9 +16,13 @@ function baseUrl(): string {
   return domain ? `https://${domain}` : 'http://localhost';
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = baseUrl();
   const now = new Date();
+  const blogSlugs = await prisma.blogPost
+    .findMany({ where: { published: true }, select: { slug: true } })
+    .then((posts) => posts.map((p) => p.slug))
+    .catch(() => [] as string[]);
   const paths = [
     '/',
     '/en',
@@ -27,7 +32,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/en/book',
     '/contact',
     '/en/contact',
+    '/blog',
+    '/en/blog',
     ...PROGRAM_SLUGS.flatMap((s) => [`/programs/${s}`, `/en/programs/${s}`]),
+    ...blogSlugs.flatMap((s) => [`/blog/${s}`, `/en/blog/${s}`]),
   ];
   return paths.map((p) => ({
     url: `${base}${p}`,

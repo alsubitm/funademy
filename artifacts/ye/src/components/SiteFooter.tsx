@@ -37,6 +37,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
             <a href="#programs">{d.navPrograms}</a>
             <a href="#pricing">{d.navPricing}</a>
             <a href="#faq">FAQ</a>
+            <a href={lang === 'ar' ? '/blog' : '/en/blog'}>{lang === 'ar' ? 'المدونة' : 'Blog'}</a>
             <a href="/watanona">Watanona Campaign</a>
           </div>
         </div>
