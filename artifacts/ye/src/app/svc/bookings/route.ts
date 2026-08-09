@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
   // Throttle: each accepted booking may create a real Google Calendar event.
-  if (!allowRate(`book:ip:${clientIp(req)}`, 5, 10 * 60_000)) {
+  if (!(await allowRate(`book:ip:${clientIp(req)}`, 5, 10 * 60_000))) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }
 

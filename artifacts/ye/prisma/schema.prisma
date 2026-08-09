@@ -534,3 +534,16 @@ model Appointment {
   @@map("ye_appointments")
   @@schema("ye")
 }
+
+// Durable sliding-window rate-limit counters for public booking endpoints.
+// Persisted in the DB (not process memory) so limits survive server restarts
+// and apply across multiple instances.
+model RateLimitHit {
+  id  Int      @id @default(autoincrement())
+  key String
+  at  DateTime @default(now())
+
+  @@index([key, at])
+  @@map("ye_rate_limit_hits")
+  @@schema("ye")
+}

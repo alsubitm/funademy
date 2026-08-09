@@ -36,7 +36,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Throttle: each accepted request creates a real Google Calendar event.
-  if (!allowRate(`appt:ip:${clientIp(req)}`, 5, 10 * 60_000) || !allowRate(`appt:ph:${phone}`, 3, 24 * 60 * 60_000)) {
+  if (
+    !(await allowRate(`appt:ip:${clientIp(req)}`, 5, 10 * 60_000)) ||
+    !(await allowRate(`appt:ph:${phone}`, 3, 24 * 60 * 60_000))
+  ) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }
 
