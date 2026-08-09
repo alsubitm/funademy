@@ -8,6 +8,7 @@ import parentRouter from "./parent";
 import subscriptionRouter from "./subscription";
 import marketingRouter from "./marketing";
 import adminRouter from "./admin";
+import sessionsRouter from "./sessions";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(parentRouter);
 router.use(subscriptionRouter);
 router.use(marketingRouter);
 router.use(adminRouter);
+router.use(sessionsRouter);
 
 export default router;

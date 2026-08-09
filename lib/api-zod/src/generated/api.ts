@@ -1137,3 +1137,319 @@ export const GetWatanStatsResponse = zod.object({
 })
 
 
+/**
+ * @summary Create a session series (teacher/admin)
+ */
+
+
+
+export const CreateSessionSeriesBody = zod.object({
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "program": zod.string().optional(),
+  "teacherId": zod.int().optional().describe('Admin only — assign the series to a teacher')
+})
+
+export const CreateSessionSeriesResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary List session series
+ */
+export const ListSessionSeriesResponseItem = zod.record(zod.string(), zod.unknown())
+export const ListSessionSeriesResponse = zod.array(ListSessionSeriesResponseItem)
+
+
+/**
+ * @summary Create a scheduled live session (teacher/admin)
+ */
+
+export const createLiveSessionBodyDurationMinutesMin = 5;
+export const createLiveSessionBodyDurationMinutesMax = 480;
+
+export const createLiveSessionBodyCapacityMax = 500;
+
+
+
+export const CreateLiveSessionBody = zod.object({
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "program": zod.string().optional(),
+  "seriesId": zod.int().optional(),
+  "teacherId": zod.int().optional().describe('Admin only — assign the session to a teacher'),
+  "startsAt": zod.string().describe('ISO 8601 date-time (stored UTC, displayed in Riyadh time)'),
+  "durationMinutes": zod.int().min(createLiveSessionBodyDurationMinutesMin).max(createLiveSessionBodyDurationMinutesMax).optional(),
+  "capacity": zod.int().min(1).max(createLiveSessionBodyCapacityMax).optional(),
+  "priceSar": zod.number().nullish().describe('null or 0 = free session'),
+  "includedInSubscription": zod.boolean().optional(),
+  "meetingLink": zod.string().optional()
+})
+
+export const CreateLiveSessionResponse = zod.object({
+  "id": zod.int(),
+  "seriesId": zod.int().nullish(),
+  "teacherId": zod.int().optional(),
+  "title": zod.string(),
+  "description": zod.string().optional(),
+  "program": zod.string().optional(),
+  "startsAt": zod.string(),
+  "startsAtRiyadh": zod.string().optional(),
+  "durationMinutes": zod.int(),
+  "capacity": zod.int(),
+  "priceSar": zod.number().nullish(),
+  "includedInSubscription": zod.boolean().optional(),
+  "status": zod.string(),
+  "bookedCount": zod.int(),
+  "seatsLeft": zod.int()
+})
+
+
+/**
+ * @summary List upcoming scheduled sessions
+ */
+export const ListSessionsQueryParams = zod.object({
+  "teacherId": zod.coerce.number().int().optional(),
+  "seriesId": zod.coerce.number().int().optional(),
+  "includePast": zod.coerce.boolean().optional()
+})
+
+export const ListSessionsResponseItem = zod.object({
+  "id": zod.int(),
+  "seriesId": zod.int().nullish(),
+  "teacherId": zod.int().optional(),
+  "title": zod.string(),
+  "description": zod.string().optional(),
+  "program": zod.string().optional(),
+  "startsAt": zod.string(),
+  "startsAtRiyadh": zod.string().optional(),
+  "durationMinutes": zod.int(),
+  "capacity": zod.int(),
+  "priceSar": zod.number().nullish(),
+  "includedInSubscription": zod.boolean().optional(),
+  "status": zod.string(),
+  "bookedCount": zod.int(),
+  "seatsLeft": zod.int()
+})
+export const ListSessionsResponse = zod.array(ListSessionsResponseItem)
+
+
+/**
+ * @summary Purchase a multi-session credit package
+ */
+export const purchaseSessionPackageBodyCreditsMax = 100;
+
+
+
+export const PurchaseSessionPackageBody = zod.object({
+  "credits": zod.int().min(1).max(purchaseSessionPackageBodyCreditsMax),
+  "name": zod.string().optional()
+})
+
+export const PurchaseSessionPackageResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary List my session packages and remaining credits
+ */
+export const ListMySessionPackagesResponseItem = zod.record(zod.string(), zod.unknown())
+export const ListMySessionPackagesResponse = zod.array(ListMySessionPackagesResponseItem)
+
+
+/**
+ * @summary List my session notifications
+ */
+export const ListMySessionNotificationsResponseItem = zod.record(zod.string(), zod.unknown())
+export const ListMySessionNotificationsResponse = zod.array(ListMySessionNotificationsResponseItem)
+
+
+/**
+ * @summary List my session bookings
+ */
+export const ListMyBookingsResponseItem = zod.record(zod.string(), zod.unknown())
+export const ListMyBookingsResponse = zod.array(ListMyBookingsResponseItem)
+
+
+/**
+ * @summary Attendance history (self, own child, or admin for anyone)
+ */
+export const GetAttendanceHistoryQueryParams = zod.object({
+  "childId": zod.coerce.number().int().optional(),
+  "userId": zod.coerce.number().int().optional()
+})
+
+export const GetAttendanceHistoryResponseItem = zod.record(zod.string(), zod.unknown())
+export const GetAttendanceHistoryResponse = zod.array(GetAttendanceHistoryResponseItem)
+
+
+/**
+ * @summary Session detail with seat availability
+ */
+export const GetSessionDetailParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetSessionDetailResponse = zod.object({
+  "id": zod.int(),
+  "seriesId": zod.int().nullish(),
+  "teacherId": zod.int().optional(),
+  "title": zod.string(),
+  "description": zod.string().optional(),
+  "program": zod.string().optional(),
+  "startsAt": zod.string(),
+  "startsAtRiyadh": zod.string().optional(),
+  "durationMinutes": zod.int(),
+  "capacity": zod.int(),
+  "priceSar": zod.number().nullish(),
+  "includedInSubscription": zod.boolean().optional(),
+  "status": zod.string(),
+  "bookedCount": zod.int(),
+  "seatsLeft": zod.int()
+})
+
+
+/**
+ * @summary Update or cancel a session (owning teacher/admin)
+ */
+export const UpdateLiveSessionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+export const updateLiveSessionBodyDurationMinutesMin = 5;
+export const updateLiveSessionBodyDurationMinutesMax = 480;
+
+export const updateLiveSessionBodyCapacityMax = 500;
+
+
+
+export const UpdateLiveSessionBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "description": zod.string().optional(),
+  "program": zod.string().optional(),
+  "startsAt": zod.string().optional(),
+  "durationMinutes": zod.int().min(updateLiveSessionBodyDurationMinutesMin).max(updateLiveSessionBodyDurationMinutesMax).optional(),
+  "capacity": zod.int().min(1).max(updateLiveSessionBodyCapacityMax).optional(),
+  "priceSar": zod.number().nullish(),
+  "includedInSubscription": zod.boolean().optional(),
+  "meetingLink": zod.string().optional(),
+  "status": zod.enum(['scheduled', 'cancelled', 'completed']).optional()
+})
+
+export const UpdateLiveSessionResponse = zod.object({
+  "id": zod.int(),
+  "seriesId": zod.int().nullish(),
+  "teacherId": zod.int().optional(),
+  "title": zod.string(),
+  "description": zod.string().optional(),
+  "program": zod.string().optional(),
+  "startsAt": zod.string(),
+  "startsAtRiyadh": zod.string().optional(),
+  "durationMinutes": zod.int(),
+  "capacity": zod.int(),
+  "priceSar": zod.number().nullish(),
+  "includedInSubscription": zod.boolean().optional(),
+  "status": zod.string(),
+  "bookedCount": zod.int(),
+  "seatsLeft": zod.int()
+})
+
+
+/**
+ * @summary Book a seat (waitlisted automatically when full)
+ */
+export const BookSessionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const BookSessionBody = zod.object({
+  "childId": zod.int().optional().describe('The child attending, when a parent books for a child'),
+  "paymentMethod": zod.enum(['free', 'subscription', 'package', 'single']).optional().describe('Preferred entitlement; server validates and may override')
+})
+
+export const BookSessionResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Cancel my booking (within policy); promotes waitlist
+ */
+export const CancelSessionBookingParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const CancelSessionBookingResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Meeting link (booked participants, shortly before start)
+ */
+export const GetSessionJoinLinkParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetSessionJoinLinkResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Mark attendance for participants (owning teacher/admin)
+ */
+export const MarkSessionAttendanceParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const MarkSessionAttendanceBody = zod.object({
+  "records": zod.array(zod.object({
+  "bookingId": zod.int(),
+  "status": zod.enum(['present', 'absent', 'late'])
+})).min(1)
+})
+
+export const MarkSessionAttendanceResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Participants + attendance status (owning teacher/admin)
+ */
+export const ListSessionParticipantsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListSessionParticipantsResponseItem = zod.record(zod.string(), zod.unknown())
+export const ListSessionParticipantsResponse = zod.array(ListSessionParticipantsResponseItem)
+
+
+/**
+ * @summary Attach a material (owning teacher/admin)
+ */
+export const AddSessionMaterialParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const AddSessionMaterialBody = zod.object({
+  "kind": zod.enum(['file', 'link', 'note']).optional(),
+  "title": zod.string().min(1),
+  "url": zod.string().optional(),
+  "content": zod.string().optional()
+})
+
+export const AddSessionMaterialResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary List materials (booked participants and staff)
+ */
+export const ListSessionMaterialsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListSessionMaterialsResponseItem = zod.record(zod.string(), zod.unknown())
+export const ListSessionMaterialsResponse = zod.array(ListSessionMaterialsResponseItem)
+
+

@@ -568,6 +568,163 @@ export interface AdminUserUpdate {
   subscriptionStatus?: string;
 }
 
+export interface AnyObject { [key: string]: unknown }
+
+export interface SessionSeriesInput {
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  program?: string;
+  /** Admin only — assign the series to a teacher */
+  teacherId?: number;
+}
+
+export interface LiveSessionInput {
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  program?: string;
+  seriesId?: number;
+  /** Admin only — assign the session to a teacher */
+  teacherId?: number;
+  /** ISO 8601 date-time (stored UTC, displayed in Riyadh time) */
+  startsAt: string;
+  /**
+     * @minimum 5
+     * @maximum 480
+     */
+  durationMinutes?: number;
+  /**
+     * @minimum 1
+     * @maximum 500
+     */
+  capacity?: number;
+  /**
+     * null or 0 = free session
+     * @nullable
+     */
+  priceSar?: number | null;
+  includedInSubscription?: boolean;
+  meetingLink?: string;
+}
+
+export type LiveSessionUpdateStatus = typeof LiveSessionUpdateStatus[keyof typeof LiveSessionUpdateStatus];
+
+
+export const LiveSessionUpdateStatus = {
+  scheduled: 'scheduled',
+  cancelled: 'cancelled',
+  completed: 'completed',
+} as const;
+
+export interface LiveSessionUpdate {
+  /** @minLength 1 */
+  title?: string;
+  description?: string;
+  program?: string;
+  startsAt?: string;
+  /**
+     * @minimum 5
+     * @maximum 480
+     */
+  durationMinutes?: number;
+  /**
+     * @minimum 1
+     * @maximum 500
+     */
+  capacity?: number;
+  /** @nullable */
+  priceSar?: number | null;
+  includedInSubscription?: boolean;
+  meetingLink?: string;
+  status?: LiveSessionUpdateStatus;
+}
+
+export interface LiveSessionView {
+  id: number;
+  /** @nullable */
+  seriesId?: number | null;
+  teacherId?: number;
+  title: string;
+  description?: string;
+  program?: string;
+  startsAt: string;
+  startsAtRiyadh?: string;
+  durationMinutes: number;
+  capacity: number;
+  /** @nullable */
+  priceSar?: number | null;
+  includedInSubscription?: boolean;
+  status: string;
+  bookedCount: number;
+  seatsLeft: number;
+}
+
+/**
+ * Preferred entitlement; server validates and may override
+ */
+export type SessionBookingRequestPaymentMethod = typeof SessionBookingRequestPaymentMethod[keyof typeof SessionBookingRequestPaymentMethod];
+
+
+export const SessionBookingRequestPaymentMethod = {
+  free: 'free',
+  subscription: 'subscription',
+  package: 'package',
+  single: 'single',
+} as const;
+
+export interface SessionBookingRequest {
+  /** The child attending, when a parent books for a child */
+  childId?: number;
+  /** Preferred entitlement; server validates and may override */
+  paymentMethod?: SessionBookingRequestPaymentMethod;
+}
+
+export type SessionAttendanceMarkRecordsItemStatus = typeof SessionAttendanceMarkRecordsItemStatus[keyof typeof SessionAttendanceMarkRecordsItemStatus];
+
+
+export const SessionAttendanceMarkRecordsItemStatus = {
+  present: 'present',
+  absent: 'absent',
+  late: 'late',
+} as const;
+
+export type SessionAttendanceMarkRecordsItem = {
+  bookingId: number;
+  status: SessionAttendanceMarkRecordsItemStatus;
+};
+
+export interface SessionAttendanceMark {
+  /** @minItems 1 */
+  records: SessionAttendanceMarkRecordsItem[];
+}
+
+export type SessionMaterialInputKind = typeof SessionMaterialInputKind[keyof typeof SessionMaterialInputKind];
+
+
+export const SessionMaterialInputKind = {
+  file: 'file',
+  link: 'link',
+  note: 'note',
+} as const;
+
+export interface SessionMaterialInput {
+  kind?: SessionMaterialInputKind;
+  /** @minLength 1 */
+  title: string;
+  url?: string;
+  content?: string;
+}
+
+export interface SessionPackagePurchase {
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  credits: number;
+  name?: string;
+}
+
 export type ListSubjectsParams = {
 band?: Band;
 };
@@ -609,5 +766,16 @@ export type ImportExercisesCsv200 = {
   imported: number;
   skipped: number;
   errors?: string[];
+};
+
+export type ListSessionsParams = {
+teacherId?: number;
+seriesId?: number;
+includePast?: boolean;
+};
+
+export type GetAttendanceHistoryParams = {
+childId?: number;
+userId?: number;
 };
 

@@ -23,7 +23,8 @@ Arabic-first, RTL e-learning platform for Saudi families — children 4–18, Sa
 
 - OpenAPI contract: `lib/api-spec/openapi.yaml` (source of truth for API)
 - DB schema: `lib/db/src/schema/` (one file per domain)
-- API routes: `artifacts/api-server/src/routes/` (auth, children, curriculum, learning, parent, subscription, marketing, admin)
+- API routes: `artifacts/api-server/src/routes/` (auth, children, curriculum, learning, parent, subscription, marketing, admin, sessions)
+- Live sessions platform (Funademy): `routes/sessions.ts` + `lib/sessionNotifications.ts` + `lib/db/src/schema/sessions.ts` — series/sessions CRUD, booking with capacity + waitlist auto-promotion, entitlements (free / subscription / package credits / explicit single purchase), join-link gated to booked users 15 min before start, attendance marking + history, materials for booked users, notification queue with 24h/1h reminder job (5-min interval, deduped per user+session+type)
 - Auth helpers: `artifacts/api-server/src/lib/auth.ts` (HMAC cookie token, scrypt hashing, requireAuth/requireRole)
 - Payments abstraction: `artifacts/api-server/src/lib/payments.ts` (demo provider; swap for Stripe/Moyasar)
 - Frontend: `artifacts/manara/src` — layouts Marketing/App(parent)/Kid/Admin, i18n in `src/lib/i18n.tsx`, band themes as `.theme-<band>` CSS classes

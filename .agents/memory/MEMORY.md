@@ -1,4 +1,5 @@
 - [Schema changes flow](schema-changes-flow.md) — no migration files; drizzle push in dev, Replit Publish diffs schema to prod automatically.
+- [Booking/payment review bar](booking-payment-review-bar.md) — capacity/money endpoints need FOR UPDATE transactions, conditional credit updates, provider-gated charges/refunds with persisted refs.
 - [YE global CSS element selectors leak](ye-global-css-leaks.md) — globals.css `nav{top:0;sticky}` leaks into all pages; reset `top:auto` on any non-header nav (broke admin bottom nav).
 - [YE test DB isolation](ye-tests-isolation.md) — vitest suites must use the fail-closed ye_test DB pattern; validation registration can hijack the .replit Project workflow.
 - [YE payments live/sim switching](ye-payments-live-sim.md) — providers go live purely by secret presence; settlement re-verifies via provider API, never trusts redirects; seats release on failure.

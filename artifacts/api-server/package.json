@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:sessions": "esbuild scripts/sessionsFlowTest.ts --bundle --platform=node --format=cjs --external:@resvg/resvg-js --outfile=dist/sessionsFlowTest.cjs --log-level=warning && NODE_ENV=production node dist/sessionsFlowTest.cjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

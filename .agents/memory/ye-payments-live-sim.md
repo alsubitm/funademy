@@ -15,12 +15,6 @@ Providers auto-switch to live by secret presence: Moyasar when `MOYASAR_SECRET_K
 
 **How to apply:** check `providerLive()` in `src/lib/payments.ts`; never hardcode a test-mode boolean. Webhook expiry uses `SWEEP_SECRET` or `ADMIN_PASSWORD`.
 
-**Webhook field-test findings (Aug 2026):**
-- Prod (funademy.io) serves whatever build was last published — new routes 404 until the user republishes. Always curl the prod route before blaming dashboard config.
-- `TAMARA_API_TOKEN` in secrets is a **production** token (verified: 200 on api.tamara.co, "Merchant not found" on api-sandbox). A sandbox test needs a separate sandbox token + `TAMARA_API_BASE=https://api-sandbox.tamara.co`.
-- `MOYASAR_SECRET_KEY` is absent everywhere → Moyasar is simulated; webhook finalization for a real Moyasar payment can never complete (verify stays pending) until the key is added.
-- Dev DB can lose the `ye` schema (checkpoint/reset) → webhook 500 `ye.ye_payments does not exist`; fix with `npx prisma db push` in artifacts/ye.
-- Signed-webhook smoke test: HMAC-SHA256(secret, rawBody) hex in `x-moyasar-signature` / `tamara-signature`; unsigned→401, signed unknown ref→200 payment_not_found, signed real `initiated` payment with SIM- ref→paid.
 ## Refunds (admin)
 Provider refunds are external financial ops: claim `paid → refunding` atomically (guarded updateMany) BEFORE calling the provider so concurrent requests can't duplicate the refund. Classify failures — definitive pre-execution rejections (4xx, lookup failures) roll back to `paid`; ambiguous outcomes (timeout/5xx/lost response) reconcile by re-reading provider state, and if still unknown stay `refunding` (fail closed, manual reconciliation) — never auto-retry an unknown refund.
 

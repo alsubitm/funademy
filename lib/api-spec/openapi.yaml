@@ -18,6 +18,7 @@ tags:
   - name: marketing
   - name: blog
   - name: admin
+  - name: sessions
 paths:
   /healthz:
     get:
@@ -835,6 +836,328 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WatanStats"
+  /sessions/series:
+    post:
+      operationId: createSessionSeries
+      tags: [sessions]
+      summary: Create a session series (teacher/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionSeriesInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnyObject"
+    get:
+      operationId: listSessionSeries
+      tags: [sessions]
+      summary: List session series
+      responses:
+        "200":
+          description: Series list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnyObject"
+  /sessions:
+    post:
+      operationId: createLiveSession
+      tags: [sessions]
+      summary: Create a scheduled live session (teacher/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveSessionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveSessionView"
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List upcoming scheduled sessions
+      parameters:
+        - name: teacherId
+          in: query
+          schema: { type: integer }
+        - name: seriesId
+          in: query
+          schema: { type: integer }
+        - name: includePast
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveSessionView"
+  /sessions/packages:
+    post:
+      operationId: purchaseSessionPackage
+      tags: [sessions]
+      summary: Purchase a multi-session credit package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionPackagePurchase"
+      responses:
+        "201":
+          description: Package purchased
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnyObject"
+    get:
+      operationId: listMySessionPackages
+      tags: [sessions]
+      summary: List my session packages and remaining credits
+      responses:
+        "200":
+          description: Packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnyObject"
+  /sessions/notifications:
+    get:
+      operationId: listMySessionNotifications
+      tags: [sessions]
+      summary: List my session notifications
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnyObject"
+  /sessions/my/bookings:
+    get:
+      operationId: listMyBookings
+      tags: [sessions]
+      summary: List my session bookings
+      responses:
+        "200":
+          description: Bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnyObject"
+  /sessions/attendance/history:
+    get:
+      operationId: getAttendanceHistory
+      tags: [sessions]
+      summary: Attendance history (self, own child, or admin for anyone)
+      parameters:
+        - name: childId
+          in: query
+          schema: { type: integer }
+        - name: userId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnyObject"
+  /sessions/{id}:
+    get:
+      operationId: getSessionDetail
+      tags: [sessions]
+      summary: Session detail with seat availability
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveSessionView"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+    patch:
+      operationId: updateLiveSession
+      tags: [sessions]
+      summary: Update or cancel a session (owning teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveSessionUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveSessionView"
+  /sessions/{id}/book:
+    post:
+      operationId: bookSession
+      tags: [sessions]
+      summary: Book a seat (waitlisted automatically when full)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionBookingRequest"
+      responses:
+        "201":
+          description: Booked or waitlisted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnyObject"
+        "402":
+          description: Payment required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /sessions/{id}/cancel-booking:
+    post:
+      operationId: cancelSessionBooking
+      tags: [sessions]
+      summary: Cancel my booking (within policy); promotes waitlist
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /sessions/{id}/join:
+    get:
+      operationId: getSessionJoinLink
+      tags: [sessions]
+      summary: Meeting link (booked participants, shortly before start)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Join info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnyObject"
+        "403":
+          description: Not available yet or not booked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /sessions/{id}/attendance:
+    post:
+      operationId: markSessionAttendance
+      tags: [sessions]
+      summary: Mark attendance for participants (owning teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionAttendanceMark"
+      responses:
+        "200":
+          description: Marked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnyObject"
+  /sessions/{id}/participants:
+    get:
+      operationId: listSessionParticipants
+      tags: [sessions]
+      summary: Participants + attendance status (owning teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnyObject"
+  /sessions/{id}/materials:
+    post:
+      operationId: addSessionMaterial
+      tags: [sessions]
+      summary: Attach a material (owning teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionMaterialInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnyObject"
+    get:
+      operationId: listSessionMaterials
+      tags: [sessions]
+      summary: List materials (booked participants and staff)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Materials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnyObject"
 components:
   parameters:
     IdParam:
@@ -1461,3 +1784,112 @@ components:
       properties:
         extendTrialDays: { type: integer }
         subscriptionStatus: { type: string }
+    AnyObject:
+      type: object
+      additionalProperties: true
+    SessionSeriesInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        program: { type: string }
+        teacherId:
+          type: integer
+          description: Admin only — assign the series to a teacher
+    LiveSessionInput:
+      type: object
+      required: [title, startsAt]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        program: { type: string }
+        seriesId: { type: integer }
+        teacherId:
+          type: integer
+          description: Admin only — assign the session to a teacher
+        startsAt:
+          type: string
+          description: ISO 8601 date-time (stored UTC, displayed in Riyadh time)
+        durationMinutes: { type: integer, minimum: 5, maximum: 480 }
+        capacity: { type: integer, minimum: 1, maximum: 500 }
+        priceSar:
+          type: ["number", "null"]
+          description: null or 0 = free session
+        includedInSubscription: { type: boolean }
+        meetingLink: { type: string }
+    LiveSessionUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        program: { type: string }
+        startsAt: { type: string }
+        durationMinutes: { type: integer, minimum: 5, maximum: 480 }
+        capacity: { type: integer, minimum: 1, maximum: 500 }
+        priceSar: { type: ["number", "null"] }
+        includedInSubscription: { type: boolean }
+        meetingLink: { type: string }
+        status:
+          type: string
+          enum: [scheduled, cancelled, completed]
+    LiveSessionView:
+      type: object
+      required: [id, title, startsAt, durationMinutes, capacity, status, bookedCount, seatsLeft]
+      properties:
+        id: { type: integer }
+        seriesId: { type: ["integer", "null"] }
+        teacherId: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        program: { type: string }
+        startsAt: { type: string }
+        startsAtRiyadh: { type: string }
+        durationMinutes: { type: integer }
+        capacity: { type: integer }
+        priceSar: { type: ["number", "null"] }
+        includedInSubscription: { type: boolean }
+        status: { type: string }
+        bookedCount: { type: integer }
+        seatsLeft: { type: integer }
+    SessionBookingRequest:
+      type: object
+      properties:
+        childId:
+          type: integer
+          description: The child attending, when a parent books for a child
+        paymentMethod:
+          type: string
+          enum: [free, subscription, package, single]
+          description: Preferred entitlement; server validates and may override
+    SessionAttendanceMark:
+      type: object
+      required: [records]
+      properties:
+        records:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [bookingId, status]
+            properties:
+              bookingId: { type: integer }
+              status:
+                type: string
+                enum: [present, absent, late]
+    SessionMaterialInput:
+      type: object
+      required: [title]
+      properties:
+        kind:
+          type: string
+          enum: [file, link, note]
+        title: { type: string, minLength: 1 }
+        url: { type: string }
+        content: { type: string }
+    SessionPackagePurchase:
+      type: object
+      required: [credits]
+      properties:
+        credits: { type: integer, minimum: 1, maximum: 100 }
+        name: { type: string }
