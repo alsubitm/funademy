@@ -6,6 +6,7 @@ import { MakeupButton } from './MakeupButton';
 import { effectiveMonthlySar, subscriptionState } from '@/lib/billing';
 import { RenewButton } from '@/components/portal/RenewButton';
 import { portalSessions, joinUrlFor } from '@/lib/portal-sessions';
+import { formatRiyadh } from '@/lib/appointments';
 import { moyasarLive, tamaraLive } from '@/lib/payments';
 
 type Lang = 'ar' | 'en';
@@ -95,6 +96,17 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
     .map((m) => ({ ...m.makeupSession!, isMakeup: true }));
   const allUpcoming = [...upcoming.map((s) => ({ ...s, isMakeup: false })), ...makeupUpcoming]
     .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Family appointments (trial classes & consultations) are matched by the
+  // account phone number — they may predate the family account itself.
+  const family = await prisma.family.findUnique({ where: { id: familyId } });
+  const appointments = family
+    ? await prisma.appointment.findMany({
+        where: { phone: family.phone, status: 'scheduled', startsAt: { gte: now } },
+        orderBy: { startsAt: 'asc' },
+        take: 6,
+      })
+    : [];
   const skillLabel: Record<string, string> = { mastered: d.mastered, in_progress: d.inProgress, locked: d.locked };
 
   return (
@@ -144,6 +156,29 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
           ))
         )}
       </div>
+
+      {/* appointments (trial / consultation meetings) */}
+      {appointments.length > 0 && (
+        <div className="ptl-card">
+          <h3><span className="ico">🗓️</span>{d.appointments}</h3>
+          {appointments.map((a) => (
+            <div key={a.id} className="ptl-enr">
+              <div className="info">
+                <div className="nm">
+                  {a.kind === 'trial' ? d.apptTrial : d.apptConsult}
+                  {a.childFirstName ? ` — ${a.childFirstName}` : ''}
+                </div>
+                <div className="mt">{formatRiyadh(a.startsAt, lang)}</div>
+              </div>
+              {a.meetUrl && (
+                <a className="btn b" style={{ padding: '8px 18px', fontSize: 13 }} href={a.meetUrl} target="_blank" rel="noopener noreferrer">
+                  {d.apptJoin}
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* upcoming sessions */}
       <div className="ptl-card">

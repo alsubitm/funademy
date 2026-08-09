@@ -493,3 +493,44 @@ model ClickEvent {
   @@map("ye_click_events")
   @@schema("ye")
 }
+
+enum AppointmentKind {
+  trial
+  consult
+
+  @@schema("ye")
+}
+
+enum AppointmentStatus {
+  scheduled
+  cancelled
+
+  @@schema("ye")
+}
+
+model Appointment {
+  id              Int               @id @default(autoincrement())
+  kind            AppointmentKind
+  parentName      String
+  phone           String
+  email           String?
+  childFirstName  String?
+  programId       Int?
+  bookingId       Int?
+  startsAt        DateTime
+  durationMin     Int               @default(30)
+  meetUrl         String?
+  calendarEventId String?
+  notes           String?
+  // Atomic claim for consultation slots: ISO start time for scheduled
+  // consults, null for trials/cancelled — unique so two requests can never
+  // book the same consultation window.
+  consultKey      String?           @unique
+  status          AppointmentStatus @default(scheduled)
+  createdAt       DateTime          @default(now())
+
+  @@index([phone])
+  @@index([startsAt])
+  @@map("ye_appointments")
+  @@schema("ye")
+}

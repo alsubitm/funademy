@@ -50,7 +50,14 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   const [phone, setPhone] = useState('');
   const [childFirstName, setChildFirstName] = useState('');
   const [childBirthYear, setChildBirthYear] = useState('');
+  const [email, setEmail] = useState('');
   const neighborhood = 'riyadh';
+  const [appointment, setAppointment] = useState<{
+    startsAt: string;
+    meetUrl: string | null;
+    whenAr: string;
+    whenEn: string;
+  } | null>(null);
   
   const [error, setError] = useState('');
 
@@ -110,10 +117,13 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
             childFirstName,
             childBirthYear: Number(childBirthYear),
             neighborhood,
+            email: email.trim() || undefined,
           }),
         });
 
         if (res.status === 201) {
+          const data = await res.json().catch(() => null);
+          setAppointment(data?.appointment ?? null);
           setStep(4);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (res.status === 409 || res.status === 404) {
@@ -130,7 +140,11 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   };
 
   const confirmWaLink = () => {
-    const msg = `${d.confirmMsg} (${childFirstName}) - ${selectedProgram?.nameAr || selectedProgram?.nameEn}`;
+    let msg = `${d.confirmMsg} (${childFirstName}) - ${selectedProgram?.nameAr || selectedProgram?.nameEn}`;
+    if (appointment) {
+      msg += `\n${d.apptWhen}: ${lang === 'ar' ? appointment.whenAr : appointment.whenEn}`;
+      if (appointment.meetUrl) msg += `\n${d.apptJoin}: ${appointment.meetUrl}`;
+    }
     return waLink(msg);
   };
 
@@ -145,6 +159,24 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
           <div className="icon">🎉</div>
           <h3>{d.successTitle}</h3>
           <p>{d.successDesc}</p>
+          {appointment ? (
+            <div className="appt-box" style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
+              <p style={{ margin: '4px 0' }}>
+                🗓️ <b>{d.apptWhen}:</b> {lang === 'ar' ? appointment.whenAr : appointment.whenEn}
+              </p>
+              {appointment.meetUrl && (
+                <p style={{ margin: '4px 0' }}>
+                  🎥 <b>{d.apptJoin}:</b>{' '}
+                  <a href={appointment.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr">
+                    {appointment.meetUrl}
+                  </a>
+                </p>
+              )}
+              {email.trim() && <p style={{ margin: '4px 0' }}>{d.apptEmailSent}</p>}
+            </div>
+          ) : (
+            <p>{d.apptPending}</p>
+          )}
           <a href={confirmWaLink()} target="_blank" rel="noopener noreferrer" className="btn wa">
             {d.successWaBtn}
           </a>
@@ -277,6 +309,10 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
                 <option value="">--</option>
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
+            </div>
+            <div className="f-group">
+              <label>{d.email}</label>
+              <input type="email" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isPending} />
             </div>
           </div>
         )}

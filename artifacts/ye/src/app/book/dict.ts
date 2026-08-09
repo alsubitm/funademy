@@ -31,7 +31,12 @@ export const bookDict = {
     waitlistMsg: 'مرحباً، أود الانضمام لقائمة الانتظار لبرنامج',
     confirmMsg: 'مرحباً! أود تأكيد حجز الحصة التجريبية لطفلي',
     ageRange: 'للعمر',
-    years: 'سنوات'
+    years: 'سنوات',
+    email: 'البريد الإلكتروني (اختياري — لإرسال دعوة التقويم)',
+    apptWhen: 'موعد حصتك التجريبية',
+    apptJoin: 'رابط الدخول للحصة (Google Meet)',
+    apptEmailSent: 'أرسلنا دعوة التقويم إلى بريدك الإلكتروني 📩',
+    apptPending: 'سنرسل لك موعد الحصة ورابط الدخول عبر الواتساب قريباً.'
   },
   en: {
     title: 'Book a Free Trial',
@@ -65,6 +70,11 @@ export const bookDict = {
     waitlistMsg: 'Hello, I would like to join the waitlist for',
     confirmMsg: 'Hello! I would like to confirm the trial class booking for my child',
     ageRange: 'Ages',
-    years: 'years'
+    years: 'years',
+    email: 'Email (optional — for the calendar invite)',
+    apptWhen: 'Your trial class time',
+    apptJoin: 'Class join link (Google Meet)',
+    apptEmailSent: 'A calendar invitation was emailed to you 📩',
+    apptPending: 'We will send you the class time and join link on WhatsApp shortly.'
   }
 };

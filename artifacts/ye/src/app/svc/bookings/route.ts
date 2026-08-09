@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { createMeetEvent, addAttendeeToEvent } from '@/lib/google-calendar';
+import { allowRate, clientIp } from '@/lib/rate-limit';
+import { nextOccurrence, formatRiyadh } from '@/lib/appointments';
+import { CATALOG } from '@/lib/catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +23,14 @@ export async function POST(req: NextRequest) {
   const childFirstName = String(b.childFirstName ?? '').trim();
   const childBirthYear = Number(b.childBirthYear);
   const neighborhood = String(b.neighborhood ?? '').trim();
+  const email = String(b.email ?? '').trim() || null;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: 'validation' }, { status: 400 });
+  }
+  // Throttle: each accepted booking may create a real Google Calendar event.
+  if (!allowRate(`book:ip:${clientIp(req)}`, 5, 10 * 60_000)) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  }
 
   const currentYear = new Date().getFullYear();
   if (
@@ -51,5 +63,65 @@ export async function POST(req: NextRequest) {
 
   if (outcome === 'slot_not_found') return NextResponse.json({ error: 'slot_not_found' }, { status: 404 });
   if (outcome === 'slot_full') return NextResponse.json({ error: 'slot_full' }, { status: 409 });
-  return NextResponse.json({ id: outcome.id }, { status: 201 });
+
+  // Auto-schedule the trial meeting: next occurrence of the slot's weekday/
+  // time, with an auto-created Google Meet link. Calendar failure must not
+  // undo the booking — the family is contacted manually in that case.
+  let appointment: { startsAt: string; meetUrl: string | null; whenAr: string; whenEn: string } | null = null;
+  try {
+    const slot = await prisma.scheduleSlot.findUnique({ where: { id: slotId }, include: { program: true } });
+    if (slot) {
+      const startsAt = nextOccurrence(slot.weekday, slot.time);
+      const durationMin = CATALOG[slot.program.slug]?.lessonMin ?? 45;
+
+      // One class occurrence = one meeting: reuse the event already created
+      // for another trial booking into the same program/time, adding this
+      // guest to it instead of creating a parallel meeting.
+      const existing = await prisma.appointment.findFirst({
+        where: { kind: 'trial', programId, startsAt, status: 'scheduled', calendarEventId: { not: null } },
+      });
+      let meet: { eventId: string; meetUrl: string | null };
+      if (existing?.calendarEventId) {
+        meet = { eventId: existing.calendarEventId, meetUrl: existing.meetUrl };
+        if (email) {
+          await addAttendeeToEvent(existing.calendarEventId, email).catch((e) =>
+            console.error('[bookings] add attendee failed:', e),
+          );
+        }
+      } else {
+        meet = await createMeetEvent({
+          summary: `حصة تجريبية FunAdemy — ${slot.program.nameAr}`,
+          description: `حصة تجريبية عبر موقع FunAdemy\nالبرنامج: ${slot.program.nameAr} / ${slot.program.nameEn}`,
+          startsAt,
+          durationMin,
+          attendeeEmail: email,
+        });
+      }
+      const appt = await prisma.appointment.create({
+        data: {
+          kind: 'trial',
+          parentName,
+          phone,
+          email,
+          childFirstName,
+          programId,
+          bookingId: outcome.id,
+          startsAt,
+          durationMin,
+          meetUrl: meet.meetUrl,
+          calendarEventId: meet.eventId,
+        },
+      });
+      appointment = {
+        startsAt: appt.startsAt.toISOString(),
+        meetUrl: appt.meetUrl,
+        whenAr: formatRiyadh(appt.startsAt, 'ar'),
+        whenEn: formatRiyadh(appt.startsAt, 'en'),
+      };
+    }
+  } catch (e) {
+    console.error('[bookings] trial appointment scheduling failed:', e);
+  }
+
+  return NextResponse.json({ id: outcome.id, appointment }, { status: 201 });
 }
