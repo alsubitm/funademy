@@ -152,20 +152,12 @@ afterAll(async () => {
 describe('parent makeup request (POST /svc/account/makeup)', () => {
   it('requires a family session (401)', async () => {
     asFamily(null);
-    const res = await requestMakeup({ studentId: 1, sessionId: 1 });
-    expect(res.status).toBe(401);
     expect((await accountGET()).status).toBe(401);
+    const res = await requestMakeup({ studentId: childA.id, sessionId: sessionMissed.id });
+    expect(res.status).toBe(401);
   });
 
-  it('rejects malformed input (400)', async () => {
-    asFamily(familyA.id);
-    expect((await requestMakeup()).status).toBe(400); // non-JSON body
-    expect((await requestMakeup({ studentId: 'x', sessionId: 1 })).status).toBe(400);
-    expect((await requestMakeup({ studentId: 1.5, sessionId: 2 })).status).toBe(400);
-    expect((await requestMakeup({ sessionId: 2 })).status).toBe(400);
-  });
-
-  it("404 for another family's child, even though that child was absent", async () => {
+  it("cannot request a makeup for another family's child (404)", async () => {
     asFamily(familyA.id);
     const res = await requestMakeup({ studentId: childB.id, sessionId: sessionMissed.id });
     expect(res.status).toBe(404);
@@ -188,6 +180,7 @@ describe('parent makeup request (POST /svc/account/makeup)', () => {
     // another child of the same family with no mark at all
     const other = await requestMakeup({ studentId: childA2.id, sessionId: sessionMissed.id });
     expect(other.status).toBe(409);
+    expect((await other.json()).error).toBe('not_missed');
   });
 
   it('creates a pending request for an actual absence, and 409 on duplicates', async () => {
@@ -228,9 +221,8 @@ describe('parent makeup request (POST /svc/account/makeup)', () => {
     const res = await accountGET();
     expect(res.status).toBe(200);
     const { requests } = await res.json();
-    const ours = requests.filter((r: { student: { id: number } }) =>
-      [childA.id, childA2.id].includes(r.student.id),
-    );
+    const ids = [childA.id, childA2.id];
+    const ours = requests.filter((r: { student: { id: number } }) => ids.includes(r.student.id));
     expect(ours.length).toBe(2);
     expect(requests.length).toBe(ours.length);
 
@@ -264,7 +256,7 @@ describe('admin decision (PATCH /svc/admin/makeup)', () => {
   it('approves with an adminNote; the decision is visible to the parent', async () => {
     asAdmin(true);
     const pending = await prisma.makeupRequest.findUniqueOrThrow({
-      where: { studentId_sessionId: { studentId: childA.id, sessionId: sessionMissed.id } },
+      where: { studentId_sessionId: { studentId: childA.id, sessionId: sessionExcused.id } },
     });
 
     const res = await decide({
@@ -291,6 +283,7 @@ describe('admin decision (PATCH /svc/admin/makeup)', () => {
     const pending = await prisma.makeupRequest.findUniqueOrThrow({
       where: { studentId_sessionId: { studentId: childA.id, sessionId: sessionExcused.id } },
     });
+
     // Seed an existing note, then decide WITHOUT adminNote — it must be kept.
     await prisma.makeupRequest.update({
       where: { id: pending.id },

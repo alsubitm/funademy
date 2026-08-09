@@ -34,7 +34,13 @@ export async function GET() {
 }
 
 /**
- * POST { id } — refund a paid payment.
+ * POST { id, cancelEnrollment? } — refund a paid payment.
+ *
+ * When `cancelEnrollment` is true (admin chose «استرجاع مع إلغاء التسجيل»),
+ * after the provider refund succeeds we also — atomically with the
+ * refunding → refunded flip — cancel the enrollments linked to the payment,
+ * return their seats, and shrink paidThrough (null for a first enrollment
+ * payment, back to the period start for a renewal).
  *
  * CONCURRENCY SAFETY
  * ------------------
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest) {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  let body: { id?: unknown };
+  let body: { id?: unknown; cancelEnrollment?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -60,8 +66,9 @@ export async function POST(req: NextRequest) {
   }
   const id = Number(body.id);
   if (!Number.isInteger(id)) return NextResponse.json({ error: 'validation' }, { status: 400 });
+  const cancelEnrollment = body.cancelEnrollment === true;
 
-  const payment = await prisma.payment.findUnique({ where: { id } });
+  const payment = await prisma.payment.findUnique({ where: { id }, include: { items: true } });
   if (!payment) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   if (payment.status === 'refunded') return NextResponse.json({ ok: true, status: 'refunded' });
   if (payment.status !== 'paid') {
@@ -114,6 +121,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 502 });
   }
 
-  await prisma.payment.updateMany({ where: { id, status: 'refunding' }, data: { status: 'refunded' } });
-  return NextResponse.json({ ok: true, status: 'refunded' });
+  // Flip refunding → refunded and, if requested, cancel the linked
+  // enrollments in the SAME transaction so exactly one request applies the
+  // enrollment side-effects.
+  let cancelledEnrollments = 0;
+  await prisma.$transaction(async (tx) => {
+    const flipped = await tx.payment.updateMany({
+      where: { id, status: 'refunding' },
+      data: { status: 'refunded' },
+    });
+    if (flipped.count === 0 || !cancelEnrollment) return;
+
+    for (const item of payment.items) {
+      if (item.enrollmentId == null) continue;
+      const enr = await tx.enrollment.findUnique({ where: { id: item.enrollmentId } });
+      if (!enr || enr.status === 'cancelled') continue;
+
+      const wasHoldingSeat = enr.status === 'active' || enr.status === 'pending' || enr.status === 'paused';
+      // Shrink paidThrough: a first-enrollment refund voids coverage entirely;
+      // a renewal refund rolls coverage back to the start of the refunded period.
+      const newPaidThrough = payment.kind === 'renewal' ? item.periodStart : null;
+      await tx.enrollment.update({
+        where: { id: enr.id },
+        data: { status: 'cancelled', paidThrough: newPaidThrough },
+      });
+      if (wasHoldingSeat) {
+        await tx.courseRun.update({
+          where: { id: enr.courseRunId },
+          data: { seatsLeft: { increment: 1 } },
+        });
+      }
+      cancelledEnrollments++;
+    }
+  });
+  return NextResponse.json({ ok: true, status: 'refunded', cancelledEnrollments });
 }

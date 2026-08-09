@@ -787,6 +787,122 @@ describe('admin refund', () => {
     expect(await rc.text()).toContain('تم استرجاع مبلغ هذه الدفعة');
   });
 
+  it('refund with cancelEnrollment cancels the enrollment, frees the seat, and voids paidThrough', async () => {
+    asAdmin(true);
+    const run = await prisma.courseRun.create({
+      data: {
+        programId: (await prisma.courseRun.findUniqueOrThrow({ where: { id: runId } })).programId,
+        startDate: new Date(), endDate: addOneMonth(new Date()), weekday: 0, time: '17:00',
+        format: 'in_person', capacity: 5, seatsLeft: 4, monthlyPriceSar: BASE_SAR,
+      },
+    });
+    const now = new Date();
+    const enr = await prisma.enrollment.create({
+      data: { studentId: studentA1.id, courseRunId: run.id, status: 'active', startedAt: now, paidThrough: addOneMonth(now), monthlyPriceSar: BASE_SAR },
+    });
+    const payment = await prisma.payment.create({
+      data: {
+        familyId: familyA.id, kind: 'enrollment', provider: 'moyasar_mada',
+        reference: `SIM-${RUN}-cancel`, status: 'paid',
+        subtotalSar: BASE_SAR, totalSar: BASE_SAR, simulated: true,
+        items: { create: [{ enrollmentId: enr.id, studentName: 'سعد', programAr: 'p', programEn: 'p', periodStart: now, periodEnd: addOneMonth(now), baseSar: BASE_SAR, discountPct: 0, totalSar: BASE_SAR }] },
+      },
+    });
+
+    const res = await refundReq({ id: payment.id, cancelEnrollment: true });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.status).toBe('refunded');
+    expect(json.cancelledEnrollments).toBe(1);
+
+    const after = await prisma.enrollment.findUnique({ where: { id: enr.id } });
+    expect(after?.status).toBe('cancelled');
+    expect(after?.paidThrough).toBeNull();
+    const runAfter = await prisma.courseRun.findUnique({ where: { id: run.id } });
+    expect(runAfter?.seatsLeft).toBe(5); // seat returned
+
+    // Idempotent: a second refund request does not double-release the seat.
+    expect((await refundReq({ id: payment.id, cancelEnrollment: true })).status).toBe(200);
+    expect((await prisma.courseRun.findUnique({ where: { id: run.id } }))?.seatsLeft).toBe(5);
+
+    await prisma.payment.delete({ where: { id: payment.id } });
+    await prisma.enrollment.delete({ where: { id: enr.id } });
+    await prisma.courseRun.delete({ where: { id: run.id } });
+  });
+
+  it('renewal refund with cancelEnrollment shrinks paidThrough back to the refunded period start', async () => {
+    asAdmin(true);
+    const run = await prisma.courseRun.create({
+      data: {
+        programId: (await prisma.courseRun.findUniqueOrThrow({ where: { id: runId } })).programId,
+        startDate: new Date(), endDate: addOneMonth(new Date()), weekday: 0, time: '17:00',
+        format: 'in_person', capacity: 5, seatsLeft: 4, monthlyPriceSar: BASE_SAR,
+      },
+    });
+    const periodStart = new Date();
+    const periodEnd = addOneMonth(periodStart);
+    const enr = await prisma.enrollment.create({
+      data: { studentId: studentA2.id, courseRunId: run.id, status: 'active', startedAt: periodStart, paidThrough: periodEnd, monthlyPriceSar: BASE_SAR },
+    });
+    const payment = await prisma.payment.create({
+      data: {
+        familyId: familyA.id, kind: 'renewal', provider: 'moyasar_mada',
+        reference: `SIM-${RUN}-cancel-renewal`, status: 'paid',
+        subtotalSar: BASE_SAR, totalSar: BASE_SAR, simulated: true,
+        items: { create: [{ enrollmentId: enr.id, studentName: 'لمى', programAr: 'p', programEn: 'p', periodStart, periodEnd, baseSar: BASE_SAR, discountPct: 0, totalSar: BASE_SAR }] },
+      },
+    });
+
+    const res = await refundReq({ id: payment.id, cancelEnrollment: true });
+    expect(res.status).toBe(200);
+
+    const after = await prisma.enrollment.findUnique({ where: { id: enr.id } });
+    expect(after?.status).toBe('cancelled');
+    expect(after?.paidThrough?.getTime()).toBe(periodStart.getTime());
+    expect((await prisma.courseRun.findUnique({ where: { id: run.id } }))?.seatsLeft).toBe(5);
+
+    await prisma.payment.delete({ where: { id: payment.id } });
+    await prisma.enrollment.delete({ where: { id: enr.id } });
+    await prisma.courseRun.delete({ where: { id: run.id } });
+  });
+
+  it('refund WITHOUT cancelEnrollment leaves the enrollment untouched', async () => {
+    asAdmin(true);
+    const run = await prisma.courseRun.create({
+      data: {
+        programId: (await prisma.courseRun.findUniqueOrThrow({ where: { id: runId } })).programId,
+        startDate: new Date(), endDate: addOneMonth(new Date()), weekday: 0, time: '17:00',
+        format: 'in_person', capacity: 5, seatsLeft: 4, monthlyPriceSar: BASE_SAR,
+      },
+    });
+    const now = new Date();
+    const paidThrough = addOneMonth(now);
+    const enr = await prisma.enrollment.create({
+      data: { studentId: studentB1.id, courseRunId: run.id, status: 'active', startedAt: now, paidThrough, monthlyPriceSar: BASE_SAR },
+    });
+    const payment = await prisma.payment.create({
+      data: {
+        familyId: familyB.id, kind: 'enrollment', provider: 'moyasar_mada',
+        reference: `SIM-${RUN}-keep`, status: 'paid',
+        subtotalSar: BASE_SAR, totalSar: BASE_SAR, simulated: true,
+        items: { create: [{ enrollmentId: enr.id, studentName: 'نوف', programAr: 'p', programEn: 'p', periodStart: now, periodEnd: paidThrough, baseSar: BASE_SAR, discountPct: 0, totalSar: BASE_SAR }] },
+      },
+    });
+
+    const res = await refundReq({ id: payment.id });
+    expect(res.status).toBe(200);
+    expect((await res.json()).cancelledEnrollments).toBe(0);
+
+    const after = await prisma.enrollment.findUnique({ where: { id: enr.id } });
+    expect(after?.status).toBe('active');
+    expect(after?.paidThrough?.getTime()).toBe(paidThrough.getTime());
+    expect((await prisma.courseRun.findUnique({ where: { id: run.id } }))?.seatsLeft).toBe(4);
+
+    await prisma.payment.delete({ where: { id: payment.id } });
+    await prisma.enrollment.delete({ where: { id: enr.id } });
+    await prisma.courseRun.delete({ where: { id: run.id } });
+  });
+
   it('concurrent refunds of one payment hit the provider exactly once', async () => {
     asAdmin(true);
     const payment = await prisma.payment.create({

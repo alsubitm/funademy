@@ -52,13 +52,13 @@ export function PaymentsTab() {
   }, []);
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
-  const refund = async (id: number) => {
+  const refund = async (id: number, cancelEnrollment: boolean) => {
     setBusyId(id);
     try {
       const res = await fetch('/svc/admin/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, cancelEnrollment }),
       });
       if (res.ok) {
         setConfirmId(null);
@@ -124,14 +124,22 @@ export function PaymentsTab() {
               {p.status === 'paid' && (
                 <div className="pt-2 border-t border-[#DFE5F2]">
                   {confirmId === p.id ? (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm text-[#B3261E] font-bold">استرجاع {p.totalSar} ريال لولي الأمر؟ لا يمكن التراجع.</span>
+                    <div className="space-y-2">
+                      <span className="block text-sm text-[#B3261E] font-bold">استرجاع {p.totalSar} ريال لولي الأمر؟ لا يمكن التراجع.</span>
+                      <div className="flex items-center gap-2 flex-wrap">
                       <button
                         disabled={busyId === p.id}
-                        onClick={() => refund(p.id)}
+                        onClick={() => refund(p.id, false)}
                         className="bg-[#B3261E] text-white px-5 py-2.5 rounded-xl font-display font-bold text-sm disabled:opacity-70"
                       >
-                        {busyId === p.id ? 'جارٍ الاسترجاع…' : 'تأكيد الاسترجاع'}
+                        {busyId === p.id ? 'جارٍ الاسترجاع…' : 'استرجاع فقط'}
+                      </button>
+                      <button
+                        disabled={busyId === p.id}
+                        onClick={() => refund(p.id, true)}
+                        className="bg-white text-[#B3261E] border-2 border-[#B3261E] px-5 py-2.5 rounded-xl font-display font-bold text-sm disabled:opacity-70"
+                      >
+                        استرجاع وإلغاء التسجيل وتحرير المقعد
                       </button>
                       <button
                         disabled={busyId === p.id}
@@ -140,6 +148,7 @@ export function PaymentsTab() {
                       >
                         إلغاء
                       </button>
+                      </div>
                     </div>
                   ) : (
                     <button
