@@ -38,7 +38,10 @@ export type ConsultSlot = { startsAt: string }; // ISO UTC
 
 /** All open consultation slots for the next two weeks, minus booked ones. */
 export async function consultAvailability(now = new Date()): Promise<ConsultSlot[]> {
-  const horizon = new Date(now.getTime() + CONSULT_DAYS_AHEAD * 24 * 60 * 60 * 1000);
+  // Slots are generated for day offsets 0..CONSULT_DAYS_AHEAD, so the last
+  // day's evening slots can start after now+14d. Fetch booked appointments a
+  // day beyond that, or a booked horizon-edge slot would still be offered.
+  const horizon = new Date(now.getTime() + (CONSULT_DAYS_AHEAD + 1) * 24 * 60 * 60 * 1000);
   const booked = await prisma.appointment.findMany({
     where: { kind: 'consult', status: 'scheduled', startsAt: { gte: now, lte: horizon } },
     select: { startsAt: true },
