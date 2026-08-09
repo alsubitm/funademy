@@ -19,6 +19,11 @@ function fmtDate(lang: Lang, d: Date): string {
   const s = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   return lang === 'ar' ? arabicDigits(s) : s;
 }
+
+/** Calendar day (YYYY-MM-DD) in Riyadh time, for today/tomorrow labels. */
+function riyadhDay(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
 const fmt = (lang: Lang, v: number | string) => (lang === 'ar' ? arabicDigits(v) : String(v));
 
 export async function PortalView({ lang, familyId, selectedChild, payNotice }: { lang: Lang; familyId: number; selectedChild?: number; payNotice?: 'paid' | 'pending' | 'fail' }) {
@@ -97,6 +102,19 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
   const allUpcoming = [...upcoming.map((s) => ({ ...s, isMakeup: false })), ...makeupUpcoming]
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
+  // Nearest upcoming session (regular or approved makeup) for the hero card.
+  const next = allUpcoming[0];
+  const nextJoinUrl = next ? joinUrlFor(next) : null;
+  const todayRiyadh = riyadhDay(now);
+  const nextIsToday = next ? riyadhDay(next.date) === todayRiyadh : false;
+  const nextWhen = next
+    ? nextIsToday
+      ? d.nextToday
+      : riyadhDay(next.date) === riyadhDay(new Date(now.getTime() + 86400000))
+        ? d.nextTomorrow
+        : fmtDate(lang, next.date)
+    : '';
+
   // Family appointments (trial classes & consultations) are matched by the
   // account phone number — they may predate the family account itself.
   const family = await prisma.family.findUnique({ where: { id: familyId } });
@@ -122,6 +140,43 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
             {s.firstName}
           </Link>
         ))}
+      </div>
+
+      {/* next session hero */}
+      <div className="ptl-card ptl-next">
+        <div className="hd">
+          <span className="ico" aria-hidden>{next ? '🎥' : '📅'}</span>
+          <span className="ttl">{d.nextTitle}</span>
+          {next && <span className={`ptl-next-when ${nextIsToday ? 'today' : ''}`}>{nextWhen}</span>}
+          {allUpcoming.length > 1 && <a className="all" href="#upcoming">{d.nextAll} ({fmt(lang, allUpcoming.length)})</a>}
+        </div>
+        {next ? (
+          <div className="bd">
+            <div className="info">
+              <div className="nm">
+                {progName(next.courseRun.program)}
+                {next.isMakeup && <span className="ptl-mk approved" style={{ marginInlineStart: 8 }}>🔁 {d.mkTag}</span>}
+              </div>
+              <div className="mt">
+                {child.firstName} · {weekdays[next.courseRun.weekday]} {fmt(lang, next.courseRun.time)} · {fmtDate(lang, next.date)}
+                {' · '}
+                {next.courseRun.format === 'online' ? `💻 ${d.online}` : `📍 ${next.courseRun.location ?? d.inPerson}`}
+              </div>
+            </div>
+            {nextJoinUrl && (
+              <a className="ptl-live lg" href={nextJoinUrl} target="_blank" rel="noopener noreferrer">
+                🎥 {d.joinLive}
+              </a>
+            )}
+          </div>
+        ) : (
+          <p className="ptl-next-empty">
+            {d.nextNone}
+            {enrollments.length === 0 && (
+              <Link className="btn y" style={{ padding: '8px 20px', fontSize: 13 }} href={`${base}/enroll`}>{d.goEnroll}</Link>
+            )}
+          </p>
+        )}
       </div>
 
       {/* enrollments */}
@@ -181,7 +236,7 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
       )}
 
       {/* upcoming sessions */}
-      <div className="ptl-card">
+      <div className="ptl-card" id="upcoming">
         <h3><span className="ico">📅</span>{d.upcoming}</h3>
         {allUpcoming.length === 0 ? (
           <div className="ptl-empty">{d.noUpcoming}</div>

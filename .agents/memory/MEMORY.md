@@ -1,3 +1,4 @@
+- [Single-site consolidation](site-consolidation.md) — all dev in artifacts/ye ONLY; manara+api-server are reference until learning/blog ports land, then delete; watanona+design tools already gone.
 - [Schema changes flow](schema-changes-flow.md) — no migration files; drizzle push in dev, Replit Publish diffs schema to prod automatically.
 - [Booking/payment review bar](booking-payment-review-bar.md) — capacity/money endpoints need FOR UPDATE transactions, conditional credit updates, provider-gated charges/refunds with persisted refs.
 - [YE global CSS element selectors leak](ye-global-css-leaks.md) — globals.css `nav{top:0;sticky}` leaks into all pages; reset `top:auto` on any non-header nav (broke admin bottom nav).

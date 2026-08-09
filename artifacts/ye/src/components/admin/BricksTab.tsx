@@ -2,6 +2,140 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+type CampaignStats = {
+  total: number;
+  goal: number;
+  remaining: number;
+  progressPercent: number;
+  today: number;
+  yesterday: number;
+  growthPercent: number | null;
+  daysRemaining: number;
+  nationalDay: string;
+  daily: { date: string; count: number }[];
+};
+
+const dayFmt = new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'short' });
+const formatDay = (iso: string) => dayFmt.format(new Date(`${iso}T12:00:00+03:00`));
+
+/** Campaign tracking dashboard (ported from the legacy standalone campaign site's /track page). */
+function CampaignTracking() {
+  const [stats, setStats] = useState<CampaignStats | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch('/svc/admin/campaign-stats');
+        if (res.status === 401) { window.location.reload(); return; }
+        if (!res.ok) throw new Error(String(res.status));
+        const data = await res.json();
+        if (alive) { setStats(data); setFailed(false); }
+      } catch {
+        if (alive) setFailed(true);
+      }
+    };
+    load();
+    const t = setInterval(load, 30000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+
+  if (failed && !stats) {
+    return (
+      <div className="bg-[#FFF5F5] border border-[#FFE4E6] p-5 rounded-2xl text-sm font-bold text-[#e11d48]">
+        تعذّر تحميل إحصاءات الحملة — حاول تحديث الصفحة.
+      </div>
+    );
+  }
+  if (!stats) {
+    return (
+      <div className="bg-white p-8 rounded-[24px] border border-[#DFE5F2] text-center text-[#5F6B92] font-mono font-bold text-sm">
+        LOADING CAMPAIGN STATS...
+      </div>
+    );
+  }
+
+  const maxDaily = Math.max(...stats.daily.map((d) => d.count), 1);
+
+  return (
+    <div className="bg-white p-6 sm:p-8 rounded-[24px] shadow-[0_8px_30px_rgba(7,17,42,0.04)] border border-[#DFE5F2]">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+        <h2 className="text-2xl font-display font-bold text-[#101A38]">لوحة تتبّع الحملة</h2>
+        <span className="text-xs text-[#5F6B92] font-bold">تُحدَّث تلقائياً كل 30 ثانية · بتوقيت الرياض</span>
+      </div>
+      <p className="text-sm text-[#5F6B92] font-medium mb-6">نمو حملة «أطفالنا يبنون وطننا» قبل اليوم الوطني</p>
+
+      {/* goal progress */}
+      <div className="mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-sm font-bold">
+          <span className="text-[#101A38]">هدف الحملة: {stats.goal.toLocaleString('en-US')} مكعب</span>
+          <span className="text-[#1C54CB]">اكتمل {stats.progressPercent}٪</span>
+        </div>
+        <div className="h-3 w-full overflow-hidden rounded-full bg-[#EEF2FB]">
+          <div
+            className="h-full rounded-full bg-gradient-to-l from-[#1C54CB] to-[#22DAFF] transition-all duration-700"
+            style={{ width: `${Math.min(100, stats.progressPercent)}%` }}
+          />
+        </div>
+        <div className="mt-2 text-xs text-[#5F6B92] font-bold">
+          {stats.remaining > 0
+            ? `متبقٍّ ${stats.remaining.toLocaleString('en-US')} مكعب لتحقيق الهدف`
+            : 'تحقّق الهدف — مبروك! 🎉'}
+        </div>
+      </div>
+
+      {/* stat tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="p-4 rounded-2xl border border-[#DFE5F2]">
+          <div className="text-xs font-bold text-[#5F6B92] mb-1 font-mono tracking-widest uppercase">الإجمالي</div>
+          <div className="text-3xl font-display font-bold text-[#1C54CB]">{stats.total.toLocaleString('en-US')}</div>
+        </div>
+        <div className="p-4 rounded-2xl border border-[#DFE5F2]">
+          <div className="text-xs font-bold text-[#5F6B92] mb-1 font-mono tracking-widest uppercase">مكعبات اليوم</div>
+          <div className="text-3xl font-display font-bold text-[#101A38]">{stats.today.toLocaleString('en-US')}</div>
+          <div className="text-[11px] text-[#5F6B92] font-bold mt-1">أمس: {stats.yesterday.toLocaleString('en-US')}</div>
+        </div>
+        <div className="p-4 rounded-2xl border border-[#DFE5F2]">
+          <div className="text-xs font-bold text-[#5F6B92] mb-1 font-mono tracking-widest uppercase">النمو اليومي</div>
+          <div className={`text-3xl font-display font-bold ${stats.growthPercent === null ? 'text-[#5F6B92]' : stats.growthPercent >= 0 ? 'text-[#1C54CB]' : 'text-[#e11d48]'}`}>
+            {stats.growthPercent === null ? '—' : `${stats.growthPercent > 0 ? '+' : ''}${stats.growthPercent}٪`}
+          </div>
+          <div className="text-[11px] text-[#5F6B92] font-bold mt-1">مقارنة بالأمس</div>
+        </div>
+        <div className="p-4 rounded-2xl border border-[#DFE5F2]">
+          <div className="text-xs font-bold text-[#5F6B92] mb-1 font-mono tracking-widest uppercase">حتى اليوم الوطني</div>
+          <div className="text-3xl font-display font-bold text-[#FFCA17] drop-shadow-[0_2px_8px_rgba(255,202,23,0.35)]">{stats.daysRemaining}</div>
+          <div className="text-[11px] text-[#5F6B92] font-bold mt-1">23 سبتمبر</div>
+        </div>
+      </div>
+
+      {/* daily bars — last 14 days */}
+      <div>
+        <h3 className="text-sm font-bold text-[#5F6B92] mb-3 font-mono tracking-widest uppercase">المكعبات المضافة يومياً — آخر 14 يوماً</h3>
+        <div dir="ltr" className="flex items-end gap-1.5 h-44">
+          {stats.daily.map((d, i) => {
+            const isToday = i === stats.daily.length - 1;
+            const h = d.count === 0 ? 3 : Math.max(6, Math.round((d.count / maxDaily) * 150));
+            return (
+              <div key={d.date} className="flex-1 flex flex-col items-center gap-1 min-w-0" title={`${formatDay(d.date)}: ${d.count}`}>
+                <div className="text-[10px] font-mono font-bold text-[#5F6B92]">{d.count > 0 ? d.count.toLocaleString('en-US') : ''}</div>
+                <div
+                  className={`w-full max-w-[34px] rounded-t-md transition-all duration-500 ${d.count === 0 ? 'bg-[#EEF2FB]' : isToday ? 'bg-[#FFCA17]' : 'bg-[#1C54CB]'}`}
+                  style={{ height: `${h}px` }}
+                />
+                <div className={`text-[9px] font-bold ${isToday ? 'text-[#101A38]' : 'text-[#5F6B92]'} whitespace-nowrap`}>
+                  {formatDay(d.date)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BrickModeration() {
   const [status, setStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [bricks, setBricks] = useState<any[]>([]);
@@ -135,6 +269,8 @@ export function BricksTab() {
 
   return (
     <div className="space-y-8">
+      <CampaignTracking />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Mission Control Main Stat */}
         <div className="lg:col-span-2 glow-card p-8 sm:p-10 flex flex-col justify-center">

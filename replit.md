@@ -1,4 +1,23 @@
-# منارة | Manara Academy
+# FunAdemy — e² Young Engineers Riyadh
+
+Arabic-first (RTL, with English mirror) site for the e² Young Engineers Riyadh franchise: programs, enrollment + payments (Moyasar/Tamara), family portal (SMS-OTP login), admin dashboard, and the «أطفالنا يبنون وطننا» campaign.
+
+## Single-site direction (Aug 2026 — user decision)
+
+**All development happens in `artifacts/ye` only.**
+- Deleted: `watanona` (campaign site — its `/track` stats dashboard now lives in YE admin → tab «المكعبات»), `funademy-ds` + `mockup-sandbox` (internal design tools). There is no separate design system anymore.
+- Kept **as reference only** (no new features): `artifacts/manara` + `artifacts/api-server` — delete them once the kids learning platform and blog are ported into YE.
+- Port features, not data: Manara accounts/bookings (email/password auth, drizzle `public` schema) are NOT migrated into YE (family OTP auth, Prisma `ye` schema).
+
+## Funademy (artifacts/ye) — the product
+
+- Next.js 15 App Router + Prisma (**`ye` schema only** — `db push` drops undeclared tables; never declare `public` tables there), backend under `/svc/*`, admin auth via `ADMIN_PASSWORD` cookie, family auth via SMS OTP (dev mode returns `devCode`).
+- Campaign counter/goal shared with legacy via raw SQL on `public.campaign_counters` (+ `public.campaign_brick_events` history in admin stats).
+- Details: `artifacts/ye/README.md` · tests: `ye-tests` workflow (vitest, isolated `ye_test` DB).
+
+---
+
+# منارة | Manara Academy (legacy — reference only, do not extend)
 
 Arabic-first, RTL e-learning platform for Saudi families — children 4–18, Saudi national curriculum, family subscription (SAR 49/mo, 399/yr).
 
