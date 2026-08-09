@@ -8,7 +8,7 @@
  * ye_test database, calling the Next.js route handlers directly with a
  * mocked cookie store.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, afterEach } from 'vitest';
 
 // ——— mocked cookie store (next/headers) ———
 const cookieJar = new Map<string, string>();
@@ -34,6 +34,7 @@ import { POST as checkoutPOST } from '@/app/svc/enroll/checkout/route';
 import { POST as renewPOST } from '@/app/svc/account/renew/route';
 import { GET as paymentsGET } from '@/app/svc/account/payments/route';
 import { GET as receiptGET } from '@/app/svc/account/payments/[id]/receipt/route';
+import { finalizePayment, sweepStalePayments } from '@/lib/pay-core';
 
 const RUN = `pay-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -275,6 +276,412 @@ describe('renewal', () => {
     const res = await renew({ enrollmentId: cancelled.id, provider: 'moyasar_mada' });
     expect(res.status).toBe(409);
     expect((await res.json()).error).toBe('not_renewable');
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// Tamara settlement semantics (provider fetch mocked)
+// ────────────────────────────────────────────────────────────
+describe('Tamara settlement: authorization vs capture', () => {
+  // Set TAMARA_API_TOKEN so `tamaraLive()` returns true (needed for
+  // verifyPayment to call the real verify path, not the SIM shortcut).
+  const TAMARA_REF = `TAMARA-TEST-${Date.now()}`;
+  let initiatedPaymentId: number;
+  let initiatedEnrollmentId: number;
+
+  beforeAll(async () => {
+    // Seed an active enrollment for studentB1 if not already enrolled.
+    const existing = await prisma.enrollment.findFirst({ where: { studentId: studentB1.id, courseRunId: runId } });
+    const enr = existing ?? await prisma.enrollment.create({
+      data: { studentId: studentB1.id, courseRunId: runId, status: 'pending', monthlyPriceSar: BASE_SAR },
+    });
+    initiatedEnrollmentId = enr.id;
+
+    // Create an 'initiated' payment row as if a live Tamara checkout was started.
+    const now = new Date();
+    const p = await prisma.payment.create({
+      data: {
+        familyId: familyB.id,
+        kind: 'enrollment',
+        provider: 'tamara',
+        reference: TAMARA_REF,
+        status: 'initiated',
+        subtotalSar: BASE_SAR,
+        discountSar: 0,
+        totalSar: BASE_SAR,
+        simulated: false,
+        items: {
+          create: [{
+            enrollmentId: initiatedEnrollmentId,
+            studentName: `نوف`,
+            programAr: 'برنامج',
+            programEn: 'Program',
+            periodStart: now,
+            periodEnd: addOneMonth(now),
+            baseSar: BASE_SAR,
+            discountPct: 0,
+            totalSar: BASE_SAR,
+          }],
+        },
+      },
+    });
+    initiatedPaymentId = p.id;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete process.env.TAMARA_API_TOKEN;
+  });
+
+  it('leaves payment initiated (pending) when Tamara reports authorised but capture fails', async () => {
+    process.env.TAMARA_API_TOKEN = 'test-token';
+
+    // Mock fetch: GET /orders/:id → authorised, POST /payments/capture → 500
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      if (url.includes('/orders/') && !url.includes('authorise')) {
+        return new Response(JSON.stringify({ status: 'authorised', total_amount: { amount: BASE_SAR, currency: 'SAR' } }), { status: 200 });
+      }
+      if (url.includes('/payments/capture')) {
+        return new Response(JSON.stringify({ message: 'capture error' }), { status: 500 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+
+    const outcome = await finalizePayment(initiatedPaymentId);
+    expect(outcome).toBe('pending');
+
+    // Payment must still be 'initiated', enrollment still 'pending'.
+    const payment = await prisma.payment.findUnique({ where: { id: initiatedPaymentId } });
+    expect(payment!.status).toBe('initiated');
+    const enrollment = await prisma.enrollment.findUnique({ where: { id: initiatedEnrollmentId } });
+    expect(enrollment!.status).toBe('pending');
+  });
+
+  it('settles payment as paid when Tamara reports fully_captured (no capture call needed)', async () => {
+    process.env.TAMARA_API_TOKEN = 'test-token';
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      if (url.includes('/orders/')) {
+        return new Response(JSON.stringify({ status: 'fully_captured', total_amount: { amount: BASE_SAR, currency: 'SAR' } }), { status: 200 });
+      }
+      // capture should NOT be called for fully_captured; fail loudly if it is.
+      if (url.includes('/payments/capture')) {
+        return new Response(JSON.stringify({ message: 'should not capture' }), { status: 500 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+
+    const outcome = await finalizePayment(initiatedPaymentId);
+    expect(outcome).toBe('paid');
+
+    const payment = await prisma.payment.findUnique({ where: { id: initiatedPaymentId } });
+    expect(payment!.status).toBe('paid');
+    const enrollment = await prisma.enrollment.findUnique({ where: { id: initiatedEnrollmentId } });
+    expect(enrollment!.status).toBe('active');
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// Stale payment sweep: abandoned checkouts release seats
+// ────────────────────────────────────────────────────────────
+describe('stale payment sweep', () => {
+  let sweepPaymentId: number;
+  let sweepEnrollmentId: number;
+  let sweepRunId: number;
+
+  beforeAll(async () => {
+    // Create a dedicated run with limited seats so we can verify seat return.
+    const now = new Date();
+    const sweepRun = await prisma.courseRun.create({
+      data: {
+        programId,
+        startDate: now,
+        endDate: new Date(now.getTime() + 90 * 24 * 3600 * 1000),
+        weekday: 1,
+        time: '10:00',
+        format: 'in_person',
+        capacity: 2,
+        seatsLeft: 1, // one seat already taken (simulated)
+        monthlyPriceSar: BASE_SAR,
+      },
+    });
+    sweepRunId = sweepRun.id;
+
+    const enr = await prisma.enrollment.create({
+      data: { studentId: studentA1.id, courseRunId: sweepRunId, status: 'pending', monthlyPriceSar: BASE_SAR },
+    });
+    sweepEnrollmentId = enr.id;
+
+    // Create an initiated payment dated 2 hours ago — well past the 45-min window.
+    const twoHoursAgo = new Date(Date.now() - 2 * 3600 * 1000);
+    const p = await prisma.payment.create({
+      data: {
+        familyId: familyA.id,
+        kind: 'enrollment',
+        provider: 'moyasar_mada',
+        reference: `INIT-STALE-${Date.now()}`,
+        status: 'initiated',
+        subtotalSar: BASE_SAR,
+        discountSar: 0,
+        totalSar: BASE_SAR,
+        simulated: false,
+        createdAt: twoHoursAgo,
+        items: {
+          create: [{
+            enrollmentId: sweepEnrollmentId,
+            studentName: 'سعد',
+            programAr: 'برنامج',
+            programEn: 'Program',
+            periodStart: twoHoursAgo,
+            periodEnd: addOneMonth(twoHoursAgo),
+            baseSar: BASE_SAR,
+            discountPct: 0,
+            totalSar: BASE_SAR,
+          }],
+        },
+      },
+    });
+    sweepPaymentId = p.id;
+    // Manually backdate createdAt since Prisma default ignores the provided value on create
+    await prisma.$executeRawUnsafe(
+      `UPDATE ye.ye_payments SET "createdAt" = $1 WHERE id = $2`,
+      twoHoursAgo,
+      sweepPaymentId,
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete process.env.MOYASAR_SECRET_KEY;
+  });
+
+  it('marks payment expired (not failed) and releases seats when provider is still pending after timeout', async () => {
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+
+    // Provider still says pending (parent abandoned the checkout page).
+    vi.spyOn(global, 'fetch').mockImplementation(async () =>
+      new Response(JSON.stringify({ status: 'initiated' }), { status: 200 }),
+    );
+
+    const runBefore = await prisma.courseRun.findUnique({ where: { id: sweepRunId } });
+    expect(runBefore!.seatsLeft).toBe(1); // seat is currently held
+
+    const { settled, expired } = await sweepStalePayments(45);
+    expect(settled).toBe(0);
+    expect(expired).toBeGreaterThanOrEqual(1);
+
+    // Payment must now be 'expired' (NOT 'failed') so it can still be reconciled.
+    const payment = await prisma.payment.findUnique({ where: { id: sweepPaymentId } });
+    expect(payment!.status).toBe('expired');
+
+    // Enrollment cancelled (not deleted) so PaymentItem.enrollmentId is preserved for late settlement.
+    const enrollment = await prisma.enrollment.findUnique({ where: { id: sweepEnrollmentId } });
+    expect(enrollment).not.toBeNull();
+    expect(enrollment!.status).toBe('cancelled');
+
+    // Seat returned.
+    const runAfter = await prisma.courseRun.findUnique({ where: { id: sweepRunId } });
+    expect(runAfter!.seatsLeft).toBe(2);
+  });
+
+  it('re-seats and activates enrollment when provider confirms paid after timeout (late webhook)', async () => {
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+
+    // Payment must be in 'expired' state from the previous test.
+    const paymentBefore = await prisma.payment.findUnique({ where: { id: sweepPaymentId } });
+    expect(paymentBefore!.status).toBe('expired');
+
+    // Enrollment must be 'cancelled' (not deleted) from the sweep.
+    const enrollmentBefore = await prisma.enrollment.findUnique({ where: { id: sweepEnrollmentId } });
+    expect(enrollmentBefore!.status).toBe('cancelled');
+
+    // Seat was returned during sweep — verify there's capacity.
+    const runBefore = await prisma.courseRun.findUnique({ where: { id: sweepRunId } });
+    expect(runBefore!.seatsLeft).toBe(2);
+
+    // Provider now says paid (family completed payment on another device/window).
+    vi.spyOn(global, 'fetch').mockImplementation(async () =>
+      new Response(JSON.stringify({ status: 'paid' }), { status: 200 }),
+    );
+
+    const outcome = await finalizePayment(sweepPaymentId);
+    expect(outcome).toBe('paid');
+
+    // Payment settled.
+    const paymentAfter = await prisma.payment.findUnique({ where: { id: sweepPaymentId } });
+    expect(paymentAfter!.status).toBe('paid');
+
+    // Enrollment re-activated and seat consumed.
+    const enrollmentAfter = await prisma.enrollment.findUnique({ where: { id: sweepEnrollmentId } });
+    expect(enrollmentAfter!.status).toBe('active');
+    expect(enrollmentAfter!.paidThrough).not.toBeNull();
+
+    const runAfter = await prisma.courseRun.findUnique({ where: { id: sweepRunId } });
+    expect(runAfter!.seatsLeft).toBe(1); // one seat consumed by re-activation
+  });
+
+  it('does not release recently-created initiated payments (within the window)', async () => {
+    // Create a fresh initiated payment (seconds old).
+    const freshEnr = await prisma.enrollment.create({
+      data: { studentId: studentB1.id, courseRunId: sweepRunId, status: 'pending', monthlyPriceSar: BASE_SAR },
+    }).catch(async () => {
+      const e = await prisma.enrollment.findFirst({ where: { studentId: studentB1.id, courseRunId: sweepRunId } });
+      return prisma.enrollment.update({ where: { id: e!.id }, data: { status: 'pending' } });
+    });
+
+    const freshPayment = await prisma.payment.create({
+      data: {
+        familyId: familyB.id,
+        kind: 'enrollment',
+        provider: 'moyasar_mada',
+        reference: `INIT-FRESH-${Date.now()}`,
+        status: 'initiated',
+        subtotalSar: BASE_SAR,
+        discountSar: 0,
+        totalSar: BASE_SAR,
+        simulated: false,
+        items: {
+          create: [{
+            enrollmentId: freshEnr.id,
+            studentName: 'نوف',
+            programAr: 'برنامج',
+            programEn: 'Program',
+            periodStart: new Date(),
+            periodEnd: addOneMonth(new Date()),
+            baseSar: BASE_SAR,
+            discountPct: 0,
+            totalSar: BASE_SAR,
+          }],
+        },
+      },
+    });
+
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+    vi.spyOn(global, 'fetch').mockImplementation(async () =>
+      new Response(JSON.stringify({ status: 'initiated' }), { status: 200 }),
+    );
+
+    await sweepStalePayments(45);
+
+    // Fresh payment must be untouched.
+    const p = await prisma.payment.findUnique({ where: { id: freshPayment.id } });
+    expect(p!.status).toBe('initiated');
+
+    // Cleanup
+    await prisma.payment.delete({ where: { id: freshPayment.id } });
+    await prisma.enrollment.deleteMany({ where: { id: freshEnr.id } });
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// Webhook security: authentication + provider binding
+// ────────────────────────────────────────────────────────────
+describe('webhook security', () => {
+  // Import webhook handlers inline so their module reads updated env vars.
+  // We import after vi.mock('next/headers') is already in effect.
+  let moyasarWebhook: typeof import('@/app/svc/pay/webhook/moyasar/route').POST;
+  let tamaraWebhook: typeof import('@/app/svc/pay/webhook/tamara/route').POST;
+
+  beforeAll(async () => {
+    const m = await import('@/app/svc/pay/webhook/moyasar/route');
+    const t = await import('@/app/svc/pay/webhook/tamara/route');
+    moyasarWebhook = m.POST;
+    tamaraWebhook = t.POST;
+  });
+
+  afterEach(() => {
+    delete process.env.MOYASAR_WEBHOOK_SECRET;
+    delete process.env.TAMARA_NOTIFICATION_TOKEN;
+  });
+
+  function webhookReq(url: string, body: unknown, headers?: Record<string, string>) {
+    return new NextRequest(`http://test.local${url}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it('Moyasar webhook: 503 when MOYASAR_WEBHOOK_SECRET is not configured', async () => {
+    // No secret set → fail closed.
+    const res = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', {}));
+    expect(res.status).toBe(503);
+  });
+
+  it('Moyasar webhook: 401 with wrong or missing signature', async () => {
+    process.env.MOYASAR_WEBHOOK_SECRET = 'correct-secret';
+    const body = { data: { id: 'inv_123', metadata: { order_ref: '999' } } };
+
+    // No signature header
+    const res1 = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', body));
+    expect(res1.status).toBe(401);
+
+    // Wrong signature
+    const res2 = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', body, { 'x-moyasar-signature': 'deadbeef' }));
+    expect(res2.status).toBe(401);
+  });
+
+  it('Tamara webhook: 503 when TAMARA_NOTIFICATION_TOKEN is not configured', async () => {
+    const res = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', {}));
+    expect(res.status).toBe(503);
+  });
+
+  it('Tamara webhook: 401 with wrong or missing signature', async () => {
+    process.env.TAMARA_NOTIFICATION_TOKEN = 'correct-token';
+    const body = { order_id: 'tamara-order-123', order_reference_id: '999' };
+
+    const res1 = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', body));
+    expect(res1.status).toBe(401);
+
+    const res2 = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', body, { 'tamara-signature': 'deadbeef' }));
+    expect(res2.status).toBe(401);
+  });
+
+  it('Moyasar webhook cannot finalize a Tamara payment (cross-provider injection)', async () => {
+    const { createHmac } = await import('crypto');
+    process.env.MOYASAR_WEBHOOK_SECRET = 'correct-secret';
+
+    // Create a Tamara payment in 'initiated' state.
+    const now = new Date();
+    const tamaraPayment = await prisma.payment.create({
+      data: {
+        familyId: familyA.id,
+        kind: 'renewal',
+        provider: 'tamara',
+        reference: `TAMARA-CROSS-${Date.now()}`,
+        status: 'initiated',
+        subtotalSar: 100,
+        discountSar: 0,
+        totalSar: 100,
+        simulated: false,
+        items: { create: [{ studentName: 'test', programAr: 'p', programEn: 'p', periodStart: now, periodEnd: addOneMonth(now), baseSar: 100, discountPct: 0, totalSar: 100 }] },
+      },
+    });
+
+    // Attacker sends a Moyasar webhook with the Tamara payment's numeric ID as order_ref.
+    const body = { data: { id: 'inv_fake', metadata: { order_ref: String(tamaraPayment.id) } } };
+    const rawBody = JSON.stringify(body);
+    const sig = createHmac('sha256', 'correct-secret').update(rawBody).digest('hex');
+
+    const res = await moyasarWebhook(
+      new NextRequest('http://test.local/svc/pay/webhook/moyasar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-moyasar-signature': sig },
+        body: rawBody,
+      }),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.note).toBe('payment_not_found'); // cross-provider lookup blocked
+
+    // Tamara payment must remain initiated — not settled via a Moyasar webhook.
+    const p = await prisma.payment.findUnique({ where: { id: tamaraPayment.id } });
+    expect(p!.status).toBe('initiated');
+
+    // Cleanup
+    await prisma.payment.delete({ where: { id: tamaraPayment.id } });
   });
 });
 

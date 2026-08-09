@@ -6,6 +6,7 @@ import { MakeupButton } from './MakeupButton';
 import { effectiveMonthlySar, subscriptionState } from '@/lib/billing';
 import { RenewButton } from '@/components/portal/RenewButton';
 import { portalSessions, joinUrlFor } from '@/lib/portal-sessions';
+import { moyasarLive, tamaraLive } from '@/lib/payments';
 
 type Lang = 'ar' | 'en';
 
@@ -19,7 +20,7 @@ function fmtDate(lang: Lang, d: Date): string {
 }
 const fmt = (lang: Lang, v: number | string) => (lang === 'ar' ? arabicDigits(v) : String(v));
 
-export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang; familyId: number; selectedChild?: number }) {
+export async function PortalView({ lang, familyId, selectedChild, payNotice }: { lang: Lang; familyId: number; selectedChild?: number; payNotice?: 'paid' | 'pending' | 'fail' }) {
   const d = portalDict[lang];
   const weekdays = lang === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN;
   const base = lang === 'ar' ? '' : '/en';
@@ -255,7 +256,7 @@ export async function PortalView({ lang, familyId, selectedChild }: { lang: Lang
       </div>
 
       {/* payments & subscription */}
-      <PaymentsSection lang={lang} familyId={familyId} d={d} />
+      <PaymentsSection lang={lang} familyId={familyId} d={d} payNotice={payNotice} />
 
       {/* badges */}
       <div className="ptl-card">
@@ -316,7 +317,7 @@ async function RenewalAlert({ lang, familyId, d }: { lang: Lang; familyId: numbe
   );
 }
 
-async function PaymentsSection({ lang, familyId, d }: { lang: Lang; familyId: number; d: (typeof portalDict)['ar'] }) {
+async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; familyId: number; d: (typeof portalDict)['ar']; payNotice?: 'paid' | 'pending' | 'fail' }) {
   const base = lang === 'ar' ? '' : '/en';
   const [subs, payments] = await Promise.all([
     prisma.enrollment.findMany({
@@ -341,6 +342,23 @@ async function PaymentsSection({ lang, familyId, d }: { lang: Lang; familyId: nu
     <div className="ptl-card">
       <h3><span className="ico">💳</span>{d.payments}</h3>
 
+      {payNotice && (
+        <div
+          role="status"
+          style={{
+            margin: '10px 0 14px',
+            padding: '10px 14px',
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 600,
+            background: payNotice === 'paid' ? '#e8f7ee' : payNotice === 'pending' ? '#fff7e0' : '#fdeaea',
+            color: payNotice === 'paid' ? '#146c3c' : payNotice === 'pending' ? '#8a6d00' : '#a12622',
+          }}
+        >
+          {payNotice === 'paid' ? d.payOk : payNotice === 'pending' ? d.payPending : d.payFail}
+        </div>
+      )}
+
       {/* subscription status per child */}
       {subs.length > 0 && (
         <>
@@ -360,7 +378,7 @@ async function PaymentsSection({ lang, familyId, d }: { lang: Lang; familyId: nu
                 </div>
                 <div className="ptl-sub-side">
                   <span className={`ptl-tag sub-${st}`}>{stateLabel[st]}</span>
-                  <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} />
+                  <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} live={{ moyasar: moyasarLive(), tamara: tamaraLive() }} />
                 </div>
               </div>
             );

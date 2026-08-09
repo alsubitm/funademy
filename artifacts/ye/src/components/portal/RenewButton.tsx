@@ -22,6 +22,7 @@ const T = {
     done: 'تم الدفع بنجاح ✓',
     fail: 'تعذّر إتمام الدفع، حاول مجدداً',
     sim: 'وضع تجريبي — لن يُخصم مبلغ حقيقي',
+    live: 'سيتم تحويلك إلى صفحة الدفع الآمنة',
   },
   en: {
     renew: 'Renew / Pay',
@@ -32,15 +33,28 @@ const T = {
     done: 'Payment successful ✓',
     fail: 'Payment failed, please try again',
     sim: 'Simulation mode — no real charge',
+    live: 'You will be redirected to a secure payment page',
   },
 };
 
-export function RenewButton({ lang, enrollmentId, amountSar }: { lang: Lang; enrollmentId: number; amountSar: number }) {
+export function RenewButton({
+  lang,
+  enrollmentId,
+  amountSar,
+  live = { moyasar: false, tamara: false },
+}: {
+  lang: Lang;
+  enrollmentId: number;
+  amountSar: number;
+  live?: { moyasar: boolean; tamara: boolean };
+}) {
   const t = T[lang];
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState(PROVIDERS[0].id);
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'fail'>('idle');
+
+  const providerLive = provider === 'tamara' ? live.tamara : live.moyasar;
 
   async function pay() {
     setState('working');
@@ -48,9 +62,15 @@ export function RenewButton({ lang, enrollmentId, amountSar }: { lang: Lang; enr
       const res = await fetch('/svc/account/renew', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enrollmentId, provider }),
+        body: JSON.stringify({ enrollmentId, provider, lang }),
       });
       if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      if (data.redirectUrl) {
+        // LIVE payment — continue on the provider's secure page.
+        window.location.assign(data.redirectUrl);
+        return;
+      }
       setState('done');
       setTimeout(() => router.refresh(), 900);
     } catch {
@@ -85,7 +105,7 @@ export function RenewButton({ lang, enrollmentId, amountSar }: { lang: Lang; enr
               </button>
             ))}
           </div>
-          <div className="sim">{t.sim}</div>
+          <div className="sim">{providerLive ? t.live : t.sim}</div>
           {state === 'fail' && <div className="err">{t.fail}</div>}
           <div className="acts">
             <button className="go" onClick={pay} disabled={state === 'working'}>

@@ -17,6 +17,7 @@ export const dynamic = 'force-dynamic';
 export default async function PortalPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
   const child = typeof sp.child === 'string' ? Number(sp.child) : undefined;
+  const payNotice = sp.paid ? ('paid' as const) : sp.paypending ? ('pending' as const) : sp.payfail ? ('fail' as const) : undefined;
   const familyId = await getFamilyId();
   const d = portalDict.ar;
 
@@ -37,7 +38,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
               <Link className="btn b" style={{ padding: '12px 26px', fontSize: 15 }} href="/account">{d.goLogin}</Link>
             </div>
           ) : (
-            <PortalView lang="ar" familyId={familyId} selectedChild={Number.isInteger(child) ? child : undefined} />
+            <PortalView lang="ar" familyId={familyId} selectedChild={Number.isInteger(child) ? child : undefined} payNotice={payNotice} />
           )}
         </div>
       </main>

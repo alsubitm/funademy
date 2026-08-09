@@ -31,7 +31,8 @@ type CartItem = {
   totalSar: number;
 };
 type Cart = { items: CartItem[]; subtotalSar: number; discountSar: number; totalSar: number };
-type Done = { reference: string; totalSar: number; discountSar: number; items: CartItem[] };
+type DoneItem = Partial<CartItem> & { studentName: string; programNameAr: string; programNameEn: string; totalSar: number; studentId: number; courseRunId: number };
+type Done = { reference: string; totalSar: number; discountSar: number; items: DoneItem[]; simulated?: boolean };
 
 const fmt = (lang: Lang, v: number | string) => (lang === 'ar' ? arabicDigits(v) : String(v));
 
@@ -51,15 +52,31 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Done | null>(null);
+  const [live, setLive] = useState<{ moyasar: boolean; tamara: boolean }>({ moyasar: false, tamara: false });
 
   const errMsg = (k: string | null) => (k ? d.errors[k] ?? d.errors.generic : null);
 
   useEffect(() => {
     (async () => {
-      const [meRes, runsRes] = await Promise.all([
+      // Returning from a live payment redirect?
+      const params = new URLSearchParams(window.location.search);
+      const paidId = params.get('paid');
+      if (params.get('payfail')) setError('payment_failed');
+      if (params.get('paypending')) setError('payment_pending');
+      if (paidId) {
+        const doneRes = await fetch(`/svc/enroll/checkout?paymentId=${encodeURIComponent(paidId)}`, { cache: 'no-store' });
+        if (doneRes.ok) {
+          const dp = await doneRes.json();
+          if (dp.paid) setDone(dp);
+        }
+      }
+
+      const [meRes, runsRes, cfgRes] = await Promise.all([
         fetch('/svc/account/me', { cache: 'no-store' }),
         fetch('/svc/enroll/runs', { cache: 'no-store' }),
+        fetch('/svc/pay/config', { cache: 'no-store' }),
       ]);
+      if (cfgRes.ok) setLive(await cfgRes.json());
       if (meRes.ok) {
         const me = await meRes.json();
         setAuthed(true);
@@ -119,10 +136,15 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
       const res = await fetch('/svc/enroll/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider }),
+        body: JSON.stringify({ provider, lang }),
       });
       const data = await res.json();
       if (!res.ok) return setError(data.error ?? 'generic');
+      if (data.redirectUrl) {
+        // LIVE payment — continue on the provider's secure page.
+        window.location.assign(data.redirectUrl);
+        return;
+      }
       setDone(data);
       setCart({ items: [], subtotalSar: 0, discountSar: 0, totalSar: 0 });
     } catch {
@@ -150,7 +172,9 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
       <div className="enr-box enr-done" style={{ maxWidth: 640, margin: '40px auto 0' }}>
         <div className="icon">🎉</div>
         <h2>{d.doneTitle}</h2>
-        <div className="enr-stub-note" style={{ display: 'inline-block', marginTop: 10 }}>{d.doneSimNote}</div>
+        {done.simulated !== false && (
+          <div className="enr-stub-note" style={{ display: 'inline-block', marginTop: 10 }}>{d.doneSimNote}</div>
+        )}
         <p style={{ marginTop: 8 }}>
           {d.doneSub} <span className="ref">{done.reference}</span>
         </p>
@@ -160,7 +184,8 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
             <div className="c-info">
               <div className="c-kid">{it.studentName}</div>
               <div className="c-prog">
-                {lang === 'ar' ? it.programNameAr : it.programNameEn} — {weekdays[it.weekday]} {it.time}
+                {lang === 'ar' ? it.programNameAr : it.programNameEn}
+                {it.weekday != null ? ` — ${weekdays[it.weekday]} ${it.time ?? ''}` : ''}
               </div>
             </div>
             <div className="c-price">
@@ -305,7 +330,9 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
             </div>
 
             <h3 style={{ marginTop: 20 }}>{d.payTitle}</h3>
-            <div className="enr-stub-note">{d.stubNote}</div>
+            <div className="enr-stub-note">
+              {(provider === 'tamara' ? live.tamara : live.moyasar) ? d.liveNote : d.stubNote}
+            </div>
             <div className="enr-pay-opts">
               {Object.entries(d.providers).map(([key, label]) => (
                 <button key={key} className={`enr-pay ${provider === key ? 'sel' : ''}`} onClick={() => setProvider(key)}>
@@ -314,7 +341,7 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
               ))}
             </div>
             <button className="acct-btn" onClick={checkout} disabled={busy}>
-              {busy ? d.paying : d.payNow}
+              {busy ? d.paying : (provider === 'tamara' ? live.tamara : live.moyasar) ? d.payNowReal : d.payNow}
             </button>
           </>
         )}

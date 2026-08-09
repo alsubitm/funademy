@@ -273,7 +273,10 @@ enum PaymentKind {
 }
 
 enum PaymentTxStatus {
+  initiated // created, awaiting provider confirmation (redirect/3DS in progress)
   paid
+  failed    // provider confirmed decline/expiry — seats released, terminal
+  expired   // our timeout fired, seats released — still reconcilable if provider later settles
   refunded
 
   @@map("ye_payment_tx_status")
