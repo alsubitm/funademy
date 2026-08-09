@@ -57,7 +57,10 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
     prisma.studentSkill.findMany({ where: { studentId: child.id } }),
     prisma.makeupRequest.findMany({
       where: { studentId: child.id },
-      include: { session: { include: { courseRun: { include: { program: true } } } } },
+      include: {
+        session: { include: { courseRun: { include: { program: true } } } },
+        makeupSession: { include: { courseRun: { include: { program: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.studentBadge.findMany({
@@ -84,6 +87,14 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
   const attLabel: Record<string, string> = { present: d.present, absent: d.absent, late: d.late, excused: d.excused };
   const mkLabel: Record<string, string> = { pending: d.mkPending, approved: d.mkApproved, rejected: d.mkRejected };
   const makeupBySession = new Map(makeupRequests.map((m) => [m.sessionId, m]));
+
+  // Approved makeup slots join the child's upcoming calendar alongside regular sessions.
+  const upcomingIds = new Set(upcoming.map((s) => s.id));
+  const makeupUpcoming = makeupRequests
+    .filter((m) => m.status === 'approved' && m.makeupSession && m.makeupSession.status === 'scheduled' && m.makeupSession.date >= now && !upcomingIds.has(m.makeupSession.id))
+    .map((m) => ({ ...m.makeupSession!, isMakeup: true }));
+  const allUpcoming = [...upcoming.map((s) => ({ ...s, isMakeup: false })), ...makeupUpcoming]
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
   const skillLabel: Record<string, string> = { mastered: d.mastered, in_progress: d.inProgress, locked: d.locked };
 
   return (
@@ -137,16 +148,17 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
       {/* upcoming sessions */}
       <div className="ptl-card">
         <h3><span className="ico">📅</span>{d.upcoming}</h3>
-        {upcoming.length === 0 ? (
+        {allUpcoming.length === 0 ? (
           <div className="ptl-empty">{d.noUpcoming}</div>
         ) : (
-          upcoming.map((s) => {
+          allUpcoming.map((s) => {
             const joinUrl = joinUrlFor(s);
             return (
               <div key={s.id} className="ptl-sess">
                 <span className="d">{fmtDate(lang, s.date)}</span>
                 <span className="p">
                   {progName(s.courseRun.program)} — {weekdays[s.courseRun.weekday]} {fmt(lang, s.courseRun.time)}
+                  {s.isMakeup && <span className="ptl-mk approved" style={{ marginInlineStart: 8 }}>🔁 {d.mkTag}</span>}
                   <span className="loc">
                     {s.courseRun.format === 'online' ? `💻 ${d.online}` : `📍 ${s.courseRun.location ?? d.inPerson}`}
                   </span>
@@ -216,6 +228,12 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
               <span className="d">{fmtDate(lang, m.session.date)}</span>
               <span className="p">
                 {progName(m.session.courseRun.program)}
+                {m.makeupSession && (
+                  <span className="loc">
+                    🔁 {d.mkSlot}: {fmtDate(lang, m.makeupSession.date)} — {weekdays[m.makeupSession.courseRun.weekday]} {fmt(lang, m.makeupSession.courseRun.time)}
+                    {m.makeupSession.courseRun.format === 'online' ? ` · 💻 ${d.online}` : m.makeupSession.courseRun.location ? ` · 📍 ${m.makeupSession.courseRun.location}` : ''}
+                  </span>
+                )}
                 {m.adminNote && <span className="loc">💬 {m.adminNote}</span>}
               </span>
               <span className={`ptl-mk ${m.status}`}>{mkLabel[m.status]}</span>

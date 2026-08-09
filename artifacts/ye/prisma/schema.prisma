@@ -176,7 +176,8 @@ model ClassSession {
   meetingUrl   String? // per-session override of courseRun.meetingUrl
   recordingUrl String? // link to the class recording after the session
   attendance  Attendance[]
-  makeupRequests MakeupRequest[]
+  makeupRequests MakeupRequest[] @relation("MissedSession")
+  makeupsInto    MakeupRequest[] @relation("MakeupSession")
 
   @@index([courseRunId, date])
   @@map("ye_class_sessions")
@@ -308,11 +309,15 @@ model MakeupRequest {
   id        Int          @id @default(autoincrement())
   student   Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId Int
-  session   ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session   ClassSession @relation("MissedSession", fields: [sessionId], references: [id], onDelete: Cascade)
   sessionId Int
   status    MakeupStatus @default(pending)
   note      String? // parent note (≤300 chars, enforced in API)
   adminNote String? // admin reply shown to the parent (e.g. proposed makeup date)
+  // The concrete makeup session booked on approval — shows in the child's
+  // upcoming sessions and adds the child to that session's attendance roster.
+  makeupSession   ClassSession? @relation("MakeupSession", fields: [makeupSessionId], references: [id], onDelete: SetNull)
+  makeupSessionId Int?
   createdAt DateTime     @default(now())
   decidedAt DateTime?
 

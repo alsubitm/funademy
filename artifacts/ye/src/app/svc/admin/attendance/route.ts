@@ -18,25 +18,43 @@ export async function GET(req: NextRequest) {
   const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
   if (!session) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  const [enrollments, marks] = await Promise.all([
+  const [enrollments, makeups, marks] = await Promise.all([
     prisma.enrollment.findMany({
       where: { courseRunId: session.courseRunId, status: { in: ['active', 'paused'] } },
       include: { student: true },
       orderBy: { createdAt: 'asc' },
     }),
+    // Children booked into this session as an approved makeup slot.
+    prisma.makeupRequest.findMany({
+      where: { makeupSessionId: sessionId, status: 'approved' },
+      include: { student: true },
+      orderBy: { decidedAt: 'asc' },
+    }),
     prisma.attendance.findMany({ where: { sessionId } }),
   ]);
   const byStudent = new Map(marks.map((m) => [m.studentId, m.status]));
 
-  return NextResponse.json({
-    session,
-    students: enrollments.map((e) => ({
+  const enrolledIds = new Set(enrollments.map((e) => e.student.id));
+  const students = [
+    ...enrollments.map((e) => ({
       id: e.student.id,
       firstName: e.student.firstName,
       birthYear: e.student.birthYear,
+      makeup: false,
       status: byStudent.get(e.student.id) ?? null,
     })),
-  });
+    ...makeups
+      .filter((m) => !enrolledIds.has(m.student.id))
+      .map((m) => ({
+        id: m.student.id,
+        firstName: m.student.firstName,
+        birthYear: m.student.birthYear,
+        makeup: true,
+        status: byStudent.get(m.student.id) ?? null,
+      })),
+  ];
+
+  return NextResponse.json({ session, students });
 }
 
 /** POST { sessionId, studentId, status } — upsert one mark (phone-friendly, one tap per child). */
@@ -57,7 +75,13 @@ export async function POST(req: NextRequest) {
   const enrolled = await prisma.enrollment.findFirst({
     where: { studentId, courseRunId: session.courseRunId, status: { in: ['active', 'paused'] } },
   });
-  if (!enrolled) return NextResponse.json({ error: 'not_enrolled' }, { status: 409 });
+  if (!enrolled) {
+    // Not enrolled in this run — allowed only if booked here as an approved makeup.
+    const makeup = await prisma.makeupRequest.findFirst({
+      where: { studentId, makeupSessionId: sessionId, status: 'approved' },
+    });
+    if (!makeup) return NextResponse.json({ error: 'not_enrolled' }, { status: 409 });
+  }
 
   const mark = await prisma.attendance.upsert({
     where: { sessionId_studentId: { sessionId, studentId } },

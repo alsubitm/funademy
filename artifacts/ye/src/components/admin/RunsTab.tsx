@@ -232,7 +232,10 @@ export function RunsTab({ programs }: { programs: any[] }) {
         <div className="space-y-3">
           {attStudents.map((s) => (
             <div key={s.id} className="bg-white p-4 rounded-2xl border border-[#DFE5F2] flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="font-display font-bold text-[#101A38] flex-1">{s.firstName}</div>
+              <div className="font-display font-bold text-[#101A38] flex-1">
+                {s.firstName}
+                {s.makeup && <span className="text-[10px] font-body font-bold text-[#0e7a94] bg-[rgba(34,218,255,0.15)] rounded-full px-2 py-0.5 mr-2">تعويض</span>}
+              </div>
               <div className="flex gap-2 flex-wrap">
                 {ATT_OPTIONS.map((o) => (
                   <button
