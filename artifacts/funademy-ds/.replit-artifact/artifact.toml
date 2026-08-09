@@ -1,0 +1,19 @@
+kind = "design-system"
+previewPath = "/funademy-ds/"
+title = "FunAdemy Design System"
+description = "نظام تصميم FunAdemy — مزيج الهوية الكحلية/الصفراء مع لمسات مرحة للأعمار ٤–١٨"
+version = "1.0.0"
+id = "artifacts/funademy-ds"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/funademy-ds/" ]
+localPort = 25610
+
+[services.development]
+run = "pnpm --filter @workspace/funademy-ds run dev"
+
+[services.env]
+PORT = "25610"
+BASE_PATH = "/funademy-ds/"
