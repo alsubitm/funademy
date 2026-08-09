@@ -7,6 +7,7 @@ import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { LiveTicker } from '@/components/LiveTicker';
 import { Hero } from '@/components/home/Hero';
 import { Stats } from '@/components/home/Stats';
+import { Platforms } from '@/components/home/Platforms';
 import { PathMap } from '@/components/home/PathMap';
 import { Kits } from '@/components/home/Kits';
 import { Workshop } from '@/components/home/Workshop';
@@ -46,6 +47,7 @@ export default async function HomePage() {
       <LiveTicker slots={slots} lang="ar" />
       <SandStripe />
       <Stats lang="ar" />
+      <Platforms lang="ar" />
       <PathMap lang="ar" />
       <Kits programs={programs} lang="ar" />
       <Workshop lang="ar" />

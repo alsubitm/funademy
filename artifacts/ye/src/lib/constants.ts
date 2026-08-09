@@ -2,6 +2,8 @@ export const WHATSAPP_NUMBER = '966505558387';
 export const PHONE_DISPLAY = '+966 50 555 8387';
 export const EMAIL = 'ceo@falconeye.sa';
 export const LICENSE_NO = '4030388340';
+/** NELC (المركز الوطني للتعليم الإلكتروني) e-training license number — fill in once issued. */
+export const NELC_LICENSE_NO = '';
 
 export const waLink = (message: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;

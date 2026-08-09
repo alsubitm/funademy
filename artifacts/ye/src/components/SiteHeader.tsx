@@ -33,6 +33,8 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
             <a href="#programs">{d.navPrograms}</a>
             <a href="#workshop">{d.navWorkshop}</a>
             <a href="#pricing">{d.navPricing}</a>
+            <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
+            <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
             <LangSwitcher lang={lang} />
             <a className="btn y" href="#pricing">
               {d.navTrial}
