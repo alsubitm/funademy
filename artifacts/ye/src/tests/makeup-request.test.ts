@@ -66,6 +66,7 @@ let sessionMissed: { id: number }; // childA absent
 let sessionExcused: { id: number }; // childA excused
 let sessionPresent: { id: number }; // childA present
 let sessionUnmarked: { id: number }; // no attendance mark at all
+let sessionFuture: { id: number }; // future session — valid makeup target
 
 beforeAll(async () => {
   const program = await prisma.program.create({
@@ -124,6 +125,10 @@ beforeAll(async () => {
   sessionExcused = await mkSession('2026-02-08');
   sessionPresent = await mkSession('2026-02-15');
   sessionUnmarked = await mkSession('2026-02-22');
+  // future session used as a valid makeup target in approval tests
+  sessionFuture = await prisma.classSession.create({
+    data: { courseRunId, date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), status: 'scheduled' },
+  });
 
   await prisma.attendance.createMany({
     data: [
@@ -266,6 +271,7 @@ describe('admin decision (PATCH /svc/admin/makeup)', () => {
       id: pending.id,
       status: 'approved',
       adminNote: `موعد التعويض الأحد ${RUN}`,
+      makeupSessionId: sessionFuture.id,
     });
     expect(res.status).toBe(200);
     const { request } = await res.json();

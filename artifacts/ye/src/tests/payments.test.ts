@@ -8,7 +8,7 @@
  * ye_test database, calling the Next.js route handlers directly with a
  * mocked cookie store.
  */
-import { describe, it, expect, beforeAll, afterAll, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, afterEach, beforeEach } from 'vitest';
 
 // ——— mocked cookie store (next/headers) ———
 const cookieJar = new Map<string, string>();
@@ -589,6 +589,12 @@ describe('webhook security', () => {
     const t = await import('@/app/svc/pay/webhook/tamara/route');
     moyasarWebhook = m.POST;
     tamaraWebhook = t.POST;
+  });
+
+  beforeEach(() => {
+    // Ensure secrets start cleared for each test; specific tests set them explicitly.
+    delete process.env.MOYASAR_WEBHOOK_SECRET;
+    delete process.env.TAMARA_NOTIFICATION_TOKEN;
   });
 
   afterEach(() => {
