@@ -1,5 +1,8 @@
 import { motion } from 'framer-motion';
+import { Link2, Share2, Check } from 'lucide-react';
+import { useState } from 'react';
 import { BrickIcon } from './Icons';
+import { useToast } from '@/hooks/use-toast';
 
 const SHARE_TEXT =
   'وضعت مكعّبي في جدار الوطن! 🧱 شاركونا في حملة «أطفالنا يبنون وطننا» وضعوا مكعّبكم أنتم أيضاً:';
@@ -26,6 +29,31 @@ function XIcon({ className }: { className?: string }) {
 
 export function ShareCard() {
   const shareUrl = getShareUrl();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ description: 'تم نسخ الرابط بنجاح ✅' });
+    } catch {
+      toast({ description: 'تعذّر نسخ الرابط، انسخه يدوياً: ' + shareUrl, variant: 'destructive' });
+    }
+  };
+
+  const nativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: SHARE_TEXT, url: shareUrl });
+      } catch {
+        // user cancelled the share sheet — do nothing
+      }
+    } else {
+      await copyLink();
+    }
+  };
 
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`${SHARE_TEXT} ${shareUrl}`)}`;
   const xHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(shareUrl)}`;
@@ -66,6 +94,24 @@ export function ShareCard() {
           <XIcon className="w-5 h-5" />
           <span>شارك على X</span>
         </a>
+        <button
+          type="button"
+          onClick={nativeShare}
+          data-testid="button-share-native"
+          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-bold text-sm md:text-base hover:brightness-110 transition-all shadow-lg shadow-secondary/20"
+        >
+          <Share2 className="w-5 h-5" />
+          <span>مشاركة</span>
+        </button>
+        <button
+          type="button"
+          onClick={copyLink}
+          data-testid="button-copy-link"
+          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-secondary/40 text-foreground font-bold text-sm md:text-base hover:bg-secondary/10 transition-all"
+        >
+          {copied ? <Check className="w-5 h-5 text-secondary" /> : <Link2 className="w-5 h-5" />}
+          <span>{copied ? 'تم النسخ' : 'نسخ الرابط'}</span>
+        </button>
       </div>
     </motion.div>
   );
