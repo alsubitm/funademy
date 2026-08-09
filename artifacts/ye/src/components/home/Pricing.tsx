@@ -30,9 +30,10 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
 
         <div className="plans">
           {/* Online Plan */}
-          <ScrollReveal className="plan" style={{ transitionDelay: '100ms' }}>
+          <ScrollReveal className="plan hot" style={{ transitionDelay: '100ms' }}>
+            <div className="t">{lang === 'ar' ? 'مباشر مع المدرب' : 'LIVE WITH INSTRUCTOR'}</div>
             <div className="inner">
-              <h3>{lang === 'ar' ? 'أونلاين مباشر' : 'Live Online'}</h3>
+              <h3>{lang === 'ar' ? 'أونلاين' : 'Online'}</h3>
               <div className="pr">
                 <small>SAR</small> 1380 <small>{lang === 'ar' ? '/ للبرنامج' : '/ program'}</small>
               </div>
@@ -40,28 +41,8 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
                 <li>{lang === 'ar' ? '٤-٦ حصص شهرياً' : '4–6 sessions per month'}</li>
                 <li>{lang === 'ar' ? 'عدد طلاب محدود (٤-٨)' : 'Small groups (4-8 kids)'}</li>
                 <li>{lang === 'ar' ? 'العدة تُشحن للمنزل' : 'Kit shipped to home'}</li>
-                <li>{lang === 'ar' ? 'متابعة وتواصل مستمر' : 'Continuous follow-up'}</li>
-              </ul>
-              <a className="btn b" style={{ width: '100%', justifyContent: 'center' }} href="/book">
-                {d.navTrial}
-              </a>
-            </div>
-          </ScrollReveal>
-
-          {/* In-Person Plan */}
-          <ScrollReveal className="plan hot" style={{ transitionDelay: '200ms' }}>
-            <div className="t">{lang === 'ar' ? 'الأكثر طلباً' : 'MOST POPULAR'}</div>
-            <div className="inner">
-              <h3>{lang === 'ar' ? 'حضوري' : 'In-Person'}</h3>
-              <div className="pr">
-                <small>SAR</small> 1380 <small>{lang === 'ar' ? '/ للبرنامج' : '/ program'}</small>
-              </div>
-              <ul dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                <li>{lang === 'ar' ? '٤-٦ حصص شهرياً' : '4–6 sessions per month'}</li>
-                <li>{lang === 'ar' ? 'في مراكزنا بالرياض' : 'At our Riyadh centers'}</li>
                 <li>{lang === 'ar' ? 'بيئة تفاعلية اجتماعية' : 'Interactive social environment'}</li>
-                <li>{lang === 'ar' ? 'العدة متوفرة بالمركز' : 'Kit provided at center'}</li>
-                <li>{lang === 'ar' ? 'تنمية مهارات العمل الجماعي' : 'Teamwork skill building'}</li>
+                <li>{lang === 'ar' ? 'متابعة وتواصل مستمر' : 'Continuous follow-up'}</li>
               </ul>
               <a className="btn y" style={{ width: '100%', justifyContent: 'center' }} href="/book">
                 {d.navTrial}

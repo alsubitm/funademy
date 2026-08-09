@@ -21,9 +21,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'FunAdemy — e² Young Engineers الرياض',
+  title: 'FunAdemy — e² Young Engineers',
   description:
-    'FunAdemy — حيث المتعة تلتقي بالأكاديمية. تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين وحضورية في الرياض. e² Young Engineers، ترخيص فالكون آي.',
+    'FunAdemy — حيث المتعة تلتقي بالأكاديمية. تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين من أي مكان. e² Young Engineers، ترخيص فالكون آي.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

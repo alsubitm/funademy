@@ -79,7 +79,6 @@ export function PathMap({ lang }: { lang: 'ar' | 'en' }) {
 
         <div className="legend">
           <span><i style={{ background: '#1C54CB' }}></i>{d.legendOnline}</span>
-          <span><i style={{ background: '#E5AE4A' }}></i>{d.legendInPerson}</span>
           <span><i style={{ background: '#C9D6F2' }}></i>{d.legendPathContinues}</span>
         </div>
       </div>

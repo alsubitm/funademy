@@ -13,7 +13,7 @@ export function Testimonials({ lang, testimonials }: { lang: 'ar' | 'en'; testim
           {lang === 'ar' ? (
             <>
               <h2>ماذا يقول الآباء؟</h2>
-              <div className="arsub">شهادات حقيقية من آباء وأمهات في الرياض</div>
+              <div className="arsub">شهادات حقيقية من آباء وأمهات أطفالنا</div>
             </>
           ) : (
             <>

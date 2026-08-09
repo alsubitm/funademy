@@ -33,7 +33,7 @@ export function Certificate({ lang }: { lang: 'ar' | 'en' }) {
           <p>for completing the term with excellence</p>
           <div className="foot2">
             <span>FUNADEMY · e² YOUNG ENGINEERS</span>
-            <span>RIYADH</span>
+            <span>SAUDI ARABIA</span>
           </div>
           <div className="cert-seal">
             <CapMark size={64} />

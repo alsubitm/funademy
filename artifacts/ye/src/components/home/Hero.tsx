@@ -18,7 +18,7 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
                 <span className="y">بل نصنع منهم</span> <span className="u">مهندسين.</span>
               </h1>
               <p className="lead">
-                ميكانيكا، روبوتات، وبرمجة حقيقية مبنية على LEGO® للأعمار ٤-١٨ — حصص مباشرة بالعربية، أونلاين من المنزل أو حضوري في الرياض.
+                ميكانيكا، روبوتات، وبرمجة حقيقية مبنية على LEGO® للأعمار ٤-١٨ — حصص مباشرة بالعربية، أونلاين من منزلك أينما كنت.
               </p>
               <div className="ar" style={{ fontFamily: 'var(--font-mono)' }}>
                 We don't teach kids about engineering. We make them engineers.
@@ -31,9 +31,9 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
                 <span className="y">We make them</span> <span className="u">engineers.</span>
               </h1>
               <p className="lead">
-                LEGO®-based mechanics, robotics and real coding for ages 4–18 — live classes in Arabic, online from home or in-person across Riyadh.
+                LEGO®-based mechanics, robotics and real coding for ages 4–18 — live online classes in Arabic, from the comfort of your home.
               </p>
-              <div className="ar" style={{ fontFamily: 'var(--font-mono)' }}>نصنع مهندسين صغار — أونلاين وحضوري</div>
+              <div className="ar" style={{ fontFamily: 'var(--font-mono)' }}>نصنع مهندسين صغار — أونلاين</div>
             </>
           )}
 

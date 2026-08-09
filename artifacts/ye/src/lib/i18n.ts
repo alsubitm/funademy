@@ -1,6 +1,6 @@
 export const dict = {
   ar: {
-    topBanner: "🎓 التسجيل للعام الدراسي الجديد مفتوح — أونلاين مباشر وحضوري",
+    topBanner: "🎓 التسجيل للعام الدراسي الجديد مفتوح — حصص أونلاين",
     whatsapp: "واتساب",
     navPath: "مسار التعلم",
     navPrograms: "البرامج",
@@ -11,7 +11,7 @@ export const dict = {
     navTrial: "حصة تجريبية مجانية",
     
     // Path map legend
-    legendOnline: "أونلاين مباشر",
+    legendOnline: "أونلاين",
     legendInPerson: "حضوري",
     legendPathContinues: "المسار يستمر عامًا بعد عام",
 
@@ -24,7 +24,7 @@ export const dict = {
     pricingSub: "١٣٨٠ ريال للطفل — بمعدل ٤-٦ حصص شهرياً",
   },
   en: {
-    topBanner: "🎓 New school year enrollment open — live online & in-person",
+    topBanner: "🎓 New school year enrollment open — live online classes",
     whatsapp: "WhatsApp",
     navPath: "Learning path",
     navPrograms: "Programs",
@@ -35,7 +35,7 @@ export const dict = {
     navTrial: "Free trial class",
 
     // Path map legend
-    legendOnline: "Live online",
+    legendOnline: "Online",
     legendInPerson: "In-person",
     legendPathContinues: "The path continues year after year",
 

@@ -37,6 +37,92 @@ export async function register() {
     }
   };
 
+  // One-time data reconciliation: the academy is online-only (Aug 2026).
+  // Converts any leftover in-person programs/slots/runs and stale FAQ copy —
+  // idempotent, so it is a no-op once production data is converted.
+  const reconcileOnlineOnly = async () => {
+    try {
+      const { prisma } = await import('@/lib/db');
+      const p = await prisma.program.updateMany({ where: { format: 'in_person' }, data: { format: 'online' } });
+      const s = await prisma.scheduleSlot.updateMany({ where: { format: 'in_person' }, data: { format: 'online' } });
+      const r = await prisma.courseRun.updateMany({ where: { format: 'in_person' }, data: { format: 'online' } });
+      await prisma.scheduleSlot.updateMany({ where: { location: { contains: 'Riyadh' } }, data: { location: null } });
+      await prisma.courseRun.updateMany({ where: { location: { contains: 'Riyadh' } }, data: { location: null } });
+      const f = await prisma.faqEntry.updateMany({
+        where: { questionAr: 'هل الحصص أونلاين أم حضورية؟' },
+        data: {
+          questionEn: 'How are classes delivered?',
+          questionAr: 'كيف تُقدَّم الحصص؟',
+          answerEn: 'All programs run live online — a real teacher and a small group in every session, open to everyone from anywhere.',
+          answerAr: 'جميع البرامج أونلاين — معلّم حقيقي ومجموعة صغيرة في كل حصة، ومتاحة للجميع من أي مكان.',
+        },
+      });
+      const f2 = await prisma.faqEntry.updateMany({
+        where: { questionAr: 'هل توفرون مجموعات المكعبات؟', answerAr: { contains: 'الحضورية' } },
+        data: {
+          answerEn: 'Yes — we guide you to the official e² Young Engineers kit your child needs at home, and building programs ship the kit to your door.',
+          answerAr: 'نعم — نرشدك إلى مجموعة e² Young Engineers الرسمية التي يحتاجها طفلك في المنزل، وبرامج البناء تُشحن عدّتها إلى باب منزلك.',
+        },
+      });
+      const t = await prisma.testimonial.updateMany({ where: { area: 'Riyadh' }, data: { area: 'Saudi Arabia' } });
+      // Fix stale in-person / "live online" wording inside program texts.
+      // Deliberately narrow: exact legacy label values and anchored phrases
+      // only — never a bare substring like 'حضوري' (it would corrupt words
+      // such as 'الحضورية' and admin-authored copy). Longest phrases first.
+      const AR_EXACT: Record<string, string> = {
+        'حضوري': 'أونلاين',
+        'مباشر أونلاين / حضوري': 'أونلاين',
+        'مباشر أونلاين': 'أونلاين',
+        'أونلاين مباشر': 'أونلاين',
+      };
+      const EN_EXACT: Record<string, string> = {
+        'In-person': 'Online',
+        'Live online / in-person': 'Online',
+        'Live online': 'Online',
+      };
+      const fixAr = (x: string) =>
+        (AR_EXACT[x] ?? x)
+          .replaceAll('حصص مباشرة أونلاين', 'حصص أونلاين')
+          .replaceAll('مباشرة مدتها', 'مدتها')
+          .replaceAll('أونلاين أو حضورياً', 'أونلاين بالكامل');
+      const fixEn = (x: string) =>
+        (EN_EXACT[x] ?? x)
+          .replaceAll('live 45-minute classes, online or in person', 'live 45-minute classes, fully online')
+          .replaceAll('live sessions', 'sessions')
+          .replaceAll('Live online', 'Online')
+          .replaceAll('live online', 'online');
+      let textFixed = 0;
+      for (const prog of await prisma.program.findMany()) {
+        const data = {
+          termsAr: prog.termsAr.map(fixAr),
+          termsEn: prog.termsEn.map(fixEn),
+          descAr: fixAr(prog.descAr),
+          descEn: fixEn(prog.descEn),
+          taglineAr: fixAr(prog.taglineAr),
+          taglineEn: fixEn(prog.taglineEn),
+        };
+        const before = { termsAr: prog.termsAr, termsEn: prog.termsEn, descAr: prog.descAr, descEn: prog.descEn, taglineAr: prog.taglineAr, taglineEn: prog.taglineEn };
+        if (JSON.stringify(data) !== JSON.stringify(before)) {
+          await prisma.program.update({ where: { id: prog.id }, data });
+          textFixed++;
+        }
+      }
+      for (const faq of await prisma.faqEntry.findMany()) {
+        const answerAr = fixAr(faq.answerAr);
+        if (answerAr !== faq.answerAr) {
+          await prisma.faqEntry.update({ where: { id: faq.id }, data: { answerAr } });
+          textFixed++;
+        }
+      }
+      if (p.count || s.count || r.count || f.count || f2.count || t.count) {
+        console.log(`[online-only] reconciled: programs=${p.count} slots=${s.count} runs=${r.count} faqs=${f.count + f2.count}`);
+      }
+    } catch (e) {
+      console.error('[online-only] reconciliation failed:', e);
+    }
+  };
+  void reconcileOnlineOnly();
+
   const timer = setInterval(runSweep, SWEEP_INTERVAL_MS);
   timer.unref?.(); // never keep the process alive just for the sweep
   globalThis.__yeSweepTimer = timer;

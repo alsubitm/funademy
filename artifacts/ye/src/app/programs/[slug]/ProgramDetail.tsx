@@ -100,7 +100,7 @@ export function ProgramDetail({
               <circle cx="60" cy="60" r="56" fill={program.color}/>
               <circle cx="60" cy="60" r="56" fill="none" stroke="var(--ink)" strokeWidth="3"/>
               <circle cx="60" cy="60" r="34" fill="none" stroke="var(--ink)" strokeWidth="2" strokeDasharray="4 3"/>
-              <text fontFamily="var(--font-mono)" fontSize="10.5" fontWeight="600" fill="var(--ink)" letterSpacing="2"><textPath href="#circ">OFFICIAL LICENSEE • YE RIYADH • </textPath></text>
+              <text fontFamily="var(--font-mono)" fontSize="10.5" fontWeight="600" fill="var(--ink)" letterSpacing="2"><textPath href="#circ">OFFICIAL LICENSEE • e² YOUNG ENGINEERS • </textPath></text>
               <text x="60" y="66" textAnchor="middle" fontFamily="var(--font-display)" fontWeight="800" fontSize="22" fill="var(--ink)">✓</text>
             </svg>
           </div>

@@ -10,16 +10,16 @@ export function Territory({ lang }: { lang: 'ar' | 'en' }) {
           </span>
           {lang === 'ar' ? (
             <>
-              <h2>بفخر نخدم الرياض</h2>
+              <h2>بفخر نخدم أطفالنا أينما كانوا</h2>
               <p className="sub">
-                بصفتنا الوكيل المعتمد لمدينة الرياض، نحن ملتزمون بتقديم معايير e² Young Engineers العالمية لأطفالكم — أونلاين للجميع.
+                بصفتنا الوكيل المعتمد لبرامج e² Young Engineers، نحن ملتزمون بتقديم معاييرها العالمية لأطفالكم — أونلاين للجميع من أي مكان.
               </p>
             </>
           ) : (
             <>
-              <h2>Proudly serving Riyadh</h2>
+              <h2>Proudly serving families everywhere</h2>
               <p className="sub">
-                As the officially licensed partner for Riyadh, we are committed to bringing the global standard of e² Young Engineers to your family — online for everyone.
+                As an officially licensed e² Young Engineers partner, we are committed to bringing its global standard to your family — online for everyone, from anywhere.
               </p>
             </>
           )}
@@ -31,7 +31,7 @@ export function Territory({ lang }: { lang: 'ar' | 'en' }) {
           <p>This is to certify that</p>
           <div className="nm">Falcon Eye Ltd.</div>
           <p>is the official licensed partner for</p>
-          <h4 style={{ textAlign: 'center', marginTop: '4px', fontSize: '15px' }}>RIYADH</h4>
+          <h4 style={{ textAlign: 'center', marginTop: '4px', fontSize: '15px' }}>SAUDI ARABIA</h4>
           <div className="foot2">
             <span>ISSUED: 2024</span>
             <span>LIC: 4030388340</span>

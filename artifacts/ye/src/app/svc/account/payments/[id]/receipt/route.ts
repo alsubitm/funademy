@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         amount: 'المبلغ (ريال)', subtotal: 'الإجمالي قبل الخصم', discount: 'الخصم',
         total: 'الإجمالي المدفوع', simulated: 'دفعة تجريبية — لم يتم خصم مبلغ حقيقي',
         kind: { enrollment: 'تسجيل جديد', renewal: 'تجديد اشتراك' } as Record<string, string>,
-        print: 'طباعة / حفظ PDF', brand: 'FunAdemy — e² Young Engineers الرياض',
+        print: 'طباعة / حفظ PDF', brand: 'FunAdemy — e² Young Engineers',
         refunded: 'تم استرجاع مبلغ هذه الدفعة بالكامل إلى وسيلة الدفع الأصلية',
       }
     : {
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         amount: 'Amount (SAR)', subtotal: 'Subtotal', discount: 'Discount',
         total: 'Total paid', simulated: 'Simulated payment — no real charge was made',
         kind: { enrollment: 'New enrollment', renewal: 'Subscription renewal' } as Record<string, string>,
-        print: 'Print / Save PDF', brand: 'FunAdemy — e² Young Engineers Riyadh',
+        print: 'Print / Save PDF', brand: 'FunAdemy — e² Young Engineers',
         refunded: 'This payment has been fully refunded to the original payment method',
       };
   const providers: Record<string, string> = {
