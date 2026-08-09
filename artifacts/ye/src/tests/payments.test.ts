@@ -580,6 +580,8 @@ describe('stale payment sweep', () => {
 // ────────────────────────────────────────────────────────────
 // Webhook security: authentication + provider binding
 // ────────────────────────────────────────────────────────────
+import { createHmac as nodeCreateHmac } from 'crypto';
+
 describe('webhook security', () => {
   // Import webhook handlers inline so their module reads updated env vars.
   // We import after vi.mock('next/headers') is already in effect.
@@ -620,17 +622,22 @@ describe('webhook security', () => {
     expect(res.status).toBe(503);
   });
 
-  it('Moyasar webhook: 401 with wrong or missing signature', async () => {
+  it('Moyasar webhook: 401 with wrong or missing secret_token', async () => {
     process.env.MOYASAR_WEBHOOK_SECRET = 'correct-secret';
-    const body = { data: { id: 'inv_123', metadata: { order_ref: '999' } } };
+    const data = { id: 'inv_123', metadata: { order_ref: '999' } };
 
-    // No signature header
-    const res1 = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', body));
+    // No secret_token in payload
+    const res1 = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', { data }));
     expect(res1.status).toBe(401);
 
-    // Wrong signature
-    const res2 = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', body, { 'x-moyasar-signature': 'deadbeef' }));
+    // Wrong secret_token
+    const res2 = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', { secret_token: 'wrong-secret', data }));
     expect(res2.status).toBe(401);
+
+    // Correct secret_token passes auth (unknown payment → 200 payment_not_found)
+    const res3 = await moyasarWebhook(webhookReq('/svc/pay/webhook/moyasar', { secret_token: 'correct-secret', data: { id: 'inv_unknown' } }));
+    expect(res3.status).toBe(200);
+    expect((await res3.json()).note).toBe('payment_not_found');
   });
 
   it('Tamara webhook: 503 when TAMARA_NOTIFICATION_TOKEN is not configured', async () => {
@@ -639,19 +646,50 @@ describe('webhook security', () => {
     expect(res.status).toBe(503);
   });
 
-  it('Tamara webhook: 401 with wrong or missing signature', async () => {
+  function makeTamaraJwt(secret: string, payload: Record<string, unknown> = { iss: 'Tamara' }) {
+    const b64u = (b: Buffer) => b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const h = b64u(Buffer.from(JSON.stringify({ typ: 'JWT', alg: 'HS256' })));
+    const p = b64u(Buffer.from(JSON.stringify(payload)));
+    const sig = b64u(nodeCreateHmac('sha256', secret).update(`${h}.${p}`).digest());
+    return `${h}.${p}.${sig}`;
+  }
+
+  it('Tamara webhook: 401 with wrong or missing tamaraToken JWT', async () => {
     process.env.TAMARA_NOTIFICATION_TOKEN = 'correct-token';
     const body = { order_id: 'tamara-order-123', order_reference_id: '999' };
 
+    // No token at all
     const res1 = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', body));
     expect(res1.status).toBe(401);
 
-    const res2 = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', body, { 'tamara-signature': 'deadbeef' }));
+    // JWT signed with the wrong secret
+    const badJwt = makeTamaraJwt('wrong-token');
+    const res2 = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', body, { authorization: `Bearer ${badJwt}` }));
     expect(res2.status).toBe(401);
+
+    // Expired JWT signed with the correct secret
+    const expiredJwt = makeTamaraJwt('correct-token', { iss: 'Tamara', exp: Math.floor(Date.now() / 1000) - 60 });
+    const res3 = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', body, { authorization: `Bearer ${expiredJwt}` }));
+    expect(res3.status).toBe(401);
+
+    // Valid JWT in Authorization header passes auth (unknown payment → 200)
+    const goodJwt = makeTamaraJwt('correct-token', { iss: 'Tamara', exp: Math.floor(Date.now() / 1000) + 900 });
+    const res4 = await tamaraWebhook(webhookReq('/svc/pay/webhook/tamara', { order_id: 'no-such-order' }, { authorization: `Bearer ${goodJwt}` }));
+    expect(res4.status).toBe(200);
+    expect((await res4.json()).note).toBe('payment_not_found');
+
+    // Valid JWT via ?tamaraToken= query param also passes auth
+    const res5 = await tamaraWebhook(
+      new NextRequest(`http://test.local/svc/pay/webhook/tamara?tamaraToken=${goodJwt}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ order_id: 'no-such-order' }),
+      }),
+    );
+    expect(res5.status).toBe(200);
   });
 
   it('Moyasar webhook cannot finalize a Tamara payment (cross-provider injection)', async () => {
-    const { createHmac } = await import('crypto');
     process.env.MOYASAR_WEBHOOK_SECRET = 'correct-secret';
 
     // Create a Tamara payment in 'initiated' state.
@@ -672,15 +710,13 @@ describe('webhook security', () => {
     });
 
     // Attacker sends a Moyasar webhook with the Tamara payment's numeric ID as order_ref.
-    const body = { data: { id: 'inv_fake', metadata: { order_ref: String(tamaraPayment.id) } } };
-    const rawBody = JSON.stringify(body);
-    const sig = createHmac('sha256', 'correct-secret').update(rawBody).digest('hex');
+    const body = { secret_token: 'correct-secret', data: { id: 'inv_fake', metadata: { order_ref: String(tamaraPayment.id) } } };
 
     const res = await moyasarWebhook(
       new NextRequest('http://test.local/svc/pay/webhook/moyasar', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-moyasar-signature': sig },
-        body: rawBody,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
       }),
     );
     expect(res.status).toBe(200);

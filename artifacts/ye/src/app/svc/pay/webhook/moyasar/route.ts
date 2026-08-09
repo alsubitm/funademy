@@ -13,7 +13,9 @@ export const dynamic = 'force-dynamic';
  * SECURITY
  * --------
  * - Fails closed (503) when MOYASAR_WEBHOOK_SECRET is not configured.
- * - Validates Moyasar's HMAC signature before doing anything.
+ * - Verifies the `secret_token` field Moyasar includes in every webhook
+ *   payload (per https://docs.moyasar.com/api/other/webhooks/webhook-reference)
+ *   against MOYASAR_WEBHOOK_SECRET using a timing-safe comparison.
  * - Lookup is restricted to Moyasar providers to prevent cross-provider
  *   injection attacks (e.g. a Tamara webhook supplying a Moyasar payment ID).
  *
@@ -23,15 +25,12 @@ export const dynamic = 'force-dynamic';
 
 const MOYASAR_PROVIDERS: string[] = ['moyasar_mada', 'moyasar_applepay', 'moyasar_stcpay'];
 
-/** Verify Moyasar HMAC-SHA256 signature (header: X-Moyasar-Signature). */
-function verifyMoyasarSignature(secret: string, rawBody: string, header: string | null): boolean {
-  if (!header) return false;
-  const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-  try {
-    return timingSafeEqual(Buffer.from(header), Buffer.from(expected));
-  } catch {
-    return false;
-  }
+/** Timing-safe comparison of the payload's secret_token with our secret. */
+function verifySecretToken(secret: string, provided: unknown): boolean {
+  if (typeof provided !== 'string' || provided.length === 0) return false;
+  const a = createHmac('sha256', 'cmp').update(provided).digest();
+  const b = createHmac('sha256', 'cmp').update(secret).digest();
+  return timingSafeEqual(a, b);
 }
 
 export async function POST(req: NextRequest) {
@@ -42,16 +41,16 @@ export async function POST(req: NextRequest) {
   }
 
   const rawBody = await req.text();
-  const signature = req.headers.get('x-moyasar-signature');
-  if (!verifyMoyasarSignature(secret, rawBody, signature)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
 
   let body: Record<string, unknown>;
   try {
     body = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
+  }
+
+  if (!verifySecretToken(secret, body.secret_token)) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
   const data = (body.data ?? {}) as Record<string, unknown>;

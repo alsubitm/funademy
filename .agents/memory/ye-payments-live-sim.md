@@ -17,3 +17,9 @@ Providers auto-switch to live by secret presence: Moyasar when `MOYASAR_SECRET_K
 
 ## Refunds (admin)
 Provider refunds are external financial ops: claim `paid → refunding` atomically (guarded updateMany) BEFORE calling the provider so concurrent requests can't duplicate the refund. Classify failures — definitive pre-execution rejections (4xx, lookup failures) roll back to `paid`; ambiguous outcomes (timeout/5xx/lost response) reconcile by re-reading provider state, and if still unknown stay `refunding` (fail closed, manual reconciliation) — never auto-retry an unknown refund.
+
+## Webhook verification schemes (per official docs — do not "generalize" to HMAC headers)
+- Moyasar does NOT sign webhooks with an HMAC header: every payload carries a `secret_token` field to compare (timing-safe) against MOYASAR_WEBHOOK_SECRET.
+- Tamara sends a JWT `tamaraToken` (HS256, signed with the notification token) in `Authorization: Bearer` and/or `?tamaraToken=` query param — verify sig + alg pin + exp; no body HMAC.
+**Why:** initial implementation assumed body-HMAC headers for both; real production webhooks would all have been 401-rejected.
+**How to apply:** any new payment provider webhook — check the provider's actual notification-auth spec before coding; never assume a signature header convention.
