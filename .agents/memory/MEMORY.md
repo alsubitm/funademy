@@ -4,4 +4,5 @@
 - [YE test DB isolation](ye-tests-isolation.md) — vitest suites must use the fail-closed ye_test DB pattern; validation registration can hijack the .replit Project workflow.
 - [YE payments live/sim switching](ye-payments-live-sim.md) — providers go live purely by secret presence; settlement re-verifies via provider API, never trusts redirects; seats release on failure.
 - [YE appointments & Google Calendar](ye-appointments-gcal.md) — consultKey unique claim before Meet creation; one event per class occurrence; connector invites replace email provider.
+- [Manara live-sessions platform](manara-live-sessions.md) — sessions feature = api-server /api/sessions + Manara UI (not YE); generated orval/zod clients, URL sanitization in routes.
 - [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages only the "ye" schema (db push drops undeclared tables!); /api owned by api-server, YE uses /svc; shared brick counter via raw SQL.

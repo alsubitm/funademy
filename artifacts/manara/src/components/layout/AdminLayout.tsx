@@ -1,7 +1,7 @@
 import React from 'react';
 import { useGetMe, logout } from '@workspace/api-client-react';
 import { Link, useLocation, useRoute } from 'wouter';
-import { LayoutDashboard, Users, BookOpen, FileText, LogOut, Search } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, FileText, LogOut, Search, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function NavItem({ href, icon: Icon, label }: { href: string; icon: any; label: string }) {
@@ -37,6 +37,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: '/admin', icon: LayoutDashboard, label: 'Overview' },
     { href: '/admin/users', icon: Users, label: 'Parents & Users' },
     { href: '/admin/curriculum', icon: BookOpen, label: 'Curriculum Manager' },
+    { href: '/admin/sessions', icon: Video, label: 'الجلسات المباشرة' },
     { href: '/admin/blog', icon: FileText, label: 'Blog CMS' },
   ];
 

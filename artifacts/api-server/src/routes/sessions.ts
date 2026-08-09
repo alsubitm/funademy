@@ -54,6 +54,20 @@ const CANCEL_CUTOFF_MS = 2 * 3600_000;
 const JOIN_REVEAL_MS = 15 * 60_000;
 const PACKAGE_PRICE_PER_CREDIT_SAR = 40;
 
+/** Only allow http(s) URLs for meeting links & materials (blocks javascript:, data:, etc.). */
+function sanitizeExternalUrl(raw: string | null | undefined): string | null {
+  if (raw === null || raw === undefined) return null;
+  const trimmed = raw.trim();
+  if (trimmed === "") return "";
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol === "http:" || u.protocol === "https:") return trimmed;
+  } catch {
+    /* not a valid absolute URL */
+  }
+  return null;
+}
+
 function intParam(raw: unknown): number {
   const v = Array.isArray(raw) ? raw[0] : raw;
   return parseInt(String(v), 10);
@@ -500,6 +514,11 @@ router.post(
       res.status(400).json({ message: "المعلّم المحدد غير موجود أو ليس من الطاقم" });
       return;
     }
+    const meetingLink = sanitizeExternalUrl(d.meetingLink ?? "");
+    if (meetingLink === null) {
+      res.status(400).json({ message: "رابط الاجتماع غير صالح — يجب أن يبدأ بـ https://" });
+      return;
+    }
     const [session] = await db
       .insert(liveSessionsTable)
       .values({
@@ -513,7 +532,7 @@ router.post(
         capacity: d.capacity ?? 10,
         priceSar: d.priceSar ?? null,
         includedInSubscription: d.includedInSubscription ?? false,
-        meetingLink: d.meetingLink ?? "",
+        meetingLink,
       })
       .returning();
     res.status(201).json(serializeSession(session!, 0));
@@ -591,7 +610,14 @@ router.patch(
     if (d.priceSar !== undefined) set["priceSar"] = d.priceSar;
     if (d.includedInSubscription !== undefined)
       set["includedInSubscription"] = d.includedInSubscription;
-    if (d.meetingLink !== undefined) set["meetingLink"] = d.meetingLink;
+    if (d.meetingLink !== undefined) {
+      const meetingLink = sanitizeExternalUrl(d.meetingLink);
+      if (meetingLink === null) {
+        res.status(400).json({ message: "رابط الاجتماع غير صالح — يجب أن يبدأ بـ https://" });
+        return;
+      }
+      set["meetingLink"] = meetingLink;
+    }
     if (d.status !== undefined) set["status"] = d.status;
     if (Object.keys(set).length === 0) {
       res.status(400).json({ message: "لا توجد تعديلات" });
@@ -1099,13 +1125,18 @@ router.post(
       res.status(400).json({ message: "بيانات غير صالحة" });
       return;
     }
+    const materialUrl = sanitizeExternalUrl(parsed.data.url ?? null);
+    if (materialUrl === null && parsed.data.url != null && parsed.data.url.trim() !== "") {
+      res.status(400).json({ message: "رابط المادة غير صالح — يجب أن يبدأ بـ https://" });
+      return;
+    }
     const [material] = await db
       .insert(sessionMaterialsTable)
       .values({
         sessionId: session.id,
         kind: parsed.data.kind ?? "link",
         title: parsed.data.title,
-        url: parsed.data.url ?? null,
+        url: materialUrl === "" ? null : materialUrl,
         content: parsed.data.content ?? null,
         createdById: req.auth!.user.id,
       })

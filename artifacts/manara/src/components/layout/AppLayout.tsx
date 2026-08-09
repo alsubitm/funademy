@@ -2,7 +2,7 @@ import React from 'react';
 import { useI18n } from '@/lib/i18n';
 import { useGetMe, logout, useResendVerification } from '@workspace/api-client-react';
 import { Link, useLocation, useRoute } from 'wouter';
-import { Users, CreditCard, Settings, LogOut, LayoutDashboard, Menu, X, BookOpen, PlaySquare, AlertCircle } from 'lucide-react';
+import { Users, CreditCard, Settings, LogOut, LayoutDashboard, Menu, X, BookOpen, PlaySquare, AlertCircle, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -69,6 +69,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: '/app', icon: LayoutDashboard, label: t('لوحة التحكم', 'Dashboard') },
     { href: '/app/children', icon: Users, label: t('الأبناء', 'Children') },
+    { href: '/app/sessions', icon: Video, label: t('الجلسات المباشرة', 'Live Sessions') },
     { href: '/app/subscription', icon: CreditCard, label: t('الاشتراك', 'Subscription') },
     { href: '/app/settings', icon: Settings, label: t('الإعدادات', 'Settings') },
   ];

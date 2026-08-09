@@ -37,6 +37,9 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { KidLayout } from '@/components/layout/KidLayout';
 
 import VerifyEmail from '@/pages/VerifyEmail';
+import Sessions from '@/pages/Sessions';
+import SessionDetail from '@/pages/SessionDetail';
+import AdminSessions from '@/pages/AdminSessions';
 
 // Placeholder Pages
 const Placeholder = ({ title }: { title: string }) => (
@@ -65,6 +68,8 @@ function App() {
                   <Route path="/app" component={ParentDashboard} />
                   <Route path="/app/children" component={ChildProfiles} />
                   <Route path="/app/children/:id" component={ChildReport} />
+                  <Route path="/app/sessions" component={Sessions} />
+                  <Route path="/app/sessions/:id" component={SessionDetail} />
                   <Route path="/app/subscription" component={Subscription} />
                   <Route path="/app/settings" component={Settings} />
                   <Route path="/app/profiles" component={ProfilePicker} />
@@ -84,6 +89,7 @@ function App() {
                 <Switch>
                   <Route path="/admin" component={AdminDashboard} />
                   <Route path="/admin/users" component={AdminUsers} />
+                  <Route path="/admin/sessions" component={AdminSessions} />
                   <Route path="/admin/curriculum" component={AdminCurriculum} />
                   <Route path="/admin/blog" component={AdminBlog} />
                   <Route component={NotFound} />
