@@ -1,21 +1,24 @@
 ---
 name: Single-site consolidation (Funademy)
-description: All development happens in artifacts/ye only; other artifacts ported then deleted — rules and status.
+description: All development happens in artifacts/ye only; consolidation finished Aug 2026 — rules, final state, deletion mechanics.
 ---
 
 ## Rule
-All feature work goes into `artifacts/ye` (Funademy — e² Young Engineers Riyadh). Do not build new features in Manara or api-server.
+All feature work goes into `artifacts/ye` (Funademy — e² Young Engineers Riyadh). It is the only artifact/package in the workspace.
 
-**Why:** explicit user directive (Aug 2026): one consolidated site; everything else gets ported into it and deleted.
+**Why:** explicit user directive (Aug 2026): one consolidated site; everything else was ported into it and deleted.
 
-**How to apply:** any new request → implement in YE, even if an equivalent exists in Manara. Manara/api-server code is reference material for ports.
+**How to apply:** any new request → implement in YE with its own stack (Next.js App Router, Prisma `ye` schema, `/svc/*` routes, SMS-OTP family auth).
 
-## Status (Aug 2026)
-- Deleted: `artifacts/watanona`, `artifacts/funademy-ds`, `artifacts/mockup-sandbox`. No separate design system exists anymore — YE's own CSS is the styling source of truth.
-- Ported already: watanona `/track` campaign stats → YE admin («المكعبات» tab) via `/svc/admin/campaign-stats` (raw-SQL merge of `ye.ye_brick_events` + legacy `public.campaign_brick_events`, goal from `public.campaign_counters` key `watan-goal`).
-- Pending ports (follow-up tasks filed): kids learning platform + curriculum, blog. After both land: delete `artifacts/manara` + `artifacts/api-server` (+ then-unused lib/api-* packages). Keep `public.campaign_counters` / `public.campaign_brick_events` — YE reads them via raw SQL.
-- Port features, NOT data: Manara accounts/bookings (email/password, drizzle `public`) are incompatible with YE (family SMS-OTP, Prisma `ye`); user informed.
+## Final state (consolidation COMPLETE, Aug 2026)
+- Deleted: `artifacts/manara`, `artifacts/api-server`, `lib/api-spec`, `lib/api-client-react`, `lib/api-zod`, `lib/db` (drizzle), and earlier `watanona`, `funademy-ds`, `mockup-sandbox`. Recover any of it from git history only.
+- Ports that landed in YE before deletion: kids learning platform (`/learn` + `/svc/learn` + curriculum admin), blog (`/blog` + `/svc/admin/blog`), campaign stats dashboard (admin «المكعبات»).
+- The api-server live-sessions backend (`/api/sessions`: booking, packages, waitlist, join gating + 39-assertion flow test) was deleted WITHOUT a YE port — if a sessions-booking task arrives, rebuild on YE's stack; the deleted implementation is reference material in git history (commits titled "Funademy live-sessions backend" / "session management components").
+- Features were ported, NOT data: Manara accounts/bookings (email/password, drizzle `public` schema) were never migrated into YE (family SMS-OTP, Prisma `ye` schema).
+- DB: orphaned Manara tables remain in the `public` schema. YE uses only `public.campaign_counters` + `public.campaign_brick_events` via raw SQL — keep those two; never declare `public` tables in `schema.prisma`.
+- `scripts/post-merge.sh` now runs `pnpm install --frozen-lockfile` + `pnpm --filter @workspace/ye run db:push` (the old `--filter db` drizzle push died with lib/db).
 
 ## Mechanics learned
-- Deleting an artifact = stop nothing, just `rm -rf artifacts/<dir>` + `pnpm install`; the platform auto-deregisters the artifact and removes its managed workflow.
+- Deleting an artifact = just `rm -rf artifacts/<dir>` + `pnpm install`; the platform auto-deregisters the artifact and removes its managed workflow. Deleted artifacts can leave untracked `node_modules` husks behind — rm those too.
+- After merging tasks that add Prisma models, the local dev DB still needs `db:push` + `db:seed` (tests pass regardless — they use the isolated `ye_test` DB); a 500 on the new pages is the symptom.
 - Portal login for testing: `POST /svc/account/otp` returns `devCode` in dev; verify sets `ye_family` cookie (non-Secure in dev, so plain `http://localhost` curl works). Student tables use camelCase quoted columns (`"familyId"`) in raw SQL.

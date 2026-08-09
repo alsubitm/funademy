@@ -1,10 +1,9 @@
-- [Single-site consolidation](site-consolidation.md) — all dev in artifacts/ye ONLY; manara+api-server are reference until learning/blog ports land, then delete; watanona+design tools already gone.
-- [Schema changes flow](schema-changes-flow.md) — no migration files; drizzle push in dev, Replit Publish diffs schema to prod automatically.
+- [Single-site consolidation](site-consolidation.md) — COMPLETE: ye is the ONLY artifact; manara/api-server/lib/* deleted (git history has them); keep public.campaign_* tables (YE raw SQL).
+- [Schema changes flow](schema-changes-flow.md) — no migration files; prisma db push (ye schema) in dev, Replit Publish diffs schema to prod automatically.
 - [Booking/payment review bar](booking-payment-review-bar.md) — capacity/money endpoints need FOR UPDATE transactions, conditional credit updates, provider-gated charges/refunds with persisted refs.
 - [YE global CSS element selectors leak](ye-global-css-leaks.md) — globals.css `nav{top:0;sticky}` leaks into all pages; reset `top:auto` on any non-header nav (broke admin bottom nav).
 - [YE test DB isolation](ye-tests-isolation.md) — vitest suites must use the fail-closed ye_test DB pattern; validation registration can hijack the .replit Project workflow.
 - [YE payments live/sim switching](ye-payments-live-sim.md) — providers go live purely by secret presence; settlement re-verifies via provider API, never trusts redirects; seats release on failure.
 - [YE appointments & Google Calendar](ye-appointments-gcal.md) — consultKey unique claim before Meet creation; one event per class occurrence; connector invites replace email provider.
-- [Manara live-sessions platform](manara-live-sessions.md) — sessions feature = api-server /api/sessions + Manara UI (not YE); generated orval/zod clients, URL sanitization in routes.
 - [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages only the "ye" schema (db push drops undeclared tables!); /api owned by api-server, YE uses /svc; shared brick counter via raw SQL.
 - [YE learning platform](ye-learning-platform.md) — kids learning (XP/badges/streaks/PIN) ported from Manara; access = active enrollment; kid session = ye_kid cookie; admin CurriculumTab in AdminDashboard.
