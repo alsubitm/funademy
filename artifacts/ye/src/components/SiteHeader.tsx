@@ -25,9 +25,6 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
           <Link href={lang === 'ar' ? '/' : '/en'} className="brand">
             <FlipMark size={42} />
             <Wordmark lang={lang} style={{ fontSize: 26, lineHeight: 1 }} />
-            <div className="ter">
-              {lang === 'ar' ? 'أونلاين' : 'Online'}
-            </div>
             <YELogo height={28} className="opacity-70 hover:opacity-100 transition-opacity" />
           </Link>
           <div className="links">
