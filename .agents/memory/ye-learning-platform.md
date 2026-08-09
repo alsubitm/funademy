@@ -26,3 +26,6 @@ Only `multiple_choice`, `fill_blank`, and `picture_select` are seeded. The `matc
 
 ## Kid profile model
 `LrnChild` is standalone — linked to `Family`, not to `Student`. Access gating is family-level.
+
+## Content source for seeding
+`ye_lrn_*` content tables started EMPTY. The old Manara curriculum (4 subjects, 12 units, 48 lessons, 240 exercises) is preserved PII-free in `backups/manara-learning-content-2026-08-09.sql` (old `public.subjects/units/lessons/exercises` shape — needs mapping into the `ye_lrn_*` schema when importing). The orphan Manara/live-sessions tables themselves were dropped from the dev DB Aug 9, 2026; never re-create them.

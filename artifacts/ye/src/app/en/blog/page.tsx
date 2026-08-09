@@ -1,4 +1,5 @@
-export const revalidate = 300;
+// Rendered at request time: build servers must not depend on DB state.
+export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
 import { BlogList } from '@/components/blog/BlogList';
 
