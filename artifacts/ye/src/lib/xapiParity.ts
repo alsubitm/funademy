@@ -174,6 +174,22 @@ export function statementMatchesWizardExample(s: unknown): boolean {
 }
 
 /**
+ * Read-back 401 classifier: NELC's LRS credentials for this platform are
+ * WRITE-ONLY — a GET /statements answers HTTP 401 with a body like
+ * `{"message":"The provided user account does not have read permissions"}`
+ * even though POSTs from the same account succeed (observed 2026-08-10:
+ * a 10/10 delivered journey and this 401 within the same minute). This is a
+ * PERMISSION SCOPE limitation, not a delivery failure, so the self-check UI
+ * must show it as an informational state, never a scary error. Anything else
+ * (bad credentials 401, 403 geo-block, 5xx, network) stays a real error.
+ * Browser-safe and shared with the tests, like the rest of this module.
+ */
+export function isLrsReadDenied(httpStatus: number | null, body: string): boolean {
+  if (httpStatus !== 401) return false;
+  return /read\s+permission/i.test(body || '');
+}
+
+/**
  * Which journey steps are still missing from a set of (example-parity)
  * statements' verb IRIs, as a required MULTISET — one complete journey needs
  * `completed` three times (lesson/unit/course) and every other verb once.

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-import { missingJourneySteps, statementMatchesWizardExample } from '@/lib/xapiParity';
+import { isLrsReadDenied, missingJourneySteps, statementMatchesWizardExample } from '@/lib/xapiParity';
 
 /**
  * Admin «نيلك» tab — fires the NELC LRS test journey (wizard step 2:
@@ -116,6 +116,14 @@ type CheckState = {
   hasMore: boolean;
   environment: string;
   detail: string;
+  /**
+   * HTTP 401 whose body says the LRS account lacks READ permission — NELC's
+   * credentials for this platform are write-only. NOT a delivery failure:
+   * shown as a calm informational state with a local delivery receipt
+   * instead of an error (real errors — bad credentials, geo-block 403,
+   * 5xx, network — keep readDenied=false and stay errors).
+   */
+  readDenied: boolean;
 };
 
 /** Error messages shared by the prepare (send) and check (read-back) calls. */
@@ -129,15 +137,21 @@ const PREP_ERRORS: Record<string, string> = {
 /** Parse the summary JSON stored in a self_check audit row's response. */
 const parseCheckSummary = (
   response: string | null,
-): { matched: number; parityMatched?: number; verbs: string[] } | null => {
+): { matched: number; parityMatched?: number; verbs: string[]; detail: string } | null => {
   if (!response) return null;
   try {
-    const j = JSON.parse(response) as { matched?: unknown; parityMatched?: unknown; verbs?: unknown };
+    const j = JSON.parse(response) as {
+      matched?: unknown;
+      parityMatched?: unknown;
+      verbs?: unknown;
+      detail?: unknown;
+    };
     if (typeof j.matched !== 'number') return null;
     return {
       matched: j.matched,
       parityMatched: typeof j.parityMatched === 'number' ? j.parityMatched : undefined,
       verbs: Array.isArray(j.verbs) ? j.verbs.map(String) : [],
+      detail: typeof j.detail === 'string' ? j.detail : '',
     };
   } catch {
     return null;
@@ -324,7 +338,7 @@ export function NelcTab() {
       //    (same geo-block reason as sending — the owner is inside Saudi Arabia).
       setLastCheck({
         pending: true, ok: false, httpStatus: null, matched: 0, parityMatched: 0, verbs: [],
-        missingSteps: [], hasMore: false, environment, detail: '',
+        missingSteps: [], hasMore: false, environment, detail: '', readDenied: false,
       });
       let ok = false;
       let httpStatus: number | null = null;
@@ -334,6 +348,7 @@ export function NelcTab() {
       let missingSteps: string[] = [];
       let hasMore = false;
       let detail = '';
+      let readDenied = false;
       try {
         const res = await fetch(url, {
           headers: { 'X-Experience-API-Version': '1.0.3', Authorization: authorization },
@@ -368,11 +383,15 @@ export function NelcTab() {
           }
         } else {
           detail = text.slice(0, 800);
+          // Write-only credentials: NELC blocks READS for our send account.
+          // Not a delivery failure — flagged so the UI shows a calm
+          // informational state + a local delivery receipt instead of an error.
+          readDenied = isLrsReadDenied(httpStatus, text);
         }
       } catch (e) {
         detail = `browser_network_or_cors: ${e instanceof Error ? e.message : 'failed'}`;
       }
-      setLastCheck({ pending: false, ok, httpStatus, matched, parityMatched, verbs, missingSteps, hasMore, environment, detail });
+      setLastCheck({ pending: false, ok, httpStatus, matched, parityMatched, verbs, missingSteps, hasMore, environment, detail, readDenied });
 
       // 3) Record ONE distinguishable audit row for the permanent log.
       const rec = await fetch('/svc/admin/nelc', {
@@ -406,6 +425,14 @@ export function NelcTab() {
     if (g) g.rows.push(row);
     else groups.push({ runId: row.runId, rows: [row] });
   }
+
+  // Local «delivery receipt» for the read-denied state: the latest SEND batch
+  // (never a self_check row) from our own audit log — statement count, verbs,
+  // NELC statement ids, time and HTTP statuses. Shown when NELC's write-only
+  // credentials block the read-back, as proof the sends themselves succeeded.
+  const receiptGroup = groups.find((g) => g.rows[0]?.verb !== 'self_check') ?? null;
+  const receiptRows = receiptGroup ? [...receiptGroup.rows].reverse() : [];
+  const receiptAllOk = receiptRows.length > 0 && receiptRows.every((r) => r.ok);
 
   return (
     <div className="space-y-6">
@@ -568,6 +595,58 @@ export function NelcTab() {
                 </div>
               )}
             </div>
+          ) : lastCheck.readDenied ? (
+            /* Write-only credentials: NOT a failure — calm informational state
+               + a local delivery receipt from our own audit log. */
+            <div className="bg-[#F0F5FF] border border-[#1C54CB]/25 rounded-xl px-4 py-3 space-y-3">
+              <div className="text-sm font-bold text-[#1C54CB] leading-relaxed">
+                ℹ نيلك تمنع القراءة لحساب الإرسال — هذا لا يعني فشل الإرسال.
+              </div>
+              <p className="text-sm text-[#5F6B92] leading-relaxed">
+                بيانات اعتماد نيلك لمنصتنا صلاحيتها «إرسال فقط»: أي محاولة قراءة تُرفض
+                (HTTP 401) حتى عندما يكون الإرسال ناجحاً بالكامل. للتأكد من التسليم اعتمد على
+                إيصال التسليم أدناه من سجلاتنا، ثم على «بدء الاختبار» في معالج نيلك — وهو
+                التأكيد الرسمي.
+              </p>
+              {receiptGroup ? (
+                <div className="bg-white border border-[#DFE5F2] rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="text-sm font-bold text-[#101A38]">
+                      إيصال تسليم من سجلاتنا — آخر دفعة إرسال
+                    </div>
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        receiptAllOk
+                          ? 'bg-[rgba(34,218,255,0.15)] text-[#0e7a94]'
+                          : 'bg-[rgba(255,202,23,0.2)] text-[#8a6d00]'
+                      }`}
+                    >
+                      {receiptRows.filter((r) => r.ok).length}/{receiptRows.length} عبارة مقبولة
+                    </span>
+                  </div>
+                  <div className="text-xs text-[#5F6B92] font-mono" dir="ltr">
+                    {fmtDateTime(receiptRows[0].createdAt)} · ID: {receiptRows[0].nationalId} · {receiptRows[0].courseIri}
+                  </div>
+                  <div className="space-y-1">
+                    {receiptRows.map((r) => (
+                      <div key={r.id} className="flex items-center justify-between gap-2 border-t border-[#F0F5FF] pt-1">
+                        <div className="text-xs text-[#101A38]">{VERB_AR[r.verb] ?? r.verb}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-[#5F6B92] break-all" dir="ltr">
+                            {r.statementId}
+                          </span>
+                          <StatusChip ok={r.ok} httpStatus={r.httpStatus} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-[#5F6B92]">
+                  لا توجد دفعة إرسال في سجلاتنا بعد — أرسل رحلة الاختبار أولاً ثم عد إلى هنا.
+                </div>
+              )}
+            </div>
           ) : (
             <div className="bg-[#FDECEC] border border-[#B3261E]/30 rounded-xl px-4 py-3 text-sm text-[#B3261E] leading-relaxed">
               <span className="font-bold" >
@@ -699,6 +778,14 @@ export function NelcTab() {
                           ✓ فحص ذاتي: {checkInfo
                             ? `${checkInfo.matched} عبارة${typeof checkInfo.parityMatched === 'number' ? ` (${checkInfo.parityMatched} مطابقة للمثال)` : ''}`
                             : 'تم'}
+                        </span>
+                      ) : isLrsReadDenied(head.httpStatus, checkInfo?.detail ?? '') ? (
+                        /* Write-only credentials — informational, not a failure. */
+                        <span
+                          className="text-xs font-bold px-3 py-1 rounded-full bg-[#F0F5FF] text-[#1C54CB]"
+                          title="نيلك تمنع القراءة لحساب الإرسال — هذا لا يعني فشل الإرسال"
+                        >
+                          ℹ فحص ذاتي: القراءة محجوبة من نيلك
                         </span>
                       ) : (
                         <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#FDECEC] text-[#B3261E]">✗ فحص ذاتي فشل</span>

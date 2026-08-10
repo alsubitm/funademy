@@ -29,7 +29,7 @@ import {
   lrsConfigured,
   lrsStatementsQueryUrl,
 } from '@/lib/xapi';
-import { missingJourneySteps, statementMatchesWizardExample } from '@/lib/xapiParity';
+import { isLrsReadDenied, missingJourneySteps, statementMatchesWizardExample } from '@/lib/xapiParity';
 import { GET as nelcGET, POST as nelcPOST } from '@/app/svc/admin/nelc/route';
 
 const fetchMock = vi.fn();
@@ -345,6 +345,33 @@ describe('self-check parity classifier (statementMatchesWizardExample)', () => {
     expect(missingJourneySteps(swapped)).toEqual(['completed ×3']);
     // empty ⇒ all 8 distinct journey verb IRIs reported missing
     expect(missingJourneySteps([])).toHaveLength(8);
+  });
+});
+
+// NELC's LRS credentials for this platform are WRITE-ONLY: GET /statements
+// answers 401 «does not have read permissions» even though POSTs succeed
+// (observed 2026-08-10 — a delivered 10/10 journey and this 401 in the same
+// minute). The self-check must classify EXACTLY that case as informational
+// (not a failure); every other error stays a real error.
+describe('isLrsReadDenied — write-only credential classifier', () => {
+  const NELC_BODY = '{"message":"The provided user account does not have read permissions"}';
+
+  it('recognizes the NELC read-permission 401 (exact recorded body)', () => {
+    expect(isLrsReadDenied(401, NELC_BODY)).toBe(true);
+    // tolerant of whitespace/case variations of the same message
+    expect(isLrsReadDenied(401, 'no READ Permissions for this account')).toBe(true);
+  });
+
+  it('keeps every other error a real error', () => {
+    // 401 for a different reason (bad credentials) is NOT read-denied
+    expect(isLrsReadDenied(401, '{"message":"Invalid credentials"}')).toBe(false);
+    expect(isLrsReadDenied(401, '')).toBe(false);
+    // geo-block / server errors / network failures are never read-denied
+    expect(isLrsReadDenied(403, NELC_BODY)).toBe(false);
+    expect(isLrsReadDenied(500, NELC_BODY)).toBe(false);
+    expect(isLrsReadDenied(null, NELC_BODY)).toBe(false);
+    // success is obviously not read-denied
+    expect(isLrsReadDenied(200, '')).toBe(false);
   });
 });
 
@@ -846,6 +873,39 @@ describe('POST /svc/admin/nelc — self-check read-back (check/record_check)', (
     expect(rows[0].ok).toBe(false);
     expect(rows[0].httpStatus).toBeNull();
     expect(rows[0].response).toContain('browser_network_or_cors');
+  });
+
+  it('record_check stores the read-denied 401 with its detail, recognizable by the classifier', async () => {
+    stubLrsEnv();
+    const prep = await (
+      await nelcPOST(
+        postReq({ action: 'check', password: 'test-admin-pass', nationalId: '5555555555', courseIri: 'https://funademy.io/course/CR001' }),
+      )
+    ).json();
+    const detail = '{"message":"The provided user account does not have read permissions"}';
+    const res = await nelcPOST(
+      postReq({
+        action: 'record_check',
+        checkId: prep.checkId,
+        ok: false,
+        httpStatus: 401,
+        matched: 0,
+        parityMatched: 0,
+        verbs: [],
+        missingSteps: [],
+        detail,
+      }),
+    );
+    expect(res.status).toBe(200);
+    const rows = await prisma.xapiStatement.findMany({ where: { runId: prep.checkId } });
+    expect(rows).toHaveLength(1);
+    // stored honestly as a non-ok read…
+    expect(rows[0].ok).toBe(false);
+    expect(rows[0].httpStatus).toBe(401);
+    // …with the detail in the summary JSON, so the log UI can re-classify the
+    // row as informational (write-only credentials) instead of a failure
+    const summary = JSON.parse(rows[0].response!);
+    expect(isLrsReadDenied(rows[0].httpStatus, summary.detail)).toBe(true);
   });
 
   it('record_check refuses unknown/journey/tampered/expired payloads (and record refuses check runs)', async () => {
