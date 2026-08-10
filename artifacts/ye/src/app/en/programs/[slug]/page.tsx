@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
 import { notFound } from 'next/navigation';
 import { ProgramDetail } from '@/app/programs/[slug]/ProgramDetail';
+import { siteUrl } from '@/lib/site-url';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
@@ -42,5 +43,49 @@ export default async function ProgramPageEn(props: { params: Promise<{ slug: str
   const prevProg = idx > 0 ? allProgs[idx - 1] : null;
   const nextProg = idx < allProgs.length - 1 ? allProgs[idx + 1] : null;
 
-  return <ProgramDetail program={program} prevProg={prevProg} nextProg={nextProg} lang="en" />;
+  const base = siteUrl();
+  const programSchema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Course',
+        '@id': `${base}/en/programs/${program.slug}`,
+        name: program.nameEn,
+        description: program.descEn,
+        url: `${base}/en/programs/${program.slug}`,
+        inLanguage: 'en',
+        provider: {
+          '@type': 'Organization',
+          '@id': `${base}/#organization`,
+          name: 'FunAdemy',
+          url: base,
+        },
+        audience: {
+          '@type': 'EducationalAudience',
+          educationalRole: 'student',
+          suggestedMinAge: program.ageMin,
+          suggestedMaxAge: program.ageMax,
+        },
+        courseMode: program.format === 'online' ? 'online' : 'onsite',
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${base}/en` },
+          { '@type': 'ListItem', position: 2, name: 'Programs', item: `${base}/en#programs` },
+          { '@type': 'ListItem', position: 3, name: program.nameEn, item: `${base}/en/programs/${program.slug}` },
+        ],
+      },
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(programSchema) }}
+      />
+      <ProgramDetail program={program} prevProg={prevProg} nextProg={nextProg} lang="en" />
+    </>
+  );
 }
