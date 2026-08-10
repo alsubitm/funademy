@@ -737,14 +737,81 @@ describe('POST /svc/admin/nelc — browser relay (prepare/record)', () => {
     expect(run?.consumed).toBe(false);
     expect(run?.nationalId).toBe('4444444444');
 
-    // fresh statement ids on a second prepare — needs the SEQ003 override,
-    // because the first (unrecorded) run now counts as a possible send
+    // SEQ003 double-send guard: a second prepare while an unconsumed journey run
+    // already exists returns 409 duplicate_journey with delivered:false — ID not
+    // yet burned (pending run only); prevents a double-click from creating two sends.
     const res2 = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(res2.status).toBe(409);
+    const dup = await res2.json();
+    expect(dup.error).toBe('duplicate_journey');
+    expect(dup.delivered).toBe(false); // pending run only — ID not yet burned in LRS
+  });
+
+  it('prepare issues fresh statement IDs once the prior run is consumed', async () => {
+    stubLrsEnv();
+    // First prepare + record (consume the run).
+    const res1 = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    const data1 = await res1.json();
+    // Record all steps as ok so the run is consumed and a delivered row exists.
+    const results = data1.steps.map((s: { key: string; statementId: string }) => ({
+      verb: s.key, statementId: s.statementId, ok: true, httpStatus: 204, response: '',
+    }));
+    await nelcPOST(postReq({ action: 'record', runId: data1.runId, results }));
+
+    // After recording, the first run is consumed and a delivered row exists.
+    // A second prepare WITHOUT override → 409 duplicate_journey with delivered:true (ID burned in LRS).
+    const res2 = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(res2.status).toBe(409);
+    const dup2 = await res2.json();
+    expect(dup2.error).toBe('duplicate_journey');
+    expect(dup2.delivered).toBe(true); // delivered rows exist — ID permanently burned
+
+    // confirmDuplicate:true bypasses the guard and produces fresh statement IDs.
+    const res3 = await nelcPOST(
       postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001', confirmDuplicate: true }),
     );
-    const data2 = await res2.json();
-    const first = new Set(data.steps.map((s: { statementId: string }) => s.statementId));
-    for (const s of data2.steps) expect(first.has(s.statementId)).toBe(false);
+    expect(res3.status).toBe(200);
+    const data3 = await res3.json();
+    const first = new Set(data1.steps.map((s: { statementId: string }) => s.statementId));
+    for (const s of data3.steps) expect(first.has(s.statementId)).toBe(false);
+  });
+
+  it('prepare succeeds after a prior unconsumed run expires (browser-crash retry)', async () => {
+    stubLrsEnv();
+    // Manually insert an unconsumed journey run that is already expired (past
+    // its TTL) — simulates the owner's browser crashing before recording.
+    await prisma.xapiPreparedRun.create({
+      data: {
+        runId: '00000000-dead-beef-cafe-000000000001',
+        environment: 'staging',
+        nationalId: '6666666666',
+        courseIri: 'https://funademy.io/course/CR001',
+        steps: [{ key: 'registered', statementId: '00000000-dead-beef-cafe-000000000002' }],
+        expiresAt: new Date(Date.now() - 1), // already expired
+        consumed: false,
+      },
+    });
+
+    // A fresh prepare for the same ID MUST succeed — the expired run must not
+    // permanently block retries after the TTL. findPriorJourneySignal cleans
+    // expired rows and filters `expiresAt > now` so the 409 is never returned.
+    const res = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '6666666666', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.steps).toHaveLength(10);
+    // The expired run should have been cleaned up.
+    const expired = await prisma.xapiPreparedRun.findUnique({
+      where: { runId: '00000000-dead-beef-cafe-000000000001' },
+    });
+    expect(expired).toBeNull();
   });
 
   it('prepare requires re-entering the admin password (step-up) before exposing LRS credentials', async () => {

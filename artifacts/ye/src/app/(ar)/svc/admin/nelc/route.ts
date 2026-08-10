@@ -75,8 +75,14 @@ async function findPriorJourneySignal(
     select: { createdAt: true },
   });
   if (delivered) return { delivered: true, at: delivered.createdAt };
+  // Trim expired runs first so they cannot block retries after the TTL.
+  await prisma.xapiPreparedRun.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
   const runs = await prisma.xapiPreparedRun.findMany({
-    where: { nationalId, courseIri, environment, consumed: false },
+    // Only live (unexpired) unconsumed runs count — an expired run means the
+    // browser crashed before recording; after the TTL it must not block retries.
+    where: { nationalId, courseIri, environment, consumed: false, expiresAt: { gt: new Date() } },
     orderBy: { id: 'desc' },
     take: 10,
   });
