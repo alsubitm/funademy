@@ -1,13 +1,16 @@
 /**
  * NELC xAPI journey — statement builders + admin /svc/admin/nelc endpoint.
  *
- *  - builders produce the exact 10-statement journey (mbox actor pattern,
- *    actor.name = national ID) with fresh UUIDs per run, mirroring the
- *    FutureX wizard's personalized example statement structure — the fixture
- *    deep-comparison below is the guard for that parity
+ *  - builders produce the exact 10-statement journey per the per-step
+ *    contracts in xapiParity: the wizard's personalized `registered` example
+ *    verbatim, package-shaped sub-activity objects (CRS003), description +
+ *    full NELC extensions on `registered` ONLY (CTX001/CTX002/CRS008), and
+ *    the rated text response (ASM004) — the fixture deep-comparisons below
+ *    guard those rules
  *  - endpoint validates input, refuses to send when the LRS is not
- *    configured (no fake success), stops on first LRS failure, and persists
- *    an audit row per attempted statement
+ *    configured (no fake success), stops on first LRS failure, persists an
+ *    audit row per attempted statement, and blocks accidental duplicate
+ *    journeys per national ID (SEQ003) behind an explicit confirmation
  *  - self-check read-back (check/record_check) hands the browser a filtered
  *    statements GET and records one distinguishable audit row per check
  *
@@ -29,7 +32,16 @@ import {
   lrsConfigured,
   lrsStatementsQueryUrl,
 } from '@/lib/xapi';
-import { isLrsReadDenied, missingJourneySteps, statementMatchesWizardExample } from '@/lib/xapiParity';
+import {
+  classifyJourneyStatement,
+  COURSE_DESC_EN,
+  COURSE_NAME_EN,
+  isLrsReadDenied,
+  missingJourneySteps,
+  NELC_EXTENSION_IRIS,
+  RATED_RESPONSE_EN,
+  statementMatchesJourneyContract,
+} from '@/lib/xapiParity';
 import { GET as nelcGET, POST as nelcPOST } from '@/app/svc/admin/nelc/route';
 
 const fetchMock = vi.fn();
@@ -92,17 +104,42 @@ describe('buildJourneyStatements', () => {
     expect(iris.filter((i) => i === 'http://adlnet.gov/expapi/verbs/completed')).toHaveLength(3);
   });
 
-  it('uses the wizard mbox actor pattern and the same course IRI on every statement', () => {
+  it('uses the wizard mbox actor pattern on every statement, with per-step object IRIs anchored to ONE course', () => {
     const journey = buildJourneyStatements('1098765432', 'https://funademy.io/course/CR001');
+    // CRS003: sub-activity verbs target their own objects; course-level verbs
+    // keep the single course IRI (the wizard rejects multiple COURSE ids —
+    // sub-activities point back to it via contextActivities.parent).
+    const expectedIds: Record<string, string> = {
+      registered: 'https://funademy.io/course/CR001',
+      initialized: 'https://funademy.io/course/CR001',
+      watched: 'https://funademy.io/course/CR001/lessons/1/video',
+      completed_lesson: 'https://funademy.io/course/CR001/lessons/1',
+      attempted: 'https://funademy.io/course/CR001/quizzes/1',
+      completed_unit: 'https://funademy.io/course/CR001/units/1',
+      progressed: 'https://funademy.io/course/CR001',
+      completed_course: 'https://funademy.io/course/CR001',
+      rated: 'https://funademy.io/course/CR001',
+      earned: 'https://funademy.io/course/CR001/certificate',
+    };
     for (const step of journey) {
       const actor = step.statement.actor as { mbox: string; name: string; objectType: string };
       expect(actor.mbox).toBe('mailto:1098765432@gmail.com');
       expect(actor.name).toBe('1098765432');
       expect(actor.objectType).toBe('Agent');
-      // One course id across the whole journey — the wizard rejects multiple ids.
-      expect((step.statement.object as { id: string }).id).toBe('https://funademy.io/course/CR001');
+      expect((step.statement.object as { id: string }).id).toBe(expectedIds[step.key]);
       const display = (step.statement.verb as { display: Record<string, string> }).display;
       expect(Object.keys(display)).toEqual(['en-US']);
+    }
+    for (const key of ['watched', 'completed_lesson', 'attempted', 'completed_unit', 'earned']) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s = journey.find((x) => x.key === key)!.statement as Record<string, any>;
+      expect(s.context.contextActivities.parent).toHaveLength(1);
+      expect(s.context.contextActivities.parent[0].id).toBe('https://funademy.io/course/CR001');
+    }
+    for (const key of ['registered', 'initialized', 'progressed', 'completed_course', 'rated']) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s = journey.find((x) => x.key === key)!.statement as Record<string, any>;
+      expect(s.context.contextActivities).toBeUndefined();
     }
   });
 
@@ -120,7 +157,11 @@ describe('buildJourneyStatements', () => {
     const completedCourse = journey.find((s) => s.key === 'completed_course')!;
     expect((completedCourse.statement.result as { completion: boolean }).completion).toBe(true);
     const rated = journey.find((s) => s.key === 'rated')!;
-    expect((rated.statement.result as { score: { raw: number } }).score.raw).toBe(5);
+    // ASM004 — package Rated.php: score{scaled,raw,min:0,max:5} + text response
+    expect(rated.statement.result).toEqual({
+      score: { scaled: 1, raw: 5, min: 0, max: 5 },
+      response: RATED_RESPONSE_EN,
+    });
   });
 
   it('generates fresh statement UUIDs on every run (safe wizard retries)', () => {
@@ -130,7 +171,7 @@ describe('buildJourneyStatements', () => {
     for (const s of b) expect(idsA.has(s.statementId)).toBe(false);
   });
 
-  it('builds a filtered read-back query URL (agent + activity + limit)', () => {
+  it('builds a filtered read-back query URL (agent + activity + related_activities + limit)', () => {
     vi.stubEnv('NELC_LRS_ENDPOINT', 'https://lrs.staging.example/data/xAPI/statements'); // pasted /statements tolerated
     const url = new URL(lrsStatementsQueryUrl('1234567890', 'https://funademy.io/course/CR001'));
     expect(`${url.origin}${url.pathname}`).toBe('https://lrs.staging.example/data/xAPI/statements');
@@ -139,6 +180,10 @@ describe('buildJourneyStatements', () => {
       mbox: 'mailto:1234567890@gmail.com', // same derivation as the journey actor
     });
     expect(url.searchParams.get('activity')).toBe('https://funademy.io/course/CR001');
+    // CRS003 made five statements target sub-activities — without
+    // related_activities the read-back would MISS them (they reference the
+    // course only via contextActivities.parent).
+    expect(url.searchParams.get('related_activities')).toBe('true');
     expect(url.searchParams.get('limit')).toBe('25');
   });
 });
@@ -251,42 +296,90 @@ describe('example parity — deep comparison against the wizard fixture', () => 
     expect(new Set(Object.keys(s))).toEqual(new Set([...Object.keys(WIZARD_EXAMPLE), 'id']));
   });
 
-  it('rides the identical context on all 10 statements, with program_url following the run course IRI', () => {
+  it('applies the verifier-rule fixes: registered-only description/extensions, per-verb objects, parent blocks', () => {
     const journey = buildJourneyStatements('1059652238', 'https://funademy.io/course/XYZ9');
-    for (const step of journey) {
+    const byKey = Object.fromEntries(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ctx = step.statement.context as Record<string, any>;
-      expect(ctx).toEqual(journey[0].statement.context);
+      journey.map((s) => [s.key, s.statement as Record<string, any>]),
+    );
+
+    // CTX002 — ONLY registered carries the 4 NELC extensions (program_url
+    // follows the run's course IRI); everything else carries EXACTLY the
+    // platform extension, with the same base context values.
+    expect(Object.keys(byKey.registered.context.extensions).sort()).toEqual(
+      [...NELC_EXTENSION_IRIS].sort(),
+    );
+    expect(byKey.registered.context.extensions['https://nelc.gov.sa/extensions/program_url']).toBe(
+      'https://funademy.io/course/XYZ9',
+    );
+    for (const step of journey) {
+      const ctx = step.statement.context as Record<string, unknown>;
       expect(ctx.registration).toBeUndefined();
-      expect(ctx.extensions['https://nelc.gov.sa/extensions/program_url']).toBe(
-        'https://funademy.io/course/XYZ9',
-      );
+      expect(ctx.instructor).toEqual({ name: 'Funademy Instructor', mbox: 'mailto:info@funademy.io' });
+      expect(ctx.platform).toBe('Https://funademy.io');
+      expect(ctx.language).toBe('ar-SA');
+      if (step.key === 'registered') continue;
+      const ext = ctx.extensions as Record<string, unknown>;
+      expect(Object.keys(ext)).toEqual(['https://nelc.gov.sa/extensions/platform']);
+      expect(ext['https://nelc.gov.sa/extensions/platform']).toEqual({
+        name: { 'ar-SA': 'فناديمي', 'en-US': 'Funademy' },
+      });
     }
+
+    // CTX001/CRS008 — the course description lives ONLY in registered's object.
+    expect(byKey.registered.object.definition.description).toEqual({ 'en-US': COURSE_DESC_EN });
+    for (const key of ['initialized', 'progressed', 'completed_course', 'rated']) {
+      expect(Object.keys(byKey[key].object.definition).sort()).toEqual(['name', 'type']);
+      expect(byKey[key].object.definition.type).toBe('https://w3id.org/xapi/cmi5/activitytype/course');
+      expect(byKey[key].object.definition.name).toEqual({ 'en-US': COURSE_NAME_EN });
+    }
+
+    // CRS003 — per-verb object types, verbatim from NELC's package.
+    expect(byKey.watched.object.definition.type).toBe('https://w3id.org/xapi/video/activity-type/video');
+    expect(byKey.completed_lesson.object.definition.type).toBe('http://adlnet.gov/expapi/activities/lesson');
+    expect(byKey.attempted.object.definition.type).toBe('http://id.tincanapi.com/activitytype/unit-test');
+    expect(byKey.completed_unit.object.definition.type).toBe('http://adlnet.gov/expapi/activities/module');
+    expect(byKey.earned.object.definition.type).toBe(
+      'https://www.opigno.org/en/tincan_registry/activity_type/certificate',
+    );
+    // the certificate carries NO description (package Earned.php shape)
+    expect(Object.keys(byKey.earned.object.definition).sort()).toEqual(['name', 'type']);
+
+    // Sub-activity statements put the course (name+description+cmi5 type) as
+    // their single contextActivities parent — the package's parent block.
+    expect(byKey.watched.context.contextActivities.parent[0]).toEqual({
+      id: 'https://funademy.io/course/XYZ9',
+      objectType: 'Activity',
+      definition: {
+        name: { 'en-US': COURSE_NAME_EN },
+        description: { 'en-US': COURSE_DESC_EN },
+        type: 'https://w3id.org/xapi/cmi5/activitytype/course',
+      },
+    });
   });
 });
 
 /**
- * Read-back parity classifier — the self-check must not count statements
- * that merely LOOK similar (e.g. carry the 4 extension keys) but violate any
- * verifier-critical parity rule; that false confidence is exactly what the
- * self-check exists to prevent. Every fixture below mutates ONE aspect of a
- * builder-emitted statement (so all 4 extension keys stay present unless the
- * case says otherwise) and must be rejected.
+ * Read-back contract classifier — the self-check must not count statements
+ * that merely LOOK similar but violate any verifier rule; that false
+ * confidence is exactly what the self-check exists to prevent. Every fixture
+ * below mutates ONE aspect of a builder-emitted statement and must be
+ * rejected (classified as null).
  */
-describe('self-check parity classifier (statementMatchesWizardExample)', () => {
+describe('self-check contract classifier (classifyJourneyStatement)', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type Mutable = Record<string, any>;
-  const freshStatement = (): Mutable =>
-    structuredClone(
-      buildJourneyStatements('1059652238', 'https://funademy.io/course/CR001')[0].statement,
-    ) as Mutable;
+  const journey = () => buildJourneyStatements('1059652238', 'https://funademy.io/course/CR001');
+  const fresh = (key: string): Mutable =>
+    structuredClone(journey().find((s) => s.key === key)!.statement) as Mutable;
+  const freshStatement = (): Mutable => fresh('registered');
 
-  it('accepts every statement the current builder emits (validator and builder share one source)', () => {
-    const journey = buildJourneyStatements('1059652238', 'https://funademy.io/course/CR001');
-    for (const step of journey) expect(statementMatchesWizardExample(step.statement)).toBe(true);
-    expect(
-      missingJourneySteps(journey.map((s) => (s.statement.verb as { id: string }).id)),
-    ).toEqual([]);
+  it('classifies every statement the current builder emits to its own step (shared single source)', () => {
+    for (const step of journey()) {
+      expect(classifyJourneyStatement(step.statement)).toBe(step.key);
+      expect(statementMatchesJourneyContract(step.statement)).toBe(true);
+    }
+    expect(missingJourneySteps(journey().map((s) => classifyJourneyStatement(s.statement)))).toEqual([]);
   });
 
   it('tolerates the top-level fields an LRS adds to stored statements', () => {
@@ -297,7 +390,7 @@ describe('self-check parity classifier (statementMatchesWizardExample)', () => {
       account: { homePage: 'https://lrs.nelc.gov.sa', name: 'funademy_io' },
     };
     s.version = '1.0.3';
-    expect(statementMatchesWizardExample(s)).toBe(true);
+    expect(classifyJourneyStatement(s)).toBe('registered');
   });
 
   const rejected: [string, (s: Mutable) => void][] = [
@@ -324,27 +417,119 @@ describe('self-check parity classifier (statementMatchesWizardExample)', () => {
     ['missing timestamp', (s) => { delete s.timestamp; }],
   ];
   for (const [label, mutate] of rejected) {
-    it(`rejects: ${label}`, () => {
+    it(`rejects on registered: ${label}`, () => {
       const s = freshStatement();
       mutate(s);
-      expect(statementMatchesWizardExample(s)).toBe(false);
+      expect(classifyJourneyStatement(s)).toBe(null);
     });
   }
 
-  it('requires the full 10-step verb multiset (completed ×3), not just 10 parity statements', () => {
-    const full = buildJourneyStatements('1059652238', 'https://funademy.io/course/CR001').map(
-      (s) => (s.statement.verb as { id: string }).id,
-    );
-    expect(missingJourneySteps(full)).toEqual([]);
-    // swap one `completed` for an extra `earned`: still 10 statements, journey incomplete
-    const idx = full.indexOf('http://adlnet.gov/expapi/verbs/completed');
-    const swapped = full
-      .filter((_, i) => i !== idx)
-      .concat('http://id.tincanapi.com/verb/earned');
-    expect(swapped).toHaveLength(10);
-    expect(missingJourneySteps(swapped)).toEqual(['completed ×3']);
-    // empty ⇒ all 8 distinct journey verb IRIs reported missing
-    expect(missingJourneySteps([])).toHaveLength(8);
+  it('rejects the exact shapes the 2026-08-10 verifier flagged (per-step rules)', () => {
+    // CTX001/CRS008 — a course description outside `registered`
+    const init = fresh('initialized');
+    init.object.definition.description = { 'en-US': COURSE_DESC_EN };
+    expect(classifyJourneyStatement(init)).toBe(null);
+
+    // CTX002 — the full 4-extension block outside `registered`
+    const prog = fresh('progressed');
+    prog.context.extensions = fresh('registered').context.extensions;
+    expect(classifyJourneyStatement(prog)).toBe(null);
+
+    // CRS003 — watched targeting the course object (pre-fix shape)
+    const watched = fresh('watched');
+    watched.object = fresh('registered').object;
+    delete watched.context.contextActivities;
+    expect(classifyJourneyStatement(watched)).toBe(null);
+
+    // ASM004 — rated without (or with an empty) text response
+    const rated = fresh('rated');
+    delete rated.result.response;
+    expect(classifyJourneyStatement(rated)).toBe(null);
+    const rated2 = fresh('rated');
+    rated2.result.response = '';
+    expect(classifyJourneyStatement(rated2)).toBe(null);
+
+    // sub-activity id not derived from its parent course id
+    const lesson = fresh('completed_lesson');
+    lesson.object.id = 'https://funademy.io/course/OTHER/lessons/1';
+    expect(classifyJourneyStatement(lesson)).toBe(null);
+
+    // sub-activity without the course parent
+    const quiz = fresh('attempted');
+    delete quiz.context.contextActivities;
+    expect(classifyJourneyStatement(quiz)).toBe(null);
+
+    // a result on a step that must carry none
+    const earned = fresh('earned');
+    earned.result = { completion: true };
+    expect(classifyJourneyStatement(earned)).toBe(null);
+
+    // the certificate must not carry a description (package Earned.php shape)
+    const earned2 = fresh('earned');
+    earned2.object.definition.description = { 'en-US': 'Certificate' };
+    expect(classifyJourneyStatement(earned2)).toBe(null);
+
+    // STRICT BY DESIGN — texts and scores must match the builder exactly:
+    // any drift means the statement did not come from the current builder.
+    const watched2 = fresh('watched');
+    watched2.object.definition.name = { 'en-US': 'Some Other Video' };
+    expect(classifyJourneyStatement(watched2)).toBe(null);
+
+    const parentDrift = fresh('watched');
+    parentDrift.context.contextActivities.parent[0].definition.name = { 'en-US': 'Another Course' };
+    expect(classifyJourneyStatement(parentDrift)).toBe(null);
+
+    const attemptedEmptyScore = fresh('attempted');
+    attemptedEmptyScore.result.score = {};
+    expect(classifyJourneyStatement(attemptedEmptyScore)).toBe(null);
+
+    const attemptedStringRaw = fresh('attempted');
+    attemptedStringRaw.result.score = { scaled: 0.8, raw: '80', min: 0, max: 100 };
+    expect(classifyJourneyStatement(attemptedStringRaw)).toBe(null);
+
+    const ratedBadBounds = fresh('rated');
+    ratedBadBounds.result.score = { scaled: 1, raw: 5, min: 6, max: 5 };
+    expect(classifyJourneyStatement(ratedBadBounds)).toBe(null);
+
+    const wrongDisplay = fresh('initialized');
+    wrongDisplay.verb.display = { 'en-US': 'launched' };
+    expect(classifyJourneyStatement(wrongDisplay)).toBe(null);
+
+    // VALID-but-different result values must also be rejected — results are
+    // pinned in the contract, and a plausible substitute is still not ours.
+    const ratedOtherText = fresh('rated');
+    ratedOtherText.result.response = 'Great course, would recommend.';
+    expect(classifyJourneyStatement(ratedOtherText)).toBe(null);
+
+    const watchedOtherDuration = fresh('watched');
+    watchedOtherDuration.result.duration = 'PT5M';
+    expect(classifyJourneyStatement(watchedOtherDuration)).toBe(null);
+
+    const attemptedOtherScore = fresh('attempted');
+    attemptedOtherScore.result.score = { scaled: 0.7, raw: 70, min: 0, max: 100 };
+    expect(classifyJourneyStatement(attemptedOtherScore)).toBe(null);
+
+    const lessonNotCompleted = fresh('completed_lesson');
+    lessonNotCompleted.result.completion = false;
+    expect(classifyJourneyStatement(lessonNotCompleted)).toBe(null);
+  });
+
+  it('discriminates the three `completed` statements by their object contracts', () => {
+    expect(classifyJourneyStatement(fresh('completed_lesson'))).toBe('completed_lesson');
+    expect(classifyJourneyStatement(fresh('completed_unit'))).toBe('completed_unit');
+    expect(classifyJourneyStatement(fresh('completed_course'))).toBe('completed_course');
+  });
+
+  it('reports missing steps by unique contract label (a full journey covers all 10)', () => {
+    const keys = journey().map((s) => classifyJourneyStatement(s.statement));
+    expect(missingJourneySteps(keys)).toEqual([]);
+    expect(missingJourneySteps(keys.filter((k) => k !== 'completed_unit'))).toEqual(['completed (unit)']);
+    // a swapped-in duplicate leaves its own step missing
+    expect(
+      missingJourneySteps([...keys.filter((k) => k !== 'completed_lesson'), 'earned']),
+    ).toEqual(['completed (lesson)']);
+    expect(missingJourneySteps([])).toHaveLength(10);
+    expect(missingJourneySteps([null, undefined, 'registered'])).toHaveLength(9);
   });
 });
 
@@ -457,8 +642,18 @@ describe('POST /svc/admin/nelc', () => {
     expect(rows.every((r) => r.ok && r.httpStatus === 200 && r.environment === 'staging')).toBe(true);
     expect(rows.every((r) => r.nationalId === '1111111111')).toBe(true);
 
-    // Fresh statement ids on a second run.
-    const res2 = await nelcPOST(postReq({ nationalId: '1111111111', courseIri: 'https://funademy.io/course/CR001' }));
+    // SEQ003: a bare re-send for the same ID is refused (server path too)…
+    const resDup = await nelcPOST(postReq({ nationalId: '1111111111', courseIri: 'https://funademy.io/course/CR001' }));
+    expect(resDup.status).toBe(409);
+    const dup = await resDup.json();
+    expect(dup.error).toBe('duplicate_journey');
+    expect(dup.delivered).toBe(true);
+
+    // …while the confirmed override still generates fresh statement ids.
+    const res2 = await nelcPOST(
+      postReq({ nationalId: '1111111111', courseIri: 'https://funademy.io/course/CR001', confirmDuplicate: true }),
+    );
+    expect(res2.status).toBe(200);
     const data2 = await res2.json();
     const first = new Set(data.results.map((r: { statementId: string }) => r.statementId));
     for (const r of data2.results) expect(first.has(r.statementId)).toBe(false);
@@ -542,9 +737,10 @@ describe('POST /svc/admin/nelc — browser relay (prepare/record)', () => {
     expect(run?.consumed).toBe(false);
     expect(run?.nationalId).toBe('4444444444');
 
-    // fresh statement ids on a second prepare (safe wizard retries)
+    // fresh statement ids on a second prepare — needs the SEQ003 override,
+    // because the first (unrecorded) run now counts as a possible send
     const res2 = await nelcPOST(
-      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001' }),
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001', confirmDuplicate: true }),
     );
     const data2 = await res2.json();
     const first = new Set(data.steps.map((s: { statementId: string }) => s.statementId));
@@ -733,6 +929,102 @@ describe('POST /svc/admin/nelc — browser relay (prepare/record)', () => {
     expect(resBadRun.status).toBe(400);
     expect((await resBadRun.json()).error).toBe('invalid_run_id');
     expect(await prisma.xapiStatement.count()).toBe(0);
+  });
+
+  it('prepare enforces the SEQ003 duplicate guard (409) until explicitly confirmed', async () => {
+    stubLrsEnv();
+    // Deliver a journey for this ID: prepare + record one ok row.
+    const prep = await (
+      await nelcPOST(
+        postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '9999999999', courseIri: 'https://funademy.io/course/CR001' }),
+      )
+    ).json();
+    await nelcPOST(
+      postReq({
+        action: 'record',
+        runId: prep.runId,
+        results: [{ verb: prep.steps[0].key, statementId: prep.steps[0].statementId, ok: true, httpStatus: 200, response: '["stored"]' }],
+      }),
+    );
+
+    // The same ID+course now warns instead of silently re-sending…
+    const again = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '9999999999', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(again.status).toBe(409);
+    const dup = await again.json();
+    expect(dup.error).toBe('duplicate_journey');
+    expect(dup.delivered).toBe(true); // delivered rows exist — strong warning
+    expect(dup.lastSentAt).toBeTruthy();
+
+    // …a fresh national ID sails through…
+    const other = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '9999999998', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(other.status).toBe(200);
+
+    // …and the explicit override still works (owner's informed choice).
+    const confirmed = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '9999999999', courseIri: 'https://funademy.io/course/CR001', confirmDuplicate: true }),
+    );
+    expect(confirmed.status).toBe(200);
+  });
+
+  it('failed-only journeys and self-check rows do NOT trigger the duplicate guard', async () => {
+    stubLrsEnv();
+    // A journey whose only reported row FAILED — nothing reached the LRS,
+    // so re-sending is the fix, not a duplicate.
+    const prep = await (
+      await nelcPOST(
+        postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '1212121212', courseIri: 'https://funademy.io/course/CR001' }),
+      )
+    ).json();
+    await nelcPOST(
+      postReq({
+        action: 'record',
+        runId: prep.runId,
+        results: [{ verb: prep.steps[0].key, statementId: prep.steps[0].statementId, ok: false, httpStatus: 403, response: '<html>blocked</html>' }],
+      }),
+    );
+    // A successful self-check row for the same learner (ok=true, but a READ).
+    const check = await (
+      await nelcPOST(
+        postReq({ action: 'check', password: 'test-admin-pass', nationalId: '1212121212', courseIri: 'https://funademy.io/course/CR001' }),
+      )
+    ).json();
+    await nelcPOST(
+      postReq({ action: 'record_check', checkId: check.checkId, ok: true, httpStatus: 200, matched: 0, parityMatched: 0, verbs: [], missingSteps: [] }),
+    );
+
+    const again = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '1212121212', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(again.status).toBe(200);
+  });
+
+  it('an unrecorded prepared run counts as a possible send (weak duplicate warning)', async () => {
+    stubLrsEnv();
+    // Prepared but never recorded — the browser may have POSTed the
+    // statements and died before `record` (the crash-before-record gap).
+    await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '7777777777', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    const again = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '7777777777', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(again.status).toBe(409);
+    const dup = await again.json();
+    expect(dup.error).toBe('duplicate_journey');
+    expect(dup.delivered).toBe(false); // no delivered rows — weak warning
+
+    // An unrecorded self-CHECK never blocks — it is read-only.
+    await nelcPOST(
+      postReq({ action: 'check', password: 'test-admin-pass', nationalId: '7676767676', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    const fresh = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '7676767676', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(fresh.status).toBe(200);
   });
 });
 

@@ -7,5 +7,5 @@
 - [YE payments live/sim switching](ye-payments-live-sim.md) — providers go live purely by secret presence; settlement re-verifies via provider API, never trusts redirects; seats release on failure.
 - [YE appointments & Google Calendar](ye-appointments-gcal.md) — consultKey unique claim before Meet creation; one event per class occurrence; connector invites replace email provider.
 - [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages public schema (db push drops undeclared tables — declare raw-SQL tables as models!); YE uses /svc routes; shared brick counter via raw SQL.
-- [NELC readiness](nelc-readiness.md) — LRS statements must mirror the wizard's per-org example verbatim (delivery ≠ verification); WAF geo-block → browser relay; NELC_LICENSE_NO gates claims; no fake success.
+- [NELC readiness](nelc-readiness.md) — registered mirrors wizard example verbatim; other steps follow NELC package per-step shapes; ONE send per national ID (fresh ID per attempt); WAF → browser relay; no fake success.
 - [YE learning platform](ye-learning-platform.md) — kids learning (XP/badges/streaks/PIN) ported from Manara; access = active enrollment; kid session = ye_kid cookie; admin CurriculumTab in AdminDashboard.

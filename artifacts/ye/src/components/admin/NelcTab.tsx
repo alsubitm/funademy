@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-import { isLrsReadDenied, missingJourneySteps, statementMatchesWizardExample } from '@/lib/xapiParity';
+import { classifyJourneyStatement, isLrsReadDenied, missingJourneySteps } from '@/lib/xapiParity';
 
 /**
  * Admin «نيلك» tab — fires the NELC LRS test journey (wizard step 2:
@@ -18,13 +18,19 @@ import { isLrsReadDenied, missingJourneySteps, statementMatchesWizardExample } f
  *
  * SELF-CHECK (read-back): the same step-up + browser-relay pattern, but
  * READ-ONLY — the browser GETs the stored statements for the entered learner
- * + course straight from the LRS (agent + activity filter), validates each
- * one against the wizard example's FULL structure via the shared classifier
- * (xapiParity — only example-parity statements count for NELC's verifier)
- * and shows the stored count, the parity count, journey verb coverage and
- * the verb list, so future runs can be confirmed without burning a wizard
- * verification attempt. Each check is recorded as one distinguishable audit
- * row (verb='self_check').
+ * + course straight from the LRS (agent + activity filter), classifies each
+ * one against the per-step journey contracts via the shared classifier
+ * (xapiParity — only contract-conforming statements count for NELC's
+ * verifier) and shows the stored count, the conforming count, journey step
+ * coverage and the verb list, so future runs can be confirmed without
+ * burning a wizard verification attempt. Each check is recorded as one
+ * distinguishable audit row (verb='self_check').
+ *
+ * SEQ003 (duplicates): NELC's verifier rejects re-sent journeys for the same
+ * learner+course and demands a fresh national ID per verification attempt,
+ * so `prepare` answers 409 duplicate_journey when the entered ID already has
+ * a delivered row — surfaced here as an explicit warning with an opt-in
+ * override instead of a silent re-send.
  */
 
 const VERB_AR: Record<string, string> = {
@@ -104,10 +110,10 @@ type CheckState = {
   httpStatus: number | null;
   matched: number;
   /**
-   * How many of the matched statements pass the FULL wizard-example parity
-   * validator (statementMatchesWizardExample — shared with the journey
-   * builder and the tests). Only these count for NELC's verifier; journeys
-   * sent before the parity fix are stored too but never counted.
+   * How many of the matched statements satisfy their per-step journey
+   * contract (classifyJourneyStatement — shared with the journey builder
+   * and the tests). Only these count for NELC's verifier; journeys sent
+   * before the contract fixes are stored too but never counted.
    */
   parityMatched: number;
   verbs: string[];
@@ -204,6 +210,12 @@ export function NelcTab() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRun, setLastRun] = useState<RunState | null>(null);
+  /** SEQ003 warning — set when `prepare` answers 409 duplicate_journey. */
+  const [duplicatePrompt, setDuplicatePrompt] = useState<{
+    lastSentAt: string | null;
+    /** true = delivered rows exist; false = only an unrecorded prepared run. */
+    delivered: boolean;
+  } | null>(null);
   const [checkBusy, setCheckBusy] = useState(false);
   const [lastCheck, setLastCheck] = useState<CheckState | null>(null);
 
@@ -225,7 +237,7 @@ export function NelcTab() {
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  const send = async () => {
+  const send = async (confirmDuplicate = false) => {
     if (!adminPassword.trim()) {
       setError('أدخل كلمة مرور الإدارة في خانة التأكيد قبل الإرسال.');
       return;
@@ -233,6 +245,7 @@ export function NelcTab() {
     setBusy(true);
     setError(null);
     setLastRun(null);
+    setDuplicatePrompt(null);
     try {
       // 1) The server prepares the journey (validation, fresh UUIDs, LRS creds).
       const prep = await fetch('/svc/admin/nelc', {
@@ -243,12 +256,22 @@ export function NelcTab() {
           password: adminPassword,
           nationalId: nationalId.trim(),
           courseIri: courseIri.trim(),
+          // SEQ003: re-sending the same national ID duplicates statements in
+          // NELC's LRS — the server refuses unless explicitly confirmed.
+          confirmDuplicate,
         }),
       });
       const prepData = await prep.json().catch(() => ({}));
       // 401 + reauth_failed = wrong step-up password (show the message);
       // any other 401 = admin session expired → back to the login screen.
       if (prep.status === 401 && prepData.error !== 'reauth_failed') { window.location.reload(); return; }
+      if (prep.status === 409 && prepData.error === 'duplicate_journey') {
+        setDuplicatePrompt({
+          lastSentAt: typeof prepData.lastSentAt === 'string' ? prepData.lastSentAt : null,
+          delivered: prepData.delivered === true,
+        });
+        return;
+      }
       if (!prep.ok) {
         setError(PREP_ERRORS[prepData.error as string] ?? 'تعذّر تجهيز الرحلة — أعد المحاولة.');
         return;
@@ -366,15 +389,15 @@ export function NelcTab() {
             const sts = Array.isArray(parsed.statements) ? parsed.statements : [];
             matched = sts.length;
             verbs = sts.map((s) => s?.verb?.display?.['en-US'] || s?.verb?.id || 'unknown').slice(0, 60);
-            // Only statements matching the wizard example's WHOLE structure
-            // count for NELC's verifier — the full structural/value validator
-            // is shared with the journey builder and the tests (xapiParity),
-            // so "parity" here means exactly what the current builder emits.
-            // A key-presence or raw count alone would let malformed or
-            // old-format statements fake readiness.
-            const parityStatements = sts.filter((s) => statementMatchesWizardExample(s));
-            parityMatched = parityStatements.length;
-            missingSteps = missingJourneySteps(parityStatements.map((s) => s?.verb?.id ?? ''));
+            // Only statements satisfying their per-step journey contract
+            // count for NELC's verifier — the classifier is shared with the
+            // journey builder and the tests (xapiParity), so "conforming"
+            // means exactly what the current builder emits. A key-presence
+            // or raw count alone would let malformed or old-format
+            // statements fake readiness.
+            const classified = sts.map((s) => classifyJourneyStatement(s));
+            parityMatched = classified.filter((k) => k !== null).length;
+            missingSteps = missingJourneySteps(classified);
             hasMore = Boolean(parsed.more);
             if (hasMore) detail = 'more_available';
             ok = true;
@@ -474,7 +497,9 @@ export function NelcTab() {
             تُرسل رحلة التعلم الكاملة (10 عبارات xAPI) بالترتيب الذي يطلبه معالج نيلك: التسجيل ←
             البدء ← المشاهدة ← إتمام درس ← محاولة اختبار ← إتمام وحدة ← التقدم ← إتمام الدورة ←
             التقييم ← الشهادة. بعد نجاح الإرسال أدخل نفس رقم الهوية في معالج نيلك واضغط
-            «بدء الاختبار». إعادة الإرسال آمنة — كل تشغيل يولّد معرفات جديدة.
+            «بدء الاختبار». مهم: أرسل الرحلة مرة واحدة فقط لكل رقم هوية — فاحص نيلك يرصد أي
+            تكرار (قاعدة SEQ003) ويرفض الرحلة، ولكل محاولة تحقق جديدة استخدم رقم هوية جديداً
+            لم يُرسل له من قبل.
           </p>
           <p className="text-sm text-[#8a6d00] bg-[rgba(255,202,23,0.12)] border border-[#FFCA17]/60 rounded-xl px-3 py-2 mt-2 leading-relaxed font-bold">
             مهم: تُرسَل العبارات من متصفحك أنت مباشرةً إلى نيلك، لأن خوادم نيلك تقبل الاتصال من
@@ -525,8 +550,35 @@ export function NelcTab() {
         {error && (
           <div className="bg-[#FDECEC] text-[#B3261E] text-sm font-bold rounded-xl px-4 py-3">{error}</div>
         )}
+        {duplicatePrompt && (
+          <div className="bg-[rgba(255,202,23,0.12)] border border-[#FFCA17] rounded-xl px-4 py-3 space-y-3">
+            <div className="text-sm font-bold text-[#8a6d00] leading-relaxed">
+              {duplicatePrompt.delivered
+                ? '⚠ هذا الرقم أُرسلت له رحلة من قبل'
+                : '⚠ هذا الرقم جُهّزت له رحلة سابقة وقد تكون أُرسلت دون تسجيل نتيجتها'}
+              {duplicatePrompt.lastSentAt ? ` (آخر مرة: ${fmtDateTime(duplicatePrompt.lastSentAt)})` : ''}
+              . فاحص نيلك يعدّ الإرسال المتكرر «عبارات مكررة» (SEQ003) ويرفض الرحلة كلها، ويطلب
+              رقم هوية جديداً لكل محاولة تحقق.
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setDuplicatePrompt(null)}
+                className="bg-[#1C54CB] text-white px-4 py-2 rounded-xl text-sm font-display font-bold"
+              >
+                حسناً — سأستخدم رقم هوية جديداً
+              </button>
+              <button
+                onClick={() => send(true)}
+                disabled={busy}
+                className="bg-white border border-[#B3261E] text-[#B3261E] px-4 py-2 rounded-xl text-sm font-display font-bold disabled:opacity-50"
+              >
+                متابعة الإرسال رغم التحذير
+              </button>
+            </div>
+          </div>
+        )}
         <button
-          onClick={send}
+          onClick={() => send()}
           disabled={busy || !config?.configured}
           className="bg-[#1C54CB] text-white px-6 py-3 rounded-xl font-display font-bold disabled:opacity-50"
         >

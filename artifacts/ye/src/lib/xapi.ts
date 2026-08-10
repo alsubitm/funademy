@@ -32,32 +32,39 @@
  *
  * STATEMENT FORMAT (staging verification journey)
  * -----------------------------------------------
- * AUTHORITATIVE SOURCE: the FutureX wizard's own PERSONALIZED EXAMPLE
- * statement — the «registered» sample the wizard generated for our org
- * (pasted from the wizard 2026-08-10), with its instruction «استبدل قيم
- * الدورة والنتائج ببياناتك الحقيقية. وضع رقم الهوية الوطنية للمتعلم في الحقل
- * actor.name»: keep the STRUCTURE, substitute real values. An earlier shape
- * based on the wizard guide + NELC's integration packages
- * (github.com/nelc/laravel-lrs-package) was DELIVERED and stored (HTTP 200,
- * real statement-id arrays) yet verification still answered
- * status:"no_data" / total_statements:0 — NELC's verifier evidently only
- * counts statements carrying the example's whole structure. Hence:
+ * AUTHORITATIVE SOURCES, in priority order (full contracts + rationale live
+ * in xapiParity.ts):
+ *   1. The FutureX wizard's VIOLATION LIST from the 2026-08-10 verification
+ *      run (has_data:true, 23/29 rules passed, status:"rejected") — rule
+ *      codes ASM004, CTX001, CTX002, CRS003, CRS008, SEQ003.
+ *   2. The wizard's PERSONALIZED `registered` example — that statement
+ *      PASSED and is reproduced byte-for-byte (capital-H platform etc.).
+ *   3. NELC's own integration package (github.com/nelc/laravel-lrs-package,
+ *      src/Interactions/*.php) — the reference for every non-registration
+ *      statement shape.
+ * Shape summary:
  *   - Full journey = 10 statements, in this exact order:
  *     registered → initialized → watched → completed (lesson) → attempted →
  *     completed (unit) → progressed → completed (course) → rated → earned
  *   - actor = { mbox: 'mailto:<nationalId>@gmail.com', name: '<nationalId>',
- *     objectType: 'Agent' } — NELC verifies by actor.name = national ID; the
- *     mbox pattern is exactly what the wizard's personalized example shows.
- *   - object.definition = en-US name/description ONLY (the example carries
- *     no ar-SA keys there) + the cmi5 course activity type.
- *   - EVERY statement carries the example's full context block: instructor,
- *     platform string, language, and the 4 https://nelc.gov.sa/extensions/*
- *     entries — and NO context.registration (the example has none; fresh
- *     per-run statement ids already make wizard re-runs safe).
- *   - EVERY statement uses the SAME course IRI as its object — the wizard
- *     warns that multiple course ids break verification
- *     («لتجنّب خطأ تعدّد معرّفات الدورة»).
- *   - verb displays are en-US only, exactly like NELC's examples.
+ *     objectType: 'Agent' } on every statement — NELC verifies by
+ *     actor.name = national ID.
+ *   - `registered` is the ONLY statement with the course description and the
+ *     ONLY one with the duration/lms_url/program_url extensions
+ *     (CTX001/CTX002/CRS008); it carries the example's full context.
+ *   - Course-level statements (initialized/progressed/completed course/
+ *     rated) keep the course object with name + cmi5 type ONLY, and a
+ *     context of instructor/platform/language + the platform extension.
+ *   - Sub-activity statements (watched→video, completed lesson→lesson,
+ *     attempted→unit-test quiz, completed unit→module, earned→certificate)
+ *     use their OWN objects with IRIs derived from the course IRI and put
+ *     the course in contextActivities.parent (CRS003) — same platform-only
+ *     extensions.
+ *   - rated carries result.response text (ASM004) + score{scaled,raw,0..5}.
+ *   - en-US-only names/descriptions/verb displays; NO context.registration.
+ *   - SEQ003 is procedural: ONE send per national ID — enforced by the
+ *     admin route (409 duplicate_journey) + UI warning; each verification
+ *     attempt needs a FRESH national ID.
  */
 
 import { randomUUID } from 'crypto';
@@ -68,17 +75,21 @@ import { randomUUID } from 'crypto';
 // statements and the read-back validation can never drift apart.
 import {
   CMI5_COURSE_TYPE,
+  COURSE_DESC_EN,
+  COURSE_NAME_EN,
   EXT_DURATION,
   EXT_LMS_URL,
   EXT_PLATFORM,
   EXT_PROGRAM_URL,
-  JOURNEY_STEPS,
+  JOURNEY_STEP_CONTRACTS,
   NELC_DURATION,
   NELC_INSTRUCTOR,
   NELC_LANGUAGE,
   NELC_PLATFORM_NAME,
   NELC_PLATFORM_URL,
+  subActivityIri,
 } from './xapiParity';
+import type { JourneyStepContract } from './xapiParity';
 
 export { JOURNEY_STEPS } from './xapiParity';
 export type { JourneyStepKey } from './xapiParity';
@@ -89,9 +100,10 @@ export const DEFAULT_COURSE_IRI = 'https://funademy.io/course/CR001';
 
 /**
  * The example's full context block (values from xapiParity — see the
- * VERBATIM-vs-placeholder notes there), identical on every journey statement.
- * Only program_url is dynamic (the run's course IRI — same across the run).
- * Built fresh per statement so serialized statements stay independent.
+ * VERBATIM-vs-placeholder notes there) — `registered` ONLY since the
+ * 2026-08-10 verifier run: CTX002 flags the duration/lms_url/program_url
+ * extensions on any non-registration statement. program_url is dynamic (the
+ * run's course IRI). Built fresh per call so statements stay independent.
  */
 const journeyContext = (courseIri: string): Record<string, unknown> => ({
   instructor: { ...NELC_INSTRUCTOR },
@@ -141,41 +153,68 @@ export type JourneyStatement = {
   statement: Record<string, unknown>;
 };
 
-/** Per-step result objects, mirroring NELC's package shapes (scores/durations). */
-const stepResult = (key: JourneyStepKey): Record<string, unknown> | undefined => {
-  switch (key) {
-    case 'watched':
-      return { duration: 'PT10M' };
-    case 'completed_lesson':
-      return { completion: true, duration: 'PT10M' };
-    case 'attempted':
-      return { score: { scaled: 0.8, raw: 80, min: 0, max: 100 }, completion: true, success: true };
-    case 'completed_unit':
-      return { completion: true, success: true, duration: 'PT20M' };
-    case 'progressed':
-      return { score: { scaled: 0.5, raw: 50, min: 0, max: 100 } };
-    case 'completed_course':
-      return {
-        score: { scaled: 0.9, raw: 90, min: 0, max: 100 },
-        completion: true,
-        success: true,
-        duration: 'PT40M',
-      };
-    case 'rated':
-      return { score: { raw: 5, min: 1, max: 5 } };
-    default:
-      return undefined;
+/**
+ * Statement object per contract (CRS003): course-level steps use the course
+ * IRI; sub-activity steps derive their own IRI from it. The course
+ * description appears ONLY in `registered` (CTX001/CRS008) — other
+ * course-level objects carry name+type only; sub-activities carry their own
+ * en-US name/description (or none for the certificate — package shape).
+ */
+const stepObject = (courseIri: string, c: JourneyStepContract): Record<string, unknown> => {
+  const definition: Record<string, unknown> = { name: { 'en-US': c.object.nameEn } };
+  if (c.object.descriptionEn !== null) {
+    definition.description = { 'en-US': c.object.descriptionEn };
   }
+  definition.type = c.object.type;
+  return {
+    objectType: 'Activity',
+    id: c.object.kind === 'course' ? courseIri : subActivityIri(courseIri, c.object.suffix),
+    definition,
+  };
+};
+
+/**
+ * Statement context per contract: `registered` keeps the example's full
+ * 4-extension block; everything else carries instructor/platform/language +
+ * the platform extension ONLY (CTX002), and sub-activity statements add the
+ * course as their single contextActivities.parent (name/description/cmi5
+ * type — exactly the package's parent block).
+ */
+const stepContext = (courseIri: string, c: JourneyStepContract): Record<string, unknown> => {
+  if (c.fullNelcContext) return journeyContext(courseIri);
+  const ctx: Record<string, unknown> = {
+    instructor: { ...NELC_INSTRUCTOR },
+    platform: NELC_PLATFORM_URL,
+    language: NELC_LANGUAGE,
+    extensions: {
+      [EXT_PLATFORM]: { name: { ...NELC_PLATFORM_NAME } },
+    },
+  };
+  if (c.object.kind === 'sub') {
+    ctx.contextActivities = {
+      parent: [
+        {
+          id: courseIri,
+          objectType: 'Activity',
+          definition: {
+            name: { 'en-US': COURSE_NAME_EN },
+            description: { 'en-US': COURSE_DESC_EN },
+            type: CMI5_COURSE_TYPE,
+          },
+        },
+      ],
+    };
+  }
+  return ctx;
 };
 
 /**
  * Build the full test-journey statements for one run. Every call generates
- * fresh statement UUIDs, so the NELC wizard can be retried any number of
- * times without duplicate-id rejections (deliberately NO
- * context.registration — the wizard example carries none). Timestamps are
- * spaced one minute apart, ending at `now`, so the journey reads
- * chronologically in the LRS — the example's 2022 date is just an old
- * sample.
+ * fresh statement UUIDs; timestamps are spaced one minute apart, ending at
+ * `now`, so the journey reads chronologically in the LRS. NOTE (SEQ003):
+ * fresh UUIDs make wizard RE-CHECKS safe, but re-SENDING a journey for the
+ * same national ID duplicates statements in NELC's LRS and fails
+ * verification — one send per national ID, enforced by the admin route/UI.
  */
 export function buildJourneyStatements(
   nationalId: string,
@@ -183,9 +222,9 @@ export function buildJourneyStatements(
   now: Date = new Date(),
 ): JourneyStatement[] {
   const stepMs = 60_000;
-  const start = now.getTime() - (JOURNEY_STEPS.length - 1) * stepMs;
+  const start = now.getTime() - (JOURNEY_STEP_CONTRACTS.length - 1) * stepMs;
 
-  return JOURNEY_STEPS.map((step, i) => {
+  return JOURNEY_STEP_CONTRACTS.map((c, i) => {
     const statementId = randomUUID();
     const statement: Record<string, unknown> = {
       id: statementId,
@@ -195,22 +234,14 @@ export function buildJourneyStatements(
         name: nationalId,
         objectType: 'Agent',
       },
-      verb: { id: step.iri, display: { 'en-US': step.en } },
-      object: {
-        objectType: 'Activity',
-        id: courseIri,
-        definition: {
-          // en-US ONLY, like the wizard example (no ar-SA keys here).
-          name: { 'en-US': 'Funademy Course — Engineering & Robotics for Kids' },
-          description: { 'en-US': 'Test learning journey for the NELC LRS technical integration.' },
-          type: CMI5_COURSE_TYPE,
-        },
-      },
-      context: journeyContext(courseIri),
+      verb: { id: c.iri, display: { 'en-US': c.en } },
+      object: stepObject(courseIri, c),
+      context: stepContext(courseIri, c),
     };
-    const result = stepResult(step.key);
-    if (result) statement.result = result;
-    return { key: step.key, statementId, statement };
+    // Result values are pinned in the contract (single source of truth with
+    // the read-back classifier); clone so callers can't mutate the contract.
+    if (c.result !== null) statement.result = structuredClone(c.result);
+    return { key: c.key, statementId, statement };
   });
 }
 
@@ -225,7 +256,16 @@ export function buildJourneyStatements(
  */
 export function lrsStatementsQueryUrl(nationalId: string, courseIri: string, limit = 25): string {
   const agent = JSON.stringify({ objectType: 'Agent', mbox: `mailto:${nationalId}@gmail.com` });
-  const params = new URLSearchParams({ agent, activity: courseIri, limit: String(limit) });
+  // related_activities=true is REQUIRED since CRS003: five journey statements
+  // target sub-activity objects and reference the course only through
+  // contextActivities.parent — a bare `activity` filter matches statement
+  // objects only (standard xAPI), so it would miss all five.
+  const params = new URLSearchParams({
+    agent,
+    activity: courseIri,
+    related_activities: 'true',
+    limit: String(limit),
+  });
   return `${lrsStatementsUrl()}?${params.toString()}`;
 }
 

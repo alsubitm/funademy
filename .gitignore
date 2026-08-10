@@ -4,6 +4,7 @@
 dist
 tmp
 out-tsc
+.next-build-test/
 *.tsbuildinfo
 .expo
 .expo-shared
