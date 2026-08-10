@@ -10,10 +10,17 @@ import { BRICK_KEY } from './constants';
  */
 
 export async function getBrickCount(): Promise<number> {
-  const rows = await prisma.$queryRaw<{ count: number }[]>`
-    SELECT count FROM public.campaign_counters WHERE key = ${BRICK_KEY}
-  `;
-  return rows[0]?.count ?? 0;
+  // Read-only, used during static prerender (/watanona) — must never crash
+  // a `next build` at publish time if the DB/table is unavailable.
+  try {
+    const rows = await prisma.$queryRaw<{ count: number }[]>`
+      SELECT count FROM public.campaign_counters WHERE key = ${BRICK_KEY}
+    `;
+    return rows[0]?.count ?? 0;
+  } catch (err) {
+    console.error('[bricks] getBrickCount failed, falling back to 0:', err instanceof Error ? err.message : err);
+    return 0;
+  }
 }
 
 export async function incrementBricks(by: number): Promise<number> {

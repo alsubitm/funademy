@@ -1,12 +1,13 @@
 export const revalidate = 300;
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
+import { safeQuery } from '@/lib/safe-query';
 import { notFound } from 'next/navigation';
 import { ProgramDetail } from './ProgramDetail';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
-  const program = await prisma.program.findUnique({ where: { slug } });
+  const program = await safeQuery(() => prisma.program.findUnique({ where: { slug } }), null, 'program:metadata');
   if (!program) return {};
   
   return {
@@ -16,13 +17,15 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 }
 
 export async function generateStaticParams() {
-  const programs = await prisma.program.findMany({ select: { slug: true } });
+  // If the DB is unavailable/mismatched at build time, prebuild no pages;
+  // they will render on demand at runtime instead of failing the publish.
+  const programs = await safeQuery(() => prisma.program.findMany({ select: { slug: true } }), [], 'program:staticParams');
   return programs.map((p) => ({ slug: p.slug }));
 }
 
 export default async function ProgramPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
-  const program = await prisma.program.findUnique({
+  const program = await safeQuery(() => prisma.program.findUnique({
     where: { slug },
     include: {
       slots: {
@@ -30,11 +33,11 @@ export default async function ProgramPage(props: { params: Promise<{ slug: strin
         orderBy: [{ weekday: 'asc' }, { time: 'asc' }]
       }
     }
-  });
+  }), null, 'program:page');
 
   if (!program) notFound();
 
-  const allProgs = await prisma.program.findMany({ orderBy: { position: 'asc' } });
+  const allProgs = await safeQuery(() => prisma.program.findMany({ orderBy: { position: 'asc' } }), [], 'program:siblings');
   const idx = allProgs.findIndex(p => p.id === program.id);
   const prevProg = idx > 0 ? allProgs[idx - 1] : null;
   const nextProg = idx < allProgs.length - 1 ? allProgs[idx + 1] : null;

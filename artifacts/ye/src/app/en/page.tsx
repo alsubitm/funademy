@@ -1,5 +1,6 @@
 export const revalidate = 300;
 import { prisma } from '@/lib/db';
+import { safeQuery } from '@/lib/safe-query';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
@@ -19,26 +20,25 @@ import { WatanTeaser } from '@/components/home/WatanTeaser';
 import { Certificate } from '@/components/home/Certificate';
 
 export default async function EnglishHomePage() {
-  const slots = await prisma.scheduleSlot.findMany({
-    where: { active: true },
-    include: { program: true },
-    orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
-    take: 10,
-  });
-
-  const programs = await prisma.program.findMany({
-    orderBy: { position: 'asc' },
-  });
-
-  const faqs = await prisma.faqEntry.findMany({
-    where: { published: true },
-    orderBy: { position: 'asc' },
-  });
-
-  const testimonials = await prisma.testimonial.findMany({
-    where: { published: true },
-    orderBy: { position: 'asc' },
-  });
+  const [slots, programs, faqs, testimonials] = await Promise.all([
+    safeQuery(() => prisma.scheduleSlot.findMany({
+      where: { active: true },
+      include: { program: true },
+      orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
+      take: 10,
+    }), [], 'home-en:slots'),
+    safeQuery(() => prisma.program.findMany({
+      orderBy: { position: 'asc' },
+    }), [], 'home-en:programs'),
+    safeQuery(() => prisma.faqEntry.findMany({
+      where: { published: true },
+      orderBy: { position: 'asc' },
+    }), [], 'home-en:faqs'),
+    safeQuery(() => prisma.testimonial.findMany({
+      where: { published: true },
+      orderBy: { position: 'asc' },
+    }), [], 'home-en:testimonials'),
+  ]);
 
   return (
     <>
