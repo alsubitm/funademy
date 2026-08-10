@@ -720,6 +720,55 @@ model LrnFirstCompletion {
   @@schema("ye")
 }
 
+// ————————————————————————— NELC xAPI / LRS —————————————————————————
+
+// One row per xAPI statement sent (or attempted) to the NELC Learning Record
+// Store — a permanent audit log reviewed from the admin «نيلك» tab. Statement
+// UUIDs are freshly generated every run, so re-running the wizard's
+// verification test is always safe.
+model XapiStatement {
+  id          Int      @id @default(autoincrement())
+  runId       String // groups the statements of one journey run
+  environment String // staging | production (NELC_LRS_ENV at send time)
+  nationalId  String // test learner national ID (actor account.name)
+  courseIri   String // activity/object IRI the journey was sent for
+  verb        String // journey step key (registered … earned)
+  statementId String // client-generated statement UUID sent to the LRS
+  httpStatus  Int? // null = network error before any HTTP response
+  response    String? // LRS response body (truncated)
+  ok          Boolean  @default(false)
+  // Who observed this outcome. "server" = this server sent the statement and
+  // saw the LRS response itself. "browser" = reported back by the admin's
+  // browser relay — NOT verified server-side (NELC geo-blocks our egress, so
+  // the server cannot confirm; NELC's own wizard check is the authority).
+  source      String   @default("server")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("ye_xapi_statements")
+  @@schema("ye")
+}
+
+// One server-prepared browser-relay journey run. `record` only accepts
+// results whose runId + ordered statement IDs exactly match an unconsumed,
+// unexpired row, then consumes it atomically (one-time) — so the permanent
+// audit log cannot be fabricated by replaying or inventing payloads.
+model XapiPreparedRun {
+  id          Int      @id @default(autoincrement())
+  runId       String   @unique
+  environment String // staging | production at prepare time
+  nationalId  String
+  courseIri   String
+  steps       Json // ordered [{ key, statementId }] of the prepared journey
+  consumed    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([expiresAt])
+  @@map("ye_xapi_prepared_runs")
+  @@schema("ye")
+}
+
 // ————————————————————————— Rate Limit (durable) —————————————————————————
 
 // Durable sliding-window rate-limit counters for public booking endpoints.
