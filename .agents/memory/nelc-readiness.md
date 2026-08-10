@@ -8,7 +8,8 @@ description: Durable constraints for NELC licensing, the LRS verification test, 
 - Compliance surface = /privacy, /terms, /nelc (+ /en mirrors). Owner must review refund/support wording before relying on it legally.
 
 ## LRS verification test (wizard step 2)
-- The ONLY authoritative statement-format source is NELC's own wizard guide + github.com/nelc/laravel-lrs-package — generic xAPI/cmi5 docs give a DIFFERENT (wrong) shape. The wizard rejects journeys spanning multiple activity ids → one course IRI for the whole journey; the wizard is retried repeatedly → fresh statement UUIDs every run.
+- The ONLY authoritative statement format is the wizard's PERSONALIZED per-org example (shown inside the wizard UI) — stricter than NELC's guide + github.com/nelc/laravel-lrs-package; generic xAPI/cmi5 docs are outright wrong. **Delivery ≠ verification:** statements the LRS stores fine (HTTP 200) still verify as `no_data` unless they carry the example's WHOLE structure — full `context` (instructor, platform, language, all 4 `nelc.gov.sa/extensions/*` entries), en-US-only `object.definition`, NO `context.registration`. Copy odd example strings byte-for-byte (`Https://funademy.io` capital H; duration `PT30H00M00S`); substitute real values only where the example holds placeholders.
+- The wizard rejects journeys spanning multiple activity ids → one course IRI for the whole journey; the wizard is retried repeatedly → fresh statement UUIDs every run. The LRS keeps old non-conforming statements forever, so raw read-back counts overstate what the verifier sees — judge readiness only by statements matching the example structure.
 - Never fake success when LRS credentials are missing — falsely "passing" a government verification is the worst failure mode. Wizard step 3 (production) = same code, different NELC_LRS_* values; no separate build.
 
 ## Geo-block → who can send, and what the audit log can honestly claim

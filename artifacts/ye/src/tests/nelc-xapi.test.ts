@@ -1,11 +1,15 @@
 /**
  * NELC xAPI journey — statement builders + admin /svc/admin/nelc endpoint.
  *
- *  - builders produce the exact 10-statement journey from NELC's wizard guide
- *    (mbox actor pattern, actor.name = national ID) with fresh UUIDs per run
+ *  - builders produce the exact 10-statement journey (mbox actor pattern,
+ *    actor.name = national ID) with fresh UUIDs per run, mirroring the
+ *    FutureX wizard's personalized example statement structure — the fixture
+ *    deep-comparison below is the guard for that parity
  *  - endpoint validates input, refuses to send when the LRS is not
  *    configured (no fake success), stops on first LRS failure, and persists
  *    an audit row per attempted statement
+ *  - self-check read-back (check/record_check) hands the browser a filtered
+ *    statements GET and records one distinguishable audit row per check
  *
  * Runs against the isolated ye_test database; LRS HTTP calls are mocked —
  * no real network traffic to NELC.
@@ -19,7 +23,13 @@ vi.mock('@/app/svc/admin/guard', () => ({
 import { randomUUID } from 'crypto';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
-import { buildJourneyStatements, JOURNEY_STEPS, lrsConfigured } from '@/lib/xapi';
+import {
+  buildJourneyStatements,
+  JOURNEY_STEPS,
+  lrsConfigured,
+  lrsStatementsQueryUrl,
+} from '@/lib/xapi';
+import { missingJourneySteps, statementMatchesWizardExample } from '@/lib/xapiParity';
 import { GET as nelcGET, POST as nelcPOST } from '@/app/svc/admin/nelc/route';
 
 const fetchMock = vi.fn();
@@ -96,15 +106,14 @@ describe('buildJourneyStatements', () => {
     }
   });
 
-  it('shares one registration per run, ascending timestamps, and result details on progressed/completed', () => {
+  it('spaces recent timestamps one minute apart ending now, with result details on progressed/completed', () => {
+    const before = Date.now();
     const journey = buildJourneyStatements('1234567890', 'https://funademy.io/course/CR001');
-    const registrations = new Set(
-      journey.map((s) => (s.statement.context as { registration: string }).registration),
-    );
-    expect(registrations.size).toBe(1);
-
     const times = journey.map((s) => new Date(s.statement.timestamp as string).getTime());
     expect([...times].sort((a, b) => a - b)).toEqual(times);
+    // recent journey ending "now" (the wizard example's 2022 date is just an old sample)
+    expect(Math.abs(times[9] - before)).toBeLessThan(15_000);
+    expect(times[9] - times[0]).toBe(9 * 60_000);
 
     const progressed = journey.find((s) => s.key === 'progressed')!;
     expect((progressed.statement.result as { score: { raw: number } }).score.raw).toBe(50);
@@ -119,6 +128,223 @@ describe('buildJourneyStatements', () => {
     const b = buildJourneyStatements('1234567890', 'https://funademy.io/course/CR001');
     const idsA = new Set(a.map((s) => s.statementId));
     for (const s of b) expect(idsA.has(s.statementId)).toBe(false);
+  });
+
+  it('builds a filtered read-back query URL (agent + activity + limit)', () => {
+    vi.stubEnv('NELC_LRS_ENDPOINT', 'https://lrs.staging.example/data/xAPI/statements'); // pasted /statements tolerated
+    const url = new URL(lrsStatementsQueryUrl('1234567890', 'https://funademy.io/course/CR001'));
+    expect(`${url.origin}${url.pathname}`).toBe('https://lrs.staging.example/data/xAPI/statements');
+    expect(JSON.parse(url.searchParams.get('agent')!)).toEqual({
+      objectType: 'Agent',
+      mbox: 'mailto:1234567890@gmail.com', // same derivation as the journey actor
+    });
+    expect(url.searchParams.get('activity')).toBe('https://funademy.io/course/CR001');
+    expect(url.searchParams.get('limit')).toBe('25');
+  });
+});
+
+/**
+ * VERBATIM fixture: the FutureX wizard's personalized `registered` example
+ * for our org (pasted from the wizard, 2026-08-10) — the AUTHORITATIVE
+ * statement structure. NELC's verifier only counted statements carrying this
+ * whole shape (a delivered 10/10 journey without it verified as "no_data").
+ * Where the example carries placeholders (instructor "Ibrahim Khalid",
+ * platform display name "Leading Tech for Training", the sample course
+ * wording) the builder substitutes our real values; everything else must
+ * match structurally, and the marked strings must match byte-for-byte.
+ */
+const WIZARD_EXAMPLE = {
+  actor: { mbox: 'mailto:1059652238@gmail.com', name: '1059652238', objectType: 'Agent' },
+  verb: { id: 'http://adlnet.gov/expapi/verbs/registered', display: { 'en-US': 'registered' } },
+  object: {
+    id: 'https://funademy.io/course/CR001',
+    definition: {
+      name: { 'en-US': 'Java for Beginners' },
+      description: { 'en-US': 'Introductory Java course' },
+      type: 'https://w3id.org/xapi/cmi5/activitytype/course',
+    },
+    objectType: 'Activity',
+  },
+  context: {
+    instructor: { name: 'Ibrahim Khalid', mbox: 'mailto:ik@example.com' },
+    platform: 'Https://funademy.io',
+    language: 'ar-SA',
+    extensions: {
+      'https://nelc.gov.sa/extensions/duration': 'PT30H00M00S',
+      'https://nelc.gov.sa/extensions/lms_url': 'Https://funademy.io',
+      'https://nelc.gov.sa/extensions/program_url': 'https://funademy.io/course/CR001',
+      'https://nelc.gov.sa/extensions/platform': {
+        name: { 'ar-SA': 'التقنيات المتقدمة للتدريب', 'en-US': 'Leading Tech for Training' },
+      },
+    },
+  },
+  timestamp: '2022-01-31T07:18:32.829Z',
+};
+
+describe('example parity — deep comparison against the wizard fixture', () => {
+  const built = () =>
+    buildJourneyStatements('1059652238', 'https://funademy.io/course/CR001')[0].statement as Record<
+      string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      any
+    >;
+
+  it('matches actor and verb exactly (actor.name = national ID, wizard mbox pattern)', () => {
+    const s = built();
+    expect(s.actor).toEqual(WIZARD_EXAMPLE.actor);
+    expect(s.verb).toEqual(WIZARD_EXAMPLE.verb);
+  });
+
+  it('matches the object shape — id, objectType, en-US-only definition, cmi5 course type', () => {
+    const s = built();
+    expect(s.object.objectType).toBe(WIZARD_EXAMPLE.object.objectType);
+    expect(s.object.id).toBe(WIZARD_EXAMPLE.object.id);
+    expect(new Set(Object.keys(s.object.definition))).toEqual(
+      new Set(Object.keys(WIZARD_EXAMPLE.object.definition)),
+    );
+    // en-US ONLY — the example carries no ar-SA keys in the definition
+    expect(Object.keys(s.object.definition.name)).toEqual(['en-US']);
+    expect(Object.keys(s.object.definition.description)).toEqual(['en-US']);
+    expect(s.object.definition.type).toBe(WIZARD_EXAMPLE.object.definition.type);
+  });
+
+  it('carries the full example context — same key set (NO registration) and the 4 NELC extension IRIs', () => {
+    const s = built();
+    const ctx = s.context;
+    expect(new Set(Object.keys(ctx))).toEqual(new Set(Object.keys(WIZARD_EXAMPLE.context)));
+    expect(ctx.registration).toBeUndefined();
+    expect(ctx.language).toBe(WIZARD_EXAMPLE.context.language);
+    // instructor: same shape, our real contact substituted for the placeholder
+    expect(new Set(Object.keys(ctx.instructor))).toEqual(
+      new Set(Object.keys(WIZARD_EXAMPLE.context.instructor)),
+    );
+    expect(ctx.instructor).toEqual({ name: 'Funademy Instructor', mbox: 'mailto:info@funademy.io' });
+    expect(new Set(Object.keys(ctx.extensions))).toEqual(
+      new Set(Object.keys(WIZARD_EXAMPLE.context.extensions)),
+    );
+  });
+
+  it('copies the marked example values VERBATIM (capital-H platform/lms_url, duration)', () => {
+    const ctx = built().context;
+    // capital "H" intentional — byte-for-byte what NELC's generator produced for our org
+    expect(ctx.platform).toBe('Https://funademy.io');
+    expect(ctx.extensions['https://nelc.gov.sa/extensions/lms_url']).toBe('Https://funademy.io');
+    expect(ctx.extensions['https://nelc.gov.sa/extensions/duration']).toBe('PT30H00M00S');
+  });
+
+  it('substitutes real values where the example holds placeholders (program_url, platform name)', () => {
+    const ctx = built().context;
+    expect(ctx.extensions['https://nelc.gov.sa/extensions/program_url']).toBe(
+      'https://funademy.io/course/CR001',
+    );
+    const platformExt = ctx.extensions['https://nelc.gov.sa/extensions/platform'];
+    expect(new Set(Object.keys(platformExt))).toEqual(new Set(['name']));
+    expect(Object.keys(platformExt.name).sort()).toEqual(
+      Object.keys(WIZARD_EXAMPLE.context.extensions['https://nelc.gov.sa/extensions/platform'].name).sort(),
+    );
+    expect(platformExt.name).toEqual({ 'ar-SA': 'فناديمي', 'en-US': 'Funademy' });
+  });
+
+  it('keeps the same top-level fields as the example (plus our client-side statement id)', () => {
+    const s = built();
+    // `registered` carries no result — top level must be the example's keys + id
+    expect(new Set(Object.keys(s))).toEqual(new Set([...Object.keys(WIZARD_EXAMPLE), 'id']));
+  });
+
+  it('rides the identical context on all 10 statements, with program_url following the run course IRI', () => {
+    const journey = buildJourneyStatements('1059652238', 'https://funademy.io/course/XYZ9');
+    for (const step of journey) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ctx = step.statement.context as Record<string, any>;
+      expect(ctx).toEqual(journey[0].statement.context);
+      expect(ctx.registration).toBeUndefined();
+      expect(ctx.extensions['https://nelc.gov.sa/extensions/program_url']).toBe(
+        'https://funademy.io/course/XYZ9',
+      );
+    }
+  });
+});
+
+/**
+ * Read-back parity classifier — the self-check must not count statements
+ * that merely LOOK similar (e.g. carry the 4 extension keys) but violate any
+ * verifier-critical parity rule; that false confidence is exactly what the
+ * self-check exists to prevent. Every fixture below mutates ONE aspect of a
+ * builder-emitted statement (so all 4 extension keys stay present unless the
+ * case says otherwise) and must be rejected.
+ */
+describe('self-check parity classifier (statementMatchesWizardExample)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type Mutable = Record<string, any>;
+  const freshStatement = (): Mutable =>
+    structuredClone(
+      buildJourneyStatements('1059652238', 'https://funademy.io/course/CR001')[0].statement,
+    ) as Mutable;
+
+  it('accepts every statement the current builder emits (validator and builder share one source)', () => {
+    const journey = buildJourneyStatements('1059652238', 'https://funademy.io/course/CR001');
+    for (const step of journey) expect(statementMatchesWizardExample(step.statement)).toBe(true);
+    expect(
+      missingJourneySteps(journey.map((s) => (s.statement.verb as { id: string }).id)),
+    ).toEqual([]);
+  });
+
+  it('tolerates the top-level fields an LRS adds to stored statements', () => {
+    const s = freshStatement();
+    s.stored = '2026-08-10T12:00:00Z';
+    s.authority = {
+      objectType: 'Agent',
+      account: { homePage: 'https://lrs.nelc.gov.sa', name: 'funademy_io' },
+    };
+    s.version = '1.0.3';
+    expect(statementMatchesWizardExample(s)).toBe(true);
+  });
+
+  const rejected: [string, (s: Mutable) => void][] = [
+    ['context.registration present (pre-parity format)', (s) => { s.context.registration = randomUUID(); }],
+    ['lowercase platform string', (s) => { s.context.platform = 'https://funademy.io'; }],
+    ['missing instructor', (s) => { delete s.context.instructor; }],
+    ['instructor left as the example placeholder, not our real contact', (s) => { s.context.instructor = { name: 'Ibrahim Khalid', mbox: 'mailto:ik@example.com' }; }],
+    ['instructor missing mbox', (s) => { s.context.instructor = { name: 'Funademy Instructor' }; }],
+    ['wrong context.language', (s) => { s.context.language = 'en-US'; }],
+    ['ar-SA key in object.definition.name (pre-parity format)', (s) => { s.object.definition.name['ar-SA'] = 'دورة فناديمي'; }],
+    ['empty en-US description', (s) => { s.object.definition.description['en-US'] = ''; }],
+    ['wrong definition.type', (s) => { s.object.definition.type = 'http://adlnet.gov/expapi/activities/course'; }],
+    ['wrong duration value', (s) => { s.context.extensions['https://nelc.gov.sa/extensions/duration'] = 'PT30H'; }],
+    ['lowercase lms_url value', (s) => { s.context.extensions['https://nelc.gov.sa/extensions/lms_url'] = 'https://funademy.io'; }],
+    ['program_url not the statement own course id', (s) => { s.context.extensions['https://nelc.gov.sa/extensions/program_url'] = 'https://funademy.io/course/OTHER'; }],
+    ['platform extension name missing en-US', (s) => { s.context.extensions['https://nelc.gov.sa/extensions/platform'] = { name: { 'ar-SA': 'فناديمي' } }; }],
+    ['platform extension left as the example placeholder name', (s) => { s.context.extensions['https://nelc.gov.sa/extensions/platform'] = { name: { 'ar-SA': 'التقنيات المتقدمة للتدريب', 'en-US': 'Leading Tech for Training' } }; }],
+    ['a fifth extension key added', (s) => { s.context.extensions['https://nelc.gov.sa/extensions/extra'] = 'x'; }],
+    ['one of the 4 extension keys missing', (s) => { delete s.context.extensions['https://nelc.gov.sa/extensions/lms_url']; }],
+    ['verb outside the journey vocabulary', (s) => { s.verb = { id: 'http://adlnet.gov/expapi/verbs/experienced', display: { 'en-US': 'experienced' } }; }],
+    ['verb display missing en-US', (s) => { s.verb = { id: s.verb.id, display: { ar: 'سجل' } }; }],
+    ['actor mbox not derived from actor.name (national ID)', (s) => { s.actor.mbox = 'mailto:someone@example.com'; }],
+    ['actor objectType wrong', (s) => { s.actor.objectType = 'Group'; }],
+    ['missing timestamp', (s) => { delete s.timestamp; }],
+  ];
+  for (const [label, mutate] of rejected) {
+    it(`rejects: ${label}`, () => {
+      const s = freshStatement();
+      mutate(s);
+      expect(statementMatchesWizardExample(s)).toBe(false);
+    });
+  }
+
+  it('requires the full 10-step verb multiset (completed ×3), not just 10 parity statements', () => {
+    const full = buildJourneyStatements('1059652238', 'https://funademy.io/course/CR001').map(
+      (s) => (s.statement.verb as { id: string }).id,
+    );
+    expect(missingJourneySteps(full)).toEqual([]);
+    // swap one `completed` for an extra `earned`: still 10 statements, journey incomplete
+    const idx = full.indexOf('http://adlnet.gov/expapi/verbs/completed');
+    const swapped = full
+      .filter((_, i) => i !== idx)
+      .concat('http://id.tincanapi.com/verb/earned');
+    expect(swapped).toHaveLength(10);
+    expect(missingJourneySteps(swapped)).toEqual(['completed ×3']);
+    // empty ⇒ all 8 distinct journey verb IRIs reported missing
+    expect(missingJourneySteps([])).toHaveLength(8);
   });
 });
 
@@ -479,6 +705,228 @@ describe('POST /svc/admin/nelc — browser relay (prepare/record)', () => {
     );
     expect(resBadRun.status).toBe(400);
     expect((await resBadRun.json()).error).toBe('invalid_run_id');
+    expect(await prisma.xapiStatement.count()).toBe(0);
+  });
+});
+
+// Read-back self-check: the server prepares a one-time filtered statements
+// GET for the owner's browser (same step-up + relay pattern as the journey),
+// and record_check persists ONE distinguishable audit row per check.
+describe('POST /svc/admin/nelc — self-check read-back (check/record_check)', () => {
+  beforeEach(async () => {
+    await prisma.xapiStatement.deleteMany({});
+    await prisma.xapiPreparedRun.deleteMany({});
+  });
+
+  it('check hands the browser a filtered read-back URL + Basic auth and persists a one-time check', async () => {
+    stubLrsEnv();
+    const res = await nelcPOST(
+      postReq({ action: 'check', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.checkId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(data.authorization).toMatch(/^Basic /);
+    const url = new URL(data.url);
+    expect(`${url.origin}${url.pathname}`).toBe('https://lrs.staging.example/data/xAPI/statements');
+    expect(JSON.parse(url.searchParams.get('agent')!)).toEqual({
+      objectType: 'Agent',
+      mbox: 'mailto:4444444444@gmail.com',
+    });
+    expect(url.searchParams.get('activity')).toBe('https://funademy.io/course/CR001');
+    expect(url.searchParams.get('limit')).toBe('25');
+    // read-only: nothing sent by the server, no audit rows yet…
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await prisma.xapiStatement.count()).toBe(0);
+    // …but the one-time check run is persisted, marked as a self_check
+    const run = await prisma.xapiPreparedRun.findUnique({ where: { runId: data.checkId } });
+    expect(run?.consumed).toBe(false);
+    expect(run?.nationalId).toBe('4444444444');
+    expect((run?.steps as { key: string }[])[0].key).toBe('self_check');
+  });
+
+  it('check refuses when not configured, and requires the step-up password when configured', async () => {
+    vi.stubEnv('ADMIN_PASSWORD', 'test-admin-pass');
+    const un = await nelcPOST(
+      postReq({ action: 'check', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(un.status).toBe(503);
+    expect((await un.json()).error).toBe('not_configured');
+
+    stubLrsEnv();
+    const bad = await nelcPOST(
+      postReq({ action: 'check', password: 'wrong-password', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(bad.status).toBe(401);
+    expect((await bad.json()).error).toBe('reauth_failed');
+    const badId = await nelcPOST(
+      postReq({ action: 'check', password: 'test-admin-pass', nationalId: '12345', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(badId.status).toBe(400);
+    expect(await prisma.xapiPreparedRun.count()).toBe(0);
+  });
+
+  it('record_check persists ONE distinguishable audit row (matched count + verbs) and consumes the check', async () => {
+    stubLrsEnv();
+    const prep = await (
+      await nelcPOST(
+        postReq({ action: 'check', password: 'test-admin-pass', nationalId: '5555555555', courseIri: 'https://funademy.io/course/CR001' }),
+      )
+    ).json();
+    const res = await nelcPOST(
+      postReq({
+        action: 'record_check',
+        checkId: prep.checkId,
+        ok: true,
+        httpStatus: 200,
+        matched: 12,
+        parityMatched: 10,
+        verbs: ['earned', 'rated', 'completed'],
+        missingSteps: [],
+        detail: '',
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      ok: true,
+      matched: 12,
+      parityMatched: 10,
+      recorded: 1,
+      source: 'browser',
+    });
+
+    const rows = await prisma.xapiStatement.findMany({ where: { runId: prep.checkId } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].verb).toBe('self_check'); // distinguishable from journey verbs
+    expect(rows[0].source).toBe('browser');
+    expect(rows[0].ok).toBe(true);
+    expect(rows[0].httpStatus).toBe(200);
+    // identity/course come from the server-stored check, never the client
+    expect(rows[0].nationalId).toBe('5555555555');
+    expect(rows[0].courseIri).toBe('https://funademy.io/course/CR001');
+    const summary = JSON.parse(rows[0].response!);
+    expect(summary.matched).toBe(12);
+    // example-structure count is stored separately — old-format statements
+    // inflate `matched` but NELC's verifier only counts parity ones
+    expect(summary.parityMatched).toBe(10);
+    expect(summary.missingSteps).toEqual([]);
+    expect(summary.verbs).toEqual(['earned', 'rated', 'completed']);
+
+    // one-time: a duplicate report is refused and writes nothing
+    const dup = await nelcPOST(
+      postReq({ action: 'record_check', checkId: prep.checkId, ok: true, httpStatus: 200, matched: 12, parityMatched: 10, verbs: [], missingSteps: [] }),
+    );
+    expect(dup.status).toBe(409);
+    expect(await prisma.xapiStatement.count()).toBe(1);
+  });
+
+  it('record_check stores failed reads honestly (ok=false, null status, detail)', async () => {
+    stubLrsEnv();
+    const prep = await (
+      await nelcPOST(
+        postReq({ action: 'check', password: 'test-admin-pass', nationalId: '5555555555', courseIri: 'https://funademy.io/course/CR001' }),
+      )
+    ).json();
+    const res = await nelcPOST(
+      postReq({
+        action: 'record_check',
+        checkId: prep.checkId,
+        ok: false,
+        httpStatus: null,
+        matched: 0,
+        parityMatched: 0,
+        verbs: [],
+        missingSteps: [],
+        detail: 'browser_network_or_cors: Failed to fetch',
+      }),
+    );
+    expect(res.status).toBe(200);
+    const rows = await prisma.xapiStatement.findMany({ where: { runId: prep.checkId } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].ok).toBe(false);
+    expect(rows[0].httpStatus).toBeNull();
+    expect(rows[0].response).toContain('browser_network_or_cors');
+  });
+
+  it('record_check refuses unknown/journey/tampered/expired payloads (and record refuses check runs)', async () => {
+    stubLrsEnv();
+    // unknown check id
+    expect(
+      (
+        await nelcPOST(
+          postReq({ action: 'record_check', checkId: randomUUID(), ok: true, httpStatus: 200, matched: 1, parityMatched: 1, verbs: [], missingSteps: [] }),
+        )
+      ).status,
+    ).toBe(404);
+    // malformed check id
+    expect(
+      (
+        await nelcPOST(postReq({ action: 'record_check', checkId: 'nope', ok: true, httpStatus: 200, matched: 1, parityMatched: 1, verbs: [], missingSteps: [] }))
+      ).status,
+    ).toBe(400);
+
+    // a prepared JOURNEY run may not be consumed as a self-check…
+    const journeyPrep = await (
+      await nelcPOST(
+        postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '6666666666', courseIri: 'https://funademy.io/course/CR001' }),
+      )
+    ).json();
+    const cross = await nelcPOST(
+      postReq({ action: 'record_check', checkId: journeyPrep.runId, ok: true, httpStatus: 200, matched: 10, parityMatched: 10, verbs: [], missingSteps: [] }),
+    );
+    expect(cross.status).toBe(400);
+    expect((await cross.json()).error).toBe('not_a_check');
+
+    // …and a prepared CHECK may not feed the journey `record` action
+    const checkPrep = await (
+      await nelcPOST(
+        postReq({ action: 'check', password: 'test-admin-pass', nationalId: '6666666666', courseIri: 'https://funademy.io/course/CR001' }),
+      )
+    ).json();
+    const rev = await nelcPOST(
+      postReq({
+        action: 'record',
+        runId: checkPrep.checkId,
+        results: [{ verb: 'registered', statementId: randomUUID(), ok: true, httpStatus: 200, response: 'x' }],
+      }),
+    );
+    expect(rev.status).toBe(400);
+
+    // tampered payloads
+    for (const bad of [
+      { matched: -1 },
+      { matched: 3.5 },
+      { matched: 'many' },
+      { parityMatched: -1 },
+      { parityMatched: 2.5 },
+      { parityMatched: 'all' },
+      { verbs: 'registered' },
+      { verbs: Array.from({ length: 61 }, () => 'v') },
+      { missingSteps: 'completed' },
+      { missingSteps: Array.from({ length: 13 }, () => 's') },
+      { missingSteps: [42] },
+      { httpStatus: 12345 },
+    ]) {
+      const res = await nelcPOST(
+        postReq({ action: 'record_check', checkId: checkPrep.checkId, ok: true, httpStatus: 200, matched: 1, parityMatched: 1, verbs: [], missingSteps: [], ...bad }),
+      );
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe('invalid_check_results');
+    }
+
+    // expired check
+    await prisma.xapiPreparedRun.update({
+      where: { runId: checkPrep.checkId },
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
+    expect(
+      (
+        await nelcPOST(
+          postReq({ action: 'record_check', checkId: checkPrep.checkId, ok: true, httpStatus: 200, matched: 1, parityMatched: 1, verbs: [], missingSteps: [] }),
+        )
+      ).status,
+    ).toBe(410);
+    // none of the rejections wrote audit rows
     expect(await prisma.xapiStatement.count()).toBe(0);
   });
 });

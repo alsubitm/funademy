@@ -10,6 +10,7 @@ import {
   lrsAuthorization,
   lrsConfigured,
   lrsEnvironment,
+  lrsStatementsQueryUrl,
   lrsStatementsUrl,
   sendStatement,
 } from '@/lib/xapi';
@@ -40,6 +41,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const PREPARED_RUN_TTL_MS = 15 * 60_000;
 
 /**
+ * Audit-log verb + prepared-run marker for the read-back self-check. Not a
+ * journey step key, so self-check rows are distinguishable in the log and a
+ * prepared check can never be consumed by the journey `record` action (and
+ * vice versa).
+ */
+const SELF_CHECK_VERB = 'self_check';
+
+/**
  * POST — three admin-only actions, all honest about configuration (503
  * not_configured when secrets are missing — success is never faked):
  *
@@ -65,15 +74,35 @@ const PREPARED_RUN_TTL_MS = 15 * 60_000;
  *      them as browser-reported. The AUTHORITATIVE delivery check is NELC's
  *      own wizard («بدء الاختبار»), which reads NELC's LRS directly.
  *
+ *  { action:'check', password, nationalId, courseIri }
+ *      SELF-CHECK read-back: like `prepare` but READ-ONLY — persist a
+ *      one-time check (same TTL) and hand the owner's browser a FILTERED
+ *      statements GET url (agent + activity, limit 25) plus the Basic
+ *      Authorization, so the owner can confirm what the LRS actually stored
+ *      for that learner + course without burning a wizard attempt.
+ *
+ *  { action:'record_check', checkId, ok, httpStatus, matched, parityMatched,
+ *    verbs, missingSteps, detail? }
+ *      Persist the self-check outcome as ONE distinguishable audit row
+ *      (verb='self_check', source='browser'); the matched statement count,
+ *      the example-parity count (statements passing the FULL wizard-example
+ *      validator shared in xapiParity — the only ones NELC's verifier
+ *      counts), the missing journey verbs + verb list are stored in the
+ *      row's response JSON. Same provenance rules as `record`:
+ *      only an unconsumed, unexpired, server-prepared SELF-CHECK (never a
+ *      journey run) is accepted, consumed atomically, with identity/course
+ *      taken from the stored check, never the client.
+ *
  *  { nationalId, courseIri }  (default — server-side send)
  *      Original server-side journey: send in order, stop on first failure,
  *      log every attempt with source='server' (the server saw the LRS
  *      responses itself). Kept for egress-allowed environments (e.g. if NELC
  *      allowlists our IPs later); currently blocked by NELC's WAF.
  *
- * ACCEPTED RISK — LRS credential in the admin browser: `prepare` returns the
- * raw Basic Authorization value so the owner's browser can POST directly to
- * the geo-fenced LRS. This is deliberate and explicitly accepted because:
+ * ACCEPTED RISK — LRS credential in the admin browser: `prepare` and `check`
+ * return the raw Basic Authorization value so the owner's browser can talk
+ * directly to the geo-fenced LRS. This is deliberate and explicitly accepted
+ * because:
  *   - this app has exactly ONE admin identity — the owner (a single
  *     ADMIN_PASSWORD, no other accounts or roles) — and the credential handed
  *     over is the owner's own LRS key for the platform's own statement store;
@@ -97,7 +126,12 @@ export async function POST(req: NextRequest) {
   }
 
   const action =
-    body.action === 'prepare' || body.action === 'record' ? (body.action as string) : 'server';
+    body.action === 'prepare' ||
+    body.action === 'record' ||
+    body.action === 'check' ||
+    body.action === 'record_check'
+      ? (body.action as string)
+      : 'server';
 
   // ---- action: record — persist browser-reported results ------------------
   // Placed before the config check on purpose: outcomes of an already-sent
@@ -187,7 +221,87 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: rows.every((r) => r.ok), recorded: rows.length, source: 'browser' });
   }
 
-  // ---- prepare / server-send: validate inputs + require configuration -----
+  // ---- action: record_check — persist the self-check outcome --------------
+  // Also before the config check: a check that already ran must stay
+  // recordable even if secrets were removed meanwhile.
+  if (action === 'record_check') {
+    const checkId = String(body.checkId ?? '');
+    if (!UUID_RE.test(checkId)) {
+      return NextResponse.json({ error: 'invalid_check_id' }, { status: 400 });
+    }
+    const ok = body.ok === true;
+    const httpStatus =
+      body.httpStatus === null || body.httpStatus === undefined ? null : Number(body.httpStatus);
+    const matched = Number(body.matched);
+    const parityMatched = Number(body.parityMatched);
+    const rawVerbs = Array.isArray(body.verbs) ? (body.verbs as unknown[]) : null;
+    const rawMissing = Array.isArray(body.missingSteps) ? (body.missingSteps as unknown[]) : null;
+    if (
+      (httpStatus !== null &&
+        (!Number.isInteger(httpStatus) || httpStatus < 0 || httpStatus > 999)) ||
+      !Number.isInteger(matched) ||
+      matched < 0 ||
+      matched > 1000 ||
+      !Number.isInteger(parityMatched) ||
+      parityMatched < 0 ||
+      parityMatched > 1000 ||
+      !rawVerbs ||
+      rawVerbs.length > 60 ||
+      rawVerbs.some((v) => typeof v !== 'string' || v.length > 300) ||
+      !rawMissing ||
+      rawMissing.length > 12 ||
+      rawMissing.some((v) => typeof v !== 'string' || v.length > 60)
+    ) {
+      return NextResponse.json({ error: 'invalid_check_results' }, { status: 400 });
+    }
+    const verbs = rawVerbs as string[];
+    const missingSteps = rawMissing as string[];
+    const detail = String(body.detail ?? '').slice(0, 1200);
+
+    const run = await prisma.xapiPreparedRun.findUnique({ where: { runId: checkId } });
+    if (!run) return NextResponse.json({ error: 'unknown_check' }, { status: 404 });
+    const prepared = run.steps as unknown as { key: string; statementId: string }[];
+    const isCheckRun =
+      Array.isArray(prepared) && prepared.length === 1 && prepared[0]?.key === SELF_CHECK_VERB;
+    if (!isCheckRun) return NextResponse.json({ error: 'not_a_check' }, { status: 400 });
+    if (run.consumed) return NextResponse.json({ error: 'already_recorded' }, { status: 409 });
+    if (run.expiresAt.getTime() < Date.now()) {
+      return NextResponse.json({ error: 'run_expired' }, { status: 410 });
+    }
+
+    // Atomic one-time consume — a concurrent duplicate loses this claim.
+    const claimed = await prisma.xapiPreparedRun.updateMany({
+      where: { runId: checkId, consumed: false },
+      data: { consumed: true },
+    });
+    if (claimed.count === 0) {
+      return NextResponse.json({ error: 'already_recorded' }, { status: 409 });
+    }
+
+    await prisma.xapiStatement.create({
+      data: {
+        runId: checkId,
+        environment: run.environment,
+        nationalId: run.nationalId,
+        courseIri: run.courseIri,
+        verb: SELF_CHECK_VERB,
+        statementId: prepared[0].statementId,
+        ok,
+        httpStatus,
+        response: JSON.stringify({
+          matched,
+          parityMatched,
+          missingSteps,
+          verbs,
+          ...(detail ? { detail } : {}),
+        }).slice(0, 2000),
+        source: 'browser',
+      },
+    });
+    return NextResponse.json({ ok, matched, parityMatched, recorded: 1, source: 'browser' });
+  }
+
+  // ---- prepare / check / server-send: validate inputs + require config ----
   const nationalId = String(body.nationalId ?? '').trim();
   const courseIri = String(body.courseIri ?? '').trim() || DEFAULT_COURSE_IRI;
 
@@ -246,6 +360,39 @@ export async function POST(req: NextRequest) {
         statementId: s.statementId,
         statement: s.statement,
       })),
+    });
+  }
+
+  // ---- action: check — prepared read-back self-check for the browser ------
+  if (action === 'check') {
+    // STEP-UP AUTHORIZATION: same rationale as `prepare` — the response
+    // hands the LRS Basic credential to the browser.
+    if (String(body.password ?? '') !== getAdminPassword()) {
+      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    }
+    const checkId = randomUUID();
+    await prisma.xapiPreparedRun.deleteMany({
+      where: { expiresAt: { lt: new Date(Date.now() - 24 * 60 * 60_000) } },
+    });
+    await prisma.xapiPreparedRun.create({
+      data: {
+        runId: checkId,
+        environment,
+        nationalId,
+        courseIri,
+        // The single self_check step marks this run as a read-back check —
+        // `record` can never consume it (verb mismatch) and `record_check`
+        // refuses anything else.
+        steps: [{ key: SELF_CHECK_VERB, statementId: randomUUID() }],
+        expiresAt: new Date(Date.now() + PREPARED_RUN_TTL_MS),
+      },
+    });
+    return NextResponse.json({
+      configured: true,
+      environment,
+      checkId,
+      url: lrsStatementsQueryUrl(nationalId, courseIri),
+      authorization: lrsAuthorization(),
     });
   }
 

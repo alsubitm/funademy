@@ -10,11 +10,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { execFile } from 'node:child_process';
-import { mkdir, rm, rmdir } from 'node:fs/promises';
+import { mkdir, readFile, rm, rmdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const YE_ROOT = path.resolve(__dirname, '..', '..');
 const DIST_DIR = '.next-build-test';
+const NEXT_ENV_DTS = path.join(YE_ROOT, 'next-env.d.ts');
 const UNREACHABLE_DB_URL = 'postgresql://nouser:nopass@127.0.0.1:5999/nodb';
 const BUILD_TIMEOUT_MS = 240_000;
 
@@ -123,6 +124,16 @@ describe('build resilience (publish must not depend on a reachable DB)', () => {
         expect(result.code).toBe(0);
       } finally {
         await rm(distPath, { recursive: true, force: true });
+        // The nested build rewrites the TRACKED next-env.d.ts to reference
+        // this test's distDir (`.next-build-test/types/routes.d.ts`), which
+        // breaks standalone typecheck on a clean checkout. Restore the
+        // standard `.next` reference so test runs never leave
+        // generated-file drift (idempotent — also heals drift left by a
+        // previously killed run).
+        const nextEnv = await readFile(NEXT_ENV_DTS, 'utf8').catch(() => null);
+        if (nextEnv && nextEnv.includes(DIST_DIR)) {
+          await writeFile(NEXT_ENV_DTS, nextEnv.split(`/${DIST_DIR}/`).join('/.next/'));
+        }
         await rmdir(LOCK_DIR).catch(() => {});
       }
     },

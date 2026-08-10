@@ -7,8 +7,8 @@
  *
  * Sends the full 10-statement journey for the test learner's national ID so
  * the FutureX wizard's «بدء الاختبار» can verify it. Safe to re-run — every
- * run uses fresh statement UUIDs and a fresh registration. Works unchanged
- * for wizard step 3 later: just swap the NELC_LRS_* env values to production.
+ * run uses fresh statement UUIDs. Works unchanged for wizard step 3 later:
+ * just swap the NELC_LRS_* env values to production.
  */
 import { describe, expect, it } from 'vitest';
 import {

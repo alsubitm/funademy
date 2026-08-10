@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+import { missingJourneySteps, statementMatchesWizardExample } from '@/lib/xapiParity';
+
 /**
  * Admin «نيلك» tab — fires the NELC LRS test journey (wizard step 2:
  * «تشغيل اختبار التحقق») and reviews the permanent statement log.
@@ -13,6 +15,16 @@ import { useState, useEffect, useCallback } from 'react';
  * LRS one by one, then reports the results back for the audit log. Reported
  * outcomes are stored labeled source='browser' (unverified server-side): the
  * authoritative delivery check is NELC's own wizard («بدء الاختبار»).
+ *
+ * SELF-CHECK (read-back): the same step-up + browser-relay pattern, but
+ * READ-ONLY — the browser GETs the stored statements for the entered learner
+ * + course straight from the LRS (agent + activity filter), validates each
+ * one against the wizard example's FULL structure via the shared classifier
+ * (xapiParity — only example-parity statements count for NELC's verifier)
+ * and shows the stored count, the parity count, journey verb coverage and
+ * the verb list, so future runs can be confirmed without burning a wizard
+ * verification attempt. Each check is recorded as one distinguishable audit
+ * row (verb='self_check').
  */
 
 const VERB_AR: Record<string, string> = {
@@ -26,6 +38,7 @@ const VERB_AR: Record<string, string> = {
   completed_course: 'إتمام الدورة (completed)',
   rated: 'تقييم الدورة (rated)',
   earned: 'الحصول على الشهادة (earned)',
+  self_check: 'فحص ذاتي — قراءة العبارات المخزنة',
 };
 const VERB_ORDER = [
   'registered',
@@ -78,6 +91,59 @@ type PrepareResponse = {
   steps: { key: string; statementId: string; statement: Record<string, unknown> }[];
 };
 
+type CheckPrepareResponse = {
+  environment: string;
+  checkId: string;
+  url: string;
+  authorization: string;
+};
+
+type CheckState = {
+  pending: boolean;
+  ok: boolean;
+  httpStatus: number | null;
+  matched: number;
+  /**
+   * How many of the matched statements pass the FULL wizard-example parity
+   * validator (statementMatchesWizardExample — shared with the journey
+   * builder and the tests). Only these count for NELC's verifier; journeys
+   * sent before the parity fix are stored too but never counted.
+   */
+  parityMatched: number;
+  verbs: string[];
+  /** Journey verbs still missing among the parity statements (multiset). */
+  missingSteps: string[];
+  hasMore: boolean;
+  environment: string;
+  detail: string;
+};
+
+/** Error messages shared by the prepare (send) and check (read-back) calls. */
+const PREP_ERRORS: Record<string, string> = {
+  invalid_national_id: 'رقم الهوية يجب أن يكون 10 أرقام (رقم هوية المتعلم التجريبي).',
+  invalid_course_iri: 'معرّف الدورة يجب أن يكون رابطاً صحيحاً يبدأ بـ https://',
+  not_configured: 'الاتصال بنظام تسجيل التعلم (LRS) غير مهيأ — أضف بيانات الاعتماد أولاً.',
+  reauth_failed: 'كلمة مرور الإدارة غير صحيحة — أعد إدخالها في خانة التأكيد.',
+};
+
+/** Parse the summary JSON stored in a self_check audit row's response. */
+const parseCheckSummary = (
+  response: string | null,
+): { matched: number; parityMatched?: number; verbs: string[] } | null => {
+  if (!response) return null;
+  try {
+    const j = JSON.parse(response) as { matched?: unknown; parityMatched?: unknown; verbs?: unknown };
+    if (typeof j.matched !== 'number') return null;
+    return {
+      matched: j.matched,
+      parityMatched: typeof j.parityMatched === 'number' ? j.parityMatched : undefined,
+      verbs: Array.isArray(j.verbs) ? j.verbs.map(String) : [],
+    };
+  } catch {
+    return null;
+  }
+};
+
 type LogRow = {
   id: number;
   runId: string;
@@ -124,6 +190,8 @@ export function NelcTab() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRun, setLastRun] = useState<RunState | null>(null);
+  const [checkBusy, setCheckBusy] = useState(false);
+  const [lastCheck, setLastCheck] = useState<CheckState | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -163,20 +231,12 @@ export function NelcTab() {
           courseIri: courseIri.trim(),
         }),
       });
-      if (prep.status === 401) { window.location.reload(); return; }
       const prepData = await prep.json().catch(() => ({}));
+      // 401 + reauth_failed = wrong step-up password (show the message);
+      // any other 401 = admin session expired → back to the login screen.
+      if (prep.status === 401 && prepData.error !== 'reauth_failed') { window.location.reload(); return; }
       if (!prep.ok) {
-        setError(
-          prepData.error === 'invalid_national_id'
-            ? 'رقم الهوية يجب أن يكون 10 أرقام (رقم هوية المتعلم التجريبي).'
-            : prepData.error === 'invalid_course_iri'
-              ? 'معرّف الدورة يجب أن يكون رابطاً صحيحاً يبدأ بـ https://'
-              : prepData.error === 'not_configured'
-                ? 'الاتصال بنظام تسجيل التعلم (LRS) غير مهيأ — أضف بيانات الاعتماد أولاً.'
-                : prepData.error === 'reauth_failed'
-                  ? 'كلمة مرور الإدارة غير صحيحة — أعد إدخالها في خانة التأكيد.'
-                  : 'تعذّر تجهيز الرحلة — أعد المحاولة.',
-        );
+        setError(PREP_ERRORS[prepData.error as string] ?? 'تعذّر تجهيز الرحلة — أعد المحاولة.');
         return;
       }
       const { runId, environment, url, authorization, steps } = prepData as PrepareResponse;
@@ -229,6 +289,103 @@ export function NelcTab() {
       await refresh();
     } finally {
       setBusy(false);
+    }
+  };
+
+  const runCheck = async () => {
+    if (!adminPassword.trim()) {
+      setError('أدخل كلمة مرور الإدارة في خانة التأكيد قبل تشغيل الفحص.');
+      return;
+    }
+    setCheckBusy(true);
+    setError(null);
+    setLastCheck(null);
+    try {
+      // 1) The server prepares a one-time read-back check (validation + LRS creds).
+      const prep = await fetch('/svc/admin/nelc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check',
+          password: adminPassword,
+          nationalId: nationalId.trim(),
+          courseIri: courseIri.trim(),
+        }),
+      });
+      const prepData = await prep.json().catch(() => ({}));
+      if (prep.status === 401 && prepData.error !== 'reauth_failed') { window.location.reload(); return; }
+      if (!prep.ok) {
+        setError(PREP_ERRORS[prepData.error as string] ?? 'تعذّر تجهيز الفحص — أعد المحاولة.');
+        return;
+      }
+      const { checkId, environment, url, authorization } = prepData as CheckPrepareResponse;
+
+      // 2) THIS BROWSER reads the stored statements straight from NELC's LRS
+      //    (same geo-block reason as sending — the owner is inside Saudi Arabia).
+      setLastCheck({
+        pending: true, ok: false, httpStatus: null, matched: 0, parityMatched: 0, verbs: [],
+        missingSteps: [], hasMore: false, environment, detail: '',
+      });
+      let ok = false;
+      let httpStatus: number | null = null;
+      let matched = 0;
+      let parityMatched = 0;
+      let verbs: string[] = [];
+      let missingSteps: string[] = [];
+      let hasMore = false;
+      let detail = '';
+      try {
+        const res = await fetch(url, {
+          headers: { 'X-Experience-API-Version': '1.0.3', Authorization: authorization },
+        });
+        httpStatus = res.status;
+        const text = (await res.text().catch(() => '')) || '';
+        if (res.ok) {
+          try {
+            const parsed = JSON.parse(text) as {
+              statements?: {
+                verb?: { display?: Record<string, string>; id?: string };
+              }[];
+              more?: string;
+            };
+            const sts = Array.isArray(parsed.statements) ? parsed.statements : [];
+            matched = sts.length;
+            verbs = sts.map((s) => s?.verb?.display?.['en-US'] || s?.verb?.id || 'unknown').slice(0, 60);
+            // Only statements matching the wizard example's WHOLE structure
+            // count for NELC's verifier — the full structural/value validator
+            // is shared with the journey builder and the tests (xapiParity),
+            // so "parity" here means exactly what the current builder emits.
+            // A key-presence or raw count alone would let malformed or
+            // old-format statements fake readiness.
+            const parityStatements = sts.filter((s) => statementMatchesWizardExample(s));
+            parityMatched = parityStatements.length;
+            missingSteps = missingJourneySteps(parityStatements.map((s) => s?.verb?.id ?? ''));
+            hasMore = Boolean(parsed.more);
+            if (hasMore) detail = 'more_available';
+            ok = true;
+          } catch {
+            detail = `unparseable_lrs_response: ${text.slice(0, 300)}`;
+          }
+        } else {
+          detail = text.slice(0, 800);
+        }
+      } catch (e) {
+        detail = `browser_network_or_cors: ${e instanceof Error ? e.message : 'failed'}`;
+      }
+      setLastCheck({ pending: false, ok, httpStatus, matched, parityMatched, verbs, missingSteps, hasMore, environment, detail });
+
+      // 3) Record ONE distinguishable audit row for the permanent log.
+      const rec = await fetch('/svc/admin/nelc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'record_check', checkId, ok, httpStatus, matched, parityMatched, verbs, missingSteps, detail }),
+      }).catch(() => null);
+      if (!rec || !rec.ok) {
+        setError('تم تنفيذ الفحص، لكن تعذّر حفظه في السجل — أعد تحميل الصفحة للتحقق.');
+      }
+      await refresh();
+    } finally {
+      setCheckBusy(false);
     }
   };
 
@@ -355,6 +512,83 @@ export function NelcTab() {
         )}
       </div>
 
+      {/* Self-check (read-back) */}
+      <div className="bg-white p-5 rounded-2xl border border-[#DFE5F2] space-y-4">
+        <div>
+          <div className="font-display font-bold text-[#101A38]">الفحص الذاتي — قراءة العبارات المخزنة</div>
+          <p className="text-sm text-[#5F6B92] mt-1 leading-relaxed">
+            يقرأ من نظام نيلك مباشرة (عبر متصفحك، بنفس قيد الموقع الجغرافي) العبارات المخزنة فعلاً
+            لرقم الهوية ومعرّف الدورة المدخلين أعلاه، ويعرض عددها وأفعالها وكم منها مطابقٌ لبنية
+            المثال الرسمي التي يحتسبها فحص نيلك. استخدمه بعد الإرسال للتأكد أن الرحلة قابلة
+            للاسترجاع قبل الضغط على «بدء الاختبار» في معالج نيلك — دون استهلاك محاولة تحقق.
+            يستخدم نفس خانات النموذج أعلاه (الهوية، الدورة، كلمة المرور).
+          </p>
+        </div>
+        {lastCheck && (
+          lastCheck.pending ? (
+            <div className="bg-[#F0F5FF] rounded-xl px-4 py-3 text-sm font-bold text-[#1C54CB]">
+              ⏳ جارٍ القراءة من نظام نيلك عبر متصفحك…
+            </div>
+          ) : lastCheck.ok ? (
+            <div
+              className={`rounded-xl px-4 py-3 space-y-2 border ${
+                lastCheck.parityMatched >= 10 && lastCheck.missingSteps.length === 0
+                  ? 'bg-[rgba(34,218,255,0.1)] border-[#22DAFF]/40'
+                  : lastCheck.matched > 0
+                    ? 'bg-[rgba(255,202,23,0.12)] border-[#FFCA17]/60'
+                    : 'bg-[#FDECEC] border-[#B3261E]/30'
+              }`}
+            >
+              <div
+                className={`text-sm font-bold leading-relaxed ${
+                  lastCheck.parityMatched >= 10 && lastCheck.missingSteps.length === 0
+                    ? 'text-[#0e7a94]'
+                    : lastCheck.matched > 0
+                      ? 'text-[#8a6d00]'
+                      : 'text-[#B3261E]'
+                }`}
+              >
+                {lastCheck.parityMatched >= 10 && lastCheck.missingSteps.length === 0
+                  ? `✓ وُجدت ${lastCheck.matched}${lastCheck.hasMore ? '+' : ''} عبارة مخزنة لهذا المتعلم وهذه الدورة، منها ${lastCheck.parityMatched} بالبنية المطابقة للمثال الرسمي وبكل أفعال الرحلة العشرة — جاهز لتشغيل «بدء الاختبار» في معالج نيلك.`
+                  : lastCheck.matched >= 10 && lastCheck.parityMatched < 10
+                    ? `⚠ وُجدت ${lastCheck.matched}${lastCheck.hasMore ? '+' : ''} عبارة، لكن ${lastCheck.parityMatched} فقط بالبنية المطابقة للمثال الرسمي (المطلوب 10) — البقية بصيغة لا يحتسبها فحص نيلك (مثل رحلات ما قبل المطابقة). أعد إرسال الرحلة ثم افحص مجدداً.`
+                    : lastCheck.parityMatched >= 10 && lastCheck.missingSteps.length > 0
+                      ? `⚠ العبارات المطابقة للمثال (${lastCheck.parityMatched}) لا تغطي كل أفعال الرحلة — الناقص: ${lastCheck.missingSteps.join('، ')}. أعد إرسال الرحلة ثم افحص مجدداً.`
+                      : lastCheck.matched > 0
+                        ? `⚠ وُجدت ${lastCheck.matched} عبارة فقط (منها ${lastCheck.parityMatched} مطابقة للمثال) — الرحلة الكاملة 10 عبارات. أعد إرسال الرحلة ثم افحص مجدداً.`
+                        : '✗ لا توجد أي عبارات مخزنة لهذا المتعلم وهذه الدورة — تأكد من تطابق رقم الهوية ومعرّف الدورة حرفياً (معرّف الدورة حساس لحالة الأحرف) ثم أعد إرسال الرحلة.'}
+              </div>
+              {lastCheck.verbs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5" dir="ltr">
+                  {lastCheck.verbs.map((v, i) => (
+                    <span key={i} className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white border border-[#DFE5F2] text-[#101A38]">
+                      {v}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-[#FDECEC] border border-[#B3261E]/30 rounded-xl px-4 py-3 text-sm text-[#B3261E] leading-relaxed">
+              <span className="font-bold" >
+                ✗ فشلت القراءة {lastCheck.httpStatus ? `(HTTP ${lastCheck.httpStatus})` : '(خطأ شبكة)'} — تأكد أنك
+                تفتح اللوحة من جهاز داخل السعودية وبدون VPN ثم أعد المحاولة.
+              </span>
+              {lastCheck.detail && (
+                <div className="mt-1 text-[11px] font-mono break-all" dir="ltr">{lastCheck.detail}</div>
+              )}
+            </div>
+          )
+        )}
+        <button
+          onClick={runCheck}
+          disabled={checkBusy || busy || !config?.configured}
+          className="bg-white border-2 border-[#1C54CB] text-[#1C54CB] px-6 py-3 rounded-xl font-display font-bold disabled:opacity-50"
+        >
+          {checkBusy ? 'جارٍ القراءة من نظام نيلك…' : 'فحص العبارات المخزنة (قراءة فقط)'}
+        </button>
+      </div>
+
       {/* Last run result */}
       {lastRun && (
         <div className="bg-white p-5 rounded-2xl border border-[#DFE5F2] space-y-3">
@@ -435,6 +669,9 @@ export function NelcTab() {
             const head = rows[0];
             const gEnv = ENV_LABEL[head.environment] ?? ENV_LABEL.staging;
             const allOk = rows.length === VERB_ORDER.length && rows.every((r) => r.ok);
+            // Self-check groups are a single read-back row, not a journey.
+            const isCheck = head.verb === 'self_check';
+            const checkInfo = isCheck ? parseCheckSummary(head.response) : null;
             return (
               <div key={g.runId} className="bg-white p-5 rounded-2xl border border-[#DFE5F2] space-y-3">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -456,7 +693,17 @@ export function NelcTab() {
                         عبر المتصفح
                       </span>
                     )}
-                    {allOk ? (
+                    {isCheck ? (
+                      head.ok ? (
+                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-[rgba(34,218,255,0.15)] text-[#0e7a94]">
+                          ✓ فحص ذاتي: {checkInfo
+                            ? `${checkInfo.matched} عبارة${typeof checkInfo.parityMatched === 'number' ? ` (${checkInfo.parityMatched} مطابقة للمثال)` : ''}`
+                            : 'تم'}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#FDECEC] text-[#B3261E]">✗ فحص ذاتي فشل</span>
+                      )
+                    ) : allOk ? (
                       <span className="text-xs font-bold px-3 py-1 rounded-full bg-[rgba(34,218,255,0.15)] text-[#0e7a94]">
                         {head.source === 'browser' ? '✓ كاملة (إبلاغ المتصفح)' : '✓ كاملة'}
                       </span>
@@ -467,19 +714,30 @@ export function NelcTab() {
                 </div>
                 <div className="space-y-1.5">
                   {rows.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between gap-3 flex-wrap border-t border-[#F0F5FF] pt-1.5">
-                      <div className="text-sm text-[#101A38]">{VERB_AR[r.verb] ?? r.verb}</div>
-                      <div className="flex items-center gap-2">
-                        <StatusChip ok={r.ok} httpStatus={r.httpStatus} />
-                        {r.response && !r.ok && (
-                          <details className="text-[11px] text-[#5F6B92]">
-                            <summary className="cursor-pointer font-bold">الرد</summary>
-                            <div className="font-mono break-all max-w-md mt-1 bg-[#F0F5FF] rounded-lg p-2" dir="ltr">
-                              {r.response}
-                            </div>
-                          </details>
-                        )}
+                    <div key={r.id} className="border-t border-[#F0F5FF] pt-1.5">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="text-sm text-[#101A38]">{VERB_AR[r.verb] ?? r.verb}</div>
+                        <div className="flex items-center gap-2">
+                          <StatusChip ok={r.ok} httpStatus={r.httpStatus} />
+                          {r.response && !r.ok && (
+                            <details className="text-[11px] text-[#5F6B92]">
+                              <summary className="cursor-pointer font-bold">الرد</summary>
+                              <div className="font-mono break-all max-w-md mt-1 bg-[#F0F5FF] rounded-lg p-2" dir="ltr">
+                                {r.response}
+                              </div>
+                            </details>
+                          )}
+                        </div>
                       </div>
+                      {r.verb === 'self_check' && r.ok && checkInfo && checkInfo.verbs.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1" dir="ltr">
+                          {checkInfo.verbs.map((v, i) => (
+                            <span key={i} className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#F0F5FF] text-[#101A38]">
+                              {v}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
