@@ -49,45 +49,6 @@ const PREPARED_RUN_TTL_MS = 15 * 60_000;
 const SELF_CHECK_VERB = 'self_check';
 
 /**
- * SEQ003: strongest prior-send signal for a learner+course+environment.
- *   1. a DELIVERED (ok, non-self-check) audit row — statements reached the
- *      LRS (strong; audit rows are permanent);
- *   2. an UNCONSUMED prepared JOURNEY run — the browser was handed the
- *      statements but never reported back, so they MAY have reached the LRS
- *      (weak; covers the crash-before-`record` gap; housekeeping trims these
- *      rows after ~24h, by which point signal 1 exists if anything was
- *      actually sent and recorded).
- * Consumed runs are skipped — their outcome is known via audit rows, and
- * failed-only journeys must NOT block (nothing reached the LRS; resending IS
- * the fix). Self-check runs/rows never count (read-only). Two concurrent
- * prepares could both pass this check (no atomic claim) — accepted: this app
- * has exactly ONE admin, and the guard exists to stop accidental re-sends,
- * not adversarial races.
- */
-async function findPriorJourneySignal(
-  nationalId: string,
-  courseIri: string,
-  environment: string,
-): Promise<{ delivered: boolean; at: Date } | null> {
-  const delivered = await prisma.xapiStatement.findFirst({
-    where: { nationalId, courseIri, environment, ok: true, verb: { not: SELF_CHECK_VERB } },
-    orderBy: { id: 'desc' },
-    select: { createdAt: true },
-  });
-  if (delivered) return { delivered: true, at: delivered.createdAt };
-  const runs = await prisma.xapiPreparedRun.findMany({
-    where: { nationalId, courseIri, environment, consumed: false },
-    orderBy: { id: 'desc' },
-    take: 10,
-  });
-  const prepared = runs.find((r) => {
-    const steps = r.steps as unknown as { key?: string }[];
-    return !(Array.isArray(steps) && steps[0]?.key === SELF_CHECK_VERB);
-  });
-  return prepared ? { delivered: false, at: prepared.createdAt } : null;
-}
-
-/**
  * POST — three admin-only actions, all honest about configuration (503
  * not_configured when secrets are missing — success is never faked):
  *
@@ -99,13 +60,11 @@ async function findPriorJourneySignal(
  *      geo-blocks our server egress (non-Saudi datacenter IP → Cloudflare
  *      HTML 403 on every request), while the owner's device is inside Saudi
  *      Arabia.
- *      SEQ003 duplicate guard (shared with the default server-send): if a
- *      DELIVERED (ok) journey row OR an unconsumed prepared journey run
- *      already exists for the same nationalId+courseIri+environment, answer
- *      409 duplicate_journey {delivered, lastSentAt} unless the body carries
- *      confirmDuplicate:true — NELC's verifier flags re-sent journeys as
- *      duplicate statements and demands a fresh national ID per attempt.
- *      See findPriorJourneySignal for the full policy.
+ *      SEQ003 duplicate guard: if a DELIVERED (ok) journey row already exists
+ *      for the same nationalId+courseIri+environment, prepare answers 409
+ *      duplicate_journey unless the body carries confirmDuplicate:true —
+ *      NELC's verifier flags re-sent journeys as duplicate statements and
+ *      demands a fresh national ID per verification attempt.
  *
  *  { action:'record', runId, results:[…] }
  *      Persist the per-statement outcomes reported back by the browser.
@@ -139,13 +98,11 @@ async function findPriorJourneySignal(
  *      journey run) is accepted, consumed atomically, with identity/course
  *      taken from the stored check, never the client.
  *
- *  { nationalId, courseIri, confirmDuplicate? }  (default — server-side send)
+ *  { nationalId, courseIri }  (default — server-side send)
  *      Original server-side journey: send in order, stop on first failure,
  *      log every attempt with source='server' (the server saw the LRS
  *      responses itself). Kept for egress-allowed environments (e.g. if NELC
- *      allowlists our IPs later); currently blocked by NELC's WAF. The same
- *      SEQ003 duplicate guard applies — the transport differs, NELC's
- *      duplicate rule does not.
+ *      allowlists our IPs later); currently blocked by NELC's WAF.
  *
  * ACCEPTED RISK — LRS credential in the admin browser: `prepare` and `check`
  * return the raw Basic Authorization value so the owner's browser can talk
@@ -380,12 +337,26 @@ export async function POST(req: NextRequest) {
     if (String(body.password ?? '') !== getAdminPassword()) {
       return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
     }
-    // SEQ003 duplicate guard — policy in findPriorJourneySignal.
+    // SEQ003 duplicate guard: NELC's verifier counts a re-sent journey for
+    // the same learner+course as duplicate statements and rejects the run,
+    // so a national ID that already has a DELIVERED (ok) statement in this
+    // environment requires explicit confirmation to be re-used. Failed-only
+    // rows don't block — nothing reached the LRS, so resending IS the fix.
     if (body.confirmDuplicate !== true) {
-      const prior = await findPriorJourneySignal(nationalId, courseIri, environment);
-      if (prior) {
+      const priorDelivered = await prisma.xapiStatement.findFirst({
+        where: {
+          nationalId,
+          courseIri,
+          environment,
+          ok: true,
+          verb: { not: SELF_CHECK_VERB },
+        },
+        orderBy: { id: 'desc' },
+        select: { createdAt: true },
+      });
+      if (priorDelivered) {
         return NextResponse.json(
-          { error: 'duplicate_journey', delivered: prior.delivered, lastSentAt: prior.at },
+          { error: 'duplicate_journey', lastSentAt: priorDelivered.createdAt },
           { status: 409 },
         );
       }
@@ -455,17 +426,6 @@ export async function POST(req: NextRequest) {
   }
 
   // ---- default: server-side send (kept for egress-allowed environments) ---
-  // Same SEQ003 duplicate guard as `prepare` — the transport differs, NELC's
-  // duplicate rule does not.
-  if (body.confirmDuplicate !== true) {
-    const prior = await findPriorJourneySignal(nationalId, courseIri, environment);
-    if (prior) {
-      return NextResponse.json(
-        { error: 'duplicate_journey', delivered: prior.delivered, lastSentAt: prior.at },
-        { status: 409 },
-      );
-    }
-  }
   const runId = randomUUID();
   const journey = buildJourneyStatements(nationalId, courseIri);
 

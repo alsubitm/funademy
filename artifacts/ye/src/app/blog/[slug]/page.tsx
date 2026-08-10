@@ -9,9 +9,25 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const { slug } = await props.params;
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   if (!post || !post.published) return {};
+  const siteUrl = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
+  const ogImage = `${siteUrl}/og-default.jpg`;
   return {
     title: `${post.titleAr} | FunAdemy`,
     description: post.excerptAr,
+    openGraph: {
+      type: 'article',
+      locale: 'ar_SA',
+      title: post.titleAr,
+      description: post.excerptAr ?? undefined,
+      publishedTime: post.publishedAt?.toISOString(),
+      images: [{ url: ogImage, width: 1200, height: 630, alt: post.titleAr }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.titleAr,
+      description: post.excerptAr ?? undefined,
+      images: [ogImage],
+    },
   };
 }
 

@@ -11,9 +11,24 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const program = await safeQuery(() => prisma.program.findUnique({ where: { slug } }), null, 'program:metadata');
   if (!program) return {};
   
+  const siteUrl = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
+  const ogImage = `${siteUrl}/og-default.jpg`;
   return {
     title: `${program.nameAr} - FunAdemy · e² Young Engineers`,
     description: program.taglineAr,
+    openGraph: {
+      type: 'website',
+      locale: 'ar_SA',
+      title: `${program.nameAr} — FunAdemy`,
+      description: program.taglineAr ?? undefined,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: program.nameAr }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${program.nameAr} — FunAdemy`,
+      description: program.taglineAr ?? undefined,
+      images: [ogImage],
+    },
   };
 }
 

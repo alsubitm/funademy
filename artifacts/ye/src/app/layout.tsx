@@ -21,10 +21,33 @@ const plexMono = IBM_Plex_Mono({
   variable: '--font-mono',
 });
 
+const SITE_URL = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
+const OG_IMAGE = `${SITE_URL}/og-default.jpg`;
+
 export const metadata: Metadata = {
-  title: 'FunAdemy — e² Young Engineers',
+  title: {
+    default: 'FunAdemy — e² Young Engineers',
+    template: '%s | FunAdemy',
+  },
   description:
     'FunAdemy — حيث المتعة تلتقي بالأكاديمية. تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين من أي مكان. e² Young Engineers، ترخيص فالكون آي.',
+  openGraph: {
+    siteName: 'FunAdemy',
+    type: 'website',
+    locale: 'ar_SA',
+    url: SITE_URL,
+    title: 'FunAdemy — e² Young Engineers',
+    description:
+      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين من أي مكان.',
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'FunAdemy — e² Young Engineers Riyadh' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FunAdemy — e² Young Engineers',
+    description:
+      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين من أي مكان.',
+    images: [OG_IMAGE],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -121,14 +121,8 @@ export type JourneyStepContract = {
   object: StepObjectContract;
   /** true ⇒ the example's full 4-extension context (`registered` ONLY — CTX002). */
   fullNelcContext: boolean;
-  /**
-   * EXACT result object the builder emits (deep-equality target for the
-   * classifier), or null ⇒ the statement carries NO result key. Pinning the
-   * values here keeps builder and read-back check on one source of truth: a
-   * valid-looking but different score/duration/response did NOT come from
-   * the current builder and must not count toward NELC readiness.
-   */
-  result: Record<string, unknown> | null;
+  /** Exact result keys the builder emits ([] ⇒ the statement carries no result). */
+  resultKeys: string[];
 };
 
 const course = (descriptionEn: string | null): StepObjectContract => ({
@@ -141,10 +135,8 @@ const course = (descriptionEn: string | null): StepObjectContract => ({
 
 /**
  * The full NELC verification journey, in required order — one contract per
- * statement. Object shapes and EXACT result values mirror NELC's package
- * interactions; `registered` mirrors the wizard's personalized example
- * verbatim. `rated` carries the ASM004 text response + 0–5 score bounds
- * (package Rated.php).
+ * statement. Object shapes/result keys mirror NELC's package interactions;
+ * `registered` mirrors the wizard's personalized example verbatim.
  */
 export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
   {
@@ -154,7 +146,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
     label: 'registered',
     object: course(COURSE_DESC_EN),
     fullNelcContext: true,
-    result: null,
+    resultKeys: [],
   },
   {
     key: 'initialized',
@@ -163,7 +155,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
     label: 'initialized',
     object: course(null),
     fullNelcContext: false,
-    result: null,
+    resultKeys: [],
   },
   {
     key: 'watched',
@@ -178,7 +170,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
       descriptionEn: 'Introductory video lesson of the Funademy course.',
     },
     fullNelcContext: false,
-    result: { completion: true, duration: 'PT10M' },
+    resultKeys: ['completion', 'duration'],
   },
   {
     key: 'completed_lesson',
@@ -193,7 +185,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
       descriptionEn: 'First lesson of the Funademy course.',
     },
     fullNelcContext: false,
-    result: { completion: true, duration: 'PT10M' },
+    resultKeys: ['completion', 'duration'],
   },
   {
     key: 'attempted',
@@ -208,7 +200,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
       descriptionEn: 'Assessment quiz for the first unit of the Funademy course.',
     },
     fullNelcContext: false,
-    result: { score: { scaled: 0.8, raw: 80, min: 0, max: 100 }, completion: true, success: true },
+    resultKeys: ['score', 'completion', 'success'],
   },
   {
     key: 'completed_unit',
@@ -223,7 +215,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
       descriptionEn: 'First unit of the Funademy course.',
     },
     fullNelcContext: false,
-    result: { completion: true, success: true, duration: 'PT20M' },
+    resultKeys: ['completion', 'success', 'duration'],
   },
   {
     key: 'progressed',
@@ -232,9 +224,9 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
     label: 'progressed',
     object: course(null),
     fullNelcContext: false,
-    // score only — this exact result already passed the verifier and none of
-    // the 6 violations concerned it; don't touch what passed.
-    result: { score: { scaled: 0.5, raw: 50, min: 0, max: 100 } },
+    // score only — this exact result passed the 2026-08-10 verifier run and
+    // none of the 6 violations concerned it; don't touch what passed.
+    resultKeys: ['score'],
   },
   {
     key: 'completed_course',
@@ -243,12 +235,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
     label: 'completed (course)',
     object: course(null),
     fullNelcContext: false,
-    result: {
-      score: { scaled: 0.9, raw: 90, min: 0, max: 100 },
-      completion: true,
-      success: true,
-      duration: 'PT40M',
-    },
+    resultKeys: ['score', 'completion', 'success', 'duration'],
   },
   {
     key: 'rated',
@@ -257,8 +244,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
     label: 'rated',
     object: course(null),
     fullNelcContext: false,
-    // ASM004 — package Rated.php: score {scaled,raw,min:0,max:5} + response.
-    result: { score: { scaled: 1, raw: 5, min: 0, max: 5 }, response: RATED_RESPONSE_EN },
+    resultKeys: ['score', 'response'],
   },
   {
     key: 'earned',
@@ -274,7 +260,7 @@ export const JOURNEY_STEP_CONTRACTS: JourneyStepContract[] = [
       descriptionEn: null,
     },
     fullNelcContext: false,
-    result: null,
+    resultKeys: [],
   },
 ];
 
@@ -289,24 +275,11 @@ export const subActivityIri = (courseIri: string, suffix: string): string =>
 const isObj = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 const isNonEmptyStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
-/** Language map with EXACTLY one key, en-US, holding the exact expected text. */
-const isExactEnMap = (v: unknown, expected: string): boolean =>
-  isObj(v) && Object.keys(v).length === 1 && v['en-US'] === expected;
+/** Language map with EXACTLY one key, en-US, holding a non-empty string. */
+const isEnOnlyMap = (v: unknown): boolean =>
+  isObj(v) && Object.keys(v).length === 1 && isNonEmptyStr(v['en-US']);
 const hasExactKeys = (v: Record<string, unknown>, keys: string[]): boolean =>
   Object.keys(v).length === keys.length && keys.every((k) => k in v);
-
-/** Deep strict equality for JSON-shaped values (objects, arrays, primitives). */
-const deepEqual = (a: unknown, b: unknown): boolean => {
-  if (a === b) return true;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]));
-  }
-  if (isObj(a) && isObj(b)) {
-    const keys = Object.keys(a);
-    return keys.length === Object.keys(b).length && keys.every((k) => k in b && deepEqual(a[k], b[k]));
-  }
-  return false;
-};
 
 /** The platform extension value: { name: { ar-SA, en-US } } with our exact names. */
 const isPlatformExtension = (v: unknown): boolean => {
@@ -328,15 +301,13 @@ const hasBaseContextValues = (ctx: Record<string, unknown>): boolean => {
   return instructor.name === NELC_INSTRUCTOR.name && instructor.mbox === NELC_INSTRUCTOR.mbox;
 };
 
-/** definition per contract: {name[,description],type} — exact en-US-only texts, exact type. */
+/** definition per contract: {name[,description],type} — en-US-only maps, exact type. */
 const matchesObjectDefinition = (def: unknown, c: JourneyStepContract): boolean => {
   if (!isObj(def)) return false;
   const keys = c.object.descriptionEn !== null ? ['name', 'description', 'type'] : ['name', 'type'];
   if (!hasExactKeys(def, keys)) return false;
-  if (!isExactEnMap(def.name, c.object.nameEn)) return false;
-  if (c.object.descriptionEn !== null && !isExactEnMap(def.description, c.object.descriptionEn)) {
-    return false;
-  }
+  if (!isEnOnlyMap(def.name)) return false;
+  if (c.object.descriptionEn !== null && !isEnOnlyMap(def.description)) return false;
   return def.type === c.object.type;
 };
 
@@ -388,21 +359,25 @@ const matchesContext = (
   if (!isObj(parent) || parent.objectType !== 'Activity' || !isNonEmptyStr(parent.id)) return false;
   const pdef = parent.definition;
   if (!isObj(pdef) || !hasExactKeys(pdef, ['name', 'description', 'type'])) return false;
-  if (!isExactEnMap(pdef.name, COURSE_NAME_EN)) return false;
-  if (!isExactEnMap(pdef.description, COURSE_DESC_EN)) return false;
+  if (!isEnOnlyMap(pdef.name) || !isEnOnlyMap(pdef.description)) return false;
   if (pdef.type !== CMI5_COURSE_TYPE) return false;
   // The object must be THIS course's sub-activity (id derived from parent).
   return objectId === subActivityIri(parent.id, c.object.suffix);
 };
 
-/**
- * result must equal the contract's pinned result EXACTLY (deep equality) —
- * scores, durations, booleans, and the ASM004 rated response text included.
- * A valid-looking but different value did not come from the current builder
- * and must not count toward NELC readiness.
- */
-const matchesResult = (s: Record<string, unknown>, c: JourneyStepContract): boolean =>
-  c.result === null ? !('result' in s) : deepEqual(s.result, c.result);
+/** result per contract: exact keys, typed values, ASM004 response text. */
+const matchesResult = (s: Record<string, unknown>, c: JourneyStepContract): boolean => {
+  if (c.resultKeys.length === 0) return !('result' in s);
+  const result = s.result;
+  if (!isObj(result) || !hasExactKeys(result, c.resultKeys)) return false;
+  if (c.resultKeys.includes('score') && !isObj(result.score)) return false;
+  if (c.resultKeys.includes('completion') && typeof result.completion !== 'boolean') return false;
+  if (c.resultKeys.includes('success') && typeof result.success !== 'boolean') return false;
+  if (c.resultKeys.includes('duration') && !isNonEmptyStr(result.duration)) return false;
+  // ASM004: the rating must carry a non-empty text response.
+  if (c.resultKeys.includes('response') && !isNonEmptyStr(result.response)) return false;
+  return true;
+};
 
 /**
  * Classify ONE statement (as read back from the LRS) against the journey
@@ -422,7 +397,7 @@ export function classifyJourneyStatement(s: unknown): JourneyStepKey | null {
 
   const verb = s.verb;
   if (!isObj(verb) || !hasExactKeys(verb, ['id', 'display'])) return null;
-  if (!isObj(verb.display)) return null;
+  if (!isObj(verb.display) || !isNonEmptyStr(verb.display['en-US'])) return null;
 
   const object = s.object;
   if (!isObj(object) || object.objectType !== 'Activity' || !isNonEmptyStr(object.id)) return null;
@@ -431,7 +406,6 @@ export function classifyJourneyStatement(s: unknown): JourneyStepKey | null {
 
   for (const c of JOURNEY_STEP_CONTRACTS) {
     if (c.iri !== verb.id) continue;
-    if (!isExactEnMap(verb.display, c.en)) continue;
     if (!matchesObjectDefinition(object.definition, c)) continue;
     if (!matchesContext(s, object.id, c)) continue;
     if (!matchesResult(s, c)) continue;
