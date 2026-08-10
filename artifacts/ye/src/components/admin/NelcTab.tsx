@@ -552,6 +552,14 @@ export function NelcTab() {
               {duplicatePrompt.lastSentAt ? ` (آخر إرسال: ${fmtDateTime(duplicatePrompt.lastSentAt)})` : ''}
               . فاحص نيلك يعدّ الإرسال المتكرر «عبارات مكررة» (SEQ003) ويرفض الرحلة كلها، ويطلب
               رقم هوية جديداً لكل محاولة تحقق.
+              {duplicatePrompt.delivered && (
+                <>
+                  {' '}
+                  نظام نيلك لا يحذف العبارات القديمة أبداً، لذا هذا الرقم <b>محروق نهائياً</b>:
+                  إعادة الإرسال له — حتى بعبارات سليمة تماماً — لن تنجح في الفحص مطلقاً.
+                  الحل الوحيد هو رقم هوية جديد لم يُرسل له من قبل.
+                </>
+              )}
             </div>
             <div className="flex gap-2 flex-wrap">
               <button
