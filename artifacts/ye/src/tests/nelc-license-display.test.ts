@@ -55,6 +55,13 @@ vi.mock('@/lib/brand', () => ({
   },
 }));
 
+vi.mock('@/components/legal/LegalShell', () => ({
+  // Render children so page-level tests can assert on page body content.
+  // (Return children directly — vi.mock factories are hoisted, so we avoid
+  // referencing the React import binding here.)
+  LegalShell: ({ children }: { children?: unknown }) => children ?? null,
+}));
+
 /**
  * @/lib/constants is mocked with getters so that each test can control the
  * value of NELC_LICENSE_NO via vi.stubEnv without needing vi.resetModules().
@@ -75,6 +82,8 @@ vi.mock('@/lib/constants', () => ({
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SiteFooter } from '@/components/SiteFooter';
+import NelcPageAr from '@/app/nelc/page';
+import NelcPageEn from '@/app/en/nelc/page';
 
 const SRC = path.resolve(__dirname, '..');
 
@@ -131,7 +140,43 @@ describe('SiteFooter NELC license display', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. force-dynamic export guard (source scan — structural safety net)
+// 3. NELC pages (/nelc and /en/nelc) rendering — set and unset states
+// ---------------------------------------------------------------------------
+
+describe('NELC pages license status block', () => {
+  it('/nelc shows the license number when NELC_LICENSE_NO is set', () => {
+    vi.stubEnv('NELC_LICENSE_NO', 'NELC-2026-12345');
+    const html = renderToStaticMarkup(React.createElement(NelcPageAr));
+    expect(html).toContain('NELC-2026-12345');
+    expect(html).toContain('مرخصة');
+    expect(html).not.toContain('قيد الإعداد');
+  });
+
+  it('/en/nelc shows the license number when NELC_LICENSE_NO is set', () => {
+    vi.stubEnv('NELC_LICENSE_NO', 'NELC-2026-12345');
+    const html = renderToStaticMarkup(React.createElement(NelcPageEn));
+    expect(html).toContain('NELC-2026-12345');
+    expect(html).toContain('Licensed');
+    expect(html).not.toContain('In preparation');
+  });
+
+  it('/nelc shows «قيد الإعداد» and no license number when unset', () => {
+    vi.stubEnv('NELC_LICENSE_NO', '');
+    const html = renderToStaticMarkup(React.createElement(NelcPageAr));
+    expect(html).toContain('قيد الإعداد');
+    expect(html).not.toContain('مرخصة ✅');
+  });
+
+  it('/en/nelc shows "In preparation" and no license number when unset', () => {
+    vi.stubEnv('NELC_LICENSE_NO', '');
+    const html = renderToStaticMarkup(React.createElement(NelcPageEn));
+    expect(html).toContain('In preparation');
+    expect(html).not.toContain('Licensed ✅');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. force-dynamic export guard (source scan — structural safety net)
 // ---------------------------------------------------------------------------
 
 const NELC_PAGES = [
