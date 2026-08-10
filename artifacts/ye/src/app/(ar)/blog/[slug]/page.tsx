@@ -12,7 +12,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const base = siteUrl();
   const ogImage = `${base}/og-default.jpg`;
   return {
-    title: `${post.titleAr} | FunAdemy`,
+    title: post.titleAr,
     description: post.excerptAr,
     alternates: {
       canonical: `${base}/blog/${slug}`,

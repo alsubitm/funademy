@@ -94,7 +94,6 @@ import type { JourneyStepContract } from './xapiParity';
 export { JOURNEY_STEPS } from './xapiParity';
 export type { JourneyStepKey } from './xapiParity';
 import type { JourneyStepKey } from './xapiParity';
-
 /** Course IRI prefilled in the admin form — the wizard's example test course. */
 export const DEFAULT_COURSE_IRI = 'https://funademy.io/course/CR001';
 

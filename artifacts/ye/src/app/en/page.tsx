@@ -6,6 +6,9 @@ import { prisma } from '@/lib/db';
 export function generateMetadata(): Metadata {
   const base = siteUrl();
   return {
+    title: { absolute: 'FunAdemy — e² Young Engineers Riyadh | STEM for Kids' },
+    description:
+      'STEM education through moving LEGO® models for children aged 4–18. Online and in-person classes in Riyadh. e² Young Engineers, Falcon Eye license.',
     alternates: {
       canonical: `${base}/en`,
       languages: {
