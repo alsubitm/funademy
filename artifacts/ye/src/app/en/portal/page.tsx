@@ -4,8 +4,8 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { getFamilyId } from '@/lib/family-auth';
 import { PortalView } from '@/components/portal/PortalView';
-import { portalDict } from '@/app/portal/dict';
-import '@/app/portal/page.css';
+import { portalDict } from '@/app/(ar)/portal/dict';
+import '@/app/(ar)/portal/page.css';
 
 export const metadata = {
   title: 'Parent Portal | FunAdemy',

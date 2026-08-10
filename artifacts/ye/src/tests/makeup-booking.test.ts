@@ -29,8 +29,8 @@ vi.mock('next/headers', () => ({
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ADMIN_COOKIE, adminToken } from '@/lib/auth';
-import { GET as makeupGET, PATCH as makeupPATCH } from '@/app/svc/admin/makeup/route';
-import { GET as attendanceGET, POST as attendancePOST } from '@/app/svc/admin/attendance/route';
+import { GET as makeupGET, PATCH as makeupPATCH } from '@/app/(ar)/svc/admin/makeup/route';
+import { GET as attendanceGET, POST as attendancePOST } from '@/app/(ar)/svc/admin/attendance/route';
 
 const RUN = `mk-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 const DAY = 24 * 60 * 60 * 1000;

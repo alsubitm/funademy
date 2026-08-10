@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { enrollDict } from '@/app/enroll/dict';
+import { enrollDict } from '@/app/(ar)/enroll/dict';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 
 type Lang = 'ar' | 'en';

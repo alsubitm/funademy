@@ -30,8 +30,8 @@ import { prisma } from '@/lib/db';
 import { BRICK_DAILY_LIMIT, BRICK_KEY, riyadhDay } from '@/lib/constants';
 import { familyToken, FAMILY_COOKIE } from '@/lib/family-auth';
 import { adminToken, ADMIN_COOKIE } from '@/lib/auth';
-import { GET as bricksGET, POST as bricksPOST } from '@/app/svc/bricks/route';
-import { GET as adminGET, PATCH as adminPATCH } from '@/app/svc/admin/brick-wall/route';
+import { GET as bricksGET, POST as bricksPOST } from '@/app/(ar)/svc/bricks/route';
+import { GET as adminGET, PATCH as adminPATCH } from '@/app/(ar)/svc/admin/brick-wall/route';
 
 const RUN = `test-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 // Captured once so cleanup targets the same day even across midnight.

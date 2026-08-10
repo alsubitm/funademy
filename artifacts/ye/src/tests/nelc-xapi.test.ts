@@ -19,7 +19,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 
-vi.mock('@/app/svc/admin/guard', () => ({
+vi.mock('@/app/(ar)/svc/admin/guard', () => ({
   requireAdmin: vi.fn(async () => null), // admin session assumed valid in tests
 }));
 
@@ -42,7 +42,7 @@ import {
   RATED_RESPONSE_EN,
   statementMatchesJourneyContract,
 } from '@/lib/xapiParity';
-import { GET as nelcGET, POST as nelcPOST } from '@/app/svc/admin/nelc/route';
+import { GET as nelcGET, POST as nelcPOST } from '@/app/(ar)/svc/admin/nelc/route';
 
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);

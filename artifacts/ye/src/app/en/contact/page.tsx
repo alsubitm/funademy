@@ -3,9 +3,9 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { TrackedWaLink } from '@/components/contact/TrackedWaLink';
-import { contactDict } from '@/app/contact/dict';
+import { contactDict } from '@/app/(ar)/contact/dict';
 import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constants';
-import '@/app/contact/page.css';
+import '@/app/(ar)/contact/page.css';
 
 export const metadata = {
   title: 'Contact Us | FunAdemy',

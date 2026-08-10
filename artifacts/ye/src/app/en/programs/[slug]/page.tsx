@@ -3,19 +3,26 @@ import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
 import { notFound } from 'next/navigation';
-import { ProgramDetail } from '@/app/programs/[slug]/ProgramDetail';
 import { siteUrl } from '@/lib/site-url';
+import { ProgramDetail } from '@/app/(ar)/programs/[slug]/ProgramDetail';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
   const program = await safeQuery(() => prisma.program.findUnique({ where: { slug } }), null, 'program-en:metadata');
   if (!program) return {};
-  
-  const siteUrl = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
-  const ogImage = `${siteUrl}/og-default.jpg`;
+  const base = siteUrl();
+  const ogImage = `${base}/og-default.jpg`;
   return {
     title: `${program.nameEn} - FunAdemy · e² Young Engineers`,
     description: program.taglineEn,
+    alternates: {
+      canonical: `${base}/en/programs/${slug}`,
+      languages: {
+        'x-default': `${base}/programs/${slug}`,
+        'ar-SA': `${base}/programs/${slug}`,
+        'en': `${base}/en/programs/${slug}`,
+      },
+    },
     openGraph: {
       type: 'website',
       locale: 'en_US',

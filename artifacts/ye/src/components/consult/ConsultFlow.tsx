@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { consultDict } from '@/app/consult/dict';
+import { consultDict } from '@/app/(ar)/consult/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 
 const RIYADH_OFFSET_MS = 3 * 60 * 60 * 1000;

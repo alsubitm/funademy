@@ -30,13 +30,13 @@ import { prisma } from '@/lib/db';
 import { FAMILY_COOKIE, familyToken } from '@/lib/family-auth';
 import { CART_COOKIE, encodeCart } from '@/lib/cart';
 import { addOneMonth, effectiveMonthlySar } from '@/lib/billing';
-import { POST as checkoutPOST } from '@/app/svc/enroll/checkout/route';
-import { POST as renewPOST } from '@/app/svc/account/renew/route';
-import { GET as paymentsGET } from '@/app/svc/account/payments/route';
-import { GET as receiptGET } from '@/app/svc/account/payments/[id]/receipt/route';
+import { POST as checkoutPOST } from '@/app/(ar)/svc/enroll/checkout/route';
+import { POST as renewPOST } from '@/app/(ar)/svc/account/renew/route';
+import { GET as paymentsGET } from '@/app/(ar)/svc/account/payments/route';
+import { GET as receiptGET } from '@/app/(ar)/svc/account/payments/[id]/receipt/route';
 import { finalizePayment, sweepStalePayments } from '@/lib/pay-core';
 import { adminToken, ADMIN_COOKIE } from '@/lib/auth';
-import { GET as adminPaymentsGET, POST as adminRefundPOST } from '@/app/svc/admin/payments/route';
+import { GET as adminPaymentsGET, POST as adminRefundPOST } from '@/app/(ar)/svc/admin/payments/route';
 
 const RUN = `pay-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -585,12 +585,12 @@ import { createHmac as nodeCreateHmac } from 'crypto';
 describe('webhook security', () => {
   // Import webhook handlers inline so their module reads updated env vars.
   // We import after vi.mock('next/headers') is already in effect.
-  let moyasarWebhook: typeof import('@/app/svc/pay/webhook/moyasar/route').POST;
-  let tamaraWebhook: typeof import('@/app/svc/pay/webhook/tamara/route').POST;
+  let moyasarWebhook: typeof import('@/app/(ar)/svc/pay/webhook/moyasar/route').POST;
+  let tamaraWebhook: typeof import('@/app/(ar)/svc/pay/webhook/tamara/route').POST;
 
   beforeAll(async () => {
-    const m = await import('@/app/svc/pay/webhook/moyasar/route');
-    const t = await import('@/app/svc/pay/webhook/tamara/route');
+    const m = await import('@/app/(ar)/svc/pay/webhook/moyasar/route');
+    const t = await import('@/app/(ar)/svc/pay/webhook/tamara/route');
     moyasarWebhook = m.POST;
     tamaraWebhook = t.POST;
   });

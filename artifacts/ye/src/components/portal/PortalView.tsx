@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
-import { portalDict } from '@/app/portal/dict';
+import { portalDict } from '@/app/(ar)/portal/dict';
 import { MakeupButton } from './MakeupButton';
 import { effectiveMonthlySar, subscriptionState } from '@/lib/billing';
 import { RenewButton } from '@/components/portal/RenewButton';

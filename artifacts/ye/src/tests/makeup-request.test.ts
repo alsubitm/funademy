@@ -28,8 +28,8 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { FAMILY_COOKIE, familyToken } from '@/lib/family-auth';
 import { adminToken, ADMIN_COOKIE } from '@/lib/auth';
-import { GET as accountGET, POST as accountPOST } from '@/app/svc/account/makeup/route';
-import { GET as adminGET, PATCH as adminPATCH } from '@/app/svc/admin/makeup/route';
+import { GET as accountGET, POST as accountPOST } from '@/app/(ar)/svc/account/makeup/route';
+import { GET as adminGET, PATCH as adminPATCH } from '@/app/(ar)/svc/admin/makeup/route';
 
 const RUN = `makeup-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 

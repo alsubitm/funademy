@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { accountDict } from '@/app/account/dict';
+import { accountDict } from '@/app/(ar)/account/dict';
 import { arabicDigits } from '@/lib/constants';
 
 type Lang = 'ar' | 'en';

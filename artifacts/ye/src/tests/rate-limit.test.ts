@@ -18,7 +18,7 @@ vi.mock('@/lib/google-calendar', () => ({
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { allowRate } from '@/lib/rate-limit';
-import { POST as appointmentsPOST } from '@/app/svc/appointments/route';
+import { POST as appointmentsPOST } from '@/app/(ar)/svc/appointments/route';
 
 const RUN = `rl-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 

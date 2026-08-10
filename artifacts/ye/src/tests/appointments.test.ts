@@ -27,8 +27,8 @@ import {
   riyadhDateTime,
   RIYADH_OFFSET_MS,
 } from '@/lib/appointments';
-import { POST as appointmentsPOST } from '@/app/svc/appointments/route';
-import { POST as bookingsPOST } from '@/app/svc/bookings/route';
+import { POST as appointmentsPOST } from '@/app/(ar)/svc/appointments/route';
+import { POST as bookingsPOST } from '@/app/(ar)/svc/bookings/route';
 
 const mockCreate = vi.mocked(createMeetEvent);
 const mockAddAttendee = vi.mocked(addAttendeeToEvent);

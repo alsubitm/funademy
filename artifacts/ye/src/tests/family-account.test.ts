@@ -27,12 +27,12 @@ vi.mock('next/headers', () => ({
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { FAMILY_COOKIE, familyToken, familyIdFromToken } from '@/lib/family-auth';
-import { POST as otpPOST } from '@/app/svc/account/otp/route';
-import { POST as verifyPOST } from '@/app/svc/account/verify/route';
-import { POST as childrenPOST } from '@/app/svc/account/children/route';
-import { PATCH as childPATCH, DELETE as childDELETE } from '@/app/svc/account/children/[id]/route';
-import { GET as meGET } from '@/app/svc/account/me/route';
-import { POST as logoutPOST } from '@/app/svc/account/logout/route';
+import { POST as otpPOST } from '@/app/(ar)/svc/account/otp/route';
+import { POST as verifyPOST } from '@/app/(ar)/svc/account/verify/route';
+import { POST as childrenPOST } from '@/app/(ar)/svc/account/children/route';
+import { PATCH as childPATCH, DELETE as childDELETE } from '@/app/(ar)/svc/account/children/[id]/route';
+import { GET as meGET } from '@/app/(ar)/svc/account/me/route';
+import { POST as logoutPOST } from '@/app/(ar)/svc/account/logout/route';
 
 const RUN = `test-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 const usedPhones: string[] = [];

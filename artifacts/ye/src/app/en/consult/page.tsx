@@ -3,8 +3,8 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { ConsultFlow } from '@/components/consult/ConsultFlow';
-import { consultDict } from '@/app/consult/dict';
-import '../../book/page.css';
+import { consultDict } from '@/app/(ar)/consult/dict';
+import '../../(ar)/book/page.css';
 
 export const metadata = {
   title: 'Book a Consultation | FunAdemy',

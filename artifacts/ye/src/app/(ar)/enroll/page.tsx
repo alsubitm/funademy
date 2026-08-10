@@ -3,7 +3,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { EnrollFlow } from '@/components/enroll/EnrollFlow';
 import { enrollDict } from './dict';
-import '@/app/account/page.css';
+import '@/app/(ar)/account/page.css';
 import './page.css';
 
 export const metadata = {

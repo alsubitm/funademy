@@ -82,7 +82,7 @@ vi.mock('@/lib/constants', () => ({
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SiteFooter } from '@/components/SiteFooter';
-import NelcPageAr from '@/app/nelc/page';
+import NelcPageAr from '@/app/(ar)/nelc/page';
 import NelcPageEn from '@/app/en/nelc/page';
 
 const SRC = path.resolve(__dirname, '..');
@@ -180,7 +180,7 @@ describe('NELC pages license status block', () => {
 // ---------------------------------------------------------------------------
 
 const NELC_PAGES = [
-  'app/nelc/page.tsx',
+  'app/(ar)/nelc/page.tsx',
   'app/en/nelc/page.tsx',
 ] as const;
 

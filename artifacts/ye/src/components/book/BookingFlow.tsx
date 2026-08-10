@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { bookDict } from '@/app/book/dict';
+import { bookDict } from '@/app/(ar)/book/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { getSavedAge, saveAge } from '@/lib/savedAge';
 

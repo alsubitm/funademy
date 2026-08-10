@@ -28,8 +28,8 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { FAMILY_COOKIE, familyToken } from '@/lib/family-auth';
 import { KID_COOKIE, kidToken, hashPin } from '@/lib/kid-auth';
-import { GET as lessonGET } from '@/app/svc/learn/lessons/[id]/route';
-import { POST as completePOST } from '@/app/svc/learn/lessons/[id]/complete/route';
+import { GET as lessonGET } from '@/app/(ar)/svc/learn/lessons/[id]/route';
+import { POST as completePOST } from '@/app/(ar)/svc/learn/lessons/[id]/complete/route';
 
 // ── test-scoped unique suffix ──────────────────────────────────────────────
 const RUN = `lrn-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;

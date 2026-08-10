@@ -2,8 +2,8 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { AccountFlow } from '@/components/account/AccountFlow';
-import { accountDict } from '@/app/account/dict';
-import '@/app/account/page.css';
+import { accountDict } from '@/app/(ar)/account/dict';
+import '@/app/(ar)/account/page.css';
 
 export const metadata = {
   title: 'Family Account | FunAdemy',

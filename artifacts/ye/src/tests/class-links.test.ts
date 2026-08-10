@@ -29,8 +29,8 @@ vi.mock('next/headers', () => ({
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ADMIN_COOKIE, adminToken } from '@/lib/auth';
-import { PATCH as runsPATCH } from '@/app/svc/admin/runs/route';
-import { PATCH as sessionsPATCH } from '@/app/svc/admin/sessions/route';
+import { PATCH as runsPATCH } from '@/app/(ar)/svc/admin/runs/route';
+import { PATCH as sessionsPATCH } from '@/app/(ar)/svc/admin/sessions/route';
 import { portalSessions, joinUrlFor } from '@/lib/portal-sessions';
 
 const RUN = `links-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;

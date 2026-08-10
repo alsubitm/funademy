@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Baloo_Bhaijaan_2, IBM_Plex_Sans_Arabic, IBM_Plex_Mono } from 'next/font/google';
 import { siteUrl } from '@/lib/site-url';
-import './globals.css';
+import '../globals.css';
 
 const baloo = Baloo_Bhaijaan_2({
   subsets: ['arabic', 'latin'],
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function ArabicRootLayout({ children }: { children: React.ReactNode }) {
   const base = siteUrl();
 
   const orgSchema = {

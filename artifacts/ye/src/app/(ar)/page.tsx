@@ -1,5 +1,22 @@
 export const revalidate = 300;
+import type { Metadata } from 'next';
+import { siteUrl } from '@/lib/site-url';
 import { prisma } from '@/lib/db';
+
+export function generateMetadata(): Metadata {
+  const base = siteUrl();
+  return {
+    alternates: {
+      canonical: `${base}/`,
+      languages: {
+        'x-default': `${base}/`,
+        'ar-SA': `${base}/`,
+        'en': `${base}/en`,
+      },
+    },
+  };
+}
+
 import { safeQuery } from '@/lib/safe-query';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';

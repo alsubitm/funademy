@@ -2,9 +2,9 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { EnrollFlow } from '@/components/enroll/EnrollFlow';
-import { enrollDict } from '@/app/enroll/dict';
-import '@/app/account/page.css';
-import '@/app/enroll/page.css';
+import { enrollDict } from '@/app/(ar)/enroll/dict';
+import '@/app/(ar)/account/page.css';
+import '@/app/(ar)/enroll/page.css';
 
 export const metadata = {
   title: 'Monthly Enrollment | FunAdemy',

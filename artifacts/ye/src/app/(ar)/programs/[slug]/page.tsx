@@ -10,12 +10,19 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const { slug } = await props.params;
   const program = await safeQuery(() => prisma.program.findUnique({ where: { slug } }), null, 'program:metadata');
   if (!program) return {};
-  
-  const siteUrl = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
-  const ogImage = `${siteUrl}/og-default.jpg`;
+  const base = siteUrl();
+  const ogImage = `${base}/og-default.jpg`;
   return {
     title: `${program.nameAr} - FunAdemy · e² Young Engineers`,
     description: program.taglineAr,
+    alternates: {
+      canonical: `${base}/programs/${slug}`,
+      languages: {
+        'x-default': `${base}/programs/${slug}`,
+        'ar-SA': `${base}/programs/${slug}`,
+        'en': `${base}/en/programs/${slug}`,
+      },
+    },
     openGraph: {
       type: 'website',
       locale: 'ar_SA',

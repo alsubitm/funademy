@@ -5,8 +5,8 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { BookingFlow } from '@/components/book/BookingFlow';
-import { bookDict } from '@/app/book/dict';
-import '@/app/book/page.css';
+import { bookDict } from '@/app/(ar)/book/dict';
+import '@/app/(ar)/book/page.css';
 
 export const metadata = {
   title: 'Book a Trial | FunAdemy',
