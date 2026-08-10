@@ -2,6 +2,12 @@ import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 export default defineConfig({
+  // Enable the automatic React JSX transform so component rendering tests can
+  // call renderToStaticMarkup without needing `import React` in every file.
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+  },
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },

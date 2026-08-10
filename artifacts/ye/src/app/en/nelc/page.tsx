@@ -1,6 +1,12 @@
 import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER, NELC_LICENSE_NO } from '@/lib/constants';
 
+// Dynamically rendered so the env var NELC_LICENSE_NO is not statically baked
+// in at build time. In practice, license number changes require a new
+// deployment (which Replit triggers automatically when a secret is added or
+// updated) — no code change is needed.
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'NELC Readiness | FunAdemy',
   description:
