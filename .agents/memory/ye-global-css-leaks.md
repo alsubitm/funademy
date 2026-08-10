@@ -2,7 +2,7 @@
 name: YE global CSS element selectors leak (RESOLVED)
 description: globals.css bare element selectors (nav, footer, section, details/summary) used to leak into internal screens; now scoped to classes
 ---
-RESOLVED: the ye artifact's `globals.css` no longer styles bare `nav`, `footer`, `section`, or `details`/`summary`. They are scoped as `.site-nav` (public header), `.site-footer`, `.sec` (public site sections — every public `<section>` carries `className="sec ..."`), and `.faq details`/`.faq summary` (FAQ accordion). The defensive resets in `admin/page.css` were removed accordingly.
+RESOLVED. Policy: in ye global CSS only brand typography may target bare elements; everything else must be class-scoped so public-site styling can't bleed into internal screens.
 
 **Why:** Two past incidents in /admin: fixed mobile bottom nav inherited `top:0` and covered the screen; sidebar `<nav>` inherited translucent white bg + blur over its dark gradient.
 

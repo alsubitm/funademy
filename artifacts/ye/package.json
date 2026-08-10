@@ -28,6 +28,8 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "postcss": "^8.5.26",
+    "postcss-selector-parser": "^7.1.5",
     "prisma": "^6.5.0",
     "tailwindcss": "catalog:",
     "tsx": "^4.19.0",
