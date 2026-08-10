@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  * as the makeup slot for that request (same program, future, active run,
  * excluding the missed session itself).
  */
-export async function GET(req?: NextRequest) {
+export async function GET(req: NextRequest) {
   const denied = await requireAdmin();
   if (denied) return denied;
 

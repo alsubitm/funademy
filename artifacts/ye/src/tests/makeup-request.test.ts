@@ -240,7 +240,7 @@ describe('admin decision (PATCH /svc/admin/makeup)', () => {
   it('requires an admin session (401)', async () => {
     asAdmin(false);
     asFamily(familyA.id); // a family session must NOT grant admin access
-    expect((await adminGET()).status).toBe(401);
+    expect((await adminGET(new NextRequest('http://test.local/svc/admin/makeup'))).status).toBe(401);
     expect((await decide({ id: 1, status: 'approved' })).status).toBe(401);
     asFamily(null);
   });
@@ -305,7 +305,7 @@ describe('admin decision (PATCH /svc/admin/makeup)', () => {
     const created = await requestMakeup({ studentId: childB.id, sessionId: sessionMissed.id });
     expect(created.status).toBe(201);
 
-    const res = await adminGET();
+    const res = await adminGET(new NextRequest('http://test.local/svc/admin/makeup'));
     expect(res.status).toBe(200);
     const { requests } = await res.json();
     const ids = [childA.id, childA2.id, childB.id];

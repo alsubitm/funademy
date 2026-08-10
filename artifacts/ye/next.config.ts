@@ -8,6 +8,9 @@ const devOrigins = ['*.replit.dev', '*.picard.replit.dev', '*.replit.app', '*.re
 if (process.env.REPLIT_DEV_DOMAIN) devOrigins.push(process.env.REPLIT_DEV_DOMAIN);
 
 const nextConfig: NextConfig = {
+  // Overridable so the build-resilience test can build into a throwaway
+  // directory without clobbering the dev server's .next output.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // Served at the root of the domain.
   poweredByHeader: false,
   allowedDevOrigins: devOrigins,
