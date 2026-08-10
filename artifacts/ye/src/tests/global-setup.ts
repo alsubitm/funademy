@@ -27,17 +27,6 @@ export default async function globalSetup() {
     stdio: 'inherit',
   });
 
-  // 3. campaign_counters lives in public and is intentionally NOT in
-  //    schema.prisma (shared table in the real DB) — create it here.
-  const test = new PrismaClient({ datasourceUrl: testUrl });
-  try {
-    await test.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS public.campaign_counters (
-        key TEXT PRIMARY KEY,
-        count INTEGER NOT NULL DEFAULT 0
-      )
-    `);
-  } finally {
-    await test.$disconnect();
-  }
+  // campaign_counters / campaign_brick_events are now declared in
+  // schema.prisma (public schema), so db push above creates them too.
 }

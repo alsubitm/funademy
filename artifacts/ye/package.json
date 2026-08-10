@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p $PORT",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && pnpm run db:schema-sql && next build",
     "start": "next start -H 0.0.0.0 -p $PORT",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "db:push": "prisma db push --skip-generate",
+    "db:push": "bash scripts/guarded-db-push.sh",
+    "db:push:unsafe": "prisma db push --skip-generate",
+    "db:schema-sql": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/schema.sql && node -e \"const fs=require('fs');const p='prisma/schema.sql';fs.writeFileSync(p,fs.readFileSync(p,'utf8').trimEnd()+'\\n')\"",
+    "db:legacy-migrate": "tsx scripts/migrate-ye-to-public.ts",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "test": "vitest run"

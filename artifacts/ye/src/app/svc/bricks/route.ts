@@ -69,10 +69,10 @@ export async function POST(req: NextRequest) {
   // Atomic quota check + event insert + counter increment in one transaction.
   const result = await prisma.$transaction(async (tx) => {
     const inserted = await tx.$queryRaw<{ id: number }[]>`
-      INSERT INTO ye.ye_brick_events ("ipHash", amount, day)
+      INSERT INTO ye_brick_events ("ipHash", amount, day)
       SELECT ${ipHash}, 1, ${day}
       WHERE (
-        SELECT COALESCE(SUM(amount), 0) FROM ye.ye_brick_events
+        SELECT COALESCE(SUM(amount), 0) FROM ye_brick_events
         WHERE "ipHash" = ${ipHash} AND day = ${day}
       ) < ${BRICK_DAILY_LIMIT}
       RETURNING id

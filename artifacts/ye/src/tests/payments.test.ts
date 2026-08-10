@@ -448,7 +448,7 @@ describe('stale payment sweep', () => {
     sweepPaymentId = p.id;
     // Manually backdate createdAt since Prisma default ignores the provided value on create
     await prisma.$executeRawUnsafe(
-      `UPDATE ye.ye_payments SET "createdAt" = $1 WHERE id = $2`,
+      `UPDATE ye_payments SET "createdAt" = $1 WHERE id = $2`,
       twoHoursAgo,
       sweepPaymentId,
     );

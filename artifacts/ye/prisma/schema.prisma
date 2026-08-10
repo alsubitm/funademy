@@ -1,12 +1,10 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["ye"]
 }
 
 model Program {
@@ -35,7 +33,6 @@ model Program {
   skills      Skill[]
 
   @@map("ye_programs")
-  @@schema("ye")
 }
 
 enum Format {
@@ -43,7 +40,6 @@ enum Format {
   in_person
 
   @@map("ye_format")
-  @@schema("ye")
 }
 
 model ScheduleSlot {
@@ -60,7 +56,6 @@ model ScheduleSlot {
   bookings  Booking[]
 
   @@map("ye_schedule_slots")
-  @@schema("ye")
 }
 
 model Booking {
@@ -78,7 +73,6 @@ model Booking {
   createdAt      DateTime     @default(now())
 
   @@map("ye_bookings")
-  @@schema("ye")
 }
 
 enum BookingStatus {
@@ -87,7 +81,6 @@ enum BookingStatus {
   enrolled
 
   @@map("ye_booking_status")
-  @@schema("ye")
 }
 
 // ————————————————————————— Phase 1: Families & Students —————————————————————————
@@ -104,7 +97,6 @@ model Family {
   lrnChildren   LrnChild[]
 
   @@map("ye_families")
-  @@schema("ye")
 }
 
 model Student {
@@ -123,7 +115,6 @@ model Student {
 
   @@index([familyId])
   @@map("ye_students")
-  @@schema("ye")
 }
 
 model OtpCode {
@@ -137,7 +128,6 @@ model OtpCode {
 
   @@index([phone, createdAt])
   @@map("ye_otp_codes")
-  @@schema("ye")
 }
 
 // ————————————————————— Phase 1: Course Runs, Sessions, Enrollment —————————————————————
@@ -164,7 +154,6 @@ model CourseRun {
 
   @@index([programId, active])
   @@map("ye_course_runs")
-  @@schema("ye")
 }
 
 model ClassSession {
@@ -182,7 +171,6 @@ model ClassSession {
 
   @@index([courseRunId, date])
   @@map("ye_class_sessions")
-  @@schema("ye")
 }
 
 enum SessionStatus {
@@ -191,7 +179,6 @@ enum SessionStatus {
   cancelled
 
   @@map("ye_session_status")
-  @@schema("ye")
 }
 
 model Enrollment {
@@ -211,7 +198,6 @@ model Enrollment {
   @@unique([studentId, courseRunId])
   @@index([courseRunId, status])
   @@map("ye_enrollments")
-  @@schema("ye")
 }
 
 enum EnrollmentStatus {
@@ -221,7 +207,6 @@ enum EnrollmentStatus {
   cancelled
 
   @@map("ye_enrollment_status")
-  @@schema("ye")
 }
 
 // ————————————————————————— Payments & Receipts —————————————————————————
@@ -243,7 +228,6 @@ model Payment {
 
   @@index([familyId, createdAt])
   @@map("ye_payments")
-  @@schema("ye")
 }
 
 model PaymentItem {
@@ -263,7 +247,6 @@ model PaymentItem {
 
   @@index([paymentId])
   @@map("ye_payment_items")
-  @@schema("ye")
 }
 
 enum PaymentKind {
@@ -271,7 +254,6 @@ enum PaymentKind {
   renewal
 
   @@map("ye_payment_kind")
-  @@schema("ye")
 }
 
 enum PaymentTxStatus {
@@ -283,7 +265,6 @@ enum PaymentTxStatus {
   refunded
 
   @@map("ye_payment_tx_status")
-  @@schema("ye")
 }
 
 model Attendance {
@@ -300,7 +281,6 @@ model Attendance {
   // so attendance can never contradict the enrollment it belongs to.
   @@unique([sessionId, studentId])
   @@map("ye_attendance")
-  @@schema("ye")
 }
 
 // A parent's request to make up a session the child missed.
@@ -326,7 +306,6 @@ model MakeupRequest {
   @@unique([studentId, sessionId])
   @@index([status, createdAt])
   @@map("ye_makeup_requests")
-  @@schema("ye")
 }
 
 enum MakeupStatus {
@@ -335,7 +314,6 @@ enum MakeupStatus {
   rejected
 
   @@map("ye_makeup_status")
-  @@schema("ye")
 }
 
 enum AttendanceStatus {
@@ -345,7 +323,6 @@ enum AttendanceStatus {
   excused
 
   @@map("ye_attendance_status")
-  @@schema("ye")
 }
 
 // ————————————————————————— Phase 1: Skills & Badges —————————————————————————
@@ -362,7 +339,6 @@ model Skill {
 
   @@index([programId])
   @@map("ye_skills")
-  @@schema("ye")
 }
 
 model StudentSkill {
@@ -376,7 +352,6 @@ model StudentSkill {
 
   @@unique([studentId, skillId])
   @@map("ye_student_skills")
-  @@schema("ye")
 }
 
 enum SkillStatus {
@@ -384,7 +359,6 @@ enum SkillStatus {
   mastered
 
   @@map("ye_skill_status")
-  @@schema("ye")
 }
 
 model Badge {
@@ -399,7 +373,6 @@ model Badge {
   students StudentBadge[]
 
   @@map("ye_badges")
-  @@schema("ye")
 }
 
 model StudentBadge {
@@ -412,7 +385,6 @@ model StudentBadge {
 
   @@unique([studentId, badgeId])
   @@map("ye_student_badges")
-  @@schema("ye")
 }
 
 // ————————————————————————— Phase 1: Watan Bricks —————————————————————————
@@ -429,7 +401,6 @@ model WatanBrick {
 
   @@index([status, createdAt])
   @@map("ye_watan_bricks")
-  @@schema("ye")
 }
 
 enum BrickStatus {
@@ -438,7 +409,6 @@ enum BrickStatus {
   rejected
 
   @@map("ye_brick_status")
-  @@schema("ye")
 }
 
 model Testimonial {
@@ -455,7 +425,6 @@ model Testimonial {
   position  Int     @default(0)
 
   @@map("ye_testimonials")
-  @@schema("ye")
 }
 
 model FaqEntry {
@@ -468,7 +437,6 @@ model FaqEntry {
   position  Int     @default(0)
 
   @@map("ye_faqs")
-  @@schema("ye")
 }
 
 model BrickEvent {
@@ -480,7 +448,6 @@ model BrickEvent {
 
   @@index([ipHash, day])
   @@map("ye_brick_events")
-  @@schema("ye")
 }
 
 model ClickEvent {
@@ -492,21 +459,18 @@ model ClickEvent {
 
   @@unique([kind, page, day])
   @@map("ye_click_events")
-  @@schema("ye")
 }
 
 enum AppointmentKind {
   trial
   consult
 
-  @@schema("ye")
 }
 
 enum AppointmentStatus {
   scheduled
   cancelled
 
-  @@schema("ye")
 }
 
 model Appointment {
@@ -533,7 +497,6 @@ model Appointment {
   @@index([phone])
   @@index([startsAt])
   @@map("ye_appointments")
-  @@schema("ye")
 }
 
 // Blog posts (migrated from Manara CMS). Arabic is required; English mirror
@@ -555,7 +518,6 @@ model BlogPost {
 
   @@index([published, publishedAt])
   @@map("ye_blog_posts")
-  @@schema("ye")
 }
 
 // ————————————————————————— Learning Platform —————————————————————————
@@ -567,7 +529,6 @@ enum LrnBand {
   graduates
 
   @@map("ye_lrn_band")
-  @@schema("ye")
 }
 
 enum LrnStatus {
@@ -575,7 +536,6 @@ enum LrnStatus {
   published
 
   @@map("ye_lrn_status")
-  @@schema("ye")
 }
 
 enum LrnVideoType {
@@ -584,7 +544,6 @@ enum LrnVideoType {
   mp4
 
   @@map("ye_lrn_video_type")
-  @@schema("ye")
 }
 
 enum LrnExerciseType {
@@ -594,7 +553,6 @@ enum LrnExerciseType {
   picture_select
 
   @@map("ye_lrn_exercise_type")
-  @@schema("ye")
 }
 
 model LrnSubject {
@@ -608,7 +566,6 @@ model LrnSubject {
   units    LrnUnit[]
 
   @@map("ye_lrn_subjects")
-  @@schema("ye")
 }
 
 model LrnUnit {
@@ -624,7 +581,6 @@ model LrnUnit {
 
   @@index([subjectId, band])
   @@map("ye_lrn_units")
-  @@schema("ye")
 }
 
 model LrnLesson {
@@ -647,7 +603,6 @@ model LrnLesson {
 
   @@index([unitId])
   @@map("ye_lrn_lessons")
-  @@schema("ye")
 }
 
 model LrnExercise {
@@ -663,7 +618,6 @@ model LrnExercise {
 
   @@index([lessonId])
   @@map("ye_lrn_exercises")
-  @@schema("ye")
 }
 
 /// Standalone kid profile for the learning platform (not tied to Student enrollment)
@@ -686,7 +640,6 @@ model LrnChild {
 
   @@index([familyId])
   @@map("ye_lrn_children")
-  @@schema("ye")
 }
 
 model LrnCompletion {
@@ -701,7 +654,6 @@ model LrnCompletion {
 
   @@index([childId, lessonId])
   @@map("ye_lrn_completions")
-  @@schema("ye")
 }
 
 /// Durable first-completion claim — unique (childId, lessonId) ensures only
@@ -717,7 +669,6 @@ model LrnFirstCompletion {
 
   @@unique([childId, lessonId])
   @@map("ye_lrn_first_completions")
-  @@schema("ye")
 }
 
 // ————————————————————————— NELC xAPI / LRS —————————————————————————
@@ -746,7 +697,6 @@ model XapiStatement {
 
   @@index([createdAt])
   @@map("ye_xapi_statements")
-  @@schema("ye")
 }
 
 // One server-prepared browser-relay journey run. `record` only accepts
@@ -766,7 +716,6 @@ model XapiPreparedRun {
 
   @@index([expiresAt])
   @@map("ye_xapi_prepared_runs")
-  @@schema("ye")
 }
 
 // ————————————————————————— Rate Limit (durable) —————————————————————————
@@ -781,5 +730,25 @@ model RateLimitHit {
 
   @@index([key, at])
   @@map("ye_rate_limit_hits")
-  @@schema("ye")
+}
+
+// ————————— Shared campaign tables (pre-existing raw-SQL tables in public) —————————
+// Declared so `prisma db push` never drops them; the watanona brick counter
+// and legacy campaign site share these rows.
+
+model CampaignCounter {
+  key   String @id
+  count Int    @default(0)
+
+  @@map("campaign_counters")
+}
+
+model CampaignBrickEvent {
+  id        Int      @id @default(autoincrement())
+  key       String
+  amount    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([key, createdAt])
+  @@map("campaign_brick_events")
 }

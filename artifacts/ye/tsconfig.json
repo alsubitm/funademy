@@ -32,9 +32,10 @@
     "**/*.ts",
     "**/*.tsx",
     ".next-build-test/types/**/*.ts",
+    ".next-manual-review/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-manual-review/types/**/*.ts"
+    ".next-rehearsal/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

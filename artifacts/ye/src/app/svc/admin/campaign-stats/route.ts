@@ -36,7 +36,7 @@ export async function GET() {
     `,
     prisma.$queryRaw<{ day: string; total: number }[]>`
       SELECT day, SUM(amount)::int AS total
-      FROM ye.ye_brick_events
+      FROM ye_brick_events
       WHERE day >= ${fromDay}
       GROUP BY day
     `,

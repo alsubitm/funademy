@@ -1,11 +1,11 @@
 - [Single-site consolidation](site-consolidation.md) — COMPLETE: ye is the ONLY artifact; manara/api-server/lib/* deleted (git history has them); keep public.campaign_* tables (YE raw SQL).
-- [Schema changes flow](schema-changes-flow.md) — no migration files; prisma db push (ye schema) in dev, Replit Publish diffs schema to prod automatically.
+- [Schema changes flow](schema-changes-flow.md) — Prisma owns public (ye_ prefix); guarded db:push refuses to drop rowful undeclared tables; fail-closed boot cutover ye→public; publish diff syncs prod (public only).
 - [Booking/payment review bar](booking-payment-review-bar.md) — capacity/money endpoints need FOR UPDATE transactions, conditional credit updates, provider-gated charges/refunds with persisted refs.
 - [YE global CSS element selectors leak](ye-global-css-leaks.md) — globals.css `nav{top:0;sticky}` leaks into all pages; reset `top:auto` on any non-header nav (broke admin bottom nav).
 - [YE build-resilience guard](ye-build-resilience-guard.md) — vitest spawns real next build with unreachable DB; nested build needs whitelist env or it fails with /_document errors.
 - [YE test DB isolation](ye-tests-isolation.md) — vitest suites must use the fail-closed ye_test DB pattern; validation registration can hijack the .replit Project workflow.
 - [YE payments live/sim switching](ye-payments-live-sim.md) — providers go live purely by secret presence; settlement re-verifies via provider API, never trusts redirects; seats release on failure.
 - [YE appointments & Google Calendar](ye-appointments-gcal.md) — consultKey unique claim before Meet creation; one event per class occurrence; connector invites replace email provider.
-- [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages only the "ye" schema (db push drops undeclared tables!); /api owned by api-server, YE uses /svc; shared brick counter via raw SQL.
+- [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages public schema (db push drops undeclared tables — declare raw-SQL tables as models!); YE uses /svc routes; shared brick counter via raw SQL.
 - [NELC readiness](nelc-readiness.md) — NELC_LICENSE_NO gates license claims; LRS client env-gated, no fake success; NELC WAF geo-blocks non-Saudi IPs → wizard journey sent from admin's browser.
 - [YE learning platform](ye-learning-platform.md) — kids learning (XP/badges/streaks/PIN) ported from Manara; access = active enrollment; kid session = ye_kid cookie; admin CurriculumTab in AdminDashboard.

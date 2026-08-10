@@ -1,12 +1,15 @@
 ---
 name: Schema changes flow
-description: How dev/prod database schemas are managed (Prisma ye schema + what publish actually syncs)
+description: How dev/prod database schemas are managed (Prisma public schema, guarded push, boot cutover, what publish actually syncs)
 ---
-- Dev: no migration files; edit prisma/schema.prisma (ye schema) and `prisma db push` against dev DB. Post-merge setup applies it after task merges.
-- **Publish schema diff covers ONLY the `public` schema.** Verified Aug 2026: diff proposed public-table changes but never CREATEs for `ye.*` tables missing in prod. The Prisma "ye" schema does NOT sync to prod via normal publish.
-- Prod ye-schema updates happen only via the Publish "overwrite data" option (wholesale dev→prod DB copy) or the user running SQL in the production Database pane. Agent must never run prod DDL.
-- **Build-time rule:** publish builds run `next build` against the PROD database, before any schema apply. Any statically prerendered page that queries the DB fails the whole build if its table is missing in prod. Pages with DB reads should be `force-dynamic` unless their tables are long-stable in prod.
-- Orphan-table trap: a table in dev-public but not prod gets CREATEd in prod on publish; a table dropped from prod but kept in dev gets re-created. Clean up in DEV first, then let publish drop it in prod.
+- Dev: no migration files; edit prisma/schema.prisma (ALL models in the default **public** schema, tables keep the `ye_` name prefix) and push via `pnpm run db:push`. Post-merge setup applies it after task merges.
+- **Publish schema diff covers ONLY the `public` schema** — that's why everything was migrated out of the old dedicated "ye" Postgres schema. Normal publishes sync schema changes natively.
+- **Prisma owns public → db push drops undeclared tables.** `db:push` is a guarded wrapper that aborts while any undeclared public table holds rows (declare it as a model — like the shared campaign_* tables — or delete it deliberately; `db:push:unsafe` bypasses). Never call raw `prisma db push` in automation.
+- One-time cutover is AUTOMATED and FAIL-CLOSED: `migrateYeSchemaToPublic` (boot instrumentation + post-merge, CLI `db:legacy-migrate`) copies ye.* rows into public (FK topo order, enum casts, sequence fixes) then drops schema ye; idempotent, advisory-locked, aborts atomically on both-sides-nonempty. An aborted/failed cutover refuses to serve (Next 500s every request and retries the migration per request; fixing the DB self-heals without redeploy) — never soften this to a logged warning. Agent must never run prod DDL — the app's own boot does it.
+- **Publishes build the MAIN branch.** Task-branch changes (code AND dev-DB state) are invisible to publish until the task merges. Never ask the user to publish expecting unmerged changes.
+- "Overwrite data" publish is NOT a reliable dev→prod DB copy; don't rely on it for schema cutovers.
+- **Build-time rule:** publish builds run `next build` against the PROD database, before any schema apply. A statically prerendered page that queries the DB fails the whole build if its table is missing in prod — keep DB-reading pages `force-dynamic` unless their tables are long-stable in prod.
+- Orphan-table trap: publish re-creates in prod any table present in dev-public, and drops prod tables missing from dev-public. Clean up in DEV first, then let publish handle prod.
 
-**Why:** prod silently drifted 13 tables behind dev while publishes "succeeded"; blog was the first BUILD-time failure (Aug 9, 2026), runtime features (learn/appointments/payments) were already 500-ing in prod.
-**How to apply:** after adding any table used by a public page, either keep the page dynamic or ensure the user does an overwrite-data publish; always re-check `explainSchemaDiff()` before telling the user to publish.
+**Why:** prod silently drifted many tables behind dev while publishes "succeeded" (models lived in a non-public schema); runtime features 500'd in prod and eventually a build-time DB query against a missing prod table broke publishing entirely.
+**How to apply:** schema changes reach prod via the publish diff on the user's next publish AFTER the task merges. `prisma/schema.sql` (build-regenerated DDL snapshot, don't hand-edit) is the boot migration's fallback when the diff hasn't run.

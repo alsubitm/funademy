@@ -25,6 +25,45 @@ export async function register() {
   // Guard against duplicate timers on dev-server hot reloads.
   if (globalThis.__yeSweepTimer) return;
 
+  // One-time legacy cutover (Aug 2026): if this database still keeps its data
+  // in the old dedicated "ye" schema (production, before its first publish of
+  // the public-schema build), move everything into public BEFORE any feature
+  // code touches the DB. Instant no-op afterwards.
+  //
+  // FAIL-CLOSED: once legacy data is positively detected, a failed or aborted
+  // cutover must NOT let the server come up — the new Prisma client only sees
+  // the public schema, so serving would show families an empty site while the
+  // real data sits invisible in "ye". A refused boot is visible (deploy fails,
+  // previous release keeps running) and recoverable; silent empty data is not.
+  {
+    const { prisma } = await import('@/lib/db');
+    const { hasLegacyYeSchema, migrateYeSchemaToPublic } = await import('@/lib/migrate-ye-schema');
+    let legacy = false;
+    try {
+      legacy = await hasLegacyYeSchema(prisma);
+    } catch (e) {
+      // Probe failed — DB unreachable. Nothing data-destructive at stake yet;
+      // keep the long-standing boot behavior for DB outages (pages error
+      // visibly, static pages still serve) instead of crash-looping the site.
+      console.error('[legacy-schema-migration] could not probe for legacy "ye" schema (DB unreachable?):', e);
+    }
+    if (legacy) {
+      const res = await migrateYeSchemaToPublic(prisma); // unexpected errors propagate → boot fails
+      if ('aborted' in res && res.aborted) {
+        const detail =
+          `conflicts (rows on both sides): [${res.conflicts.join(', ')}]; ` +
+          `orphans with rows: [${res.orphansWithRows.join(', ')}]`;
+        console.error(`[legacy-schema-migration] FATAL: cutover aborted — ${detail}. Refusing to start.`);
+        throw new Error(
+          `[legacy-schema-migration] one-time ye→public cutover aborted (${detail}). ` +
+            `Legacy data was left untouched in the "ye" schema; resolve the listed tables manually ` +
+            `(or clear the conflicting public rows) and redeploy.`,
+        );
+      }
+      console.log('[legacy-schema-migration] result:', JSON.stringify(res));
+    }
+  }
+
   const runSweep = async () => {
     try {
       const { sweepStalePayments } = await import('@/lib/pay-core');

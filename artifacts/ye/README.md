@@ -51,9 +51,13 @@ The e² Young Engineers logo is trademarked and is **not** bundled. Dashed place
 
 ## Database — IMPORTANT
 
-All YE tables live in the dedicated Postgres schema **`ye`** (Prisma `multiSchema`). The brick counter is the **shared** `public.campaign_counters` row (`key = 'watan-bricks'`) accessed via raw SQL in `src/lib/bricks.ts` — never add it to `schema.prisma`, and never run `prisma db push` with `public` in the `schemas` list: the database is shared with other apps in this workspace and Prisma would drop their tables.
+All YE tables live in the default **`public`** Postgres schema with a `ye_` table-name prefix (migrated from the old dedicated `ye` schema on Aug 10, 2026, because Replit's publish schema-diff only syncs `public` — tables in other schemas silently never reached production). The brick counter is the **shared** `public.campaign_counters` row (`key = 'watan-bricks'`) accessed via raw SQL in `src/lib/bricks.ts`; it and `campaign_brick_events` ARE declared in `schema.prisma` (`CampaignCounter` / `CampaignBrickEvent`) purely so `prisma db push` never drops them — keep them declared.
 
-Schema changes: edit `prisma/schema.prisma` → `pnpm run db:push` (safe: only manages the `ye` schema).
+⚠️ `prisma db push` drops any `public` table NOT declared in `schema.prisma`. Before adding raw-SQL tables, declare them as Prisma models first. `pnpm run db:push` is therefore a **guarded wrapper** (`scripts/guarded-db-push.sh`): it refuses to push while any undeclared public table still holds rows, so nothing rowful can be dropped silently — declare the table or delete it deliberately, then rerun (`db:push:unsafe` bypasses the guard, emergencies only).
+
+Schema changes: edit `prisma/schema.prisma` → `pnpm run db:push` in dev; the Replit publish schema-diff now applies the same change to production automatically on the next publish.
+
+One-time legacy cutover: databases that still hold data in the old `ye` schema (production before its first public-schema publish) are migrated automatically at server boot by `src/lib/migrate-ye-schema.ts` (also runnable via `pnpm run db:legacy-migrate`). It copies rows into the `public` tables in FK order, fixes sequences, drops the `ye` schema, and is an instant no-op afterwards. `prisma/schema.sql` is a build-generated DDL snapshot the migration replays if the publish diff hasn't created the target tables yet — don't edit it by hand. **Fail-closed:** once legacy data is detected, a failed or aborted cutover refuses to start the server (Next answers every request 500 and retries the migration on the next request) — the new Prisma client only sees `public`, so serving would mean an empty site while real data sits in `ye`. The abort log names the conflicting tables; clear them and the next request completes the cutover, no redeploy needed.
 
 ## API routes
 

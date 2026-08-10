@@ -45,7 +45,7 @@ export async function POST(
     //    lock this row will wait here, guaranteeing sequential read-modify-write
     //    and making the daily-limit check authoritative.
     const [lockedChild] = await tx.$queryRawUnsafe<typeof child[]>(
-      `SELECT * FROM ye.ye_lrn_children WHERE id = $1 FOR UPDATE`,
+      `SELECT * FROM ye_lrn_children WHERE id = $1 FOR UPDATE`,
       child.id,
     );
     if (!lockedChild) throw new Error('child_disappeared');
