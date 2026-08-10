@@ -8,4 +8,5 @@
 - [YE appointments & Google Calendar](ye-appointments-gcal.md) — consultKey unique claim before Meet creation; one event per class occurrence; connector invites replace email provider.
 - [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages public schema (db push drops undeclared tables — declare raw-SQL tables as models!); YE uses /svc routes; shared brick counter via raw SQL.
 - [NELC readiness](nelc-readiness.md) — registered mirrors wizard example verbatim; other steps follow NELC package per-step shapes; ONE send per national ID (fresh ID per attempt); WAF → browser relay; no fake success.
+- [Task-merge clobber risk](task-merge-clobber.md) — stale-base task merges silently revert main's recent work on shared files; grep key symbols after merges, restore via `git log --all -S`.
 - [YE learning platform](ye-learning-platform.md) — kids learning (XP/badges/streaks/PIN) ported from Manara; access = active enrollment; kid session = ye_kid cookie; admin CurriculumTab in AdminDashboard.

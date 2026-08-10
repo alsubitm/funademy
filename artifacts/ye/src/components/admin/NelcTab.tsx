@@ -211,7 +211,11 @@ export function NelcTab() {
   const [error, setError] = useState<string | null>(null);
   const [lastRun, setLastRun] = useState<RunState | null>(null);
   /** SEQ003 warning — set when `prepare` answers 409 duplicate_journey. */
-  const [duplicatePrompt, setDuplicatePrompt] = useState<{ lastSentAt: string | null } | null>(null);
+  const [duplicatePrompt, setDuplicatePrompt] = useState<{
+    lastSentAt: string | null;
+    /** true = delivered rows exist (ID burned); false = only an unrecorded prepared run. */
+    delivered: boolean;
+  } | null>(null);
   const [checkBusy, setCheckBusy] = useState(false);
   const [lastCheck, setLastCheck] = useState<CheckState | null>(null);
 
@@ -264,6 +268,7 @@ export function NelcTab() {
       if (prep.status === 409 && prepData.error === 'duplicate_journey') {
         setDuplicatePrompt({
           lastSentAt: typeof prepData.lastSentAt === 'string' ? prepData.lastSentAt : null,
+          delivered: prepData.delivered === true,
         });
         return;
       }
@@ -548,8 +553,10 @@ export function NelcTab() {
         {duplicatePrompt && (
           <div className="bg-[rgba(255,202,23,0.12)] border border-[#FFCA17] rounded-xl px-4 py-3 space-y-3">
             <div className="text-sm font-bold text-[#8a6d00] leading-relaxed">
-              ⚠ هذا الرقم أُرسلت له رحلة من قبل
-              {duplicatePrompt.lastSentAt ? ` (آخر إرسال: ${fmtDateTime(duplicatePrompt.lastSentAt)})` : ''}
+              {duplicatePrompt.delivered
+                ? '⚠ هذا الرقم أُرسلت له رحلة من قبل'
+                : '⚠ هذا الرقم جُهّزت له رحلة سابقة وقد تكون أُرسلت دون تسجيل نتيجتها'}
+              {duplicatePrompt.lastSentAt ? ` (آخر مرة: ${fmtDateTime(duplicatePrompt.lastSentAt)})` : ''}
               . فاحص نيلك يعدّ الإرسال المتكرر «عبارات مكررة» (SEQ003) ويرفض الرحلة كلها، ويطلب
               رقم هوية جديداً لكل محاولة تحقق.
               {duplicatePrompt.delivered && (

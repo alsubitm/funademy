@@ -171,7 +171,7 @@ describe('buildJourneyStatements', () => {
     for (const s of b) expect(idsA.has(s.statementId)).toBe(false);
   });
 
-  it('builds a filtered read-back query URL (agent + activity + limit)', () => {
+  it('builds a filtered read-back query URL (agent + activity + related_activities + limit)', () => {
     vi.stubEnv('NELC_LRS_ENDPOINT', 'https://lrs.staging.example/data/xAPI/statements'); // pasted /statements tolerated
     const url = new URL(lrsStatementsQueryUrl('1234567890', 'https://funademy.io/course/CR001'));
     expect(`${url.origin}${url.pathname}`).toBe('https://lrs.staging.example/data/xAPI/statements');
@@ -180,6 +180,10 @@ describe('buildJourneyStatements', () => {
       mbox: 'mailto:1234567890@gmail.com', // same derivation as the journey actor
     });
     expect(url.searchParams.get('activity')).toBe('https://funademy.io/course/CR001');
+    // CRS003 made five statements target sub-activities — without
+    // related_activities the read-back would MISS them (they reference the
+    // course only via contextActivities.parent).
+    expect(url.searchParams.get('related_activities')).toBe('true');
     expect(url.searchParams.get('limit')).toBe('25');
   });
 });
@@ -464,6 +468,50 @@ describe('self-check contract classifier (classifyJourneyStatement)', () => {
     const earned2 = fresh('earned');
     earned2.object.definition.description = { 'en-US': 'Certificate' };
     expect(classifyJourneyStatement(earned2)).toBe(null);
+
+    // STRICT BY DESIGN — texts and scores must match the builder exactly:
+    // any drift means the statement did not come from the current builder.
+    const watched2 = fresh('watched');
+    watched2.object.definition.name = { 'en-US': 'Some Other Video' };
+    expect(classifyJourneyStatement(watched2)).toBe(null);
+
+    const parentDrift = fresh('watched');
+    parentDrift.context.contextActivities.parent[0].definition.name = { 'en-US': 'Another Course' };
+    expect(classifyJourneyStatement(parentDrift)).toBe(null);
+
+    const attemptedEmptyScore = fresh('attempted');
+    attemptedEmptyScore.result.score = {};
+    expect(classifyJourneyStatement(attemptedEmptyScore)).toBe(null);
+
+    const attemptedStringRaw = fresh('attempted');
+    attemptedStringRaw.result.score = { scaled: 0.8, raw: '80', min: 0, max: 100 };
+    expect(classifyJourneyStatement(attemptedStringRaw)).toBe(null);
+
+    const ratedBadBounds = fresh('rated');
+    ratedBadBounds.result.score = { scaled: 1, raw: 5, min: 6, max: 5 };
+    expect(classifyJourneyStatement(ratedBadBounds)).toBe(null);
+
+    const wrongDisplay = fresh('initialized');
+    wrongDisplay.verb.display = { 'en-US': 'launched' };
+    expect(classifyJourneyStatement(wrongDisplay)).toBe(null);
+
+    // VALID-but-different result values must also be rejected — results are
+    // pinned in the contract, and a plausible substitute is still not ours.
+    const ratedOtherText = fresh('rated');
+    ratedOtherText.result.response = 'Great course, would recommend.';
+    expect(classifyJourneyStatement(ratedOtherText)).toBe(null);
+
+    const watchedOtherDuration = fresh('watched');
+    watchedOtherDuration.result.duration = 'PT5M';
+    expect(classifyJourneyStatement(watchedOtherDuration)).toBe(null);
+
+    const attemptedOtherScore = fresh('attempted');
+    attemptedOtherScore.result.score = { scaled: 0.7, raw: 70, min: 0, max: 100 };
+    expect(classifyJourneyStatement(attemptedOtherScore)).toBe(null);
+
+    const lessonNotCompleted = fresh('completed_lesson');
+    lessonNotCompleted.result.completion = false;
+    expect(classifyJourneyStatement(lessonNotCompleted)).toBe(null);
   });
 
   it('discriminates the three `completed` statements by their object contracts', () => {
@@ -594,8 +642,18 @@ describe('POST /svc/admin/nelc', () => {
     expect(rows.every((r) => r.ok && r.httpStatus === 200 && r.environment === 'staging')).toBe(true);
     expect(rows.every((r) => r.nationalId === '1111111111')).toBe(true);
 
-    // Fresh statement ids on a second run.
-    const res2 = await nelcPOST(postReq({ nationalId: '1111111111', courseIri: 'https://funademy.io/course/CR001' }));
+    // SEQ003: a bare re-send for the same ID is refused (server path too)…
+    const resDup = await nelcPOST(postReq({ nationalId: '1111111111', courseIri: 'https://funademy.io/course/CR001' }));
+    expect(resDup.status).toBe(409);
+    const dup = await resDup.json();
+    expect(dup.error).toBe('duplicate_journey');
+    expect(dup.delivered).toBe(true);
+
+    // …while the confirmed override still generates fresh statement ids.
+    const res2 = await nelcPOST(
+      postReq({ nationalId: '1111111111', courseIri: 'https://funademy.io/course/CR001', confirmDuplicate: true }),
+    );
+    expect(res2.status).toBe(200);
     const data2 = await res2.json();
     const first = new Set(data.results.map((r: { statementId: string }) => r.statementId));
     for (const r of data2.results) expect(first.has(r.statementId)).toBe(false);
@@ -679,9 +737,10 @@ describe('POST /svc/admin/nelc — browser relay (prepare/record)', () => {
     expect(run?.consumed).toBe(false);
     expect(run?.nationalId).toBe('4444444444');
 
-    // fresh statement ids on a second prepare (safe wizard retries)
+    // fresh statement ids on a second prepare — needs the SEQ003 override,
+    // because the first (unrecorded) run now counts as a possible send
     const res2 = await nelcPOST(
-      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001' }),
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '4444444444', courseIri: 'https://funademy.io/course/CR001', confirmDuplicate: true }),
     );
     const data2 = await res2.json();
     const first = new Set(data.steps.map((s: { statementId: string }) => s.statementId));
@@ -895,6 +954,7 @@ describe('POST /svc/admin/nelc — browser relay (prepare/record)', () => {
     expect(again.status).toBe(409);
     const dup = await again.json();
     expect(dup.error).toBe('duplicate_journey');
+    expect(dup.delivered).toBe(true); // delivered rows exist — strong warning
     expect(dup.lastSentAt).toBeTruthy();
 
     // …a fresh national ID sails through…
@@ -940,6 +1000,31 @@ describe('POST /svc/admin/nelc — browser relay (prepare/record)', () => {
       postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '1212121212', courseIri: 'https://funademy.io/course/CR001' }),
     );
     expect(again.status).toBe(200);
+  });
+
+  it('an unrecorded prepared run counts as a possible send (weak duplicate warning)', async () => {
+    stubLrsEnv();
+    // Prepared but never recorded — the browser may have POSTed the
+    // statements and died before `record` (the crash-before-record gap).
+    await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '7777777777', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    const again = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '7777777777', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(again.status).toBe(409);
+    const dup = await again.json();
+    expect(dup.error).toBe('duplicate_journey');
+    expect(dup.delivered).toBe(false); // no delivered rows — weak warning
+
+    // An unrecorded self-CHECK never blocks — it is read-only.
+    await nelcPOST(
+      postReq({ action: 'check', password: 'test-admin-pass', nationalId: '7676767676', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    const fresh = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '7676767676', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(fresh.status).toBe(200);
   });
 });
 

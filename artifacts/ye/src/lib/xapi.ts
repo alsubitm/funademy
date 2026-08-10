@@ -87,7 +87,6 @@ import {
   NELC_LANGUAGE,
   NELC_PLATFORM_NAME,
   NELC_PLATFORM_URL,
-  RATED_RESPONSE_EN,
   subActivityIri,
 } from './xapiParity';
 import type { JourneyStepContract } from './xapiParity';
@@ -152,41 +151,6 @@ export type JourneyStatement = {
   /** Client-generated statement UUID (fresh every run — re-runs are safe). */
   statementId: string;
   statement: Record<string, unknown>;
-};
-
-/**
- * Per-step result objects. `rated` mirrors NELC's package Rated.php exactly —
- * ASM004 requires the text response, and the score bounds are min 0 / max 5.
- * `progressed`/`completed_course`/`attempted` results passed the 2026-08-10
- * verifier run untouched (no violation concerned them) and stay as they
- * were; the reshaped `watched` follows the package's completion+duration.
- */
-const stepResult = (key: JourneyStepKey): Record<string, unknown> | undefined => {
-  switch (key) {
-    case 'watched':
-      return { completion: true, duration: 'PT10M' };
-    case 'completed_lesson':
-      return { completion: true, duration: 'PT10M' };
-    case 'attempted':
-      return { score: { scaled: 0.8, raw: 80, min: 0, max: 100 }, completion: true, success: true };
-    case 'completed_unit':
-      return { completion: true, success: true, duration: 'PT20M' };
-    case 'progressed':
-      return { score: { scaled: 0.5, raw: 50, min: 0, max: 100 } };
-    case 'completed_course':
-      return {
-        score: { scaled: 0.9, raw: 90, min: 0, max: 100 },
-        completion: true,
-        success: true,
-        duration: 'PT40M',
-      };
-    case 'rated':
-      // ASM004 — ratings must carry a text response (package: score
-      // {scaled,raw,min:0,max:5} + response).
-      return { score: { scaled: 1, raw: 5, min: 0, max: 5 }, response: RATED_RESPONSE_EN };
-    default:
-      return undefined;
-  }
 };
 
 /**
@@ -274,8 +238,9 @@ export function buildJourneyStatements(
       object: stepObject(courseIri, c),
       context: stepContext(courseIri, c),
     };
-    const result = stepResult(c.key);
-    if (result) statement.result = result;
+    // Result values are pinned in the contract (single source of truth with
+    // the read-back classifier); clone so callers can't mutate the contract.
+    if (c.result !== null) statement.result = structuredClone(c.result);
     return { key: c.key, statementId, statement };
   });
 }
@@ -291,7 +256,16 @@ export function buildJourneyStatements(
  */
 export function lrsStatementsQueryUrl(nationalId: string, courseIri: string, limit = 25): string {
   const agent = JSON.stringify({ objectType: 'Agent', mbox: `mailto:${nationalId}@gmail.com` });
-  const params = new URLSearchParams({ agent, activity: courseIri, limit: String(limit) });
+  // related_activities=true is REQUIRED since CRS003: five journey statements
+  // target sub-activity objects and reference the course only through
+  // contextActivities.parent — a bare `activity` filter matches statement
+  // objects only (standard xAPI), so it would miss all five.
+  const params = new URLSearchParams({
+    agent,
+    activity: courseIri,
+    related_activities: 'true',
+    limit: String(limit),
+  });
   return `${lrsStatementsUrl()}?${params.toString()}`;
 }
 
