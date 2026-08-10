@@ -70,6 +70,7 @@ export function KpisTab() {
 
       <div className="bg-white rounded-[24px] border border-[#DFE5F2] overflow-hidden shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
         <div className="p-5 border-b border-[#DFE5F2] font-display font-bold text-[#101A38]">تفصيل حسب الدفعة — شهر {month}</div>
+        <div className="overflow-x-auto">
         <table className="data-table">
           <thead><tr><th>البرنامج / الدفعة</th><th>المسجلون</th><th>الامتلاء</th><th>الإيراد الشهري</th><th>الجلسات المنعقدة</th><th>نسبة الحضور</th></tr></thead>
           <tbody>
@@ -89,6 +90,7 @@ export function KpisTab() {
             {rows.length === 0 && <tr><td colSpan={6} className="text-center py-16 text-[#5F6B92] font-bold">لا توجد بيانات بعد.</td></tr>}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

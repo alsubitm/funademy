@@ -142,7 +142,7 @@ export function SlotsTab({ programs }: { programs: any[] }) {
         </form>
       </div>
 
-      <div className="bg-white rounded-[24px] shadow-[0_8px_30px_rgba(7,17,42,0.04)] border border-[#DFE5F2] overflow-hidden">
+      <div className="bg-white rounded-[24px] shadow-[0_8px_30px_rgba(7,17,42,0.04)] border border-[#DFE5F2] overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>

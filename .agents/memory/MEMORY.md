@@ -1,7 +1,7 @@
 - [Single-site consolidation](site-consolidation.md) — COMPLETE: ye is the ONLY artifact; manara/api-server/lib/* deleted (git history has them); keep public.campaign_* tables (YE raw SQL).
 - [Schema changes flow](schema-changes-flow.md) — Prisma owns public (ye_ prefix); guarded db:push refuses to drop rowful undeclared tables; fail-closed boot cutover ye→public; publish diff syncs prod (public only).
 - [Booking/payment review bar](booking-payment-review-bar.md) — capacity/money endpoints need FOR UPDATE transactions, conditional credit updates, provider-gated charges/refunds with persisted refs.
-- [YE global CSS element selectors leak](ye-global-css-leaks.md) — globals.css `nav{top:0;sticky}` leaks into all pages; reset `top:auto` on any non-header nav (broke admin bottom nav).
+- [YE global CSS element selectors leak](ye-global-css-leaks.md) — globals.css bare `nav{}` (sticky/top/white bg/blur) hits every non-public nav; copy the admin/page.css reset blocks.
 - [YE build-resilience guard](ye-build-resilience-guard.md) — vitest spawns real next build with unreachable DB; nested build needs whitelist env or it fails with /_document errors.
 - [YE test DB isolation](ye-tests-isolation.md) — vitest suites must use the fail-closed ye_test DB pattern; validation registration can hijack the .replit Project workflow.
 - [YE payments live/sim switching](ye-payments-live-sim.md) — providers go live purely by secret presence; settlement re-verifies via provider API, never trusts redirects; seats release on failure.

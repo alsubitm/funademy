@@ -311,6 +311,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
 
         <div className="bg-white rounded-[24px] border border-[#DFE5F2] overflow-hidden">
           <div className="p-5 border-b border-[#DFE5F2] font-display font-bold text-[#101A38]">الطلاب المسجلون ({roster.length})</div>
+          <div className="overflow-x-auto">
           <table className="data-table">
             <thead><tr><th>الطالب</th><th>ولي الأمر</th><th>الهاتف</th><th>الاشتراك</th><th>الحالة</th></tr></thead>
             <tbody>
@@ -329,6 +330,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
               {roster.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-[#5F6B92] font-bold">لا يوجد مسجلون بعد.</td></tr>}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div className="bg-white rounded-[24px] border border-[#DFE5F2] overflow-hidden">
@@ -431,7 +433,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
         </form>
       )}
 
-      <div className="bg-white rounded-[24px] border border-[#DFE5F2] overflow-hidden shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
+      <div className="bg-white rounded-[24px] border border-[#DFE5F2] overflow-x-auto shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
         <table className="data-table">
           <thead><tr><th>البرنامج / الدفعة</th><th>الجدول</th><th>الفترة</th><th>المسجلون</th><th>المقاعد</th><th>السعر</th><th>الحالة</th><th>إجراءات</th></tr></thead>
           <tbody>
