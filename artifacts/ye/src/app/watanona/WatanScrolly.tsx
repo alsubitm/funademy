@@ -84,7 +84,7 @@ export function WatanScrolly({ lang }: { lang: 'ar' | 'en' }) {
   };
 
   return (
-    <section className="scrolly-sec" ref={rootRef}>
+    <section className="sec scrolly-sec" ref={rootRef}>
       <div className="bpgrid light" style={{ opacity: 0.15 }}></div>
       <div className="wrap relative z-10">
         <div style={{ textAlign: 'center' }}>

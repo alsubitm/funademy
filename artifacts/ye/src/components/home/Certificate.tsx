@@ -4,7 +4,7 @@ import { CapMark } from '@/components/brand/FunAdemyMark';
 /** Certificate mockup — paper #F7EFDD, cap-mode logo seal (Master Spec §3.11). */
 export function Certificate({ lang }: { lang: 'ar' | 'en' }) {
   return (
-    <section className="cert-sec">
+    <section className="sec cert-sec">
       <div className="wrap split">
         <ScrollReveal>
           <span className="kick">OFFICIAL CERTIFICATES</span>

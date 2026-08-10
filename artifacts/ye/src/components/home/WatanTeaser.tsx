@@ -5,7 +5,7 @@ import { CountdownChip } from '@/components/home/CountdownChip';
 /** وطننا campaign teaser — Sand-Stripe framed banner (Master Spec §3.9). */
 export function WatanTeaser({ lang }: { lang: 'ar' | 'en' }) {
   return (
-    <section className="watan-teaser">
+    <section className="sec watan-teaser">
       <div className="wrap">
         <ScrollReveal className="wt-frame">
           <div className="wt-stripe" aria-hidden="true"></div>

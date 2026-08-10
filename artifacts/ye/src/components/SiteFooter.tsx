@@ -11,7 +11,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
   const p = (path: string) => (ar ? path : `/en${path}`);
 
   return (
-    <footer>
+    <footer className="site-footer">
       <div className="wrap">
         <div className="fgrid">
           <div>

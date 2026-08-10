@@ -6,7 +6,7 @@ export function Workshop({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
 
   return (
-    <section className="shop" id="workshop">
+    <section className="sec shop" id="workshop">
       <div className="wrap shop-in">
         <ScrollReveal>
           <span className="kick" style={{ color: 'var(--yellow)', borderColor: 'rgba(255,202,23,0.3)', background: 'rgba(255,202,23,0.1)' }}>

@@ -12,7 +12,7 @@ export function FAQ({ faqs, lang }: { faqs: FaqEntry[]; lang: 'ar' | 'en' }) {
   if (faqs.length === 0) return null;
 
   return (
-    <section className="faq" id="faq">
+    <section className="sec faq" id="faq">
       <div className="wrap" style={{ maxWidth: '800px' }}>
         <ScrollReveal style={{ textAlign: 'center' }}>
           <span className="kick">FAQ</span>

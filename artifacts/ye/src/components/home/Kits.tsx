@@ -60,7 +60,7 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
   })).filter((g) => g.items.length > 0);
 
   return (
-    <section className="bg-white" id="programs">
+    <section className="sec bg-white" id="programs">
       <div className="wrap">
         <ScrollReveal style={{ textAlign: 'center' }}>
           <span className="kick">THE PROGRAMS</span>

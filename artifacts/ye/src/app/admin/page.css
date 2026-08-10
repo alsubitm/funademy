@@ -37,18 +37,8 @@
   flex-shrink: 0;
 }
 
-/* Tab list: scrolls internally when the window is shorter than the tab stack.
-   Also resets global `nav` element styles from globals.css
-   (nav { position:sticky; top:0; background:rgba(255,255,255,.85); backdrop-filter; box-shadow })
-   that leak into any <nav> — see .agents/memory/ye-global-css-leaks.md */
+/* Tab list: scrolls internally when the window is shorter than the tab stack. */
 .admin-sidebar nav {
-  position: relative;
-  top: auto;
-  background: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  box-shadow: none;
-  transition: none;
   min-height: 0; /* allow this flex-1 item to shrink so overflow can kick in */
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -93,11 +83,7 @@
   .mobile-bottom-nav {
     display: flex;
     position: fixed;
-    top: auto; /* override global `nav { top: 0 }` which stretched this over the whole screen */
     bottom: 0;
-    height: auto;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     left: 0;
     right: 0;
     background: var(--ink);
@@ -113,7 +99,6 @@
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch; /* iOS momentum scroll inside a fixed bar */
     overscroll-behavior-x: contain;
-    transition: none; /* reset leaked global `nav` transition */
     gap: 4px;
     box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
   }

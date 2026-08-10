@@ -21,7 +21,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
       <SiteHeader lang={lang} />
       
       {/* Hero */}
-      <section className="watanona-hero">
+      <section className="sec watanona-hero">
         <div className="bpgrid"></div>
         <div className="wrap relative z-10">
           <span className="kick" style={{ color: 'var(--color-sand-1)', borderColor: 'var(--color-sand-1)' }}>
@@ -55,7 +55,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
       <ClientBricks initialCount={initialCount} lang={lang} />
 
       {/* Campaign Journey */}
-      <section className="journey-sec">
+      <section className="sec journey-sec">
         <div className="wrap">
           <div style={{ textAlign: 'center' }}>
             <span className="kick" style={{ color: 'var(--color-bp)', borderColor: 'var(--color-bp)' }}>
@@ -76,7 +76,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
       </section>
 
       {/* Exhibition Info */}
-      <section className="exhib-sec">
+      <section className="sec exhib-sec">
         <div className="wrap">
           <span className="kick" style={{ color: 'var(--color-sand-4)', borderColor: 'var(--color-sand-4)' }}>
             {d.exhibKick}
@@ -96,7 +96,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
       </section>
 
       {/* Sponsors */}
-      <section className="sponsors-sec">
+      <section className="sec sponsors-sec">
         <div className="bpgrid light" style={{ opacity: 0.2 }}></div>
         <div className="wrap relative z-10">
           <div style={{ textAlign: 'center' }}>
@@ -148,7 +148,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
         </div>
       </section>
 
-      <section style={{ padding: '100px 0', textAlign: 'center' }}>
+      <section className="sec" style={{ textAlign: 'center' }}>
         <div className="wrap">
           <h2 style={{ marginBottom: '30px', color: 'var(--color-bp)' }}>{d.enrollTitle}</h2>
           <Link href="/book" className="btn b" style={{ fontSize: '20px', padding: '20px 40px' }}>

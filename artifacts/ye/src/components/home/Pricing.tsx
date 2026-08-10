@@ -6,7 +6,7 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
 
   return (
-    <section className="price" id="pricing">
+    <section className="sec price" id="pricing">
       <div style={{ position: 'absolute', inset: 0, opacity: 0.15, mixBlendMode: 'overlay', pointerEvents: 'none' }}>
         <Image src="/pattern-bricks.jpg" alt="" fill style={{ objectFit: 'cover' }} />
       </div>

@@ -118,7 +118,7 @@ export function ProgramDetail({
         <i style={{background: '#E5AE4A'}}></i>
       </div>
 
-      <section className="prog-body">
+      <section className="sec prog-body">
         <div className="wrap prog-grid">
           
           <div className="prog-main">

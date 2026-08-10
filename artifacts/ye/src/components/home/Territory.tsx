@@ -2,7 +2,7 @@ import { ScrollReveal } from '@/components/ScrollReveal';
 
 export function Territory({ lang }: { lang: 'ar' | 'en' }) {
   return (
-    <section className="bg-sand-1" id="accreditation">
+    <section className="sec bg-sand-1" id="accreditation">
       <div className="wrap split">
         <ScrollReveal>
           <span className="kick">

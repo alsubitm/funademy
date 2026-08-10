@@ -21,7 +21,7 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
         </div>
       </div>
 
-      <nav>
+      <nav className="site-nav">
         <div className="wrap nav-in">
           <Link href={lang === 'ar' ? '/' : '/en'} className="brand">
             <FlipMark size={42} />

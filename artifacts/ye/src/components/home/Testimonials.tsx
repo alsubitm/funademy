@@ -4,7 +4,7 @@ import type { Testimonial } from '@prisma/client';
 
 export function Testimonials({ lang, testimonials }: { lang: 'ar' | 'en'; testimonials: Testimonial[] }) {
   return (
-    <section className="proof" id="testimonials">
+    <section className="sec proof" id="testimonials">
       <div className="wrap proof-in">
         <ScrollReveal className="qs">
           <span className="kick" style={{ color: 'var(--blue)', borderColor: 'rgba(28, 84, 203, 0.3)', background: 'rgba(28, 84, 203, 0.08)' }}>

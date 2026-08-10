@@ -20,7 +20,7 @@ export function PathMap({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
 
   return (
-    <section className="path-sec" id="path">
+    <section className="sec path-sec" id="path">
       <div className="bpgrid light"></div>
       <div className="wrap" style={{ position: 'relative' }}>
         <ScrollReveal style={{ textAlign: 'center' }}>

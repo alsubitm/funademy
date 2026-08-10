@@ -40,7 +40,7 @@ const CARDS: Record<'ar' | 'en', { kick: string; title: string; sub: string; car
 export function Platforms({ lang }: { lang: 'ar' | 'en' }) {
   const d = CARDS[lang];
   return (
-    <section className="platforms" id="platforms">
+    <section className="sec platforms" id="platforms">
       <div className="wrap">
         <ScrollReveal>
           <span className="kick">{d.kick}</span>
