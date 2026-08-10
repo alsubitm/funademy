@@ -1,6 +1,6 @@
 export const revalidate = 300;
 import { Metadata } from 'next';
-import { WatanonaPage } from '../../watanona/WatanonaPage';
+import { WatanonaPage } from '../../(ar)/watanona/WatanonaPage';
 
 const _siteUrl = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
 export const metadata: Metadata = {
