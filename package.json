@@ -11,7 +11,10 @@
   "private": true,
   "pnpm": {
     "overrides": {
-      "nanoid@<3.3.17": "^3.3.18"
+      "nanoid@<3.3.17": "^3.3.18",
+      "postcss@<8.5.0": "^8.5.26",
+      "sharp@<0.35.3": "^0.35.3",
+      "esbuild@<0.28.0": "^0.28.2"
     }
   },
   "dependencies": {
