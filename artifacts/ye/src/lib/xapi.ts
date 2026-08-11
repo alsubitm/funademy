@@ -268,6 +268,22 @@ export function lrsStatementsQueryUrl(nationalId: string, courseIri: string, lim
   return `${lrsStatementsUrl()}?${params.toString()}`;
 }
 
+/**
+ * AGENT-ONLY statements query url for the PRE-SEND burned-ID check:
+ * everything the LRS stored for one learner across ALL courses — no
+ * `activity` filter on purpose. NELC's LRS is one shared store for all our
+ * environments (dev preview + published site) and it never deletes
+ * statements, so a journey sent for ANY course IRI burns the national ID
+ * (SEQ003 duplicates on re-send). Runs in the owner's browser (same
+ * geo-block as sending). `limit` is small because ANY prior statement means
+ * "burned" — the exact count beyond that is irrelevant.
+ */
+export function lrsAgentStatementsQueryUrl(nationalId: string, limit = 10): string {
+  const agent = JSON.stringify({ objectType: 'Agent', mbox: `mailto:${nationalId}@gmail.com` });
+  const params = new URLSearchParams({ agent, limit: String(limit) });
+  return `${lrsStatementsUrl()}?${params.toString()}`;
+}
+
 export type LrsSendResult = {
   ok: boolean;
   /** null = network error / timeout — no HTTP response was received. */

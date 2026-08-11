@@ -29,11 +29,13 @@ import { prisma } from '@/lib/db';
 import {
   buildJourneyStatements,
   JOURNEY_STEPS,
+  lrsAgentStatementsQueryUrl,
   lrsConfigured,
   lrsStatementsQueryUrl,
 } from '@/lib/xapi';
 import {
   classifyJourneyStatement,
+  classifyPrecheckResponse,
   COURSE_DESC_EN,
   COURSE_NAME_EN,
   isLrsReadDenied,
@@ -557,6 +559,95 @@ describe('isLrsReadDenied — write-only credential classifier', () => {
     expect(isLrsReadDenied(null, NELC_BODY)).toBe(false);
     // success is obviously not read-denied
     expect(isLrsReadDenied(200, '')).toBe(false);
+  });
+});
+
+describe('pre-send burned-ID check primitives (precheck)', () => {
+  it('builds an AGENT-ONLY query URL — all courses, small limit', () => {
+    vi.stubEnv('NELC_LRS_ENDPOINT', 'https://lrs.staging.example/data/xAPI');
+    const url = new URL(lrsAgentStatementsQueryUrl('1234567890'));
+    expect(`${url.origin}${url.pathname}`).toBe('https://lrs.staging.example/data/xAPI/statements');
+    expect(JSON.parse(url.searchParams.get('agent')!)).toEqual({
+      objectType: 'Agent',
+      mbox: 'mailto:1234567890@gmail.com', // same derivation as the journey actor
+    });
+    // NO course scoping on purpose: NELC's LRS is one shared store across our
+    // environments and never deletes — a statement for ANY course burns the ID.
+    expect(url.searchParams.get('activity')).toBeNull();
+    expect(url.searchParams.get('related_activities')).toBeNull();
+    expect(url.searchParams.get('limit')).toBe('10');
+  });
+
+  it('clean ONLY for a parseable 200 with an empty statements array', () => {
+    expect(classifyPrecheckResponse(true, 200, JSON.stringify({ statements: [] }))).toEqual({
+      kind: 'clean',
+    });
+  });
+
+  it('ANY stored statement means burned (count + pagination flag)', () => {
+    expect(
+      classifyPrecheckResponse(true, 200, JSON.stringify({ statements: [{}, {}, {}] })),
+    ).toEqual({ kind: 'burned', count: 3, hasMore: false });
+    expect(
+      classifyPrecheckResponse(
+        true,
+        200,
+        JSON.stringify({ statements: [{}], more: '/xAPI/statements?c=1' }),
+      ),
+    ).toEqual({ kind: 'burned', count: 1, hasMore: true });
+  });
+
+  it('read-denied 401 (write-only credentials) is unverifiable — NEVER clean', () => {
+    expect(
+      classifyPrecheckResponse(
+        false,
+        401,
+        '{"message":"The provided user account does not have read permissions"}',
+      ),
+    ).toEqual({ kind: 'unverifiable', reason: 'read_denied' });
+  });
+
+  it('network / HTTP failures are unverifiable — NEVER clean (fail-closed)', () => {
+    expect(classifyPrecheckResponse(false, null, 'network_error')).toEqual({
+      kind: 'unverifiable',
+      reason: 'network',
+    });
+    expect(classifyPrecheckResponse(false, 403, '<html>geo</html>')).toEqual({
+      kind: 'unverifiable',
+      reason: 'http_403',
+    });
+    expect(classifyPrecheckResponse(false, 500, '')).toEqual({
+      kind: 'unverifiable',
+      reason: 'http_500',
+    });
+  });
+
+  it('a 2xx that is not exactly 200 is unverifiable (fail-closed)', () => {
+    expect(classifyPrecheckResponse(true, 204, '')).toEqual({
+      kind: 'unverifiable',
+      reason: 'http_204',
+    });
+  });
+
+  it('an empty PAGE with a pagination cursor is not proof of a clean ID', () => {
+    expect(
+      classifyPrecheckResponse(
+        true,
+        200,
+        JSON.stringify({ statements: [], more: '/xAPI/statements?c=2' }),
+      ),
+    ).toEqual({ kind: 'unverifiable', reason: 'empty_page_with_more' });
+  });
+
+  it('a 200 without a statements array is unverifiable, not clean', () => {
+    expect(classifyPrecheckResponse(true, 200, 'not json')).toEqual({
+      kind: 'unverifiable',
+      reason: 'unparseable',
+    });
+    expect(classifyPrecheckResponse(true, 200, JSON.stringify({ ok: true }))).toEqual({
+      kind: 'unverifiable',
+      reason: 'unparseable',
+    });
   });
 });
 
@@ -1098,6 +1189,61 @@ describe('POST /svc/admin/nelc — browser relay (prepare/record)', () => {
 // Read-back self-check: the server prepares a one-time filtered statements
 // GET for the owner's browser (same step-up + relay pattern as the journey),
 // and record_check persists ONE distinguishable audit row per check.
+describe('POST /svc/admin/nelc — pre-send burned-ID check (precheck)', () => {
+  beforeEach(async () => {
+    await prisma.xapiStatement.deleteMany({});
+    await prisma.xapiPreparedRun.deleteMany({});
+  });
+
+  it('hands the browser an AGENT-ONLY query URL + Basic auth and persists NOTHING', async () => {
+    stubLrsEnv();
+    const res = await nelcPOST(
+      postReq({ action: 'precheck', password: 'test-admin-pass', nationalId: '8888888888', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.configured).toBe(true);
+    expect(data.environment).toBe('staging');
+    expect(data.authorization).toMatch(/^Basic /);
+    const url = new URL(data.url);
+    expect(`${url.origin}${url.pathname}`).toBe('https://lrs.staging.example/data/xAPI/statements');
+    expect(JSON.parse(url.searchParams.get('agent')!)).toEqual({
+      objectType: 'Agent',
+      mbox: 'mailto:8888888888@gmail.com',
+    });
+    // AGENT-ONLY on purpose — a statement for ANY course burns the ID.
+    expect(url.searchParams.get('activity')).toBeNull();
+    // READ-ONLY + record-free: the server called nothing and stored nothing —
+    // unlike `check`, there is no one-time run row at all.
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await prisma.xapiStatement.count()).toBe(0);
+    expect(await prisma.xapiPreparedRun.count()).toBe(0);
+  });
+
+  it('refuses when not configured, requires the step-up password, validates the ID', async () => {
+    vi.stubEnv('ADMIN_PASSWORD', 'test-admin-pass');
+    const un = await nelcPOST(
+      postReq({ action: 'precheck', password: 'test-admin-pass', nationalId: '8888888888', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(un.status).toBe(503);
+    expect((await un.json()).error).toBe('not_configured');
+
+    stubLrsEnv();
+    const bad = await nelcPOST(
+      postReq({ action: 'precheck', password: 'wrong-password', nationalId: '8888888888', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(bad.status).toBe(401);
+    expect((await bad.json()).error).toBe('reauth_failed');
+
+    const badId = await nelcPOST(
+      postReq({ action: 'precheck', password: 'test-admin-pass', nationalId: '12345', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(badId.status).toBe(400);
+    expect((await badId.json()).error).toBe('invalid_national_id');
+    expect(await prisma.xapiPreparedRun.count()).toBe(0);
+  });
+});
+
 describe('POST /svc/admin/nelc — self-check read-back (check/record_check)', () => {
   beforeEach(async () => {
     await prisma.xapiStatement.deleteMany({});

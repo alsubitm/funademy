@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-import { classifyJourneyStatement, isLrsReadDenied, missingJourneySteps } from '@/lib/xapiParity';
+import {
+  classifyJourneyStatement,
+  classifyPrecheckResponse,
+  isLrsReadDenied,
+  missingJourneySteps,
+  type PrecheckOutcome,
+} from '@/lib/xapiParity';
 
 /**
  * Admin «نيلك» tab — fires the NELC LRS test journey (wizard step 2:
@@ -31,6 +37,25 @@ import { classifyJourneyStatement, isLrsReadDenied, missingJourneySteps } from '
  * so `prepare` answers 409 duplicate_journey when the entered ID already has
  * a delivered row — surfaced here as an explicit warning with an opt-in
  * override instead of a silent re-send.
+ *
+ * PRE-SEND BURNED-ID CHECK (SEQ003 layer 2): our audit log is
+ * PER-ENVIRONMENT while NELC's LRS is ONE shared store (a journey sent from
+ * the dev preview looks "clean" on the published site and vice versa — this
+ * burned a real ID on 2026-08-10). So before `prepare`, the browser asks the
+ * LRS itself (agent-only query — any course, any environment) whether the ID
+ * already has statements. Burned ⇒ red prompt whose override requires TYPING
+ * the national ID; check failed (read-denied — our credentials are
+ * write-only, so this is the common case — or network) ⇒ explicit
+ * «تعذّر الفحص المسبق» confirmation; clean ⇒ send proceeds with no extra
+ * step. FAIL-CLOSED via xapiParity.classifyPrecheckResponse: an error is
+ * never a silent pass. The delivered-duplicate override (layer 1) demands
+ * the same typed-ID confirmation.
+ *
+ * BINDING: identity/course are frozen at the start of each send flow, the
+ * identity inputs lock while it runs, prompts carry the exact ID they were
+ * raised for (editing the field dismisses them), and override grants are
+ * honored ONLY for that bound ID — any other value re-runs the full
+ * precheck. A checked ID can therefore never differ from the sent ID.
  */
 
 const VERB_AR: Record<string, string> = {
@@ -104,6 +129,12 @@ type CheckPrepareResponse = {
   authorization: string;
 };
 
+type PrecheckPrepareResponse = {
+  environment: string;
+  url: string;
+  authorization: string;
+};
+
 type CheckState = {
   pending: boolean;
   ok: boolean;
@@ -138,6 +169,15 @@ const PREP_ERRORS: Record<string, string> = {
   invalid_course_iri: 'معرّف الدورة يجب أن يكون رابطاً صحيحاً يبدأ بـ https://',
   not_configured: 'الاتصال بنظام تسجيل التعلم (LRS) غير مهيأ — أضف بيانات الاعتماد أولاً.',
   reauth_failed: 'كلمة مرور الإدارة غير صحيحة — أعد إدخالها في خانة التأكيد.',
+};
+
+/** Arabic reason line for the «تعذّر الفحص المسبق» prompt. */
+const precheckReasonAr = (reason: string): string => {
+  if (reason === 'read_denied') return 'حساب نيلك المتاح لنا للكتابة فقط ولا يسمح بالقراءة';
+  if (reason === 'network' || reason.startsWith('browser_network')) return 'تعذّر اتصال متصفحك بنظام نيلك';
+  if (reason === 'unparseable') return 'وصل ردّ غير مفهوم من النظام';
+  if (reason.startsWith('http_')) return `رفض النظام طلب القراءة (HTTP ${reason.slice(5)})`;
+  return reason;
 };
 
 /** Parse the summary JSON stored in a self_check audit row's response. */
@@ -210,12 +250,26 @@ export function NelcTab() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRun, setLastRun] = useState<RunState | null>(null);
-  /** SEQ003 warning — set when `prepare` answers 409 duplicate_journey. */
+  /**
+   * SEQ003 warning — set when `prepare` answers 409 duplicate_journey.
+   * Bound to the exact ID it was raised for (see BINDING note above).
+   */
   const [duplicatePrompt, setDuplicatePrompt] = useState<{
+    nationalId: string;
     lastSentAt: string | null;
     /** true = delivered rows exist (ID burned); false = only an unrecorded prepared run. */
     delivered: boolean;
   } | null>(null);
+  /**
+   * PRE-SEND burned-ID check result (SEQ003 layer 2 — NELC's OWN LRS, any
+   * course/environment): 'burned' = statements already stored for this ID;
+   * 'unverifiable' = the check itself failed — never a silent pass.
+   */
+  const [precheckPrompt, setPrecheckPrompt] = useState<
+    ({ nationalId: string } & Exclude<PrecheckOutcome, { kind: 'clean' }>) | null
+  >(null);
+  /** Typed-ID confirmation for strong overrides (burned ID / delivered duplicate). */
+  const [overrideIdInput, setOverrideIdInput] = useState('');
   const [checkBusy, setCheckBusy] = useState(false);
   const [lastCheck, setLastCheck] = useState<CheckState | null>(null);
 
@@ -237,16 +291,72 @@ export function NelcTab() {
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  const send = async (confirmDuplicate = false) => {
+  const send = async (opts: { confirmedDuplicateFor?: string; precheckClearedFor?: string } = {}) => {
     if (!adminPassword.trim()) {
       setError('أدخل كلمة مرور الإدارة في خانة التأكيد قبل الإرسال.');
       return;
     }
+    // FREEZE identity/course for the whole flow — the awaits below must never
+    // pick up a mid-flight form edit (a checked ID differing from the sent ID
+    // would defeat the burned-ID check). Override grants are honored only for
+    // the exact ID they were given for; anything else re-runs the precheck.
+    const id = nationalId.trim();
+    const iri = courseIri.trim();
+    const confirmDuplicate = opts.confirmedDuplicateFor === id;
+    const skipPrecheck = opts.precheckClearedFor === id;
     setBusy(true);
     setError(null);
     setLastRun(null);
     setDuplicatePrompt(null);
+    setPrecheckPrompt(null);
     try {
+      // 0) PRE-SEND BURNED-ID CHECK (SEQ003 layer 2) — ask NELC's OWN LRS
+      //    whether this ID already has statements (any course, any
+      //    environment; the server-side guard in `prepare` only sees THIS
+      //    environment's audit log). skipPrecheck=true comes only from the
+      //    explicit override buttons — never automatically.
+      if (!skipPrecheck) {
+        const pc = await fetch('/svc/admin/nelc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'precheck',
+            password: adminPassword,
+            nationalId: id,
+            courseIri: iri,
+          }),
+        });
+        const pcData = await pc.json().catch(() => ({}));
+        if (pc.status === 401 && pcData.error !== 'reauth_failed') { window.location.reload(); return; }
+        if (!pc.ok) {
+          setError(PREP_ERRORS[pcData.error as string] ?? 'تعذّر تجهيز الفحص المسبق — أعد المحاولة.');
+          return;
+        }
+        const { url: pcUrl, authorization: pcAuth } = pcData as PrecheckPrepareResponse;
+        // THIS BROWSER queries the LRS (same geo-block relay as sending),
+        // then classifies FAIL-CLOSED — an error is never a silent pass.
+        let outcome: PrecheckOutcome;
+        try {
+          const res = await fetch(pcUrl, {
+            headers: { 'X-Experience-API-Version': '1.0.3', Authorization: pcAuth },
+            // A cached empty answer must never clear an ID that was burned
+            // meanwhile — always ask the LRS itself, bypass the HTTP cache.
+            cache: 'no-store',
+          });
+          const text = (await res.text().catch(() => '')) || '';
+          outcome = classifyPrecheckResponse(res.ok, res.status, text);
+        } catch (e) {
+          outcome = {
+            kind: 'unverifiable',
+            reason: `browser_network: ${e instanceof Error ? e.message : 'failed'}`,
+          };
+        }
+        if (outcome.kind !== 'clean') {
+          setOverrideIdInput('');
+          setPrecheckPrompt({ nationalId: id, ...outcome });
+          return; // explicit user decision required before anything is sent
+        }
+      }
       // 1) The server prepares the journey (validation, fresh UUIDs, LRS creds).
       const prep = await fetch('/svc/admin/nelc', {
         method: 'POST',
@@ -254,8 +364,8 @@ export function NelcTab() {
         body: JSON.stringify({
           action: 'prepare',
           password: adminPassword,
-          nationalId: nationalId.trim(),
-          courseIri: courseIri.trim(),
+          nationalId: id,
+          courseIri: iri,
           // SEQ003: re-sending the same national ID duplicates statements in
           // NELC's LRS — the server refuses unless explicitly confirmed.
           confirmDuplicate,
@@ -266,7 +376,9 @@ export function NelcTab() {
       // any other 401 = admin session expired → back to the login screen.
       if (prep.status === 401 && prepData.error !== 'reauth_failed') { window.location.reload(); return; }
       if (prep.status === 409 && prepData.error === 'duplicate_journey') {
+        setOverrideIdInput('');
         setDuplicatePrompt({
+          nationalId: id,
           lastSentAt: typeof prepData.lastSentAt === 'string' ? prepData.lastSentAt : null,
           delivered: prepData.delivered === true,
         });
@@ -375,6 +487,7 @@ export function NelcTab() {
       try {
         const res = await fetch(url, {
           headers: { 'X-Experience-API-Version': '1.0.3', Authorization: authorization },
+          cache: 'no-store',
         });
         httpStatus = res.status;
         const text = (await res.text().catch(() => '')) || '';
@@ -512,7 +625,14 @@ export function NelcTab() {
             <span className="block text-sm font-bold text-[#101A38] mb-1.5">رقم هوية المتعلم التجريبي</span>
             <input
               value={nationalId}
-              onChange={(e) => setNationalId(e.target.value)}
+              onChange={(e) => {
+                setNationalId(e.target.value);
+                // Prompts are bound to the ID they were raised for — a stale
+                // warning (or override grant) must not linger over a new ID.
+                setPrecheckPrompt(null);
+                setDuplicatePrompt(null);
+              }}
+              disabled={busy}
               inputMode="numeric"
               maxLength={10}
               placeholder="1XXXXXXXXX"
@@ -524,7 +644,12 @@ export function NelcTab() {
             <span className="block text-sm font-bold text-[#101A38] mb-1.5">معرّف الدورة (Course IRI)</span>
             <input
               value={courseIri}
-              onChange={(e) => setCourseIri(e.target.value)}
+              onChange={(e) => {
+                setCourseIri(e.target.value);
+                setPrecheckPrompt(null);
+                setDuplicatePrompt(null);
+              }}
+              disabled={busy}
               placeholder="https://funademy.io/course/CR001"
               dir="ltr"
               className="w-full font-mono border border-[#DFE5F2] rounded-xl px-4 py-3 text-[#101A38] focus:outline-none focus:border-[#1C54CB]"
@@ -549,6 +674,78 @@ export function NelcTab() {
         </div>
         {error && (
           <div className="bg-[#FDECEC] text-[#B3261E] text-sm font-bold rounded-xl px-4 py-3">{error}</div>
+        )}
+        {precheckPrompt && precheckPrompt.kind === 'burned' && (
+          <div className="bg-[#FDECEC] border border-[#B3261E]/40 rounded-xl px-4 py-3 space-y-3">
+            <div className="text-sm font-bold text-[#B3261E] leading-relaxed">
+              ✗ هذا الرقم محروق: نظام نيلك نفسه يخزّن {precheckPrompt.count}
+              {precheckPrompt.hasMore ? '+' : ''} عبارة سابقة لهذا الرقم — من أي دورة أو بيئة
+              (فُحص مخزن نيلك مباشرة، وليس سجلنا المحلي فقط). نيلك لا يحذف العبارات أبداً، لذا
+              أي إرسال جديد سيُعدّ تكراراً (SEQ003) ولن ينجح هذا الرقم في الفاحص مطلقاً.
+              استخدم رقم هوية جديداً لم يُرسل له من قبل.
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setPrecheckPrompt(null)}
+                className="bg-[#1C54CB] text-white px-4 py-2 rounded-xl text-sm font-display font-bold"
+              >
+                حسناً — سأستخدم رقم هوية جديداً
+              </button>
+            </div>
+            <div className="border-t border-[#B3261E]/20 pt-3 space-y-2">
+              <div className="text-xs font-bold text-[#B3261E] leading-relaxed">
+                للمتابعة رغم ذلك (لن ينجح الفحص وسيبقى الرقم محروقاً) اكتب رقم الهوية نفسه للتأكيد:
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <input
+                  value={overrideIdInput}
+                  onChange={(e) => setOverrideIdInput(e.target.value)}
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="اكتب رقم الهوية للتأكيد"
+                  dir="ltr"
+                  className="font-mono border border-[#B3261E]/50 rounded-xl px-3 py-2 text-sm text-[#101A38] focus:outline-none focus:border-[#B3261E]"
+                />
+                <button
+                  onClick={() =>
+                    send({
+                      confirmedDuplicateFor: precheckPrompt.nationalId,
+                      precheckClearedFor: precheckPrompt.nationalId,
+                    })
+                  }
+                  disabled={busy || overrideIdInput.trim() !== precheckPrompt.nationalId}
+                  className="bg-white border border-[#B3261E] text-[#B3261E] px-4 py-2 rounded-xl text-sm font-display font-bold disabled:opacity-50"
+                >
+                  متابعة الإرسال رغم الحرق
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {precheckPrompt && precheckPrompt.kind === 'unverifiable' && (
+          <div className="bg-[rgba(255,202,23,0.12)] border border-[#FFCA17] rounded-xl px-4 py-3 space-y-3">
+            <div className="text-sm font-bold text-[#8a6d00] leading-relaxed">
+              ⚠ تعذّر الفحص المسبق: لم نستطع سؤال نظام نيلك إن كان هذا الرقم استُخدم من قبل
+              ({precheckReasonAr(precheckPrompt.reason)}). لن يُرسل شيء تلقائياً — تأكد بنفسك أن
+              الرقم جديد كلياً ولم تُرسل له رحلة من هذا الموقع ولا من بيئة التطوير، لأن الإرسال
+              لرقم مستخدم يحرقه نهائياً.
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setPrecheckPrompt(null)}
+                className="bg-white border border-[#DFE5F2] text-[#101A38] px-4 py-2 rounded-xl text-sm font-display font-bold"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => send({ precheckClearedFor: precheckPrompt.nationalId })}
+                disabled={busy}
+                className="bg-[#1C54CB] text-white px-4 py-2 rounded-xl text-sm font-display font-bold disabled:opacity-50"
+              >
+                أؤكد أن الرقم جديد — متابعة الإرسال
+              </button>
+            </div>
+          </div>
         )}
         {duplicatePrompt && (
           <div className="bg-[rgba(255,202,23,0.12)] border border-[#FFCA17] rounded-xl px-4 py-3 space-y-3">
@@ -575,14 +772,54 @@ export function NelcTab() {
               >
                 حسناً — سأستخدم رقم هوية جديداً
               </button>
-              <button
-                onClick={() => send(true)}
-                disabled={busy}
-                className="bg-white border border-[#B3261E] text-[#B3261E] px-4 py-2 rounded-xl text-sm font-display font-bold disabled:opacity-50"
-              >
-                متابعة الإرسال رغم التحذير
-              </button>
+              {!duplicatePrompt.delivered && (
+                <button
+                  onClick={() =>
+                    send({
+                      confirmedDuplicateFor: duplicatePrompt.nationalId,
+                      precheckClearedFor: duplicatePrompt.nationalId,
+                    })
+                  }
+                  disabled={busy}
+                  className="bg-white border border-[#B3261E] text-[#B3261E] px-4 py-2 rounded-xl text-sm font-display font-bold disabled:opacity-50"
+                >
+                  متابعة الإرسال رغم التحذير
+                </button>
+              )}
             </div>
+            {duplicatePrompt.delivered && (
+              /* Strong override: a DELIVERED journey exists, so re-sending is
+                 guaranteed SEQ003 — require typing the ID, not just a click. */
+              <div className="border-t border-[#FFCA17]/60 pt-3 space-y-2">
+                <div className="text-xs font-bold text-[#B3261E] leading-relaxed">
+                  للمتابعة رغم ذلك اكتب رقم الهوية نفسه للتأكيد — الإرسال سيضيف عبارات مكررة
+                  وسيبقى الرقم مرفوضاً في فاحص نيلك بلا رجعة:
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <input
+                    value={overrideIdInput}
+                    onChange={(e) => setOverrideIdInput(e.target.value)}
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="اكتب رقم الهوية للتأكيد"
+                    dir="ltr"
+                    className="font-mono border border-[#B3261E]/50 rounded-xl px-3 py-2 text-sm text-[#101A38] focus:outline-none focus:border-[#B3261E]"
+                  />
+                  <button
+                    onClick={() =>
+                      send({
+                        confirmedDuplicateFor: duplicatePrompt.nationalId,
+                        precheckClearedFor: duplicatePrompt.nationalId,
+                      })
+                    }
+                    disabled={busy || overrideIdInput.trim() !== duplicatePrompt.nationalId}
+                    className="bg-white border border-[#B3261E] text-[#B3261E] px-4 py-2 rounded-xl text-sm font-display font-bold disabled:opacity-50"
+                  >
+                    متابعة الإرسال رغم الحرق
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
         <button

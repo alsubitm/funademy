@@ -460,6 +460,54 @@ export function isLrsReadDenied(httpStatus: number | null, body: string): boolea
   return /read\s+permission/i.test(body || '');
 }
 
+/** Outcome of the PRE-SEND burned-ID check (agent-only LRS read-back). */
+export type PrecheckOutcome =
+  | { kind: 'clean' }
+  | { kind: 'burned'; count: number; hasMore: boolean }
+  | { kind: 'unverifiable'; reason: string };
+
+/**
+ * Classify the LRS response of the pre-send burned-ID check. FAIL-CLOSED:
+ * only a parseable HTTP-200 statements payload can answer `clean` — every
+ * failure (read-denied 401 from our write-only credentials, geo-block 403,
+ * 5xx, network error, unparseable body) is `unverifiable`, and the UI must
+ * then demand an explicit confirmation instead of proceeding silently.
+ * `burned` means NELC's LRS already stores statements for this learner (any
+ * course, any environment): NELC never deletes statements, so re-sending can
+ * only produce SEQ003 duplicates and the wizard will reject the whole
+ * journey. Pure + browser-safe, shared with the tests like this module.
+ */
+export function classifyPrecheckResponse(
+  ok: boolean,
+  httpStatus: number | null,
+  text: string,
+): PrecheckOutcome {
+  // Literally HTTP 200 — a 204 or any other 2xx is not the spec'd
+  // GET /statements answer and must not clear an ID.
+  if (!ok || httpStatus !== 200) {
+    const reason = isLrsReadDenied(httpStatus, text)
+      ? 'read_denied'
+      : httpStatus === null
+        ? 'network'
+        : `http_${httpStatus}`;
+    return { kind: 'unverifiable', reason };
+  }
+  try {
+    const parsed = JSON.parse(text) as { statements?: unknown; more?: unknown };
+    // A valid xAPI GET /statements answer always carries a `statements`
+    // array — anything else is not evidence of a clean ID.
+    if (!Array.isArray(parsed.statements)) return { kind: 'unverifiable', reason: 'unparseable' };
+    const hasMore = typeof parsed.more === 'string' && parsed.more.length > 0;
+    if (parsed.statements.length === 0) {
+      // An empty PAGE with a pagination cursor is not proof of a clean ID.
+      return hasMore ? { kind: 'unverifiable', reason: 'empty_page_with_more' } : { kind: 'clean' };
+    }
+    return { kind: 'burned', count: parsed.statements.length, hasMore };
+  } catch {
+    return { kind: 'unverifiable', reason: 'unparseable' };
+  }
+}
+
 /**
  * Which journey steps are missing from a set of CLASSIFIED statements
  * (classifyJourneyStatement results). Step keys are unique, so one complete

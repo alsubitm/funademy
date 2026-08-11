@@ -10,6 +10,7 @@ import {
   lrsAuthorization,
   lrsConfigured,
   lrsEnvironment,
+  lrsAgentStatementsQueryUrl,
   lrsStatementsQueryUrl,
   lrsStatementsUrl,
   sendStatement,
@@ -145,6 +146,20 @@ async function findPriorJourneySignal(
  *      journey run) is accepted, consumed atomically, with identity/course
  *      taken from the stored check, never the client.
  *
+ *  { action:'precheck', password, nationalId, courseIri }
+ *      PRE-SEND burned-ID check (SEQ003 layer 2 — asks NELC's own LRS, not
+ *      our per-environment audit log): validate + step-up, then hand the
+ *      owner's browser an AGENT-ONLY statements GET url (no activity filter —
+ *      the LRS is one shared store across dev preview + published site and
+ *      never deletes, so a prior statement for ANY course burns the ID) plus
+ *      the Basic Authorization. READ-ONLY and deliberately record-free: it
+ *      neither sends nor consumes anything, so no prepared-run row is
+ *      created and no audit row is written. The browser classifies the LRS
+ *      answer FAIL-CLOSED via xapiParity.classifyPrecheckResponse — only
+ *      HTTP 200 with zero statements clears the ID; read-denied (our
+ *      credentials are write-only) and every other failure force an explicit
+ *      user confirmation in the UI instead of a silent pass.
+ *
  *  { nationalId, courseIri, confirmDuplicate? }  (default — server-side send)
  *      Original server-side journey: send in order, stop on first failure,
  *      log every attempt with source='server' (the server saw the LRS
@@ -183,7 +198,8 @@ export async function POST(req: NextRequest) {
     body.action === 'prepare' ||
     body.action === 'record' ||
     body.action === 'check' ||
-    body.action === 'record_check'
+    body.action === 'record_check' ||
+    body.action === 'precheck'
       ? (body.action as string)
       : 'server';
 
@@ -456,6 +472,25 @@ export async function POST(req: NextRequest) {
       environment,
       checkId,
       url: lrsStatementsQueryUrl(nationalId, courseIri),
+      authorization: lrsAuthorization(),
+    });
+  }
+
+  // ---- action: precheck — pre-send burned-ID read-back for the browser ----
+  if (action === 'precheck') {
+    // STEP-UP AUTHORIZATION: same rationale as `prepare`/`check` — the
+    // response hands the LRS Basic credential to the browser.
+    if (String(body.password ?? '') !== getAdminPassword()) {
+      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    }
+    // Deliberately record-free (unlike `check`): nothing is sent and nothing
+    // can be consumed later, so there is no prepared-run row to create or
+    // steal. The url is AGENT-ONLY — see lrsAgentStatementsQueryUrl for why
+    // course/environment scoping would miss burned IDs.
+    return NextResponse.json({
+      configured: true,
+      environment,
+      url: lrsAgentStatementsQueryUrl(nationalId),
       authorization: lrsAuthorization(),
     });
   }
