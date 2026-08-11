@@ -2,54 +2,57 @@
 
 ## Project Overview
 
-Manara Academy is an Arabic-first RTL e-learning platform for Saudi families. Children aged 4–18 follow the Saudi national curriculum; parents pay a family subscription (SAR 49/mo or 399/yr). The stack is Node.js 24 / Express 5 / PostgreSQL (Drizzle ORM) on the backend and React / Vite on the frontend. Sessions are stateless HMAC-signed cookies. The platform is not yet deployed to production.
+FunAdemy (artifacts/ye) is an Arabic-first RTL website for the e² Young Engineers Riyadh franchise. It is a Next.js 15 App Router application backed by Prisma/PostgreSQL. The site handles program enrollment, monthly subscription payments (Moyasar / Tamara), a family portal (SMS-OTP login), a kids' learning platform (`/learn`), a blog, and an admin dashboard. Deployed to **https://funademy.io** as a public autoscale Replit deployment.
+
+Previous scan entries for `artifacts/api-server` (Manara Academy) are no longer relevant — that package has been deleted.
 
 ## Assets
 
-- **Parent credentials** — email + scrypt-hashed password + plaintext 4-digit PIN. The PIN gates the parent dashboard inside the child experience.
-- **Child profiles and PINs** — names, birthdates, band placement, plaintext 4-digit PINs. PINs gate avatar/child selection.
-- **Subscription and payment records** — plan, status, trial dates, card-last-4, invoices. Compromise could enable unauthorized access to paid content.
-- **Curriculum content** — lessons, exercises, video URLs. Gated behind subscription; some content is public as free samples.
-- **Learning progress** — completions, scores, XP, streaks, badges. Integrity matters for gamification and reporting.
-- **Application secrets** — `SESSION_SECRET`, `DATABASE_URL`. Leaking the session secret allows forging arbitrary session tokens.
+- **Admin session and password** — a single `ADMIN_PASSWORD` protects the entire admin dashboard (bookings, enrollments, payments, billing, NELC xAPI, student national IDs). Compromise is equivalent to full site control.
+- **Family sessions** — HMAC-signed `ye_family` cookies (SESSION_SECRET) allowing each family to view payment history, manage children, and pay. Leaking or forging the SESSION_SECRET lets an attacker impersonate any family.
+- **Child/kid sessions** — `ye_kid` cookies (same secret) that switch the UI into a child's learning context after a PIN check. A 4-digit PIN guards each child profile.
+- **Saudi mobile numbers (phone)** — used as family identifiers and OTP delivery targets. Exposed only to the family and admin.
+- **Student national IDs** — sensitive Saudi government IDs, stored per child, reported to NELC's LRS.
+- **Payment records** — Moyasar/Tamara transaction references, totals, enrollment items. Scoped to each family.
+- **Application secrets** — `SESSION_SECRET`, `ADMIN_PASSWORD`, `DATABASE_URL`, payment provider keys (`MOYASAR_SECRET_KEY`, `TAMARA_API_TOKEN`, `TAMARA_NOTIFICATION_TOKEN`, `MOYASAR_WEBHOOK_SECRET`), NELC LRS credentials, `SWEEP_SECRET`.
+- **LRS credentials (NELC)** — handed to the admin's browser for geo-fenced relay; documented accepted risk for the single-admin app.
 
 ## Trust Boundaries
 
-- **Browser → API** — all client requests. The API must authenticate and authorize each request; the browser is untrusted.
-- **Public → Authenticated** — marketing/free-sample content is public; lesson content, progress, and subscriptions require a valid session.
-- **Authenticated → Subscribed** — paid lesson content should require an active subscription in addition to a session.
-- **Parent → Child** — child sessions are parent sessions with `childId` set after a PIN check. The parent gate (PIN) separates the two.
-- **User → Admin/Teacher** — role-based; admin/teacher routes are protected by `requireRole`.
-- **API → Database** — the Express server has direct DB access via Drizzle ORM; all queries use parameterized statements.
+- **Browser → Next.js API routes (`/svc/*`)** — all client requests. The API must authenticate and authorize each request; the browser is untrusted. Session cookies are httpOnly + secure in production.
+- **Public → Family-authenticated** — program pages, blog, campaign are public; portal, payments, child management, and learning content require a valid `ye_family` session.
+- **Family-authenticated → Child context** — a child's learning profile requires a `ye_kid` session obtained by verifying the child's 4-digit PIN.
+- **Family → Admin** — admin routes are protected by `ye_admin` (HMAC-signed token derived from `ADMIN_PASSWORD`). Admin has access to all families' data.
+- **Server → NELC LRS** — xAPI statements are geo-restricted; production delivery uses a browser relay from the admin's Saudi-based device.
+- **Server → Payment providers** — Moyasar/Tamara webhooks are HMAC/JWT-verified before any state change.
 
 ## Scan Anchors
 
-- **Production entry points**: `artifacts/api-server/src/routes/` (auth, children, curriculum, learning, parent, subscription, marketing, admin)
-- **Auth helpers**: `artifacts/api-server/src/lib/auth.ts`
-- **Highest-risk areas**: `learning.ts` (subscription bypass, client-scoring), `auth.ts` (rate limiting, PIN), `app.ts` (CORS)
-- **Admin surface**: `/api/admin/*` protected by `requireRole("teacher","admin")`
-- **Dev-only areas**: `artifacts/mockup-sandbox/`, `artifacts/watanona/`, `artifacts/ye/` — not part of the Manara API surface
+- **Production entry points**: `artifacts/ye/src/app/(ar)/svc/` — all `/svc/*` route handlers
+- **Auth helpers**: `artifacts/ye/src/lib/auth.ts` (admin), `artifacts/ye/src/lib/family-auth.ts` (family), `artifacts/ye/src/lib/kid-auth.ts` (child PIN/session), `artifacts/ye/src/lib/otp.ts` (SMS OTP)
+- **Highest-risk areas**: `/svc/admin/login/route.ts` (no rate limiting), `/svc/admin/nelc/route.ts` (LRS credential relay), `/svc/pay/*` (payment webhooks and sweep), `/svc/learn/children/[id]/select/route.ts` (PIN check, no rate limiting)
+- **Admin surface**: All `/svc/admin/*` routes protected by `requireAdmin()` in `guard.ts`
+- **Webhook endpoints**: `/svc/pay/webhook/moyasar/route.ts`, `/svc/pay/webhook/tamara/route.ts` (both HMAC/JWT-verified, fail-closed)
+- **Dev-only areas**: Dev preview is blocked from NELC outbox dispatch; `devCode` is only returned for OTP in non-production.
 
 ## Threat Categories
 
 ### Spoofing
 
-Sessions are HMAC-SHA256 signed cookies with a 30-day TTL. The `SESSION_SECRET` defaults to `"dev-secret-change-me"` if the env var is absent — if this default reaches production, any attacker knowing the default can forge valid sessions for arbitrary user IDs. No active deployment was observed at scan time.
+Family sessions are HMAC-SHA256 signed (`ye_family.<familyId>.<expiry>.<sig>`) with a 30-day TTL. Admin sessions use a similar scheme with a 7-day TTL. The `SESSION_SECRET` must be set in production or requests throw at runtime (fail-closed guard). The admin password is compared with plain `!==` (not timing-safe), creating a minor timing oracle.
 
 ### Tampering
 
-Exercise scoring is graded server-side: the client submits only `{ exerciseId, answer }` and the server re-evaluates each answer against the stored correct answer, scoring over all of the lesson's exercises (duplicate or foreign exercise IDs are ignored). Client-reported correctness flags are no longer part of the API contract. Residual risk: correct answers are still returned to the client with the lesson (needed for instant feedback), so a determined user could read and submit them.
+Payment amounts are computed server-side from database-stored prices. Cart items are verified against the enrollment's enrolled price at checkout. Webhook payloads are used only to locate a payment — the status is always re-verified against the provider API before any state transition. xAPI outbox results reported by the browser are labeled `source='browser'` (unverified server-side).
 
 ### Information Disclosure
 
-- Parent and child PINs are stored as scrypt `salt:hash` values (same scheme as passwords) and verified with constant-time comparison. Rows created before this hardening may still hold plaintext PINs; they are verified in constant time and lazily re-hashed on the first successful PIN check.
-- The dev email provider logs verification tokens to stdout. In production this provider must be replaced; the code guards `devVerificationUrl` behind a `NODE_ENV !== production` check so it is not leaked via the API in production.
+Admin-gated routes return PII (phone numbers, national IDs, parent names). The admin password dev fallback `'YE-Riyadh-2026'` is hardcoded in source; the production value must differ. OTP codes are returned in the API response only in non-production environments (otp.ts line 56).
 
 ### Denial of Service
 
-Authentication endpoints are rate limited per client IP (`trust proxy` is enabled so the real IP is used behind the Replit proxy): `/api/auth/login` and `/api/auth/register` allow 10 failed attempts per 15 minutes; the PIN endpoints `/api/auth/parent-gate` and `/api/children/:id/select` allow 5 failed attempts per 15 minutes. Successful requests are not counted. Limits are in-memory per process, so they reset on restart and are not shared across instances.
+The OTP flow has database-persisted rate limiting (5 codes/hour per phone). The public appointment booking and consultation routes use the durable `allowRate` helper. **The admin login endpoint has no rate limiting** — an attacker can attempt unlimited password guesses. **The child PIN select endpoint has no rate limiting** — an attacker with a valid family session can brute-force a 4-digit PIN (10,000 possibilities).
 
 ### Elevation of Privilege
 
-- The `/api/lessons/:id` endpoint checks for a valid session for non-free content but does NOT verify subscription status. An authenticated user with a cancelled or expired subscription can still fetch all paid lesson content and exercises.
-- CORS is configured with `cors()` (no options), reflecting all origins. This is harmless for cookie-based auth today, but is a misconfiguration that should be locked to the app's own origin in production.
+All admin routes call `requireAdmin()` before any data access. All family routes scope DB queries to the authenticated `familyId`. Child ownership is verified with `familyId` on every child endpoint. The sweep endpoint checks a Bearer secret. No SQL injection surface — all queries use Prisma parameterized statements. No file upload endpoints exist. The NELC admin relay requires password re-entry (step-up auth) before handing the LRS credential to the browser.
