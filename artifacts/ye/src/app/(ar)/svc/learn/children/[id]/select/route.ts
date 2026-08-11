@@ -10,6 +10,7 @@ import {
   familyHasActiveEnrollment,
 } from '@/lib/kid-auth';
 import { serializeChild } from '@/lib/learning';
+import { allowRate } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }); }
   const { pin } = body as { pin?: string };
   if (!pin || typeof pin !== 'string') return NextResponse.json({ error: 'pin_required' }, { status: 400 });
+
+  const allowed = await allowRate(`kid-pin:${familyId}:${childId}`, 10, 15 * 60_000);
+  if (!allowed) return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 });
 
   const ok = await verifyPin(pin.trim(), child.pin);
   if (!ok) return NextResponse.json({ error: 'wrong_pin' }, { status: 401 });
