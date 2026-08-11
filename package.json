@@ -9,6 +9,11 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
+  "pnpm": {
+    "overrides": {
+      "nanoid@<3.3.17": "^3.3.18"
+    }
+  },
   "dependencies": {
     "@replit/connectors-sdk": "^0.4.1"
   },
