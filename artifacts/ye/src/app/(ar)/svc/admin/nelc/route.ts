@@ -401,6 +401,23 @@ export async function POST(req: NextRequest) {
 
   const environment = lrsEnvironment();
 
+  // ---- DEV-ENVIRONMENT SEND BLOCK (server-side, not just the UI banner) ----
+  // NELC's LRS is ONE store shared with the published site, and the
+  // 2026-08-10 burned-ID incident came from sending out of the dev preview.
+  // The yellow/red banner (task 118) only warns; here the SERVER refuses the
+  // send actions (`prepare` and the default server-side send — the two paths
+  // that put statements into the LRS; `check`/`precheck` are read-only)
+  // whenever it is not running as the published deployment
+  // (REPLIT_DEPLOYMENT=1), unless the request carries an EXPLICIT separate
+  // confirmation flag that the UI only sets after a typed confirmation.
+  if (
+    (action === 'prepare' || action === 'server') &&
+    process.env.REPLIT_DEPLOYMENT !== '1' &&
+    body.confirmDevSend !== true
+  ) {
+    return NextResponse.json({ error: 'dev_environment_blocked' }, { status: 403 });
+  }
+
   // ---- action: prepare — hand the journey to the owner's browser ----------
   if (action === 'prepare') {
     // STEP-UP AUTHORIZATION: this response hands the LRS Basic credential to

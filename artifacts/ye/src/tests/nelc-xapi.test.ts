@@ -73,6 +73,10 @@ const stubLrsEnv = () => {
   vi.stubEnv('NELC_LRS_SECRET', 'test-secret');
   // prepare requires step-up re-auth with the admin password
   vi.stubEnv('ADMIN_PASSWORD', 'test-admin-pass');
+  // Dev-environment send block: sends are refused outside the published
+  // deployment (REPLIT_DEPLOYMENT=1) — simulate the deployment by default;
+  // the dedicated dev-block suite stubs it back off explicitly.
+  vi.stubEnv('REPLIT_DEPLOYMENT', '1');
 };
 
 const postReq = (body: unknown) =>
@@ -785,6 +789,108 @@ describe('POST /svc/admin/nelc', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].ok).toBe(false);
     expect(rows[0].httpStatus).toBeNull();
+  });
+});
+
+// DEV-ENVIRONMENT SEND BLOCK (task 119): the SERVER (not just the UI banner)
+// refuses the send actions outside the published deployment
+// (REPLIT_DEPLOYMENT=1) unless the request carries an explicit
+// confirmDevSend:true — set by the UI only after a typed confirmation.
+// Read-only actions (check/precheck) stay available in dev.
+describe('POST /svc/admin/nelc — dev-environment send block', () => {
+  beforeEach(async () => {
+    await prisma.xapiStatement.deleteMany({});
+    await prisma.xapiPreparedRun.deleteMany({});
+  });
+
+  const stubDevEnv = () => {
+    stubLrsEnv();
+    vi.stubEnv('REPLIT_DEPLOYMENT', ''); // dev preview / local — NOT deployed
+  };
+
+  it('prepare answers 403 dev_environment_blocked outside the deployment and persists nothing', async () => {
+    stubDevEnv();
+    const res = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '3131313131', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe('dev_environment_blocked');
+    expect(await prisma.xapiPreparedRun.count()).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('the default server-side send is blocked the same way — nothing sent, nothing logged', async () => {
+    stubDevEnv();
+    const res = await nelcPOST(
+      postReq({ nationalId: '3232323232', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe('dev_environment_blocked');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await prisma.xapiStatement.count()).toBe(0);
+  });
+
+  it('confirmDevSend:true overrides the block for prepare (explicit typed confirmation)', async () => {
+    stubDevEnv();
+    const res = await nelcPOST(
+      postReq({
+        action: 'prepare',
+        password: 'test-admin-pass',
+        nationalId: '3131313131',
+        courseIri: 'https://funademy.io/course/CR001',
+        confirmDevSend: true,
+      }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.steps).toHaveLength(10);
+    expect(await prisma.xapiPreparedRun.count()).toBe(1);
+  });
+
+  it('only a boolean true overrides — truthy strings stay blocked (fail-closed)', async () => {
+    stubDevEnv();
+    const res = await nelcPOST(
+      postReq({
+        action: 'prepare',
+        password: 'test-admin-pass',
+        nationalId: '3131313131',
+        courseIri: 'https://funademy.io/course/CR001',
+        confirmDevSend: 'true',
+      }),
+    );
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe('dev_environment_blocked');
+  });
+
+  it('confirmDevSend also unblocks the default server-side send', async () => {
+    stubDevEnv();
+    fetchMock.mockResolvedValue(new Response('["stored"]', { status: 200 }));
+    const res = await nelcPOST(
+      postReq({ nationalId: '3232323232', courseIri: 'https://funademy.io/course/CR001', confirmDevSend: true }),
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(10);
+  });
+
+  it('read-only actions (check/precheck) are NOT blocked in dev', async () => {
+    stubDevEnv();
+    const check = await nelcPOST(
+      postReq({ action: 'check', password: 'test-admin-pass', nationalId: '3333333331', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(check.status).toBe(200);
+    const precheck = await nelcPOST(
+      postReq({ action: 'precheck', password: 'test-admin-pass', nationalId: '3333333331', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(precheck.status).toBe(200);
+  });
+
+  it('sends stay allowed on the published deployment without any flag', async () => {
+    stubLrsEnv(); // REPLIT_DEPLOYMENT=1
+    const res = await nelcPOST(
+      postReq({ action: 'prepare', password: 'test-admin-pass', nationalId: '3434343434', courseIri: 'https://funademy.io/course/CR001' }),
+    );
+    expect(res.status).toBe(200);
   });
 });
 

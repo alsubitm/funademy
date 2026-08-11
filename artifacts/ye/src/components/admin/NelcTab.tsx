@@ -169,6 +169,8 @@ const PREP_ERRORS: Record<string, string> = {
   invalid_course_iri: 'معرّف الدورة يجب أن يكون رابطاً صحيحاً يبدأ بـ https://',
   not_configured: 'الاتصال بنظام تسجيل التعلم (LRS) غير مهيأ — أضف بيانات الاعتماد أولاً.',
   reauth_failed: 'كلمة مرور الإدارة غير صحيحة — أعد إدخالها في خانة التأكيد.',
+  dev_environment_blocked:
+    'الخادم يرفض الإرسال من بيئة التطوير — اكتب رقم الهوية في خانة التأكيد داخل التنبيه الأحمر أولاً.',
 };
 
 /** Arabic reason line for the «تعذّر الفحص المسبق» prompt. */
@@ -278,6 +280,14 @@ export function NelcTab() {
   >(null);
   /** Typed-ID confirmation for strong overrides (burned ID / delivered duplicate). */
   const [overrideIdInput, setOverrideIdInput] = useState('');
+  /**
+   * DEV-ENVIRONMENT SEND BLOCK (task 119): outside the published deployment
+   * the SERVER answers 403 dev_environment_blocked for the send actions
+   * unless the request carries confirmDevSend:true. The flag is set ONLY
+   * when the owner types the national ID into this separate confirmation
+   * field inside the red banner — a click is not enough.
+   */
+  const [devConfirmInput, setDevConfirmInput] = useState('');
   const [checkBusy, setCheckBusy] = useState(false);
   const [lastCheck, setLastCheck] = useState<CheckState | null>(null);
 
@@ -315,6 +325,17 @@ export function NelcTab() {
     const iri = courseIri.trim();
     const confirmDuplicate = opts.confirmedDuplicateFor === id;
     const skipPrecheck = opts.precheckClearedFor === id;
+    // DEV-ENVIRONMENT BLOCK: outside the published deployment the server
+    // refuses the send unless the owner typed the national ID into the
+    // separate confirmation field in the red banner. Checked here too so the
+    // user gets the explanation up front, but the SERVER is the real gate.
+    const confirmDevSend = config?.deployed === false && devConfirmInput.trim() === id;
+    if (config && !config.deployed && !confirmDevSend) {
+      setError(
+        'أنت في بيئة التطوير — الإرسال من هنا يحرق رقم الهوية نهائياً. للمتابعة رغم ذلك اكتب رقم الهوية في خانة التأكيد داخل التنبيه الأحمر أعلاه.',
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     setLastRun(null);
@@ -380,6 +401,9 @@ export function NelcTab() {
           // SEQ003: re-sending the same national ID duplicates statements in
           // NELC's LRS — the server refuses unless explicitly confirmed.
           confirmDuplicate,
+          // Dev-environment block: true only after the typed-ID confirmation
+          // in the red banner (never sent from the published deployment).
+          ...(confirmDevSend ? { confirmDevSend: true } : {}),
         }),
       });
       const prepData = await prep.json().catch(() => ({}));
@@ -608,6 +632,22 @@ export function NelcTab() {
             2026). إجراء التحقق الرسمي يجب أن يتم من الموقع المنشور{' '}
             <span dir="ltr" className="font-mono">funademy.io</span> فقط.
           </p>
+          <div className="border-t border-[#B3261E]/25 pt-3 space-y-2">
+            <div className="text-xs font-bold text-[#B3261E] leading-relaxed">
+              الخادم نفسه يرفض أي إرسال من هذه البيئة. للمتابعة رغم الخطر (سيُحرق الرقم كما لو
+              أُرسل من الموقع الرسمي) اكتب رقم هوية المتعلم نفسه هنا للتأكيد:
+            </div>
+            <input
+              value={devConfirmInput}
+              onChange={(e) => setDevConfirmInput(e.target.value)}
+              disabled={busy}
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="اكتب رقم الهوية للتأكيد"
+              dir="ltr"
+              className="font-mono border border-[#B3261E]/50 rounded-xl px-3 py-2 text-sm text-[#101A38] focus:outline-none focus:border-[#B3261E] bg-white"
+            />
+          </div>
         </div>
       )}
 
