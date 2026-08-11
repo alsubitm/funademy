@@ -742,11 +742,16 @@ model XapiOutbox {
   verb           String // registered | completed_lesson | completed_unit | progressed | completed_course
   statementId    String    @unique // client-generated xAPI statement UUID
   statement      Json // full xAPI statement built at event time
-  status         String    @default("pending") // pending | sent
+  status         String    @default("pending") // pending | sent | voided
   attempts       Int       @default(0) // server send tries (browser relay ignores the cap)
   lastError      String? // last delivery error body/marker (truncated)
   lastHttpStatus Int? // last delivery HTTP status (null = network error)
   source         String? // who delivered it: server | browser (null while pending)
+  // Admin skip of a permanently-rejected row (never a delete, never a fake
+  // "sent"): who/why/when are recorded and the row stays visible forever.
+  voidReason     String? // admin-entered reason (required when voiding)
+  voidedBy       String? // who executed the void (admin)
+  voidedAt       DateTime?
   createdAt      DateTime  @default(now())
   sentAt         DateTime?
 

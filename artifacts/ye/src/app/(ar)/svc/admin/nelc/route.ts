@@ -29,7 +29,7 @@ export async function GET() {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  const [logs, obPending, obSent, obStalled, childrenWithId, childrenTotal, obLastFailed] =
+  const [logs, obPending, obSent, obStalled, obVoided, childrenWithId, childrenTotal, obLastFailed, obHead] =
     await Promise.all([
       prisma.xapiStatement.findMany({ orderBy: { id: 'desc' }, take: 80 }),
       prisma.xapiOutbox.count({ where: { status: 'pending' } }),
@@ -37,12 +37,29 @@ export async function GET() {
       prisma.xapiOutbox.count({
         where: { status: 'pending', attempts: { gte: MAX_SERVER_ATTEMPTS } },
       }),
+      prisma.xapiOutbox.count({ where: { status: 'voided' } }),
       prisma.lrnChild.count({ where: { nationalId: { not: null } } }),
       prisma.lrnChild.count(),
       prisma.xapiOutbox.findFirst({
         where: { status: 'pending', lastError: { not: null } },
         orderBy: { id: 'desc' },
         select: { lastError: true, lastHttpStatus: true },
+      }),
+      // HEAD OF THE QUEUE: delivery is strictly ordered, so if this row keeps
+      // failing it blocks EVERY row behind it (all children). Surfaced so the
+      // admin can judge — and, when the rejection is permanent, void it.
+      prisma.xapiOutbox.findFirst({
+        where: { status: 'pending' },
+        orderBy: { id: 'asc' },
+        select: {
+          statementId: true,
+          verb: true,
+          nationalId: true,
+          attempts: true,
+          lastError: true,
+          lastHttpStatus: true,
+          createdAt: true,
+        },
       }),
     ]);
 
@@ -60,6 +77,21 @@ export async function GET() {
       childrenWithoutId: childrenTotal - childrenWithId,
       lastError: obLastFailed?.lastError ?? null,
       lastHttpStatus: obLastFailed?.lastHttpStatus ?? null,
+      voided: obVoided,
+      // Queue head with its last delivery error — the row the admin decides
+      // about. head.blocking=true when it has already failed at least once.
+      head: obHead
+        ? {
+            statementId: obHead.statementId,
+            verb: obHead.verb,
+            nationalId: obHead.nationalId,
+            attempts: obHead.attempts,
+            lastError: obHead.lastError,
+            lastHttpStatus: obHead.lastHttpStatus,
+            createdAt: obHead.createdAt,
+            blocking: obHead.lastError !== null || obHead.attempts > 0,
+          }
+        : null,
     },
     // SERVER-side runtime distinction (2026-08-10 burned-ID incident: the
     // journeys were fired from the DEV PREVIEW while NELC's LRS is ONE store
@@ -238,7 +270,8 @@ export async function POST(req: NextRequest) {
     body.action === 'record_check' ||
     body.action === 'precheck' ||
     body.action === 'outbox_prepare' ||
-    body.action === 'outbox_record'
+    body.action === 'outbox_record' ||
+    body.action === 'outbox_void'
       ? (body.action as string)
       : 'server';
 
@@ -494,6 +527,50 @@ export async function POST(req: NextRequest) {
       }
     }
     return NextResponse.json({ ok: rows.every((r) => r.ok), sent });
+  }
+
+  // ---- action: outbox_void — skip ONE permanently-rejected outbox row -----
+  // Delivery is strictly ordered, so a row NELC rejects permanently (e.g. a
+  // 400 for an unexpected shape) blocks every statement behind it — for ALL
+  // children — forever. This lets the admin void exactly that row: never a
+  // delete (the row, its statement, its last error, the reason, who and when
+  // all stay in the DB) and never a fake success (status becomes 'voided',
+  // not 'sent'). Step-up password required; sent rows can never be voided.
+  if (action === 'outbox_void') {
+    if (String(body.password ?? '') !== getAdminPassword()) {
+      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    }
+    const statementId = String(body.statementId ?? '');
+    if (!UUID_RE.test(statementId)) {
+      return NextResponse.json({ error: 'invalid_statement_id' }, { status: 400 });
+    }
+    const reason = String(body.reason ?? '').trim();
+    if (!reason || reason.length > 500) {
+      return NextResponse.json({ error: 'reason_required' }, { status: 400 });
+    }
+    // Atomic: only a still-pending row can be voided — a row that was sent
+    // (or already voided) meanwhile is never touched.
+    const voided = await prisma.xapiOutbox.updateMany({
+      where: { statementId, status: 'pending' },
+      data: {
+        status: 'voided',
+        voidReason: reason.slice(0, 500),
+        voidedBy: 'admin',
+        voidedAt: new Date(),
+      },
+    });
+    if (voided.count === 0) {
+      const row = await prisma.xapiOutbox.findUnique({
+        where: { statementId },
+        select: { status: true },
+      });
+      return NextResponse.json(
+        { error: row ? 'not_pending' : 'unknown_statement', status: row?.status ?? null },
+        { status: row ? 409 : 404 },
+      );
+    }
+    console.warn(`[nelc-outbox] row ${statementId} VOIDED by admin — reason: ${reason.slice(0, 200)}`);
+    return NextResponse.json({ ok: true, voided: 1 });
   }
 
   // ---- action: outbox_prepare — hand pending REAL statements to the browser

@@ -246,6 +246,23 @@ type ProductionStatus = {
   childrenWithoutId: number;
   lastError: string | null;
   lastHttpStatus: number | null;
+  /** rows the admin explicitly voided (skipped) — kept forever, never deleted. */
+  voided: number;
+  /**
+   * HEAD OF THE QUEUE: delivery is strictly ordered, so if this row keeps
+   * failing it blocks every statement behind it — for all children.
+   * blocking=true once it has failed at least once.
+   */
+  head: {
+    statementId: string;
+    verb: string;
+    nationalId: string;
+    attempts: number;
+    lastError: string | null;
+    lastHttpStatus: number | null;
+    createdAt: string;
+    blocking: boolean;
+  } | null;
 };
 
 function StatusChip({ ok, httpStatus }: { ok: boolean; httpStatus: number | null }) {
@@ -1244,8 +1261,57 @@ function ProductionOutboxPanel({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  /** Reason typed for voiding the stuck head row — required, stored forever. */
+  const [voidReason, setVoidReason] = useState('');
+  const [voidBusy, setVoidBusy] = useState(false);
 
   if (!production) return null;
+
+  const voidHead = async () => {
+    const head = production.head;
+    if (!head) return;
+    if (!adminPassword.trim()) {
+      setErr('أدخل كلمة مرور الإدارة في خانة التأكيد أعلاه أولاً.');
+      return;
+    }
+    if (!voidReason.trim()) {
+      setErr('اكتب سبب التخطي أولاً — يُحفظ السبب في السجل بشكل دائم.');
+      return;
+    }
+    setVoidBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await fetch('/svc/admin/nelc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'outbox_void',
+          password: adminPassword,
+          statementId: head.statementId,
+          reason: voidReason.trim(),
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(
+          j.error === 'reauth_failed'
+            ? 'كلمة مرور الإدارة غير صحيحة.'
+            : j.error === 'not_pending'
+              ? 'هذا السجل لم يعد معلّقاً (أُرسل أو خُطّي بالفعل) — حدّث الصفحة.'
+              : j.error === 'reason_required'
+                ? 'اكتب سبب التخطي أولاً.'
+                : `تعذّر التخطي (${j.error ?? res.status}).`,
+        );
+        return;
+      }
+      setVoidReason('');
+      setMsg('تم تخطي السجل العالق (لم يُحذف — بقي في السجل مع السبب). بقية القائمة أصبحت حرة للإرسال.');
+    } finally {
+      setVoidBusy(false);
+      await onRefresh();
+    }
+  };
 
   const flushFromBrowser = async () => {
     if (!adminPassword.trim()) {
@@ -1367,9 +1433,64 @@ function ProductionOutboxPanel({
       <div className="flex items-center gap-2 flex-wrap">
         {chip('معلّق', production.pending, production.pending > 0)}
         {chip('مُرسَل', production.sent, false)}
+        {production.voided > 0 && chip('مُتخطّى', production.voided, true)}
         {chip('أطفال برقم هوية', production.childrenWithId, false)}
         {chip('أطفال بدون رقم', production.childrenWithoutId, production.childrenWithoutId > 0)}
       </div>
+      {production.head && production.head.blocking && (
+        <div className="bg-[#FDECEC] border border-[#B3261E]/40 rounded-xl px-4 py-3 space-y-3">
+          <div className="text-sm font-bold text-[#B3261E] leading-relaxed">
+            ⚠ سجل عالق في رأس القائمة — الإرسال مرتّب، فما دام هذا السجل يفشل تبقى كل سجلات
+            الأطفال خلفه محجوزة.
+          </div>
+          <div className="bg-white border border-[#DFE5F2] rounded-xl p-3 space-y-1 text-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-[#101A38]">{VERB_AR[production.head.verb] ?? production.head.verb}</span>
+              <span className="font-mono text-[#5F6B92]" dir="ltr">ID: {production.head.nationalId}</span>
+              <span className="font-mono text-[#5F6B92]" dir="ltr">
+                محاولات الخادم: {production.head.attempts}
+              </span>
+              <span className="text-[#B3261E] font-bold" dir="ltr">
+                {production.head.lastHttpStatus ? `HTTP ${production.head.lastHttpStatus}` : 'خطأ شبكة'}
+              </span>
+            </div>
+            {production.head.lastError && (
+              <div className="font-mono break-all bg-[#F0F5FF] rounded-lg p-2 text-[#101A38]" dir="ltr">
+                {production.head.lastError.slice(0, 500)}
+              </div>
+            )}
+            <div className="font-mono text-[10px] text-[#5F6B92] break-all" dir="ltr">
+              {production.head.statementId}
+            </div>
+          </div>
+          <div className="text-xs text-[#5F6B92] leading-relaxed">
+            إن كان الفشل مؤقتاً (حجب جغرافي، انقطاع) فأعد المحاولة من متصفحك بالزر أدناه. أما إن
+            كان نيلك يرفض هذا السجل رفضاً دائماً (مثل HTTP 400) فيمكن تخطيه لتحرير بقية القائمة —
+            التخطي لا يحذف السجل: يبقى في قاعدة البيانات مع السبب ومن نفّذه ومتى، ولا يُعلَّم أبداً
+            كأنه أُرسل.
+          </div>
+          <div className="flex gap-2 flex-wrap items-center">
+            <input
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              disabled={voidBusy}
+              maxLength={500}
+              placeholder="سبب التخطي (إلزامي — يُحفظ في السجل)"
+              className="flex-1 min-w-[220px] border border-[#B3261E]/50 rounded-xl px-3 py-2 text-sm text-[#101A38] focus:outline-none focus:border-[#B3261E] bg-white"
+            />
+            <button
+              onClick={voidHead}
+              disabled={voidBusy || busy || !voidReason.trim()}
+              className="bg-white border border-[#B3261E] text-[#B3261E] px-4 py-2 rounded-xl text-sm font-display font-bold disabled:opacity-50"
+            >
+              {voidBusy ? 'جارٍ التخطي…' : 'تخطي هذا السجل (لن يُرسل)'}
+            </button>
+          </div>
+          <div className="text-[11px] text-[#5F6B92]">
+            يتطلب كلمة مرور الإدارة في خانة التأكيد أعلاه.
+          </div>
+        </div>
+      )}
       {production.stalled > 0 && (
         <div className="bg-[#FFF7DA] border border-[#FFD400]/50 rounded-xl px-4 py-3 text-sm text-[#8a6d00] leading-relaxed">
           {production.stalled} سجلاً تجاوز محاولات الخادم الآلية (الحجب الجغرافي غالباً) — أرسلها

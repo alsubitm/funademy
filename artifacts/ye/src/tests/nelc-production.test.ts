@@ -680,3 +680,132 @@ describe('admin outbox endpoints', () => {
     expect(malformed.status).toBe(400);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+describe('admin outbox_void — skip a permanently-rejected head row', () => {
+  let ids: string[] = [];
+
+  const seed = async () => {
+    await prisma.xapiOutbox.deleteMany({});
+    await prisma.xapiOutboxFlushRun.deleteMany({});
+    ids = [];
+    for (const verb of ['registered', 'completed_lesson', 'progressed'] as const) {
+      const statementId = randomUUID();
+      ids.push(statementId);
+      await prisma.xapiOutbox.create({
+        data: {
+          childId: null,
+          nationalId: '2777777777',
+          courseIri: 'https://funademy.io/course/subject-void',
+          verb,
+          statementId,
+          statement: { test: verb },
+        },
+      });
+    }
+  };
+
+  const voidReq = (statementId: string, extra: Record<string, unknown> = {}) =>
+    nelcPOST(jsonReq('/svc/admin/nelc', 'POST', {
+      action: 'outbox_void', password: 'test-admin-pass', statementId,
+      reason: 'NELC rejects this shape permanently (HTTP 400)', ...extra,
+    }));
+
+  it('requires the step-up password and a reason', async () => {
+    await seed();
+    const badPass = await voidReq(ids[0], { password: 'wrong' });
+    expect(badPass.status).toBe(401);
+    const noReason = await voidReq(ids[0], { reason: '   ' });
+    expect(noReason.status).toBe(400);
+    expect((await noReason.json()).error).toBe('reason_required');
+    const badId = await voidReq('not-a-uuid');
+    expect(badId.status).toBe(400);
+    // nothing changed
+    const rows = await prisma.xapiOutbox.findMany({ orderBy: { id: 'asc' } });
+    expect(rows.every((r) => r.status === 'pending')).toBe(true);
+  });
+
+  it('voiding the stuck head frees the rest of the queue; audit fields recorded', async () => {
+    await seed();
+    stubProdEnv();
+
+    // Head row permanently rejected: server flush stops at it every time.
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 400, text: async () => 'bad statement shape' });
+    const stuck = await flushOutboxServer();
+    expect(stuck).toMatchObject({ attempted: 1, sent: 0, stopped: true });
+
+    // GET surfaces the stuck head (verb + last error + HTTP status).
+    const data = await (await nelcGET()).json();
+    expect(data.production.head).toMatchObject({
+      statementId: ids[0],
+      verb: 'registered',
+      lastHttpStatus: 400,
+      blocking: true,
+    });
+    expect(data.production.head.lastError).toContain('bad statement shape');
+
+    // Admin voids exactly that row.
+    const res = await voidReq(ids[0]);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, voided: 1 });
+
+    const voided = await prisma.xapiOutbox.findUnique({ where: { statementId: ids[0] } });
+    expect(voided).toMatchObject({
+      status: 'voided',
+      voidedBy: 'admin',
+      voidReason: 'NELC rejects this shape permanently (HTTP 400)',
+      sentAt: null, // never marked sent
+    });
+    expect(voided!.voidedAt).toBeTruthy();
+    expect(voided!.lastError).toContain('bad statement shape'); // evidence kept
+
+    // The rest of the queue now flushes normally.
+    fetchMock.mockResolvedValue({ ok: true, status: 200, text: async () => '' });
+    const freed = await flushOutboxServer();
+    expect(freed).toMatchObject({ attempted: 2, sent: 2, stopped: false });
+    const rows = await prisma.xapiOutbox.findMany({ orderBy: { id: 'asc' } });
+    expect(rows.map((r) => r.status)).toEqual(['voided', 'sent', 'sent']);
+
+    // Voided rows are excluded from the browser flush too.
+    const prep = await nelcPOST(jsonReq('/svc/admin/nelc', 'POST', {
+      action: 'outbox_prepare', password: 'test-admin-pass',
+    }));
+    expect((await prep.json()).runId).toBeNull();
+
+    // GET counts reflect the void; head is gone.
+    const after = await (await nelcGET()).json();
+    expect(after.production).toMatchObject({ pending: 0, sent: 2, voided: 1, head: null });
+  });
+
+  it('never touches sent rows; unknown IDs answer 404; double-void answers 409', async () => {
+    await seed();
+    stubProdEnv();
+    fetchMock.mockResolvedValue({ ok: true, status: 200, text: async () => '' });
+    await flushOutboxServer(); // all 3 sent
+
+    const sent = await voidReq(ids[1]);
+    expect(sent.status).toBe(409);
+    expect((await sent.json()).error).toBe('not_pending');
+    const row = await prisma.xapiOutbox.findUnique({ where: { statementId: ids[1] } });
+    expect(row).toMatchObject({ status: 'sent', voidReason: null, voidedAt: null });
+
+    const unknown = await voidReq(randomUUID());
+    expect(unknown.status).toBe(404);
+    expect((await unknown.json()).error).toBe('unknown_statement');
+
+    // double-void
+    await prisma.xapiOutbox.deleteMany({});
+    const sid = randomUUID();
+    await prisma.xapiOutbox.create({
+      data: {
+        childId: null, nationalId: '2777777778',
+        courseIri: 'https://funademy.io/course/subject-void', verb: 'registered',
+        statementId: sid, statement: { t: 1 },
+      },
+    });
+    expect((await voidReq(sid)).status).toBe(200);
+    const again = await voidReq(sid);
+    expect(again.status).toBe(409);
+    expect((await again.json()).error).toBe('not_pending');
+  });
+});
