@@ -1,18 +1,20 @@
 import { createHmac, randomInt } from 'crypto';
 import { prisma } from '@/lib/db';
+import { authenticaConfigured, sendOtpViaAuthentica } from '@/lib/smsAuthentica';
 
 /**
  * OTP flow for family login (phone verification).
  *
- * SMS INTEGRATION POINT
- * ---------------------
- * No SMS provider is wired up yet. `deliverOtp()` below is the single place
- * to integrate one (e.g. Unifonic, Taqnyat, or Twilio):
- *   - send `code` to `phone` via the provider's API
- *   - return true on success
- * Until then, production FAILS CLOSED (`sms_not_configured`) so codes are
- * never silently undeliverable. In development the code is returned in the
- * API response so the flow can be tested end to end; it is never logged.
+ * SMS delivery is wired to Authentica (src/lib/smsAuthentica.ts) and goes
+ * live purely by AUTHENTICA_API_KEY presence — in ANY environment. Codes
+ * are still generated, stored (HMAC), rate-limited, and verified HERE;
+ * Authentica only carries them (custom-OTP send).
+ *
+ * Without the key: production FAILS CLOSED (`sms_not_configured`) so codes
+ * are never silently undeliverable, and development returns the code in the
+ * API response (devCode) so the flow can be tested end to end; it is never
+ * logged. Once the key is set, devCode is suppressed everywhere — the real
+ * SMS is the only channel.
  */
 
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -32,28 +34,48 @@ function otpSecret(): string {
 const hashCode = (phone: string, code: string) =>
   createHmac('sha256', otpSecret()).update(`${phone}:${code}`).digest('hex');
 
-async function deliverOtp(_phone: string, _code: string): Promise<boolean> {
-  // ← SMS provider call goes here. Return true once delivery is wired up.
+async function deliverOtp(phone: string, code: string): Promise<boolean> {
+  if (authenticaConfigured()) return (await sendOtpViaAuthentica(phone, code)).ok;
+  // No provider: dev "delivers" by echoing devCode; production fails closed.
   return !IS_PROD;
 }
 
 export type OtpRequestResult =
   | { ok: true; devCode?: string }
-  | { ok: false; error: 'rate_limited' | 'sms_not_configured' };
+  | { ok: false; error: 'rate_limited' | 'sms_not_configured' | 'sms_send_failed' };
 
 export async function requestOtp(phone: string): Promise<OtpRequestResult> {
-  const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  const recent = await prisma.otpCode.count({ where: { phone, createdAt: { gte: hourAgo } } });
-  if (recent >= MAX_REQUESTS_PER_HOUR) return { ok: false, error: 'rate_limited' };
-
+  const configured = authenticaConfigured();
   const code = String(randomInt(100000, 1000000));
-  const delivered = await deliverOtp(phone, code);
-  if (!delivered) return { ok: false, error: 'sms_not_configured' };
 
-  await prisma.otpCode.create({
-    data: { phone, codeHash: hashCode(phone, code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+  // Count + insert are atomic per phone (advisory lock), so concurrent
+  // requests cannot exceed the cap. The row is created BEFORE delivery, so
+  // EVERY attempt — including failed sends — consumes the hourly quota:
+  // provider calls are hard-capped at MAX_REQUESTS_PER_HOUR per phone.
+  const created = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`otp:${phone}`}))`;
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recent = await tx.otpCode.count({ where: { phone, createdAt: { gte: hourAgo } } });
+    if (recent >= MAX_REQUESTS_PER_HOUR) return null;
+    return tx.otpCode.create({
+      data: { phone, codeHash: hashCode(phone, code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+    });
   });
-  return IS_PROD ? { ok: true } : { ok: true, devCode: code };
+  if (!created) return { ok: false, error: 'rate_limited' };
+
+  // Deliver AFTER persisting: a provider timeout is an UNKNOWN outcome, not
+  // proof of non-delivery — if the SMS still arrives late, its code must
+  // verify. verifyOtp checks the latest unconsumed row, so after a retry
+  // the newest SMS always wins (standard "use the latest code" UX).
+  const delivered = await deliverOtp(phone, code);
+  if (!delivered) {
+    // Distinguish "provider down/rejected" (retryable) from "never set up".
+    return { ok: false, error: configured ? 'sms_send_failed' : 'sms_not_configured' };
+  }
+
+  // devCode only while NO real channel exists: once a real SMS went out,
+  // echoing the code in the API response would defeat the whole check.
+  return !configured && !IS_PROD ? { ok: true, devCode: code } : { ok: true };
 }
 
 export type OtpVerifyResult = 'ok' | 'invalid' | 'expired' | 'too_many_attempts';

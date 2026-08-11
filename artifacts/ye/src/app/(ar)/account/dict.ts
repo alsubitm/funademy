@@ -34,6 +34,8 @@ export const accountDict = {
     errors: {
       invalid_phone: 'رقم الجوال غير صحيح — أدخل رقماً سعودياً يبدأ بـ 05',
       rate_limited: 'طلبات كثيرة — حاول بعد ساعة',
+      sms_not_configured: 'إرسال الرسائل غير مفعّل حالياً — تواصل مع الأكاديمية',
+      sms_send_failed: 'تعذّر إرسال الرمز — حاول مرة أخرى بعد قليل',
       invalid: 'الرمز غير صحيح',
       expired: 'انتهت صلاحية الرمز — أرسل رمزاً جديداً',
       too_many_attempts: 'محاولات كثيرة — أرسل رمزاً جديداً',
@@ -82,6 +84,8 @@ export const accountDict = {
     errors: {
       invalid_phone: 'Invalid phone — enter a Saudi number starting with 05',
       rate_limited: 'Too many requests — try again in an hour',
+      sms_not_configured: 'SMS sending is not enabled yet — please contact the academy',
+      sms_send_failed: 'Could not send the code — please try again shortly',
       invalid: 'Incorrect code',
       expired: 'Code expired — request a new one',
       too_many_attempts: 'Too many attempts — request a new code',

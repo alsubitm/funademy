@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
 
   const result = await requestOtp(phone);
   if (!result.ok) {
-    const status = result.error === 'rate_limited' ? 429 : 503;
+    const status =
+      result.error === 'rate_limited' ? 429 : result.error === 'sms_send_failed' ? 502 : 503;
     return NextResponse.json({ error: result.error }, { status });
   }
 
