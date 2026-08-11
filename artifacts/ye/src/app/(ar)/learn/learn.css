@@ -479,3 +479,16 @@
 }
 .curr-icon-btn:hover { color: #e74c3c; }
 .curr-icon-btn.edit:hover { color: #1C54CB; }
+
+/* ——— Child national ID (NELC learning-record identity) ——— */
+.learn-child-nid { margin-top: 10px; }
+.learn-nid-btn {
+  background: #f4f7ff; border: 1px dashed #b9c6e8; cursor: pointer;
+  font-size: 12.5px; font-weight: 700; color: #47548a;
+  padding: 6px 12px; border-radius: 10px; transition: background .15s;
+}
+.learn-nid-btn:hover { background: #e8eeff; }
+.learn-nid-btn .nid-value { direction: ltr; unicode-bidi: embed; font-family: monospace; }
+.learn-nid-edit { display: flex; flex-direction: column; gap: 6px; }
+.learn-nid-edit input { max-width: 220px; }
+.learn-nid-actions { display: flex; gap: 8px; }

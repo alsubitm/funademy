@@ -629,6 +629,11 @@ model LrnChild {
   avatar            String          @default("⭐")
   band              LrnBand         @default(explorers)
   pin               String          // scrypt salt:hash
+  // Saudi national ID / iqama of the CHILD (10 digits, starts 1 or 2) —
+  // entered by the parent, used ONLY as the xAPI actor identity for NELC
+  // production learning-record statements. null = no statements are sent
+  // for this child. Unique when set: one learner identity per child.
+  nationalId        String?         @unique
   xp                Int             @default(0)
   streak            Int             @default(0)
   lastActiveDate    String?         // ISO date YYYY-MM-DD
@@ -716,6 +721,55 @@ model XapiPreparedRun {
 
   @@index([expiresAt])
   @@map("ye_xapi_prepared_runs")
+}
+
+// ——————————————— NELC production outbox (real learner events) ———————————————
+
+// One REAL learner xAPI statement queued for NELC's PRODUCTION LRS. Rows are
+// enqueued right after a real learning event commits (registered / completed
+// lesson / completed unit / progressed / completed course) with the full
+// statement JSON built at event time, so delivery can lag without losing the
+// real timestamps. status: pending → sent. `attempts` counts SERVER delivery
+// tries only (NELC's WAF geo-blocks our datacenter egress, so server sends
+// may never succeed; the admin browser-relay flush in the NELC tab is the
+// guaranteed path and ignores the attempts cap). No child FK on purpose —
+// delivery audit rows must survive child deletion.
+model XapiOutbox {
+  id             Int       @id @default(autoincrement())
+  childId        Int? // informational only — no FK, rows outlive the child
+  nationalId     String // actor identity (child's national ID at event time)
+  courseIri      String // subject course IRI the statement targets
+  verb           String // registered | completed_lesson | completed_unit | progressed | completed_course
+  statementId    String    @unique // client-generated xAPI statement UUID
+  statement      Json // full xAPI statement built at event time
+  status         String    @default("pending") // pending | sent
+  attempts       Int       @default(0) // server send tries (browser relay ignores the cap)
+  lastError      String? // last delivery error body/marker (truncated)
+  lastHttpStatus Int? // last delivery HTTP status (null = network error)
+  source         String? // who delivered it: server | browser (null while pending)
+  createdAt      DateTime  @default(now())
+  sentAt         DateTime?
+
+  @@index([status, id])
+  @@index([childId])
+  @@map("ye_xapi_outbox")
+}
+
+// One-time handshake for the admin browser-relay flush of the production
+// outbox — same provenance pattern as XapiPreparedRun: `outbox_record` only
+// accepts statement IDs handed out by an unconsumed, unexpired
+// `outbox_prepare`, consumed atomically, so sent-marks always correspond to
+// a flush THIS server prepared (no fabricated or replayed reports).
+model XapiOutboxFlushRun {
+  id           Int      @id @default(autoincrement())
+  runId        String   @unique
+  statementIds String[] // ordered statement UUIDs handed to the browser
+  consumed     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@index([expiresAt])
+  @@map("ye_xapi_outbox_flush_runs")
 }
 
 // ————————————————————————— Rate Limit (durable) —————————————————————————

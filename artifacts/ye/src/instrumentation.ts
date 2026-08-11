@@ -74,6 +74,15 @@ export async function register() {
     } catch (e) {
       console.error('[payments] periodic sweep failed:', e);
     }
+    // NELC production outbox: retry pending real-learner statements. No-op
+    // outside the published deployment or without production LRS secrets;
+    // logs its own result only when it actually attempted rows.
+    try {
+      const { flushOutboxServer } = await import('@/lib/xapiOutbox');
+      await flushOutboxServer();
+    } catch (e) {
+      console.error('[nelc-outbox] periodic flush failed:', e);
+    }
   };
 
   // One-time data reconciliation: the academy is online-only (Aug 2026).

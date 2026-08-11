@@ -78,6 +78,9 @@ export interface GradeResult {
 /** Grade a set of submitted answers against server-authoritative correct answers.
  *  Returns overall score and per-exercise correctness. Correct answers MUST
  *  never be sent to the client browser — only this server-side result is shared. */
+/** Saudi national ID / iqama: 10 digits starting with 1 or 2 (NELC learner identity). */
+export const NATIONAL_ID_RE = /^[12]\d{9}$/;
+
 export function gradeAnswers(
   exercises: Array<{ id: number; correctAnswer: string }>,
   answers: Array<{ exerciseId: number; answer: string }>,

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
 import { hashPin } from '@/lib/kid-auth';
-import { serializeChild } from '@/lib/learning';
+import { NATIONAL_ID_RE, serializeChild } from '@/lib/learning';
+import { enqueueIdSetSnapshot, flushOutboxServer } from '@/lib/xapiOutbox';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +36,46 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (typeof b.pin === 'string' && b.pin.trim().length >= 4) data.pin = await hashPin(b.pin.trim());
   if (typeof b.dailyLimitMinutes === 'number') data.dailyLimitMinutes = b.dailyLimitMinutes > 0 ? b.dailyLimitMinutes : null;
 
-  const updated = await prisma.lrnChild.update({ where: { id: childId }, data });
+  // Child national ID (NELC learning-record identity): set / change / clear.
+  if ('nationalId' in b) {
+    const v = b.nationalId === null ? '' : String(b.nationalId).trim();
+    const next = v === '' ? null : v;
+    if (next !== null && !NATIONAL_ID_RE.test(next)) {
+      return NextResponse.json({ error: 'invalid_national_id' }, { status: 400 });
+    }
+    if (next !== child.nationalId) {
+      // Once statements were queued/sent under an identity, changing it would
+      // split the learner across two identities in NELC's permanent store.
+      if (child.nationalId !== null) {
+        const used = await prisma.xapiOutbox.findFirst({
+          where: { childId: child.id },
+          select: { id: true },
+        });
+        if (used) return NextResponse.json({ error: 'national_id_locked' }, { status: 409 });
+      }
+      data.nationalId = next;
+    }
+  }
+
+  let updated;
+  try {
+    updated = await prisma.lrnChild.update({ where: { id: childId }, data });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return NextResponse.json({ error: 'national_id_taken' }, { status: 409 });
+    }
+    throw e;
+  }
+
+  // ID newly set → queue the NELC registration + current-progress snapshot.
+  // Enqueue is awaited (fast local tx, durable once the parent sees success);
+  // delivery is fire-and-forget. Never throws — a snapshot problem must not
+  // fail the profile update.
+  if (typeof data.nationalId === 'string') {
+    const queued = await enqueueIdSetSnapshot({ childId, nationalId: data.nationalId });
+    if (queued > 0) void flushOutboxServer();
+  }
+
   return NextResponse.json(serializeChild(updated));
 }
 

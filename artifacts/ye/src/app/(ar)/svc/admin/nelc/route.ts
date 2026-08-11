@@ -15,6 +15,12 @@ import {
   lrsStatementsUrl,
   sendStatement,
 } from '@/lib/xapi';
+import { MAX_SERVER_ATTEMPTS } from '@/lib/xapiOutbox';
+import {
+  prodLrsAuthorization,
+  prodLrsConfigured,
+  prodLrsStatementsUrl,
+} from '@/lib/xapiProduction';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,14 +29,38 @@ export async function GET() {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  const logs = await prisma.xapiStatement.findMany({
-    orderBy: { id: 'desc' },
-    take: 80,
-  });
+  const [logs, obPending, obSent, obStalled, childrenWithId, childrenTotal, obLastFailed] =
+    await Promise.all([
+      prisma.xapiStatement.findMany({ orderBy: { id: 'desc' }, take: 80 }),
+      prisma.xapiOutbox.count({ where: { status: 'pending' } }),
+      prisma.xapiOutbox.count({ where: { status: 'sent' } }),
+      prisma.xapiOutbox.count({
+        where: { status: 'pending', attempts: { gte: MAX_SERVER_ATTEMPTS } },
+      }),
+      prisma.lrnChild.count({ where: { nationalId: { not: null } } }),
+      prisma.lrnChild.count(),
+      prisma.xapiOutbox.findFirst({
+        where: { status: 'pending', lastError: { not: null } },
+        orderBy: { id: 'desc' },
+        select: { lastError: true, lastHttpStatus: true },
+      }),
+    ]);
 
   return NextResponse.json({
     configured: lrsConfigured(),
     environment: lrsEnvironment(),
+    // REAL learner data → NELC PRODUCTION LRS (outbox status for the admin
+    // panel). Separate credential set from the staging test tools above.
+    production: {
+      configured: prodLrsConfigured(),
+      pending: obPending,
+      sent: obSent,
+      stalled: obStalled, // pending rows past the server retry cap — browser flush only
+      childrenWithId,
+      childrenWithoutId: childrenTotal - childrenWithId,
+      lastError: obLastFailed?.lastError ?? null,
+      lastHttpStatus: obLastFailed?.lastHttpStatus ?? null,
+    },
     // SERVER-side runtime distinction (2026-08-10 burned-ID incident: the
     // journeys were fired from the DEV PREVIEW while NELC's LRS is ONE store
     // shared with the published site). REPLIT_DEPLOYMENT is set only in the
@@ -206,7 +236,9 @@ export async function POST(req: NextRequest) {
     body.action === 'record' ||
     body.action === 'check' ||
     body.action === 'record_check' ||
-    body.action === 'precheck'
+    body.action === 'precheck' ||
+    body.action === 'outbox_prepare' ||
+    body.action === 'outbox_record'
       ? (body.action as string)
       : 'server';
 
@@ -376,6 +408,140 @@ export async function POST(req: NextRequest) {
       },
     });
     return NextResponse.json({ ok, matched, parityMatched, recorded: 1, source: 'browser' });
+  }
+
+  // ---- action: outbox_record — mark browser-flushed PRODUCTION rows -------
+  // Also before the config check: outcomes of an already-run browser flush
+  // must stay recordable even if secrets were removed meanwhile. Same
+  // provenance rules as `record`: only an unconsumed, unexpired
+  // outbox_prepare run, only the exact ordered prefix of its statement IDs
+  // (stop-on-failure shape), consumed atomically.
+  if (action === 'outbox_record') {
+    const runId = String(body.runId ?? '');
+    if (!UUID_RE.test(runId)) {
+      return NextResponse.json({ error: 'invalid_run_id' }, { status: 400 });
+    }
+    const raw = Array.isArray(body.results) ? (body.results as Record<string, unknown>[]) : null;
+    if (!raw || raw.length === 0 || raw.length > 200) {
+      return NextResponse.json({ error: 'invalid_results' }, { status: 400 });
+    }
+    const rows: { statementId: string; ok: boolean; httpStatus: number | null; response: string }[] =
+      [];
+    for (const r of raw) {
+      const statementId = String(r.statementId ?? '');
+      const httpStatus =
+        r.httpStatus === null || r.httpStatus === undefined ? null : Number(r.httpStatus);
+      if (
+        !UUID_RE.test(statementId) ||
+        (httpStatus !== null &&
+          (!Number.isInteger(httpStatus) || httpStatus < 0 || httpStatus > 999))
+      ) {
+        return NextResponse.json({ error: 'invalid_results' }, { status: 400 });
+      }
+      rows.push({
+        statementId,
+        ok: r.ok === true,
+        httpStatus,
+        response: String(r.response ?? '').slice(0, 2000),
+      });
+    }
+
+    const run = await prisma.xapiOutboxFlushRun.findUnique({ where: { runId } });
+    if (!run) return NextResponse.json({ error: 'unknown_run' }, { status: 404 });
+    if (run.consumed) return NextResponse.json({ error: 'already_recorded' }, { status: 409 });
+    if (run.expiresAt.getTime() < Date.now()) {
+      return NextResponse.json({ error: 'run_expired' }, { status: 410 });
+    }
+
+    const isValidPrefix =
+      rows.length <= run.statementIds.length &&
+      rows.every((r, i) => r.statementId === run.statementIds[i]) &&
+      rows.every((r, i) => r.ok || i === rows.length - 1);
+    if (!isValidPrefix) {
+      return NextResponse.json({ error: 'results_mismatch' }, { status: 400 });
+    }
+
+    const claimed = await prisma.xapiOutboxFlushRun.updateMany({
+      where: { runId, consumed: false },
+      data: { consumed: true },
+    });
+    if (claimed.count === 0) {
+      return NextResponse.json({ error: 'already_recorded' }, { status: 409 });
+    }
+
+    let sent = 0;
+    for (const row of rows) {
+      if (row.ok) {
+        const updated = await prisma.xapiOutbox.updateMany({
+          where: { statementId: row.statementId, status: 'pending' },
+          data: {
+            status: 'sent',
+            sentAt: new Date(),
+            source: 'browser',
+            lastHttpStatus: row.httpStatus,
+            lastError: null,
+          },
+        });
+        sent += updated.count;
+      } else {
+        await prisma.xapiOutbox.updateMany({
+          where: { statementId: row.statementId, status: 'pending' },
+          data: {
+            lastHttpStatus: row.httpStatus,
+            lastError: (row.response || 'browser_reported_failure').slice(0, 2000),
+          },
+        });
+      }
+    }
+    return NextResponse.json({ ok: rows.every((r) => r.ok), sent });
+  }
+
+  // ---- action: outbox_prepare — hand pending REAL statements to the browser
+  if (action === 'outbox_prepare') {
+    // STEP-UP AUTHORIZATION: the response hands the PRODUCTION LRS credential
+    // to the browser — same accepted-risk rationale as the staging relay.
+    if (String(body.password ?? '') !== getAdminPassword()) {
+      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    }
+    // REAL learner data leaves ONLY from the published deployment — no typed
+    // override here (unlike the staging test journey): there is no legitimate
+    // dev-preview use. Tests opt in via NELC_OUTBOX_TEST on the ye_test DB.
+    if (process.env.REPLIT_DEPLOYMENT !== '1' && process.env.NELC_OUTBOX_TEST !== '1') {
+      return NextResponse.json({ error: 'dev_environment_blocked' }, { status: 403 });
+    }
+    if (!prodLrsConfigured()) {
+      return NextResponse.json({ error: 'prod_not_configured' }, { status: 503 });
+    }
+    await prisma.xapiOutboxFlushRun.deleteMany({
+      where: { expiresAt: { lt: new Date(Date.now() - 24 * 60 * 60_000) } },
+    });
+    // Strict id order = per-learner event order. The browser flush ignores
+    // the SERVER attempts cap on purpose — for it, pending is pending.
+    const rows = await prisma.xapiOutbox.findMany({
+      where: { status: 'pending' },
+      orderBy: { id: 'asc' },
+      take: 25,
+    });
+    if (rows.length === 0) return NextResponse.json({ runId: null, statements: [] });
+    const runId = randomUUID();
+    await prisma.xapiOutboxFlushRun.create({
+      data: {
+        runId,
+        statementIds: rows.map((r) => r.statementId),
+        expiresAt: new Date(Date.now() + PREPARED_RUN_TTL_MS),
+      },
+    });
+    return NextResponse.json({
+      runId,
+      url: prodLrsStatementsUrl(),
+      authorization: prodLrsAuthorization(),
+      statements: rows.map((r) => ({
+        statementId: r.statementId,
+        verb: r.verb,
+        nationalId: r.nationalId,
+        statement: r.statement,
+      })),
+    });
   }
 
   // ---- prepare / check / server-send: validate inputs + require config ----

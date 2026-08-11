@@ -4,6 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import type { LrnChild } from '@prisma/client';
 
+/** Saudi national ID / iqama: 10 digits starting with 1 or 2 (mirrors the server rule). */
+const NATIONAL_ID_RE = /^[12]\d{9}$/;
+
 type ChildData = Omit<LrnChild, 'pin'>;
 
 interface Props {
@@ -31,6 +34,7 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
     avatar: '⭐',
     band: 'explorers',
     pin: '',
+    nationalId: '',
   });
   const [err, setErr] = useState('');
 
@@ -39,23 +43,35 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
       setErr('أدخل اسم الطفل ورقم PIN (4 أرقام على الأقل)');
       return;
     }
+    if (form.nationalId.trim() && !NATIONAL_ID_RE.test(form.nationalId.trim())) {
+      setErr('رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2 (أو اتركه فارغاً)');
+      return;
+    }
     setAdding(true);
     setErr('');
     try {
       const res = await fetch('/svc/learn/children', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, nationalId: form.nationalId.trim() }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setErr(j.error === 'pin_too_short' ? 'PIN يجب أن يكون 4 أرقام على الأقل' : 'حدث خطأ');
+        setErr(
+          j.error === 'pin_too_short'
+            ? 'PIN يجب أن يكون 4 أرقام على الأقل'
+            : j.error === 'invalid_national_id'
+              ? 'رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2'
+              : j.error === 'national_id_taken'
+                ? 'رقم الهوية هذا مسجّل لطفل آخر'
+                : 'حدث خطأ',
+        );
         return;
       }
       const child = await res.json();
       setChildren((prev) => [...prev, child]);
       setShowAdd(false);
-      setForm({ name: '', avatar: '⭐', band: 'explorers', pin: '' });
+      setForm({ name: '', avatar: '⭐', band: 'explorers', pin: '', nationalId: '' });
     } catch {
       setErr('حدث خطأ في الاتصال');
     } finally {
@@ -67,7 +83,12 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
     <div className="learn-children-wrap">
       <div className="learn-children-grid">
         {children.map((c) => (
-          <ChildCard key={c.id} child={c} badgeIcons={badgeIcons} />
+          <ChildCard
+            key={c.id}
+            child={c}
+            badgeIcons={badgeIcons}
+            onUpdate={(u) => setChildren((prev) => prev.map((x) => (x.id === u.id ? u : x)))}
+          />
         ))}
         <button className="learn-add-card" onClick={() => setShowAdd(true)}>
           <span className="learn-add-icon">+</span>
@@ -122,6 +143,19 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
               onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value }))}
             />
 
+            <label className="learn-label">
+              رقم هوية الطفل (اختياري — لتوثيق تعلّمه في المنصة الوطنية نيلك)
+            </label>
+            <input
+              className="learn-input"
+              dir="ltr"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="1xxxxxxxxx"
+              value={form.nationalId}
+              onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value }))}
+            />
+
             {err && <p className="learn-err">{err}</p>}
 
             <div className="learn-modal-actions">
@@ -137,7 +171,15 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
   );
 }
 
-function ChildCard({ child, badgeIcons }: { child: ChildData; badgeIcons: Record<string, string> }) {
+function ChildCard({
+  child,
+  badgeIcons,
+  onUpdate,
+}: {
+  child: ChildData;
+  badgeIcons: Record<string, string>;
+  onUpdate: (c: ChildData) => void;
+}) {
   const [pin, setPin] = useState('');
   const [entering, setEntering] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -180,6 +222,8 @@ function ChildCard({ child, badgeIcons }: { child: ChildData; badgeIcons: Record
         </div>
       )}
 
+      <NationalIdRow child={child} onUpdate={onUpdate} />
+
       {entering ? (
         <div className="learn-pin-wrap">
           <input
@@ -205,6 +249,101 @@ function ChildCard({ child, badgeIcons }: { child: ChildData; badgeIcons: Record
           ابدأ التعلّم 🚀
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Child national ID — the learner identity used to report REAL progress to
+ * the national learning platform (NELC). Optional; editable until the first
+ * statements are queued for NELC (then the server locks it).
+ */
+function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: ChildData) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function save() {
+    const v = value.trim();
+    if (!NATIONAL_ID_RE.test(v)) {
+      setErr('رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2');
+      return;
+    }
+    setSaving(true);
+    setErr('');
+    try {
+      const res = await fetch(`/svc/learn/children/${child.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nationalId: v }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(
+          j.error === 'national_id_taken'
+            ? 'هذا الرقم مسجّل لطفل آخر'
+            : j.error === 'national_id_locked'
+              ? 'لا يمكن تغيير الرقم بعد بدء إرسال بيانات التعلّم لنيلك'
+              : j.error === 'invalid_national_id'
+                ? 'رقم الهوية غير صحيح'
+                : 'حدث خطأ',
+        );
+        return;
+      }
+      onUpdate(j);
+      setEditing(false);
+    } catch {
+      setErr('حدث خطأ في الاتصال');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="learn-child-nid">
+        <button
+          className="learn-nid-btn"
+          title="رقم هوية الطفل لتوثيق تعلّمه في المنصة الوطنية نيلك"
+          onClick={() => {
+            setValue(child.nationalId ?? '');
+            setErr('');
+            setEditing(true);
+          }}
+        >
+          {child.nationalId ? (
+            <>🪪 <span className="nid-value">{child.nationalId}</span></>
+          ) : (
+            <>🪪 إضافة رقم الهوية (لتوثيق التعلّم في نيلك)</>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="learn-child-nid learn-nid-edit">
+      <input
+        className="learn-input learn-pin-input"
+        dir="ltr"
+        inputMode="numeric"
+        maxLength={10}
+        placeholder="1xxxxxxxxx"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') save(); }}
+        autoFocus
+      />
+      {err && <p className="learn-err">{err}</p>}
+      <div className="learn-nid-actions">
+        <button className="btn y small" onClick={save} disabled={saving}>
+          {saving ? '...' : 'حفظ'}
+        </button>
+        <button className="btn small" onClick={() => { setEditing(false); setErr(''); }}>
+          إلغاء
+        </button>
+      </div>
     </div>
   );
 }

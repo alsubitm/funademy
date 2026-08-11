@@ -25,6 +25,15 @@ description: Durable constraints for NELC licensing, the LRS verification test, 
 - EXPECTED behavior, not a bug: staging creds are write-only, so the precheck usually answers "unverifiable/read_denied" → the UI demands explicit confirmation. Never "fix" this into a silent pass.
 - Override grants are bound to the exact national ID they were raised for (typed-ID confirm for burned/delivered cases); form edits dismiss prompts; LRS reads use cache:no-store.
 
+## Production outbox (real learner data → NELC prod LRS)
+- Statement UUID is the xAPI idempotency key — an LRS stores a statement id at most once. The outbox freezes each statement JSON (with its id) at enqueue time; retries/duplicate transports can never duplicate a record. Never rebuild a statement on retry (fresh UUID = real duplicate).
+- Two transports, one queue: server flush (works only if NELC ever allowlists; WAF geo-blocks US egress) + admin browser relay. Browser prepare "leases" its rows via the unconsumed/unexpired flush-run; the server PAUSES at the first leased row (ordered delivery — never skip past). **Why:** overlap would reorder or double-send in flight.
+- `outboxActive()` gates ENQUEUE, not just delivery — dev preview shares the prod DB/secrets, and test kids must never reach NELC's store. Delivery failure is invisible to kids/parents by design (enqueue+flush swallow errors).
+- Progress/completion sent to NELC are band-scoped: a child's curriculum for a subject IS their band's units; percent counts only published in-band lessons. Without the band filter a multi-band subject misreports % and completed_course.
+- Any module reachable from Next.js instrumentation.ts is also bundled for the edge runtime → node builtin imports (`import 'crypto'`) break the whole dev server with Module-not-found. Use Web Crypto globals (`crypto.randomUUID()`).
+- `timeSpentSeconds` is client input: clamp at the API boundary (0..4h int) AND in the duration builder — NELC durations must stay plausible.
+- National ID = learner identity; locked (409) once any outbox row exists for the child. Fixing a wrong locked ID is an admin-side gap (proposed follow-up).
+
 ## Verification PASSED (2026-08-11)
 - NELC wizard confirmed: «تم التحقق من بيانات الاعتماد بنجاح — تم فتح بيئة الإنتاج» using fresh ID 1234567899 with course https://funademy.io/course/CR001.
 - BURNED IDs now: 1234567890, 1059652238, 1234567899 — never reuse any of them.

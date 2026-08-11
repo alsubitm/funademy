@@ -235,6 +235,19 @@ type Config = {
   defaultCourseIri: string;
 };
 
+/** Production outbox status (REAL learner data → NELC production LRS). */
+type ProductionStatus = {
+  configured: boolean;
+  pending: number;
+  sent: number;
+  /** pending rows past the SERVER retry cap — browser flush only. */
+  stalled: number;
+  childrenWithId: number;
+  childrenWithoutId: number;
+  lastError: string | null;
+  lastHttpStatus: number | null;
+};
+
 function StatusChip({ ok, httpStatus }: { ok: boolean; httpStatus: number | null }) {
   if (ok) {
     return (
@@ -290,6 +303,7 @@ export function NelcTab() {
   const [devConfirmInput, setDevConfirmInput] = useState('');
   const [checkBusy, setCheckBusy] = useState(false);
   const [lastCheck, setLastCheck] = useState<CheckState | null>(null);
+  const [production, setProduction] = useState<ProductionStatus | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -305,6 +319,7 @@ export function NelcTab() {
         defaultCourseIri: data.defaultCourseIri,
       });
       setLogs(data.logs || []);
+      setProduction(data.production ?? null);
       setCourseIri((v) => v || data.defaultCourseIri || '');
     } finally {
       setLoading(false);
@@ -1097,6 +1112,14 @@ export function NelcTab() {
         </div>
       )}
 
+      {/* Production outbox — REAL learner data */}
+      <ProductionOutboxPanel
+        production={production}
+        adminPassword={adminPassword}
+        deployed={config?.deployed === true}
+        onRefresh={refresh}
+      />
+
       {/* Log */}
       <div className="space-y-3">
         <h3 className="font-display font-bold text-lg text-[#101A38]">سجل الإرسالات</h3>
@@ -1195,6 +1218,199 @@ export function NelcTab() {
           })
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Production outbox panel — REAL kids' learning data → NELC's PRODUCTION
+ * LRS. Statements queue automatically on real events (server-side); the
+ * server retries delivery, and when its egress is geo-blocked the owner
+ * flushes pending rows from THIS browser — the same relay pattern as the
+ * staging journey above, with the same step-up password and a one-time
+ * prepared-run handshake (`outbox_prepare` / `outbox_record`).
+ */
+function ProductionOutboxPanel({
+  production,
+  adminPassword,
+  deployed,
+  onRefresh,
+}: {
+  production: ProductionStatus | null;
+  adminPassword: string;
+  deployed: boolean;
+  onRefresh: () => Promise<void> | void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  if (!production) return null;
+
+  const flushFromBrowser = async () => {
+    if (!adminPassword.trim()) {
+      setErr('أدخل كلمة مرور الإدارة في خانة التأكيد أعلاه أولاً.');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const prep = await fetch('/svc/admin/nelc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'outbox_prepare', password: adminPassword }),
+      });
+      const pj = await prep.json().catch(() => ({}));
+      if (!prep.ok) {
+        setErr(
+          pj.error === 'reauth_failed'
+            ? 'كلمة مرور الإدارة غير صحيحة.'
+            : pj.error === 'dev_environment_blocked'
+              ? 'إرسال البيانات الحقيقية متاح فقط من الموقع المنشور funademy.io.'
+              : pj.error === 'prod_not_configured'
+                ? 'بيانات اعتماد بيئة الإنتاج غير مهيأة بعد.'
+                : `تعذّر تجهيز الإرسال (${pj.error ?? prep.status}).`,
+        );
+        return;
+      }
+      if (!pj.runId || !Array.isArray(pj.statements) || pj.statements.length === 0) {
+        setMsg('لا توجد سجلات معلّقة للإرسال.');
+        return;
+      }
+      const results: {
+        statementId: string;
+        ok: boolean;
+        httpStatus: number | null;
+        response: string;
+      }[] = [];
+      for (const s of pj.statements as { statementId: string; statement: unknown }[]) {
+        try {
+          const r = await fetch(pj.url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Experience-API-Version': '1.0.3',
+              Authorization: pj.authorization,
+            },
+            body: JSON.stringify(s.statement),
+            cache: 'no-store',
+          });
+          const text = (await r.text().catch(() => '')).slice(0, 2000);
+          results.push({ statementId: s.statementId, ok: r.ok, httpStatus: r.status, response: text });
+          if (!r.ok) break; // stop-on-failure — per-learner event order must hold
+        } catch (e) {
+          results.push({
+            statementId: s.statementId,
+            ok: false,
+            httpStatus: null,
+            response: `browser_network_or_cors: ${e instanceof Error ? e.message : 'unknown'}`.slice(0, 300),
+          });
+          break;
+        }
+      }
+      const rec = await fetch('/svc/admin/nelc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'outbox_record', runId: pj.runId, results }),
+      });
+      const rj = await rec.json().catch(() => ({}));
+      if (!rec.ok) {
+        setErr(`أُرسلت السجلات لكن تعذّر تسجيل النتيجة (${rj.error ?? rec.status}) — حدّث الصفحة.`);
+        return;
+      }
+      const okCount = results.filter((r) => r.ok).length;
+      const failedRow = results.find((r) => !r.ok);
+      const remaining = Math.max(0, production.pending - okCount);
+      setMsg(
+        okCount === results.length
+          ? `تم إرسال ${okCount} سجلاً بنجاح.${remaining > 0 ? ` تبقّى ${remaining} — اضغط الزر مجدداً.` : ''}`
+          : `أُرسل ${okCount} من ${results.length} ثم توقّف عند أول فشل (HTTP ${failedRow?.httpStatus ?? 'شبكة'}).`,
+      );
+    } finally {
+      setBusy(false);
+      await onRefresh();
+    }
+  };
+
+  const chip = (label: string, value: number, warn: boolean) => (
+    <span
+      className={`text-xs font-bold px-3 py-1 rounded-full ${
+        warn ? 'bg-[#FFF7DA] text-[#8a6d00]' : 'bg-[#F0F5FF] text-[#101A38]'
+      }`}
+    >
+      {label}: {value}
+    </span>
+  );
+
+  return (
+    <div className="bg-white p-5 rounded-2xl border border-[#DFE5F2] space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h3 className="font-display font-bold text-lg text-[#101A38]">
+          بيانات التعلّم الحقيقية — بيئة الإنتاج
+        </h3>
+        {production.configured ? (
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-[rgba(34,218,255,0.15)] text-[#0e7a94]">
+            مهيأ
+          </span>
+        ) : (
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#FDECEC] text-[#B3261E]">
+            غير مهيأ — أضف بيانات اعتماد الإنتاج
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-[#5F6B92] leading-relaxed">
+        كل درس يكمله طفل مسجَّل برقم هويته يُضاف تلقائياً إلى قائمة الإرسال، ويحاول الخادم تسليمه
+        لنيلك فوراً ثم كل ١٠ دقائق. إذا بقيت سجلات معلّقة (نيلك يحجب خوادمنا جغرافياً) أرسلها من
+        متصفحك بالزر أدناه — يتطلب كلمة مرور الإدارة في خانة التأكيد أعلاه.
+      </p>
+      <div className="flex items-center gap-2 flex-wrap">
+        {chip('معلّق', production.pending, production.pending > 0)}
+        {chip('مُرسَل', production.sent, false)}
+        {chip('أطفال برقم هوية', production.childrenWithId, false)}
+        {chip('أطفال بدون رقم', production.childrenWithoutId, production.childrenWithoutId > 0)}
+      </div>
+      {production.stalled > 0 && (
+        <div className="bg-[#FFF7DA] border border-[#FFD400]/50 rounded-xl px-4 py-3 text-sm text-[#8a6d00] leading-relaxed">
+          {production.stalled} سجلاً تجاوز محاولات الخادم الآلية (الحجب الجغرافي غالباً) — أرسلها
+          من متصفحك بالزر أدناه.
+        </div>
+      )}
+      {production.lastError && (
+        <details className="text-xs text-[#5F6B92]">
+          <summary className="cursor-pointer font-bold">
+            آخر خطأ تسليم{production.lastHttpStatus ? ` (HTTP ${production.lastHttpStatus})` : ' (شبكة)'}
+          </summary>
+          <div className="font-mono break-all mt-1 bg-[#F0F5FF] rounded-lg p-2" dir="ltr">
+            {production.lastError.slice(0, 500)}
+          </div>
+        </details>
+      )}
+      {!deployed && (
+        <div className="bg-[#FFF7DA] border border-[#FFD400]/50 rounded-xl px-4 py-3 text-sm text-[#8a6d00] leading-relaxed">
+          أنت في بيئة التطوير — تجميع البيانات الحقيقية وإرسالها يعملان فقط على الموقع المنشور
+          funademy.io.
+        </div>
+      )}
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          onClick={flushFromBrowser}
+          disabled={busy || production.pending === 0 || !production.configured}
+          className="px-5 py-2.5 rounded-xl font-display font-bold text-sm bg-[#FFD400] text-[#101A38] disabled:opacity-50"
+        >
+          {busy ? 'جارٍ الإرسال…' : `إرسال المعلّق من متصفحي (${production.pending})`}
+        </button>
+      </div>
+      {msg && (
+        <div className="bg-[rgba(34,218,255,0.1)] border border-[#22DAFF]/40 rounded-xl px-4 py-3 text-sm text-[#0e7a94] font-bold leading-relaxed">
+          {msg}
+        </div>
+      )}
+      {err && (
+        <div className="bg-[#FDECEC] border border-[#B3261E]/30 rounded-xl px-4 py-3 text-sm text-[#B3261E] leading-relaxed">
+          {err}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireLessonAccess } from '@/lib/lesson-guard';
 import { computeReward, gradeAnswers, XP_PER_LESSON } from '@/lib/learning';
+import { enqueueCompletionEvents, flushOutboxServer } from '@/lib/xapiOutbox';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,13 @@ export async function POST(
 
   const b = body as { answers?: Array<{ exerciseId: number; answer: string }>; timeSpentSeconds?: number };
   const answers = Array.isArray(b.answers) ? b.answers : [];
-  const timeSpentSeconds = typeof b.timeSpentSeconds === 'number' ? b.timeSpentSeconds : 0;
+  // Client-reported and therefore untrusted: clamp to a bounded non-negative
+  // integer (0..4h). It feeds daily-limit accounting and the NELC-reported
+  // duration — raw client input must not be able to distort either.
+  const timeSpentSeconds =
+    typeof b.timeSpentSeconds === 'number' && Number.isFinite(b.timeSpentSeconds)
+      ? Math.min(Math.max(Math.round(b.timeSpentSeconds), 0), 4 * 3600)
+      : 0;
 
   // Server-authoritative grading (correctAnswer never leaves the server)
   const { score, perAnswer } = gradeAnswers(lesson.exercises, answers);
@@ -115,6 +122,22 @@ export async function POST(
 
   if ('limitReached' in txResult) {
     return NextResponse.json({ error: 'daily_limit_reached' }, { status: 403 });
+  }
+
+  // NELC production reporting — FIRST completions only. The ENQUEUE is
+  // awaited (a fast local tx — once the child sees success, the statement is
+  // durably queued even if autoscale kills the instance right after), while
+  // DELIVERY is fire-and-forget. Both swallow their own errors and are no-ops
+  // outside the published deployment or for children without a national ID —
+  // the child's lesson can never break because of NELC.
+  if (txResult.isFirst) {
+    const queued = await enqueueCompletionEvents({
+      childId: child.id,
+      lessonId,
+      score,
+      timeSpentSeconds,
+    });
+    if (queued > 0) void flushOutboxServer();
   }
 
   if (!txResult.isFirst) {
