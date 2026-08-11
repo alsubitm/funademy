@@ -1506,4 +1506,21 @@ describe('GET /svc/admin/nelc', () => {
     expect(data.defaultCourseIri).toBe('https://funademy.io/course/CR001');
     expect(Array.isArray(data.logs)).toBe(true);
   });
+
+  // 2026-08-10 burned-ID incident: journeys were fired from the DEV PREVIEW
+  // while NELC's LRS is one store shared with the published site. The tab
+  // must know — from the SERVER, never the browser's address bar — whether
+  // it is running on the published deployment, so it can show the
+  // dev-environment warning banner everywhere else.
+  it('reports deployed=false outside the published deployment (REPLIT_DEPLOYMENT unset)', async () => {
+    vi.stubEnv('REPLIT_DEPLOYMENT', '');
+    const data = await (await nelcGET()).json();
+    expect(data.deployed).toBe(false);
+  });
+
+  it('reports deployed=true only when REPLIT_DEPLOYMENT=1 (published deployment)', async () => {
+    vi.stubEnv('REPLIT_DEPLOYMENT', '1');
+    const data = await (await nelcGET()).json();
+    expect(data.deployed).toBe(true);
+  });
 });

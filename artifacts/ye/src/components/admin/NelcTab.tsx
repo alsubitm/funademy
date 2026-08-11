@@ -222,6 +222,14 @@ type LogRow = {
 type Config = {
   configured: boolean;
   environment: string;
+  /**
+   * SERVER-determined runtime environment (REPLIT_DEPLOYMENT on the server —
+   * never the browser's address bar): true only on the published deployment
+   * (funademy.io). false ⇒ the dev-environment warning banner is shown —
+   * NELC's LRS is ONE store shared across environments, and the 2026-08-10
+   * burned-ID incident came from sending out of the dev preview.
+   */
+  deployed: boolean;
   defaultCourseIri: string;
 };
 
@@ -281,6 +289,9 @@ export function NelcTab() {
       setConfig({
         configured: data.configured,
         environment: data.environment,
+        // Fail-safe: only an explicit server "true" counts as the published
+        // deployment — a missing field must show the warning, not hide it.
+        deployed: data.deployed === true,
         defaultCourseIri: data.defaultCourseIri,
       });
       setLogs(data.logs || []);
@@ -585,6 +596,20 @@ export function NelcTab() {
           )}
         </div>
       </div>
+
+      {config && !config.deployed && (
+        <div className="bg-[#FDECEC] border-2 border-[#B3261E] rounded-2xl p-5 space-y-2">
+          <div className="font-display font-bold text-[#B3261E]">
+            ⚠ أنت الآن في بيئة التطوير (المعاينة) — وليس الموقع المنشور
+          </div>
+          <p className="text-sm text-[#B3261E] leading-relaxed font-bold">
+            مخزن نيلك واحد ومشترك بين بيئة التطوير والموقع المنشور، وأي إرسال من هنا يحرق رقم
+            الهوية نهائياً كما لو أُرسل من الموقع الرسمي (هذا بالضبط ما حدث في حادثة 10 أغسطس
+            2026). إجراء التحقق الرسمي يجب أن يتم من الموقع المنشور{' '}
+            <span dir="ltr" className="font-mono">funademy.io</span> فقط.
+          </p>
+        </div>
+      )}
 
       {!config?.configured && (
         <div className="bg-[rgba(255,202,23,0.12)] border border-[#FFCA17] rounded-2xl p-5 space-y-2">

@@ -31,6 +31,13 @@ export async function GET() {
   return NextResponse.json({
     configured: lrsConfigured(),
     environment: lrsEnvironment(),
+    // SERVER-side runtime distinction (2026-08-10 burned-ID incident: the
+    // journeys were fired from the DEV PREVIEW while NELC's LRS is ONE store
+    // shared with the published site). REPLIT_DEPLOYMENT is set only in the
+    // published deployment, so anything else — dev preview, local — must show
+    // the «أنت في بيئة التطوير» warning in the UI. Determined here, never
+    // from the browser's address bar.
+    deployed: process.env.REPLIT_DEPLOYMENT === '1',
     defaultCourseIri: DEFAULT_COURSE_IRI,
     logs,
   });
