@@ -1153,6 +1153,9 @@ export function NelcTab() {
         onRefresh={refresh}
       />
 
+      {/* Admin correction of a LOCKED child national ID (typo after send) */}
+      <NationalIdFixPanel />
+
       {/* Log */}
       <div className="space-y-3">
         <h3 className="font-display font-bold text-lg text-[#101A38]">سجل الإرسالات</h3>
@@ -1595,3 +1598,199 @@ function ProductionOutboxPanel({
     </div>
   );
 }
+
+type FixChild = { id: number; name: string; nationalId: string; locked: boolean };
+
+/**
+ * Correct a LOCKED child national ID (typo discovered after statements were
+ * already sent to NELC). Deliberately cautious: pick the child, type the new
+ * ID, then RETYPE it to confirm; the server refuses duplicates and records a
+ * permanent audit row (who/when/old/new). The old NELC records are never
+ * deleted — the LRS keeps them forever ("burned" ID); a fresh
+ * registered+progressed snapshot is queued under the corrected ID.
+ */
+function NationalIdFixPanel() {
+  const [children, setChildren] = useState<FixChild[]>([]);
+  const [audit, setAudit] = useState<FixAudit[]>([]);
+  const [childId, setChildId] = useState<number | ''>('');
+  const [newId, setNewId] = useState('');
+  const [confirmId, setConfirmId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch('/svc/admin/children/national-id', { cache: 'no-store' });
+      if (!r.ok) return;
+      const j = await r.json();
+      setChildren(Array.isArray(j.children) ? j.children : []);
+      setAudit(Array.isArray(j.corrections) ? j.corrections : []);
+    } catch {
+      /* panel is auxiliary — leave empty on failure */
+    }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const lockedChildren = children.filter((c) => c.locked);
+  const selected = children.find((c) => c.id === childId) ?? null;
+  const idValid = /^[12]\d{9}$/.test(newId.trim());
+  const canSubmit =
+    !!selected && idValid && confirmId.trim() === newId.trim() && newId.trim() !== selected.nationalId;
+
+  const submit = async () => {
+    if (!canSubmit || !selected) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const r = await fetch('/svc/admin/children/national-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ childId: selected.id, newNationalId: newId.trim(), confirm: true }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setErr(
+          j.error === 'national_id_taken'
+            ? 'الرقم الجديد مستخدم لطفل آخر — لا يمكن التكرار.'
+            : j.error === 'invalid_national_id'
+              ? 'رقم الهوية غير صالح (10 أرقام تبدأ بـ 1 أو 2).'
+              : j.error === 'delivery_in_flight' || j.error === 'browser_flush_active'
+                ? 'يوجد إرسال جارٍ لسجلات هذا الطفل الآن — انتظر دقيقة (أو حتى انتهاء إرسال المتصفح) ثم أعد المحاولة.'
+              : j.error === 'not_locked'
+                ? 'رقم هذا الطفل غير مقفل — يمكن لولي الأمر تعديله بنفسه من بوابة الأهالي.'
+                : j.error === 'same_national_id'
+                  ? 'الرقم الجديد مطابق للرقم الحالي.'
+                  : `تعذّر التصحيح (${j.error ?? r.status}).`,
+        );
+        return;
+      }
+      setMsg(
+        `تم التصحيح: ${j.oldNationalId} ← ${j.newNationalId}. أُلغي ${j.supersededPending} سجلاً معلّقاً تحت الرقم الخاطئ، وأُدرج ${j.snapshotQueued} سجلاً جديداً (تسجيل + نسبة التقدم) تحت الرقم الصحيح.`,
+      );
+      setChildId('');
+      setNewId('');
+      setConfirmId('');
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-white p-5 rounded-2xl border border-[#DFE5F2] space-y-4">
+      <h3 className="font-display font-bold text-lg text-[#101A38]">
+        تصحيح رقم هوية مقفل (خطأ إدخال)
+      </h3>
+      <p className="text-sm text-[#5F6B92] leading-relaxed">
+        بعد أول إرسال لنيلك يُقفل رقم هوية الطفل ولا يستطيع ولي الأمر تغييره. إذا اكتُشف أن الرقم
+        أُدخل بالخطأ، صحّحه من هنا فقط.
+      </p>
+      <div className="bg-[#FFF7DA] border border-[#FFD400]/50 rounded-xl px-4 py-3 text-sm text-[#8a6d00] leading-relaxed">
+        تنبيه: سجلات نيلك القديمة تحت الرقم الخاطئ <b>لا تُحذف أبداً</b> — نظام نيلك لا يحذف
+        السجلات، ويبقى الرقم الخاطئ «محروقاً». ما يحدث عند التصحيح: تُلغى السجلات المعلّقة غير
+        المُرسلة تحت الرقم الخاطئ، ويُقيَّد سجل جديد (تسجيل + نسبة التقدم الحالية) تحت الرقم
+        الصحيح، ويُحفظ التغيير في سجل تدقيق دائم.
+      </div>
+      {lockedChildren.length === 0 ? (
+        <p className="text-sm text-[#5F6B92]">لا يوجد حالياً أطفال بأرقام هوية مقفلة.</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="text-sm text-[#101A38] space-y-1">
+            <span className="font-bold">الطفل</span>
+            <select
+              value={childId}
+              onChange={(e) => { setChildId(e.target.value ? Number(e.target.value) : ''); setMsg(null); setErr(null); }}
+              className="w-full border border-[#DFE5F2] rounded-xl px-3 py-2.5 bg-white"
+            >
+              <option value="">— اختر طفلاً —</option>
+              {lockedChildren.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {c.nationalId}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm text-[#101A38] space-y-1">
+            <span className="font-bold">الرقم الصحيح</span>
+            <input
+              dir="ltr"
+              inputMode="numeric"
+              maxLength={10}
+              value={newId}
+              onChange={(e) => { setNewId(e.target.value); setMsg(null); setErr(null); }}
+              placeholder="1XXXXXXXXX"
+              className="w-full border border-[#DFE5F2] rounded-xl px-3 py-2.5 font-mono"
+            />
+          </label>
+          <label className="text-sm text-[#101A38] space-y-1">
+            <span className="font-bold">أعد كتابة الرقم للتأكيد</span>
+            <input
+              dir="ltr"
+              inputMode="numeric"
+              maxLength={10}
+              value={confirmId}
+              onChange={(e) => { setConfirmId(e.target.value); setMsg(null); setErr(null); }}
+              placeholder="1XXXXXXXXX"
+              className="w-full border border-[#DFE5F2] rounded-xl px-3 py-2.5 font-mono"
+            />
+          </label>
+        </div>
+      )}
+      {selected && newId.trim() && !idValid && (
+        <p className="text-xs text-[#B3261E]">رقم الهوية: 10 أرقام تبدأ بـ 1 أو 2.</p>
+      )}
+      {selected && idValid && confirmId.trim() && confirmId.trim() !== newId.trim() && (
+        <p className="text-xs text-[#B3261E]">الرقمان غير متطابقين.</p>
+      )}
+      {lockedChildren.length > 0 && (
+        <button
+          onClick={submit}
+          disabled={busy || !canSubmit}
+          className="px-5 py-2.5 rounded-xl font-display font-bold text-sm bg-[#B3261E] text-white disabled:opacity-40"
+        >
+          {busy ? 'جارٍ التصحيح…' : 'تصحيح الرقم نهائياً'}
+        </button>
+      )}
+      {msg && (
+        <div className="bg-[rgba(34,218,255,0.1)] border border-[#22DAFF]/40 rounded-xl px-4 py-3 text-sm text-[#0e7a94] font-bold leading-relaxed">
+          {msg}
+        </div>
+      )}
+      {err && (
+        <div className="bg-[#FDECEC] border border-[#B3261E]/30 rounded-xl px-4 py-3 text-sm text-[#B3261E] leading-relaxed">
+          {err}
+        </div>
+      )}
+      {audit.length > 0 && (
+        <details className="text-sm text-[#5F6B92]">
+          <summary className="cursor-pointer font-bold text-[#101A38]">
+            سجل التصحيحات السابقة ({audit.length})
+          </summary>
+          <div className="mt-2 space-y-1">
+            {audit.map((a) => (
+              <div key={a.id} className="bg-[#F0F5FF] rounded-lg px-3 py-2 text-xs leading-relaxed">
+                {fmtDateTime(a.createdAt)} — {a.childName}: <span dir="ltr" className="font-mono">{a.oldNationalId}</span> ←{' '}
+                <span dir="ltr" className="font-mono">{a.newNationalId}</span> (بواسطة {a.changedBy === 'admin' ? 'الإدارة' : a.changedBy}
+                ، أُلغي {a.supersededPending} معلّقاً، قُيّد {a.snapshotQueued} جديداً)
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+type FixAudit = {
+  id: number;
+  childId: number | null;
+  childName: string;
+  oldNationalId: string;
+  newNationalId: string;
+  changedBy: string;
+  supersededPending: number;
+  snapshotQueued: number;
+  createdAt: string;
+};

@@ -15,7 +15,7 @@ import {
   lrsStatementsUrl,
   sendStatement,
 } from '@/lib/xapi';
-import { MAX_SERVER_ATTEMPTS } from '@/lib/xapiOutbox';
+import { MAX_SERVER_ATTEMPTS, lockChildDispatch } from '@/lib/xapiOutbox';
 import {
   prodLrsAuthorization,
   prodLrsConfigured,
@@ -616,20 +616,43 @@ export async function POST(req: NextRequest) {
     });
     // Strict id order = per-learner event order. The browser flush ignores
     // the SERVER attempts cap on purpose — for it, pending is pending.
-    const rows = await prisma.xapiOutbox.findMany({
-      where: { status: 'pending' },
-      orderBy: { id: 'asc' },
-      take: 25,
+    // Selection + lease creation run under the per-child DISPATCH locks
+    // (same protocol as the server-flush claim and the admin locked-ID
+    // correction), so a correction can never supersede a row between this
+    // read and the lease: it either waits for the lease to exist (then
+    // refuses with 409 browser_flush_active) or commits first (then the
+    // superseded rows are no longer pending here).
+    const runId = randomUUID();
+    const rows = await prisma.$transaction(async (tx) => {
+      const candidates = await tx.xapiOutbox.findMany({
+        where: { status: 'pending' },
+        orderBy: { id: 'asc' },
+        take: 25,
+      });
+      const childIds = [
+        ...new Set(candidates.map((r) => r.childId).filter((id): id is number => id !== null)),
+      ].sort((a, b) => a - b); // stable order — no lock-order deadlocks
+      for (const id of childIds) await lockChildDispatch(tx, id);
+      // Authoritative re-read AFTER the locks, restricted to the CANDIDATE
+      // rows (whose children we actually hold locks for): a correction that
+      // committed in between has already superseded its rows, and a row that
+      // entered the pending set after the candidate read is NEVER leased —
+      // its child's lock is not held, so it waits for the next prepare.
+      const locked = await tx.xapiOutbox.findMany({
+        where: { id: { in: candidates.map((r) => r.id) }, status: 'pending' },
+        orderBy: { id: 'asc' },
+      });
+      if (locked.length === 0) return [];
+      await tx.xapiOutboxFlushRun.create({
+        data: {
+          runId,
+          statementIds: locked.map((r) => r.statementId),
+          expiresAt: new Date(Date.now() + PREPARED_RUN_TTL_MS),
+        },
+      });
+      return locked;
     });
     if (rows.length === 0) return NextResponse.json({ runId: null, statements: [] });
-    const runId = randomUUID();
-    await prisma.xapiOutboxFlushRun.create({
-      data: {
-        runId,
-        statementIds: rows.map((r) => r.statementId),
-        expiresAt: new Date(Date.now() + PREPARED_RUN_TTL_MS),
-      },
-    });
     return NextResponse.json({
       runId,
       url: prodLrsStatementsUrl(),

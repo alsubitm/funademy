@@ -505,6 +505,21 @@ CREATE TABLE "ye_lrn_first_completions" (
 );
 
 -- CreateTable
+CREATE TABLE "ye_lrn_child_id_corrections" (
+    "id" SERIAL NOT NULL,
+    "childId" INTEGER,
+    "childName" TEXT NOT NULL,
+    "oldNationalId" TEXT NOT NULL,
+    "newNationalId" TEXT NOT NULL,
+    "changedBy" TEXT NOT NULL DEFAULT 'admin',
+    "supersededPending" INTEGER NOT NULL DEFAULT 0,
+    "snapshotQueued" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ye_lrn_child_id_corrections_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ye_xapi_statements" (
     "id" SERIAL NOT NULL,
     "runId" TEXT NOT NULL,
@@ -549,6 +564,7 @@ CREATE TABLE "ye_xapi_outbox" (
     "statement" JSONB NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'pending',
     "attempts" INTEGER NOT NULL DEFAULT 0,
+    "claimedAt" TIMESTAMP(3),
     "lastError" TEXT,
     "lastHttpStatus" INTEGER,
     "source" TEXT,

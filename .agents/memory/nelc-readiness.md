@@ -32,7 +32,7 @@ description: Durable constraints for NELC licensing, the LRS verification test, 
 - Progress/completion sent to NELC are band-scoped: a child's curriculum for a subject IS their band's units; percent counts only published in-band lessons. Without the band filter a multi-band subject misreports % and completed_course.
 - Any module reachable from Next.js instrumentation.ts is also bundled for the edge runtime → node builtin imports (`import 'crypto'`) break the whole dev server with Module-not-found. Use Web Crypto globals (`crypto.randomUUID()`).
 - `timeSpentSeconds` is client input: clamp at the API boundary (0..4h int) AND in the duration builder — NELC durations must stay plausible.
-- National ID = learner identity; locked (409) once any outbox row exists for the child. Fixing a wrong locked ID is an admin-side gap (proposed follow-up).
+- National ID = learner identity; locked (409) once any outbox row exists for the child. Corrections are admin-only and must be ATOMIC with delivery: identity change, cancellation of unsent old-ID rows, audit, and the new-ID snapshot commit together, and every dispatcher (server flush, browser prepare) shares one per-child serialization protocol with the correction — otherwise a statement can still leave under the wrong (burned) identity mid-correction.
 
 ## Verification PASSED (2026-08-11)
 - NELC wizard confirmed: «تم التحقق من بيانات الاعتماد بنجاح — تم فتح بيئة الإنتاج» using a fresh test ID with course https://funademy.io/course/CR001.

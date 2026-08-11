@@ -69,6 +69,8 @@ const lockChildRow = async (tx: Tx, childId: number): Promise<void> => {
   await tx.$queryRawUnsafe(`SELECT id FROM ye_lrn_children WHERE id = $1 FOR UPDATE`, childId);
 };
 
+/** Advisory-lock namespace for outbox dispatch/correction exclusion. */
+const OUTBOX_LOCK_NS = 421121;
 const hasRegistered = async (tx: Tx, nationalId: string, courseIri: string): Promise<boolean> =>
   Boolean(
     await tx.xapiOutbox.findFirst({
@@ -109,7 +111,10 @@ const insertRows = async (
  */
 const subjectProgress = async (tx: Tx, childId: number, subjectId: number, band: LrnBand) => {
   const published = await tx.lrnLesson.findMany({
-    where: { status: 'published', unit: { subjectId, status: 'published', band } },
+    where: {
+      status: 'published',
+      unit: { subjectId, status: 'published', band },
+    },
     select: { id: true, unitId: true },
   });
   const doneRows = published.length
@@ -197,7 +202,12 @@ export async function enqueueCompletionEvents(args: {
       const unitLessons = published.filter((l) => l.unitId === lesson.unitId);
       if (unitLessons.length > 0 && unitLessons.every((l) => done.has(l.id))) {
         rows.push(
-          buildUnitCompleted(nationalId, course, { id: lesson.unit.id, titleEn: lesson.unit.titleEn }, next()),
+          buildUnitCompleted(
+            nationalId,
+            course,
+            { id: lesson.unit.id, titleEn: lesson.unit.titleEn },
+            next(),
+          ),
         );
       }
       rows.push(buildProgressed(nationalId, course, percent, next()));
@@ -225,46 +235,61 @@ export async function enqueueIdSetSnapshot(args: {
   const { childId, nationalId } = args;
   if (!outboxActive()) return 0;
   try {
-    return await prisma.$transaction(async (tx) => {
-      await lockChildRow(tx, childId);
-
-      const childRow = await tx.lrnChild.findUnique({
-        where: { id: childId },
-        select: { band: true },
-      });
-      if (!childRow) return 0;
-
-      const firsts = await tx.lrnFirstCompletion.findMany({
-        where: { childId },
-        select: { lesson: { select: { unit: { select: { subjectId: true } } } } },
-      });
-      const subjectIds = [...new Set(firsts.map((f) => f.lesson.unit.subjectId))];
-      let queued = 0;
-      for (const subjectId of subjectIds) {
-        const subject = await tx.lrnSubject.findUnique({ where: { id: subjectId } });
-        if (!subject) continue;
-        const course = courseForSubject(subject);
-        const { done, percent } = await subjectProgress(tx, childId, subjectId, childRow.band);
-        if (done.size === 0) continue;
-
-        const at = new Date();
-        let step = 0;
-        const next = () => new Date(at.getTime() + step++ * 1000);
-
-        const rows: BuiltStatement[] = [];
-        if (!(await hasRegistered(tx, nationalId, course.iri))) {
-          rows.push(buildRegistered(nationalId, course, next()));
-        }
-        rows.push(buildProgressed(nationalId, course, percent, next()));
-        if (percent === 100) rows.push(buildCourseCompleted(nationalId, course, next()));
-        queued += await insertRows(tx, { childId }, nationalId, course.iri, rows);
-      }
-      return queued;
-    });
+    return await prisma.$transaction(async (tx) => enqueueIdSetSnapshotTx(tx, childId, nationalId));
   } catch (e) {
     console.error('[nelc-outbox] enqueueIdSetSnapshot failed (profile update unaffected):', e);
     return 0;
   }
+}
+
+/**
+ * Transaction-scoped variant of the ID-set snapshot: runs inside the
+ * CALLER's transaction and THROWS on failure, so callers that must be
+ * atomic with the snapshot (the admin locked-ID correction) roll back
+ * together instead of silently succeeding without the replacement record.
+ * Callers must check outboxActive() themselves.
+ */
+export async function enqueueIdSetSnapshotTx(
+  tx: Tx,
+  childId: number,
+  nationalId: string,
+): Promise<number> {
+  await lockChildRow(tx, childId);
+
+  const childRow = await tx.lrnChild.findUnique({
+    where: { id: childId },
+    select: { band: true },
+  });
+  if (!childRow) return 0;
+
+  const firsts = await tx.lrnFirstCompletion.findMany({
+    where: { childId },
+    select: { lesson: { select: { unit: { select: { subjectId: true } } } } },
+  });
+  const subjectIds = [...new Set(firsts.map((f) => f.lesson.unit.subjectId))];
+  let queued = 0;
+  for (const subjectId of subjectIds) {
+    const subject = await tx.lrnSubject.findUnique({
+      where: { id: subjectId },
+    });
+    if (!subject) continue;
+    const course = courseForSubject(subject);
+    const { done, percent } = await subjectProgress(tx, childId, subjectId, childRow.band);
+    if (done.size === 0) continue;
+
+    const at = new Date();
+    let step = 0;
+    const next = () => new Date(at.getTime() + step++ * 1000);
+
+    const rows: BuiltStatement[] = [];
+    if (!(await hasRegistered(tx, nationalId, course.iri))) {
+      rows.push(buildRegistered(nationalId, course, next()));
+    }
+    rows.push(buildProgressed(nationalId, course, percent, next()));
+    if (percent === 100) rows.push(buildCourseCompleted(nationalId, course, next()));
+    queued += await insertRows(tx, { childId }, nationalId, course.iri, rows);
+  }
+  return queued;
 }
 
 // ——— Live-class attendance (Student, not LrnChild) ——————————————————————————
@@ -418,10 +443,27 @@ export type FlushResult = {
  * the attempts cap are left for the browser flush. Never throws.
  */
 export async function flushOutboxServer(max = 25): Promise<FlushResult> {
-  const result: FlushResult = { attempted: 0, sent: 0, stopped: false, skipped: null };
+  const result: FlushResult = {
+    attempted: 0,
+    sent: 0,
+    stopped: false,
+    skipped: null,
+  };
   if (!outboxActive()) return { ...result, skipped: 'inactive' };
   if (!prodLrsConfigured()) return { ...result, skipped: 'not_configured' };
   try {
+    // Crash recovery FIRST: a `sending` claim that never resolved (process
+    // died mid-POST) reverts to pending after a grace period, so such rows
+    // are recovered even when they are the only work left. 5 min far
+    // exceeds any single POST.
+    await prisma.xapiOutbox.updateMany({
+      where: {
+        status: 'sending',
+        claimedAt: { lt: new Date(Date.now() - 5 * 60_000) },
+      },
+      data: { status: 'pending', claimedAt: null },
+    });
+
     const rows = await prisma.xapiOutbox.findMany({
       where: { status: 'pending', attempts: { lt: MAX_SERVER_ATTEMPTS } },
       orderBy: { id: 'asc' },
@@ -446,18 +488,35 @@ export async function flushOutboxServer(max = 25): Promise<FlushResult> {
     for (const row of rows) {
       if (leased.has(row.statementId)) break; // browser owns from here — pause
 
-      // Atomic claim — exactly one concurrent pass gets each attempt.
-      const claimed = await prisma.xapiOutbox.updateMany({
-        where: { id: row.id, status: 'pending', attempts: row.attempts },
-        data: { attempts: { increment: 1 } },
+      // Atomic claim — exactly one concurrent pass gets each attempt. The
+      // `sending` state makes the in-flight POST visible: the admin ID
+      // correction refuses to run while any of the child's rows is
+      // `sending`, so a statement can never leave under an identity that
+      // was corrected mid-flight.
+      // The claim runs under the per-child dispatch lock, so it serializes
+      // with the admin ID correction: a correction that already committed
+      // leaves the row `superseded` and this updateMany matches nothing.
+      const claimed = await prisma.$transaction(async (tx) => {
+        if (row.childId !== null) await lockChildDispatch(tx, row.childId);
+        return tx.xapiOutbox.updateMany({
+          where: { id: row.id, status: 'pending', attempts: row.attempts },
+          data: {
+            attempts: { increment: 1 },
+            status: 'sending',
+            claimedAt: new Date(),
+          },
+        });
       });
       if (claimed.count === 0) continue; // another pass owns this row now
       result.attempted++;
 
       const sent = await sendProdStatement(row.statement as Record<string, unknown>);
       if (sent.ok) {
-        await prisma.xapiOutbox.update({
-          where: { id: row.id },
+        // Guarded on `sending` — if anything else changed the row's state
+        // (it cannot supersede a `sending` row, but stay fail-safe), the
+        // terminal transition is never overwritten.
+        await prisma.xapiOutbox.updateMany({
+          where: { id: row.id, status: 'sending' },
           data: {
             status: 'sent',
             sentAt: new Date(),
@@ -468,9 +527,13 @@ export async function flushOutboxServer(max = 25): Promise<FlushResult> {
         });
         result.sent++;
       } else {
-        await prisma.xapiOutbox.update({
-          where: { id: row.id },
-          data: { lastHttpStatus: sent.httpStatus, lastError: sent.response.slice(0, 2000) },
+        await prisma.xapiOutbox.updateMany({
+          where: { id: row.id, status: 'sending' },
+          data: {
+            status: 'pending',
+            lastHttpStatus: sent.httpStatus,
+            lastError: sent.response.slice(0, 2000),
+          },
         });
         result.stopped = true;
         break; // order preservation: later rows wait for the next pass
@@ -487,3 +550,19 @@ export async function flushOutboxServer(max = 25): Promise<FlushResult> {
     return { ...result, stopped: true };
   }
 }
+
+/**
+ * Per-child DISPATCH lock (transaction-scoped Postgres advisory lock) — the
+ * single serialization protocol between statement DISPATCH (server flush
+ * claim, browser outbox_prepare lease) and the admin locked-ID correction.
+ * Every dispatcher takes it before claiming/leasing a child's rows; the
+ * correction takes it before superseding them. So after a correction
+ * commits, no dispatcher can still turn an old-ID row into a delivery: the
+ * claim/lease either happened BEFORE (the correction sees `sending`/lease
+ * and refuses with 409) or comes AFTER (the rows are already superseded and
+ * match nothing). Survives row deletion races because it does not depend on
+ * the child row existing.
+ */
+export const lockChildDispatch = async (tx: Tx, childId: number): Promise<void> => {
+  await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock($1::int, $2::int)`, OUTBOX_LOCK_NS, childId);
+};

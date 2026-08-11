@@ -680,6 +680,26 @@ model LrnFirstCompletion {
   @@map("ye_lrn_first_completions")
 }
 
+/// Permanent audit of ADMIN corrections to a LOCKED child national ID
+/// (task: a parent typo discovered after statements were sent to NELC).
+/// The old NELC records are NOT deleted (the LRS never deletes — the wrong
+/// ID stays "burned"); a fresh registered+progressed snapshot is queued
+/// under the corrected ID. No child FK on purpose — audit rows must outlive
+/// the child.
+model LrnChildIdCorrection {
+  id                Int      @id @default(autoincrement())
+  childId           Int? // informational only — no FK, rows outlive the child
+  childName         String
+  oldNationalId     String
+  newNationalId     String
+  changedBy         String   @default("admin") // single-admin app; kept explicit for the audit trail
+  supersededPending Int      @default(0) // pending outbox rows under the OLD ID cancelled at correction time
+  snapshotQueued    Int      @default(0) // outbox rows queued under the NEW ID right after the correction
+  createdAt         DateTime @default(now())
+
+  @@map("ye_lrn_child_id_corrections")
+}
+
 // ————————————————————————— NELC xAPI / LRS —————————————————————————
 
 // One row per xAPI statement sent (or attempted) to the NELC Learning Record
@@ -747,8 +767,9 @@ model XapiOutbox {
   verb           String // registered | completed_lesson | completed_unit | progressed | completed_course | attended
   statementId    String    @unique // client-generated xAPI statement UUID
   statement      Json // full xAPI statement built at event time
-  status         String    @default("pending") // pending | sent | voided
+  status         String    @default("pending") // pending | sending (server claim in flight) | sent | voided (admin skip) | superseded (ID corrected before delivery)
   attempts       Int       @default(0) // server send tries (browser relay ignores the cap)
+  claimedAt      DateTime? // when the server flush claimed the row (stale `sending` rows revert to pending)
   lastError      String? // last delivery error body/marker (truncated)
   lastHttpStatus Int? // last delivery HTTP status (null = network error)
   source         String? // who delivered it: server | browser (null while pending)
