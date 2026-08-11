@@ -249,6 +249,22 @@ type ProductionStatus = {
   /** rows the admin explicitly voided (skipped) — kept forever, never deleted. */
   voided: number;
   /**
+   * READ-ONLY review list of every voided row (which child, which verb, the
+   * last delivery error, the typed reason, who and when) — accountability
+   * toward NELC. No delete, no silent un-void.
+   */
+  voidedRows?: {
+    statementId: string;
+    verb: string;
+    nationalId: string;
+    lastError: string | null;
+    lastHttpStatus: number | null;
+    voidReason: string | null;
+    voidedBy: string | null;
+    voidedAt: string | null;
+    createdAt: string;
+  }[];
+  /**
    * HEAD OF THE QUEUE: delivery is strictly ordered, so if this row keeps
    * failing it blocks every statement behind it — for all children.
    * blocking=true once it has failed at least once.
@@ -1496,6 +1512,50 @@ function ProductionOutboxPanel({
           {production.stalled} سجلاً تجاوز محاولات الخادم الآلية (الحجب الجغرافي غالباً) — أرسلها
           من متصفحك بالزر أدناه.
         </div>
+      )}
+      {(production.voidedRows?.length ?? 0) > 0 && (
+        <details className="border border-[#DFE5F2] rounded-xl px-4 py-3">
+          <summary className="cursor-pointer text-sm font-display font-bold text-[#101A38]">
+            السجلات المُتخطّاة ({production.voidedRows!.length}) — قائمة مراجعة (قراءة فقط)
+          </summary>
+          <p className="text-xs text-[#5F6B92] leading-relaxed mt-2">
+            كل قرار تخطي يبقى محفوظاً هنا للمساءلة: أي طفل، أي فعل، آخر خطأ من نيلك، السبب المكتوب،
+            ومتى نُفّذ. لا يمكن حذف هذه السجلات أو إعادتها للإرسال من هنا.
+          </p>
+          <div className="mt-3 space-y-2">
+            {production.voidedRows!.map((row) => (
+              <div
+                key={row.statementId}
+                className="bg-[#F8FAFF] border border-[#DFE5F2] rounded-xl p-3 space-y-1 text-xs"
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-[#101A38]">{VERB_AR[row.verb] ?? row.verb}</span>
+                  <span className="font-mono text-[#5F6B92]" dir="ltr">ID: {row.nationalId}</span>
+                  <span className="text-[#8a6d00] font-bold" dir="ltr">
+                    {row.lastHttpStatus ? `HTTP ${row.lastHttpStatus}` : 'خطأ شبكة'}
+                  </span>
+                  {row.voidedAt && (
+                    <span className="text-[#5F6B92]" dir="ltr">{fmtDateTime(row.voidedAt)}</span>
+                  )}
+                </div>
+                <div className="text-[#101A38] leading-relaxed">
+                  <span className="font-bold">السبب:</span> {row.voidReason || '—'}
+                  {row.voidedBy && (
+                    <span className="text-[#5F6B92]"> — نفّذه: {row.voidedBy === 'admin' ? 'الإدارة' : row.voidedBy}</span>
+                  )}
+                </div>
+                {row.lastError && (
+                  <div className="font-mono break-all bg-white border border-[#DFE5F2] rounded-lg p-2 text-[#5F6B92]" dir="ltr">
+                    {row.lastError}
+                  </div>
+                )}
+                <div className="font-mono text-[10px] text-[#5F6B92] break-all" dir="ltr">
+                  {row.statementId}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
       )}
       {production.lastError && (
         <details className="text-xs text-[#5F6B92]">

@@ -29,7 +29,7 @@ export async function GET() {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  const [logs, obPending, obSent, obStalled, obVoided, childrenWithId, childrenTotal, obLastFailed, obHead] =
+  const [logs, obPending, obSent, obStalled, obVoided, childrenWithId, childrenTotal, obLastFailed, obHead, obVoidedRows] =
     await Promise.all([
       prisma.xapiStatement.findMany({ orderBy: { id: 'desc' }, take: 80 }),
       prisma.xapiOutbox.count({ where: { status: 'pending' } }),
@@ -61,6 +61,26 @@ export async function GET() {
           createdAt: true,
         },
       }),
+      // AUDIT LIST of voided (skipped) rows — read-only accountability view:
+      // every skip decision stays reviewable (which child, which verb, why,
+      // who, when). ALL rows are returned, newest decision first — voiding is
+      // a manual per-row admin act, so the volume stays tiny, and a truncated
+      // audit list would defeat the accountability purpose.
+      prisma.xapiOutbox.findMany({
+        where: { status: 'voided' },
+        orderBy: { voidedAt: 'desc' },
+        select: {
+          statementId: true,
+          verb: true,
+          nationalId: true,
+          lastError: true,
+          lastHttpStatus: true,
+          voidReason: true,
+          voidedBy: true,
+          voidedAt: true,
+          createdAt: true,
+        },
+      }),
     ]);
 
   return NextResponse.json({
@@ -78,6 +98,8 @@ export async function GET() {
       lastError: obLastFailed?.lastError ?? null,
       lastHttpStatus: obLastFailed?.lastHttpStatus ?? null,
       voided: obVoided,
+      // Read-only review list of every voided row (reason + who + when).
+      voidedRows: obVoidedRows,
       // Queue head with its last delivery error — the row the admin decides
       // about. head.blocking=true when it has already failed at least once.
       head: obHead

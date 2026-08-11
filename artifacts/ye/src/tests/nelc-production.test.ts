@@ -777,6 +777,51 @@ describe('admin outbox_void — skip a permanently-rejected head row', () => {
     expect(after.production).toMatchObject({ pending: 0, sent: 2, voided: 1, head: null });
   });
 
+  it('GET returns the COMPLETE voided review list — reason/who/when, newest first, no truncation past 200', async () => {
+    await prisma.xapiOutbox.deleteMany({});
+    // 205 voided rows — more than any page-size cap; ALL must be returned so
+    // the audit list can never silently hide older skip decisions.
+    const total = 205;
+    const base = Date.now() - total * 60_000;
+    await prisma.xapiOutbox.createMany({
+      data: Array.from({ length: total }, (_, i) => ({
+        childId: null,
+        nationalId: `28000000${String(i).padStart(2, '0')}`,
+        courseIri: 'https://funademy.io/course/subject-void',
+        verb: 'registered',
+        statementId: randomUUID(),
+        statement: { test: i },
+        status: 'voided',
+        // Longer than any UI/API slice threshold — the audit view must carry
+        // the FULL error text, never a truncated copy.
+        lastError: `rejected #${i} :: ${'x'.repeat(400)}`,
+        lastHttpStatus: 400,
+        voidReason: `سبب التخطي رقم ${i}`,
+        voidedBy: 'admin',
+        voidedAt: new Date(base + i * 60_000),
+      })),
+    });
+
+    const data = await (await nelcGET()).json();
+    expect(data.production.voided).toBe(total);
+    // The review list is complete and its length matches the summary count.
+    expect(data.production.voidedRows).toHaveLength(total);
+    // Newest decision first; the OLDEST decision is present at the tail.
+    expect(data.production.voidedRows[0].voidReason).toBe(`سبب التخطي رقم ${total - 1}`);
+    expect(data.production.voidedRows[total - 1].voidReason).toBe('سبب التخطي رقم 0');
+    // Each row carries the full audit fields.
+    expect(data.production.voidedRows[0]).toMatchObject({
+      verb: 'registered',
+      lastHttpStatus: 400,
+      voidedBy: 'admin',
+    });
+    expect(data.production.voidedRows[0].lastError).toContain('rejected #');
+    // The full error (>300 chars) is exposed intact — no slicing anywhere.
+    expect(data.production.voidedRows[0].lastError.length).toBeGreaterThan(300);
+    expect(data.production.voidedRows[0].lastError.endsWith('x'.repeat(400))).toBe(true);
+    expect(data.production.voidedRows[0].voidedAt).toBeTruthy();
+  });
+
   it('never touches sent rows; unknown IDs answer 404; double-void answers 409', async () => {
     await seed();
     stubProdEnv();
