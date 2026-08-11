@@ -37,14 +37,17 @@
 import type { LrnBand, Prisma } from '@prisma/client';
 import { prisma } from './db';
 import {
+  buildAttended,
   buildCourseCompleted,
   buildLessonCompleted,
   buildProgressed,
   buildRegistered,
   buildUnitCompleted,
+  courseForRun,
   courseForSubject,
   prodLrsConfigured,
   sendProdStatement,
+  sessionActivityIri,
   type BuiltStatement,
 } from './xapiProduction';
 
@@ -76,7 +79,7 @@ const hasRegistered = async (tx: Tx, nationalId: string, courseIri: string): Pro
 
 const insertRows = async (
   tx: Tx,
-  childId: number,
+  who: { childId?: number; studentId?: number },
   nationalId: string,
   courseIri: string,
   rows: BuiltStatement[],
@@ -84,7 +87,8 @@ const insertRows = async (
   for (const r of rows) {
     await tx.xapiOutbox.create({
       data: {
-        childId,
+        childId: who.childId ?? null,
+        studentId: who.studentId ?? null,
         nationalId,
         courseIri,
         verb: r.verb,
@@ -199,7 +203,7 @@ export async function enqueueCompletionEvents(args: {
       rows.push(buildProgressed(nationalId, course, percent, next()));
       if (percent === 100) rows.push(buildCourseCompleted(nationalId, course, next()));
 
-      return insertRows(tx, childId, nationalId, course.iri, rows);
+      return insertRows(tx, { childId }, nationalId, course.iri, rows);
     });
   } catch (e) {
     console.error('[nelc-outbox] enqueueCompletionEvents failed (completion unaffected):', e);
@@ -253,12 +257,142 @@ export async function enqueueIdSetSnapshot(args: {
         }
         rows.push(buildProgressed(nationalId, course, percent, next()));
         if (percent === 100) rows.push(buildCourseCompleted(nationalId, course, next()));
-        queued += await insertRows(tx, childId, nationalId, course.iri, rows);
+        queued += await insertRows(tx, { childId }, nationalId, course.iri, rows);
       }
       return queued;
     });
   } catch (e) {
     console.error('[nelc-outbox] enqueueIdSetSnapshot failed (profile update unaffected):', e);
+    return 0;
+  }
+}
+
+// ——— Live-class attendance (Student, not LrnChild) ——————————————————————————
+
+/** Serialize outbox work per live-class student — same role as lockChildRow. */
+const lockStudentRow = async (tx: Tx, studentId: number): Promise<void> => {
+  await tx.$queryRawUnsafe(`SELECT id FROM ye_students WHERE id = $1 FOR UPDATE`, studentId);
+};
+
+/** Attendance marks that genuinely mean "the child was in the class". */
+const ATTENDED_STATUSES = ['present', 'late'] as const;
+
+/** True when an `attended` statement for this session is already queued/sent. */
+const hasAttended = async (tx: Tx, nationalId: string, sessionIri: string): Promise<boolean> =>
+  Boolean(
+    await tx.xapiOutbox.findFirst({
+      where: {
+        nationalId,
+        verb: 'attended',
+        statement: { path: ['object', 'id'], equals: sessionIri },
+      },
+      select: { id: true },
+    }),
+  );
+
+/**
+ * Queue statements for one REAL attendance mark (call AFTER the mark is
+ * persisted): `registered` once per learner+course-run, then `attended` once
+ * per session. Only `present`/`late` marks count; re-marks and status
+ * flip-flops never queue duplicates (session IRI is the dedupe key — the
+ * xAPI store is append-only, so an attendance is reported at most once).
+ * Returns rows queued (0 when inactive, no national ID, or not an attended
+ * status). Never throws — telemetry must not break attendance marking.
+ */
+export async function enqueueAttendanceEvents(args: {
+  studentId: number;
+  sessionId: number;
+}): Promise<number> {
+  const { studentId, sessionId } = args;
+  if (!outboxActive()) return 0;
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await lockStudentRow(tx, studentId);
+
+      // Authoritative reads INSIDE the lock — ID edits cannot race the mark.
+      const student = await tx.student.findUnique({
+        where: { id: studentId },
+        select: { nationalId: true },
+      });
+      const nationalId = student?.nationalId;
+      if (!student || !nationalId) return 0;
+
+      const mark = await tx.attendance.findUnique({
+        where: { sessionId_studentId: { sessionId, studentId } },
+        include: { session: { include: { courseRun: { include: { program: true } } } } },
+      });
+      if (!mark || !(ATTENDED_STATUSES as readonly string[]).includes(mark.status)) return 0;
+
+      const course = courseForRun(mark.session.courseRun);
+      const sessionIri = sessionActivityIri(course.iri, sessionId);
+      if (await hasAttended(tx, nationalId, sessionIri)) return 0;
+
+      const at = new Date();
+      let step = 0;
+      const next = () => new Date(at.getTime() + step++ * 1000);
+
+      const rows: BuiltStatement[] = [];
+      if (!(await hasRegistered(tx, nationalId, course.iri))) {
+        rows.push(buildRegistered(nationalId, course, next()));
+      }
+      rows.push(
+        buildAttended(nationalId, course, { id: sessionId, date: mark.session.date }, next()),
+      );
+      return insertRows(tx, { studentId }, nationalId, course.iri, rows);
+    });
+  } catch (e) {
+    console.error('[nelc-outbox] enqueueAttendanceEvents failed (attendance unaffected):', e);
+    return 0;
+  }
+}
+
+/**
+ * Backfill when a parent ADDS a national ID to a student with existing
+ * attendance history: `registered` per course run + `attended` per past
+ * present/late session, in chronological order. Unlike the lesson snapshot
+ * (which summarizes via `progressed`), each attendance IS the record, so all
+ * of them are queued individually. Never throws.
+ */
+export async function enqueueStudentIdSnapshot(args: {
+  studentId: number;
+  nationalId: string;
+}): Promise<number> {
+  const { studentId, nationalId } = args;
+  if (!outboxActive()) return 0;
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await lockStudentRow(tx, studentId);
+
+      const marks = await tx.attendance.findMany({
+        where: { studentId, status: { in: [...ATTENDED_STATUSES] } },
+        include: { session: { include: { courseRun: { include: { program: true } } } } },
+        orderBy: { session: { date: 'asc' } },
+      });
+      if (marks.length === 0) return 0;
+
+      const at = new Date();
+      let step = 0;
+      const next = () => new Date(at.getTime() + step++ * 1000);
+
+      let queued = 0;
+      for (const mark of marks) {
+        const course = courseForRun(mark.session.courseRun);
+        const sessionIri = sessionActivityIri(course.iri, mark.sessionId);
+        if (await hasAttended(tx, nationalId, sessionIri)) continue;
+
+        const rows: BuiltStatement[] = [];
+        if (!(await hasRegistered(tx, nationalId, course.iri))) {
+          rows.push(buildRegistered(nationalId, course, next()));
+        }
+        rows.push(
+          buildAttended(nationalId, course, { id: mark.sessionId, date: mark.session.date }, next()),
+        );
+        queued += await insertRows(tx, { studentId }, nationalId, course.iri, rows);
+      }
+      return queued;
+    });
+  } catch (e) {
+    console.error('[nelc-outbox] enqueueStudentIdSnapshot failed (profile update unaffected):', e);
     return 0;
   }
 }

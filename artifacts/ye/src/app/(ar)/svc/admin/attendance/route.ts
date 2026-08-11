@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { enqueueAttendanceEvents, flushOutboxServer } from '@/lib/xapiOutbox';
 import { requireAdmin } from '../guard';
 
 export const dynamic = 'force-dynamic';
@@ -88,5 +89,13 @@ export async function POST(req: NextRequest) {
     update: { status, markedAt: new Date() },
     create: { sessionId, studentId, status },
   });
+
+  // NELC learning record: a real present/late mark queues registered (once
+  // per course run) + attended (once per session) for children with a
+  // national ID. Enqueue never throws; delivery is asynchronous.
+  if (status === 'present' || status === 'late') {
+    const queued = await enqueueAttendanceEvents({ studentId, sessionId });
+    if (queued > 0) void flushOutboxServer();
+  }
   return NextResponse.json({ mark });
 }

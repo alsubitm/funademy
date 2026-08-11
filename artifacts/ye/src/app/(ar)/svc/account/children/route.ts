@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
+import { parseNationalId } from '@/lib/learning';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,10 +29,23 @@ export async function POST(req: NextRequest) {
   }
   const data = validChild(body);
   if (!data) return NextResponse.json({ error: 'validation' }, { status: 400 });
+  const nationalId = parseNationalId(body.nationalId);
+  if (nationalId === 'invalid') return NextResponse.json({ error: 'invalid_national_id' }, { status: 400 });
 
   const count = await prisma.student.count({ where: { familyId } });
   if (count >= MAX_CHILDREN) return NextResponse.json({ error: 'limit_reached' }, { status: 409 });
 
-  const student = await prisma.student.create({ data: { ...data, familyId } });
-  return NextResponse.json({ id: student.id, firstName: student.firstName, birthYear: student.birthYear }, { status: 201 });
+  try {
+    const student = await prisma.student.create({ data: { ...data, familyId, nationalId } });
+    return NextResponse.json(
+      { id: student.id, firstName: student.firstName, birthYear: student.birthYear, nationalId: student.nationalId },
+      { status: 201 },
+    );
+  } catch (e) {
+    // Unique national ID — one learner identity per child, across all families.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return NextResponse.json({ error: 'national_id_taken' }, { status: 409 });
+    }
+    throw e;
+  }
 }

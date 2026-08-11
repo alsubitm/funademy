@@ -93,6 +93,14 @@ export const PROD_SITE_ORIGIN = 'https://funademy.io';
 export const subjectCourseIri = (slug: string): string =>
   `${PROD_SITE_ORIGIN}/course/subject-${slug}`;
 
+/** Stable IRI for one LIVE course run — run ids are permanent. */
+export const runCourseIri = (runId: number): string =>
+  `${PROD_SITE_ORIGIN}/course/run-${runId}`;
+
+/** Stable IRI for one live class session inside its course run. */
+export const sessionActivityIri = (courseIri: string, sessionId: number): string =>
+  `${courseIri}/sessions/${sessionId}`;
+
 export type ProductionCourse = {
   iri: string;
   nameEn: string;
@@ -106,6 +114,23 @@ export const courseForSubject = (subject: { slug: string; nameEn: string }): Pro
   descEn: `${subject.nameEn}: live online learning subject for kids on the Funademy platform.`,
 });
 
+/**
+ * Course identity for one LIVE course run (en-US texts — NELC convention).
+ * The run's own English title wins; otherwise the program name.
+ */
+export const courseForRun = (run: {
+  id: number;
+  titleEn: string | null;
+  program: { nameEn: string };
+}): ProductionCourse => {
+  const title = (run.titleEn || '').trim() || run.program.nameEn;
+  return {
+    iri: runCourseIri(run.id),
+    nameEn: `Funademy — ${title}`,
+    descEn: `${title}: live instructor-led STEM & robotics course for kids on the Funademy platform.`,
+  };
+};
+
 // ——— Vocabulary (single source: the shared parity contracts) ———————————————
 
 export type ProductionVerb =
@@ -113,7 +138,15 @@ export type ProductionVerb =
   | 'completed_lesson'
   | 'completed_unit'
   | 'progressed'
-  | 'completed_course';
+  | 'completed_course'
+  | 'attended';
+
+/**
+ * `attended` is not part of the staging verification journey (no parity
+ * contract) — it is the standard ADL verb for live-session presence, used
+ * only by the live-class attendance pipeline.
+ */
+export const ATTENDED_VERB_IRI = 'http://adlnet.gov/expapi/verbs/attended';
 
 const contractOf = (key: JourneyStepKey) => {
   const c = JOURNEY_STEP_CONTRACTS.find((x) => x.key === key);
@@ -194,7 +227,7 @@ export type BuiltStatement = {
 
 const assemble = (
   verb: ProductionVerb,
-  contractKey: JourneyStepKey,
+  verbRecord: Record<string, unknown>,
   nationalId: string,
   at: Date,
   object: Record<string, unknown>,
@@ -206,7 +239,7 @@ const assemble = (
     id: statementId,
     timestamp: at.toISOString(),
     actor: actorOf(nationalId),
-    verb: verbOf(contractKey),
+    verb: verbRecord,
     object,
     context,
   };
@@ -234,7 +267,7 @@ const isoDuration = (timeSpentSeconds: number, fallbackMinutes: number): string 
 export const buildRegistered = (nationalId: string, course: ProductionCourse, at: Date) =>
   assemble(
     'registered',
-    'registered',
+    verbOf('registered'),
     nationalId,
     at,
     courseObject(course, true),
@@ -252,7 +285,7 @@ export const buildLessonCompleted = (
 ) =>
   assemble(
     'completed_lesson',
-    'completed_lesson',
+    verbOf('completed_lesson'),
     nationalId,
     at,
     {
@@ -281,7 +314,7 @@ export const buildUnitCompleted = (
 ) =>
   assemble(
     'completed_unit',
-    'completed_unit',
+    verbOf('completed_unit'),
     nationalId,
     at,
     {
@@ -306,7 +339,7 @@ export const buildProgressed = (
 ) =>
   assemble(
     'progressed',
-    'progressed',
+    verbOf('progressed'),
     nationalId,
     at,
     courseObject(course, false),
@@ -318,12 +351,40 @@ export const buildProgressed = (
 export const buildCourseCompleted = (nationalId: string, course: ProductionCourse, at: Date) =>
   assemble(
     'completed_course',
-    'completed_course',
+    verbOf('completed_course'),
     nationalId,
     at,
     courseObject(course, false),
     contextOf(course),
     { completion: true, success: true },
+  );
+
+/**
+ * Child attended one LIVE class session — session sub-activity parented to
+ * the course run (CRS003), platform-only extension, no fabricated result.
+ */
+export const buildAttended = (
+  nationalId: string,
+  course: ProductionCourse,
+  session: { id: number; date: Date },
+  at: Date,
+) =>
+  assemble(
+    'attended',
+    { id: ATTENDED_VERB_IRI, display: { 'en-US': 'attended' } },
+    nationalId,
+    at,
+    {
+      objectType: 'Activity',
+      id: sessionActivityIri(course.iri, session.id),
+      definition: {
+        name: { 'en-US': `Live class session — ${session.date.toISOString().slice(0, 10)}` },
+        description: { 'en-US': `Live class session of ${course.nameEn}.` },
+        type: LESSON_TYPE,
+      },
+    },
+    contextOf(course, { parentCourse: true }),
+    { completion: true },
   );
 
 // ——— Server-side delivery (may be geo-blocked — never throws) ———————————————

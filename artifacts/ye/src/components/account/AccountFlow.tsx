@@ -5,7 +5,7 @@ import { accountDict } from '@/app/(ar)/account/dict';
 import { arabicDigits } from '@/lib/constants';
 
 type Lang = 'ar' | 'en';
-type Student = { id: number; firstName: string; birthYear: number };
+type Student = { id: number; firstName: string; birthYear: number; nationalId: string | null };
 type Me = { id: number; phone: string; parentName: string; students: Student[] };
 
 const fmt = (lang: Lang, v: number | string) => (lang === 'ar' ? arabicDigits(v) : String(v));
@@ -36,6 +36,7 @@ export function AccountFlow({ lang }: { lang: Lang }) {
   const [editId, setEditId] = useState<number | null>(null);
   const [kidName, setKidName] = useState('');
   const [kidYear, setKidYear] = useState('');
+  const [kidNid, setKidNid] = useState('');
 
   const errMsg = (key: string | null) => (key ? d.errors[key] ?? d.errors.generic : null);
 
@@ -109,7 +110,7 @@ export function AccountFlow({ lang }: { lang: Lang }) {
       const res = await fetch(url, {
         method: editId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName: kidName, birthYear: Number(kidYear) }),
+        body: JSON.stringify({ firstName: kidName, birthYear: Number(kidYear), nationalId: kidNid }),
       });
       const data = await res.json();
       if (!res.ok) return setError(data.error ?? 'generic');
@@ -117,6 +118,7 @@ export function AccountFlow({ lang }: { lang: Lang }) {
       setEditId(null);
       setKidName('');
       setKidYear('');
+      setKidNid('');
       await refresh();
     } catch {
       setError('generic');
@@ -183,6 +185,7 @@ export function AccountFlow({ lang }: { lang: Lang }) {
                     setEditId(s.id);
                     setKidName(s.firstName);
                     setKidYear(String(s.birthYear));
+                    setKidNid(s.nationalId ?? '');
                     setShowAdd(true);
                   }}
                 >
@@ -215,6 +218,18 @@ export function AccountFlow({ lang }: { lang: Lang }) {
                 />
               </div>
             </div>
+            <div className="acct-field">
+              <label htmlFor="kid-nid">{d.nationalIdLabel}</label>
+              <input
+                id="kid-nid"
+                dir="ltr"
+                inputMode="numeric"
+                placeholder="1XXXXXXXXX"
+                value={kidNid}
+                onChange={(e) => setKidNid(toAscii(e.target.value).replace(/\D/g, '').slice(0, 10))}
+              />
+              <small style={{ opacity: 0.75 }}>{d.nationalIdHint}</small>
+            </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="acct-btn" style={{ width: 'auto' }} onClick={saveKid} disabled={busy || !kidName.trim() || kidYear.length !== 4}>
                 {d.save}
@@ -226,6 +241,7 @@ export function AccountFlow({ lang }: { lang: Lang }) {
                   setEditId(null);
                   setKidName('');
                   setKidYear('');
+                  setKidNid('');
                 }}
               >
                 {d.cancel}

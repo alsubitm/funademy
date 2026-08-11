@@ -81,6 +81,16 @@ export interface GradeResult {
 /** Saudi national ID / iqama: 10 digits starting with 1 or 2 (NELC learner identity). */
 export const NATIONAL_ID_RE = /^[12]\d{9}$/;
 
+/**
+ * Parse an optional national ID input: null when absent/blank, the trimmed
+ * value when valid, or 'invalid' when malformed.
+ */
+export function parseNationalId(raw: unknown): string | null | 'invalid' {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  const v = String(raw).trim();
+  return NATIONAL_ID_RE.test(v) ? v : 'invalid';
+}
+
 export function gradeAnswers(
   exercises: Array<{ id: number; correctAnswer: string }>,
   answers: Array<{ exerciseId: number; answer: string }>,

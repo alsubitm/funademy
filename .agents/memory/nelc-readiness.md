@@ -35,6 +35,10 @@ description: Durable constraints for NELC licensing, the LRS verification test, 
 - National ID = learner identity; locked (409) once any outbox row exists for the child. Fixing a wrong locked ID is an admin-side gap (proposed follow-up).
 
 ## Verification PASSED (2026-08-11)
-- NELC wizard confirmed: «تم التحقق من بيانات الاعتماد بنجاح — تم فتح بيئة الإنتاج» using fresh ID 1234567899 with course https://funademy.io/course/CR001.
-- BURNED IDs now: 1234567890, 1059652238, 1234567899 — never reuse any of them.
+- NELC wizard confirmed: «تم التحقق من بيانات الاعتماد بنجاح — تم فتح بيئة الإنتاج» using a fresh test ID with course https://funademy.io/course/CR001.
+- Several test national IDs are already BURNED (journeys delivered under them) — never reuse a previously-used ID; always mint a fresh one per attempt. (IDs redacted — PII; check the audit log / DB if needed.)
 - Wizard offers production LRS credentials as a JSON download («حفظ ملف JSON»); the owner holds that file. Credentials must enter the project ONLY via the secrets pane — never chat. Real-data production flow is an existing project task (send real learning data after verification).
+
+## Live-class attendance pipeline
+- Live-class attendance goes through the same production outbox as self-paced learning; the `attended` verb is NOT part of the staging parity journey — never validate it against those contracts. Attendance is deduped per session activity IRI because the LRS is append-only: no retractions, so a status flip-flop must never re-send.
+- Two learner-identity fields exist by design (self-paced child vs live-class student) — the same person may hold both; any national ID locks once statements were queued under it. Only genuinely-present marks count; adding an ID later backfills each past attended session individually.

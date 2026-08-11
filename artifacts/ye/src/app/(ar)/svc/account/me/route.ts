@@ -19,6 +19,11 @@ export async function GET() {
     phone: family.phone,
     parentName: family.parentName,
     locale: family.locale,
-    students: family.students.map((s) => ({ id: s.id, firstName: s.firstName, birthYear: s.birthYear })),
+    students: family.students.map((s) => ({
+      id: s.id,
+      firstName: s.firstName,
+      birthYear: s.birthYear,
+      nationalId: s.nationalId,
+    })),
   });
 }

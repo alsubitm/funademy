@@ -123,6 +123,7 @@ CREATE TABLE "ye_students" (
     "familyId" INTEGER NOT NULL,
     "firstName" TEXT NOT NULL,
     "birthYear" INTEGER NOT NULL,
+    "nationalId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_students_pkey" PRIMARY KEY ("id")
@@ -470,6 +471,7 @@ CREATE TABLE "ye_lrn_children" (
     "avatar" TEXT NOT NULL DEFAULT '⭐',
     "band" "ye_lrn_band" NOT NULL DEFAULT 'explorers',
     "pin" TEXT NOT NULL,
+    "nationalId" TEXT,
     "xp" INTEGER NOT NULL DEFAULT 0,
     "streak" INTEGER NOT NULL DEFAULT 0,
     "lastActiveDate" TEXT,
@@ -536,6 +538,42 @@ CREATE TABLE "ye_xapi_prepared_runs" (
 );
 
 -- CreateTable
+CREATE TABLE "ye_xapi_outbox" (
+    "id" SERIAL NOT NULL,
+    "childId" INTEGER,
+    "studentId" INTEGER,
+    "nationalId" TEXT NOT NULL,
+    "courseIri" TEXT NOT NULL,
+    "verb" TEXT NOT NULL,
+    "statementId" TEXT NOT NULL,
+    "statement" JSONB NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "lastError" TEXT,
+    "lastHttpStatus" INTEGER,
+    "source" TEXT,
+    "voidReason" TEXT,
+    "voidedBy" TEXT,
+    "voidedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "sentAt" TIMESTAMP(3),
+
+    CONSTRAINT "ye_xapi_outbox_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_xapi_outbox_flush_runs" (
+    "id" SERIAL NOT NULL,
+    "runId" TEXT NOT NULL,
+    "statementIds" TEXT[],
+    "consumed" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_xapi_outbox_flush_runs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ye_rate_limit_hits" (
     "id" SERIAL NOT NULL,
     "key" TEXT NOT NULL,
@@ -567,6 +605,9 @@ CREATE UNIQUE INDEX "ye_programs_slug_key" ON "ye_programs"("slug");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ye_families_phone_key" ON "ye_families"("phone");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_students_nationalId_key" ON "ye_students"("nationalId");
 
 -- CreateIndex
 CREATE INDEX "ye_students_familyId_idx" ON "ye_students"("familyId");
@@ -653,6 +694,9 @@ CREATE INDEX "ye_lrn_lessons_unitId_idx" ON "ye_lrn_lessons"("unitId");
 CREATE INDEX "ye_lrn_exercises_lessonId_idx" ON "ye_lrn_exercises"("lessonId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ye_lrn_children_nationalId_key" ON "ye_lrn_children"("nationalId");
+
+-- CreateIndex
 CREATE INDEX "ye_lrn_children_familyId_idx" ON "ye_lrn_children"("familyId");
 
 -- CreateIndex
@@ -669,6 +713,24 @@ CREATE UNIQUE INDEX "ye_xapi_prepared_runs_runId_key" ON "ye_xapi_prepared_runs"
 
 -- CreateIndex
 CREATE INDEX "ye_xapi_prepared_runs_expiresAt_idx" ON "ye_xapi_prepared_runs"("expiresAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_xapi_outbox_statementId_key" ON "ye_xapi_outbox"("statementId");
+
+-- CreateIndex
+CREATE INDEX "ye_xapi_outbox_status_id_idx" ON "ye_xapi_outbox"("status", "id");
+
+-- CreateIndex
+CREATE INDEX "ye_xapi_outbox_childId_idx" ON "ye_xapi_outbox"("childId");
+
+-- CreateIndex
+CREATE INDEX "ye_xapi_outbox_studentId_idx" ON "ye_xapi_outbox"("studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_xapi_outbox_flush_runs_runId_key" ON "ye_xapi_outbox_flush_runs"("runId");
+
+-- CreateIndex
+CREATE INDEX "ye_xapi_outbox_flush_runs_expiresAt_idx" ON "ye_xapi_outbox_flush_runs"("expiresAt");
 
 -- CreateIndex
 CREATE INDEX "ye_rate_limit_hits_key_at_idx" ON "ye_rate_limit_hits"("key", "at");

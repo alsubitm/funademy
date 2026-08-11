@@ -105,6 +105,10 @@ model Student {
   familyId    Int
   firstName   String
   birthYear   Int
+  // Saudi national ID / iqama (10 digits, starts 1 or 2) — the child's
+  // learner identity for NELC live-class attendance statements. Optional:
+  // without it attendance is never reported. Unique across all students.
+  nationalId  String?  @unique
   createdAt   DateTime @default(now())
   enrollments Enrollment[]
   attendance  Attendance[]
@@ -736,10 +740,11 @@ model XapiPreparedRun {
 // delivery audit rows must survive child deletion.
 model XapiOutbox {
   id             Int       @id @default(autoincrement())
-  childId        Int? // informational only — no FK, rows outlive the child
+  childId        Int? // informational only — no FK, rows outlive the child (learning-platform events)
+  studentId      Int? // informational only — no FK (live-class attendance events)
   nationalId     String // actor identity (child's national ID at event time)
-  courseIri      String // subject course IRI the statement targets
-  verb           String // registered | completed_lesson | completed_unit | progressed | completed_course
+  courseIri      String // course IRI the statement targets (subject or live course run)
+  verb           String // registered | completed_lesson | completed_unit | progressed | completed_course | attended
   statementId    String    @unique // client-generated xAPI statement UUID
   statement      Json // full xAPI statement built at event time
   status         String    @default("pending") // pending | sent | voided
@@ -757,6 +762,7 @@ model XapiOutbox {
 
   @@index([status, id])
   @@index([childId])
+  @@index([studentId])
   @@map("ye_xapi_outbox")
 }
 

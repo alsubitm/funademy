@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
+import { enqueueStudentIdSnapshot, flushOutboxServer } from '@/lib/xapiOutbox';
+import { parseNationalId } from '@/lib/learning';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +33,46 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
 
-  const updated = await prisma.student.update({ where: { id: student.id }, data: { firstName, birthYear } });
-  return NextResponse.json({ id: updated.id, firstName: updated.firstName, birthYear: updated.birthYear });
+  // Optional national ID change — the child's NELC learner identity.
+  let nationalId = student.nationalId;
+  let idChanged = false;
+  if (body.nationalId !== undefined) {
+    const parsed = parseNationalId(body.nationalId);
+    if (parsed === 'invalid') return NextResponse.json({ error: 'invalid_national_id' }, { status: 400 });
+    if (parsed !== student.nationalId) {
+      // Once statements were queued under this identity, it is immutable —
+      // NELC's store is append-only, records cannot be moved to another ID.
+      const hasStatements = student.nationalId
+        ? Boolean(await prisma.xapiOutbox.findFirst({ where: { studentId: student.id }, select: { id: true } }))
+        : false;
+      if (hasStatements) return NextResponse.json({ error: 'national_id_locked' }, { status: 409 });
+      nationalId = parsed;
+      idChanged = true;
+    }
+  }
+
+  try {
+    const updated = await prisma.student.update({
+      where: { id: student.id },
+      data: { firstName, birthYear, nationalId },
+    });
+    // ID newly added → backfill registered + attended for real past marks.
+    if (idChanged && nationalId) {
+      const queued = await enqueueStudentIdSnapshot({ studentId: student.id, nationalId });
+      if (queued > 0) void flushOutboxServer();
+    }
+    return NextResponse.json({
+      id: updated.id,
+      firstName: updated.firstName,
+      birthYear: updated.birthYear,
+      nationalId: updated.nationalId,
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return NextResponse.json({ error: 'national_id_taken' }, { status: 409 });
+    }
+    throw e;
+  }
 }
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
