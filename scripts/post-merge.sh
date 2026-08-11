@@ -7,3 +7,6 @@ pnpm install --frozen-lockfile
 pnpm --filter @workspace/ye run db:legacy-migrate
 # Guarded push: refuses to drop any undeclared public table that holds rows.
 pnpm --filter @workspace/ye run db:push
+# Regenerate the Prisma client so merged schema changes are usable at runtime
+# (the guarded push itself runs with --skip-generate).
+pnpm --filter @workspace/ye exec prisma generate
