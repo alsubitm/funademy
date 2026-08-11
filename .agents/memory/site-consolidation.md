@@ -22,3 +22,8 @@ All feature work goes into `artifacts/ye` (Funademy — e² Young Engineers Riya
 - Deleting an artifact = just `rm -rf artifacts/<dir>` + `pnpm install`; the platform auto-deregisters the artifact and removes its managed workflow. Deleted artifacts can leave untracked `node_modules` husks behind — rm those too.
 - After merging tasks that add Prisma models, the local dev DB still needs `db:push` + `db:seed` (tests pass regardless — they use the isolated `ye_test` DB); a 500 on the new pages is the symptom.
 - Portal login for testing: `POST /svc/account/otp` returns `devCode` in dev; verify sets `ye_family` cookie (non-Secure in dev, so plain `http://localhost` curl works). Student tables use camelCase quoted columns (`"familyId"`) in raw SQL.
+
+## Husk-directory lesson (2026-08-11)
+- User still "saw Manara" after consolidation: `git rm` left husk dirs (only gitignored node_modules/dist/tsbuildinfo) for manara, api-server, watanona, funademy-ds, mockup-sandbox and lib/* — visible in the file tree until `rm -rf`.
+- Lesson: deleting a workspace package requires removing the directory on disk too; gitignored build outputs survive git deletions and keep the folder visible.
+- scripts/cleanup-manara-* deleted (git history keeps them). Dev AND prod public schemas verified clean of legacy Manara tables by direct query 2026-08-11 — only ye_* + campaign_* remain.

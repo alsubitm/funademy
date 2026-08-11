@@ -24,3 +24,8 @@ description: Durable constraints for NELC licensing, the LRS verification test, 
 - Admin send now pre-queries NELC's LRS AGENT-ONLY (no activity filter — any course/any environment burns an ID) via a record-free `precheck` action; classification is fail-closed: only literal HTTP 200 with `statements: []` and no `more` cursor counts as clean.
 - EXPECTED behavior, not a bug: staging creds are write-only, so the precheck usually answers "unverifiable/read_denied" → the UI demands explicit confirmation. Never "fix" this into a silent pass.
 - Override grants are bound to the exact national ID they were raised for (typed-ID confirm for burned/delivered cases); form edits dismiss prompts; LRS reads use cache:no-store.
+
+## Verification PASSED (2026-08-11)
+- NELC wizard confirmed: «تم التحقق من بيانات الاعتماد بنجاح — تم فتح بيئة الإنتاج» using fresh ID 1234567899 with course https://funademy.io/course/CR001.
+- BURNED IDs now: 1234567890, 1059652238, 1234567899 — never reuse any of them.
+- Wizard offers production LRS credentials as a JSON download («حفظ ملف JSON»); the owner holds that file. Credentials must enter the project ONLY via the secrets pane — never chat. Real-data production flow is an existing project task (send real learning data after verification).
