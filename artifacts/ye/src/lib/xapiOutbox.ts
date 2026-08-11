@@ -269,8 +269,14 @@ export async function enqueueIdSetSnapshot(args: {
 
 // ——— Live-class attendance (Student, not LrnChild) ——————————————————————————
 
-/** Serialize outbox work per live-class student — same role as lockChildRow. */
-const lockStudentRow = async (tx: Tx, studentId: number): Promise<void> => {
+/**
+ * Serialize outbox work per live-class student — same role as lockChildRow.
+ * Exported so identity transitions (admin/parent national-ID edits) can take
+ * the SAME lock before checking the outbox: an attendance enqueue and an ID
+ * change must never interleave, or a statement could be queued under an ID
+ * that is being replaced.
+ */
+export const lockStudentRow = async (tx: Tx, studentId: number): Promise<void> => {
   await tx.$queryRawUnsafe(`SELECT id FROM ye_students WHERE id = $1 FOR UPDATE`, studentId);
 };
 

@@ -12,6 +12,12 @@ const ATT_OPTIONS = [
   { value: 'excused', label: 'بعذر', cls: 'bg-[#F0F5FF] text-[#5F6B92] border-[#DFE5F2]' },
 ];
 
+const NO_ID_BADGE = (
+  <span className="text-[10px] font-body font-bold text-[#9a2c2c] bg-[rgba(220,53,69,0.12)] border border-[rgba(220,53,69,0.25)] rounded-full px-2 py-0.5 whitespace-nowrap" title="حضور هذا الطفل لا يصل إلى سجل نيلك الرسمي حتى يُدخل رقم هويته">
+    ⚠ بلا رقم هوية
+  </span>
+);
+
 export function RunsTab({ programs }: { programs: any[] }) {
   const [runs, setRuns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,6 +152,66 @@ export function RunsTab({ programs }: { programs: any[] }) {
     setSSaving(false);
   };
 
+  // admin national-ID entry/correction (NELC learner identity)
+  const [idEditing, setIdEditing] = useState<number | null>(null); // studentId
+  const [idValue, setIdValue] = useState('');
+  const [idSaving, setIdSaving] = useState(false);
+
+  const saveNationalId = async (studentId: number) => {
+    setIdSaving(true);
+    const res = await fetch('/svc/admin/roster', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, nationalId: idValue.trim() || null }),
+    });
+    if (res.ok) {
+      const { student } = await res.json();
+      setRoster((prev) => prev.map((r) => (r.student.id === studentId ? { ...r, student: { ...r.student, nationalId: student.nationalId } } : r)));
+      setAttStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, nationalId: student.nationalId } : s)));
+      setIdEditing(null);
+      setIdValue('');
+    } else {
+      const err = (await res.json().catch(() => ({}))).error;
+      alert(
+        err === 'invalid_national_id' ? 'رقم الهوية غير صالح — 10 أرقام تبدأ بـ 1 أو 2.' :
+        err === 'national_id_taken' ? 'رقم الهوية مسجّل لطفل آخر.' :
+        err === 'national_id_locked' ? 'لا يمكن تغيير رقم الهوية بعد إرسال سجلات تعلم رسمية به.' :
+        'تعذّر الحفظ — حاول مجدداً.',
+      );
+    }
+    setIdSaving(false);
+  };
+
+  const idCell = (student: { id: number; nationalId?: string | null }) => (
+    idEditing === student.id ? (
+      <span className="inline-flex items-center gap-2">
+        <input
+          value={idValue}
+          onChange={(e) => setIdValue(e.target.value)}
+          className="input-hq font-mono text-xs py-1.5 w-[130px]"
+          dir="ltr"
+          placeholder="1XXXXXXXXX"
+          maxLength={10}
+          autoFocus
+        />
+        <button disabled={idSaving} onClick={() => saveNationalId(student.id)} className="text-xs font-bold text-white bg-[#1C54CB] px-3 py-1.5 rounded-lg disabled:opacity-60">
+          {idSaving ? '…' : 'حفظ'}
+        </button>
+        <button onClick={() => { setIdEditing(null); setIdValue(''); }} className="text-xs font-bold text-[#5F6B92]">إلغاء</button>
+      </span>
+    ) : student.nationalId ? (
+      <span className="inline-flex items-center gap-2">
+        <span className="font-mono text-xs text-[#101A38]" dir="ltr">{student.nationalId}</span>
+        <button onClick={() => { setIdEditing(student.id); setIdValue(student.nationalId || ''); }} className="text-[11px] font-bold text-[#1C54CB]">تعديل</button>
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-2">
+        {NO_ID_BADGE}
+        <button onClick={() => { setIdEditing(student.id); setIdValue(''); }} className="text-[11px] font-bold text-[#1C54CB]">إدخال</button>
+      </span>
+    )
+  );
+
   const mark = async (studentId: number, status: string) => {
     setAttStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, status } : s)));
     const res = await fetch('/svc/admin/attendance', {
@@ -232,9 +298,12 @@ export function RunsTab({ programs }: { programs: any[] }) {
         <div className="space-y-3">
           {attStudents.map((s) => (
             <div key={s.id} className="bg-white p-4 rounded-2xl border border-[#DFE5F2] flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="font-display font-bold text-[#101A38] flex-1">
-                {s.firstName}
-                {s.makeup && <span className="text-[10px] font-body font-bold text-[#0e7a94] bg-[rgba(34,218,255,0.15)] rounded-full px-2 py-0.5 mr-2">تعويض</span>}
+              <div className="flex-1">
+                <div className="font-display font-bold text-[#101A38]">
+                  {s.firstName}
+                  {s.makeup && <span className="text-[10px] font-body font-bold text-[#0e7a94] bg-[rgba(34,218,255,0.15)] rounded-full px-2 py-0.5 mr-2">تعويض</span>}
+                </div>
+                {!s.nationalId && <div className="mt-1">{idCell(s)}</div>}
               </div>
               <div className="flex gap-2 flex-wrap">
                 {ATT_OPTIONS.map((o) => (
@@ -313,11 +382,12 @@ export function RunsTab({ programs }: { programs: any[] }) {
           <div className="p-5 border-b border-[#DFE5F2] font-display font-bold text-[#101A38]">الطلاب المسجلون ({roster.length})</div>
           <div className="overflow-x-auto">
           <table className="data-table">
-            <thead><tr><th>الطالب</th><th>ولي الأمر</th><th>الهاتف</th><th>الاشتراك</th><th>الحالة</th></tr></thead>
+            <thead><tr><th>الطالب</th><th>رقم الهوية</th><th>ولي الأمر</th><th>الهاتف</th><th>الاشتراك</th><th>الحالة</th></tr></thead>
             <tbody>
               {roster.map((r) => (
                 <tr key={r.enrollmentId}>
                   <td data-label="الطالب" className="font-display font-bold text-[#101A38]">{r.student.firstName} <span className="text-xs text-[#5F6B92] font-body">({r.student.birthYear})</span></td>
+                  <td data-label="رقم الهوية">{idCell(r.student)}</td>
                   <td data-label="ولي الأمر" className="text-sm font-bold text-[#5F6B92]">{r.student.parentName || '-'}</td>
                   <td data-label="الهاتف" className="font-mono text-xs" dir="ltr">{r.student.phone}</td>
                   <td data-label="الاشتراك" className="font-mono text-sm font-bold text-[#101A38]">
@@ -327,7 +397,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
                   <td data-label="الحالة"><span className={`status-badge ${r.status === 'active' ? 'enrolled' : 'new'}`}>{r.status === 'active' ? 'نشط' : r.status === 'paused' ? 'موقوف' : 'معلق'}</span></td>
                 </tr>
               ))}
-              {roster.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-[#5F6B92] font-bold">لا يوجد مسجلون بعد.</td></tr>}
+              {roster.length === 0 && <tr><td colSpan={6} className="text-center py-12 text-[#5F6B92] font-bold">لا يوجد مسجلون بعد.</td></tr>}
             </tbody>
           </table>
           </div>
