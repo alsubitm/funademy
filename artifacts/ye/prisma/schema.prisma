@@ -138,6 +138,17 @@ model OtpCode {
   @@map("ye_otp_codes")
 }
 
+// Dedup state for out-of-band admin alerts (e.g. low SMS balance): one row
+// per alert key, sentAt = last time the alert was actually dispatched.
+// Claimed atomically (INSERT ... ON CONFLICT ... WHERE) so concurrent
+// requests can never double-send within the cooldown window.
+model AdminAlert {
+  key    String   @id
+  sentAt DateTime @default(now()) @map("sent_at")
+
+  @@map("ye_admin_alerts")
+}
+
 // ————————————————————— Phase 1: Course Runs, Sessions, Enrollment —————————————————————
 
 model CourseRun {

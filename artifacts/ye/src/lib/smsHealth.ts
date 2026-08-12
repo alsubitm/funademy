@@ -30,27 +30,38 @@ export type SmsHealth = {
   sent24h: number;
 };
 
+/**
+ * Cached balance lookup shared by the dashboard and the low-balance alert
+ * check. Never throws; a provider error yields balanceSar: null (honest).
+ */
+export async function getCachedBalance(): Promise<{
+  balanceSar: number | null;
+  balanceError: SmsHealth['balanceError'];
+  cachedAt: string | null;
+}> {
+  if (!authenticaConfigured()) {
+    return { balanceSar: null, balanceError: 'not_configured', cachedAt: null };
+  }
+  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+    return {
+      balanceSar: cache.balanceSar,
+      balanceError: null,
+      cachedAt: new Date(cache.at).toISOString(),
+    };
+  }
+  const res = await getAuthenticaBalance();
+  if (!res.ok) return { balanceSar: null, balanceError: res.error, cachedAt: null };
+  cache = { at: Date.now(), balanceSar: res.balanceSar };
+  return {
+    balanceSar: res.balanceSar,
+    balanceError: null,
+    cachedAt: new Date(cache.at).toISOString(),
+  };
+}
+
 export async function getSmsHealth(): Promise<SmsHealth> {
   const configured = authenticaConfigured();
-
-  let balanceSar: number | null = null;
-  let balanceError: SmsHealth['balanceError'] = null;
-  let cachedAt: string | null = null;
-  if (!configured) {
-    balanceError = 'not_configured';
-  } else if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
-    balanceSar = cache.balanceSar;
-    cachedAt = new Date(cache.at).toISOString();
-  } else {
-    const res = await getAuthenticaBalance();
-    if (res.ok) {
-      cache = { at: Date.now(), balanceSar: res.balanceSar };
-      balanceSar = res.balanceSar;
-      cachedAt = new Date(cache.at).toISOString();
-    } else {
-      balanceError = res.error;
-    }
-  }
+  const { balanceSar, balanceError, cachedAt } = await getCachedBalance();
 
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const [failed24h, sent24h] = await Promise.all([

@@ -39,12 +39,41 @@ export async function sendOtpViaAuthentica(
   phone: string,
   code: string,
 ): Promise<AuthenticaSendResult> {
+  const templateRaw = process.env.AUTHENTICA_TEMPLATE_ID;
+  const templateId = templateRaw && /^\d+$/.test(templateRaw) ? Number(templateRaw) : undefined;
+  return sendNumericPayload(phone, code, templateId);
+}
+
+/**
+ * Out-of-band admin alert (e.g. low balance) carried over the SAME
+ * send-otp endpoint — Authentica's public API has NO generic
+ * transactional-SMS endpoint (confirmed Aug 2026), but send-otp accepts a
+ * custom numeric payload, so the alert rides as `{otp} = balance in SAR`.
+ * Set AUTHENTICA_ALERT_TEMPLATE_ID on the dashboard to a template like
+ * "تنبيه فناديمي: رصيد رسائل SMS انخفض إلى {otp} ريال تقريباً — يرجى الشحن"
+ * so the SMS reads as a real alert; without it the default OTP template is
+ * used and the "code" is the remaining balance.
+ */
+export async function sendLowBalanceAlertViaAuthentica(
+  phone: string,
+  balanceSarRounded: number,
+): Promise<AuthenticaSendResult> {
+  const templateRaw =
+    process.env.AUTHENTICA_ALERT_TEMPLATE_ID ?? process.env.AUTHENTICA_TEMPLATE_ID;
+  const templateId = templateRaw && /^\d+$/.test(templateRaw) ? Number(templateRaw) : undefined;
+  const payload = String(Math.max(0, Math.floor(balanceSarRounded)));
+  return sendNumericPayload(phone, payload, templateId);
+}
+
+async function sendNumericPayload(
+  phone: string,
+  code: string,
+  templateId: number | undefined,
+): Promise<AuthenticaSendResult> {
   const apiKey = process.env.AUTHENTICA_API_KEY;
   if (!apiKey) return { ok: false };
 
   const method = process.env.AUTHENTICA_OTP_METHOD === 'whatsapp' ? 'whatsapp' : 'sms';
-  const templateRaw = process.env.AUTHENTICA_TEMPLATE_ID;
-  const templateId = templateRaw && /^\d+$/.test(templateRaw) ? Number(templateRaw) : undefined;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);

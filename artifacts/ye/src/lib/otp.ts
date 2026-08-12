@@ -75,6 +75,11 @@ export async function requestOtp(phone: string): Promise<OtpRequestResult> {
     await prisma.otpCode
       .update({ where: { id: created.id }, data: { delivered } })
       .catch(() => {});
+    // Out-of-band low-balance admin alert (dedup'd to once/24h in the DB).
+    // Fire-and-forget: never awaited, never allowed to affect login.
+    void import('@/lib/smsBalanceAlert')
+      .then((m) => m.maybeSendLowBalanceAlert())
+      .catch(() => {});
   }
   if (!delivered) {
     // Distinguish "provider down/rejected" (retryable) from "never set up".

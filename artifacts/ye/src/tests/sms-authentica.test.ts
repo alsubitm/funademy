@@ -23,6 +23,8 @@ function freshPhone(): string {
 }
 
 const fetchMock = vi.fn();
+const sendCalls = () =>
+  fetchMock.mock.calls.filter(([u]) => String(u).includes('send-otp'));
 vi.stubGlobal('fetch', fetchMock);
 
 const ok200 = () => ({
@@ -80,7 +82,7 @@ describe('sendOtpViaAuthentica', () => {
     vi.stubEnv('AUTHENTICA_TEMPLATE_ID', '31');
     fetchMock.mockResolvedValue(ok200());
     await sendOtpViaAuthentica('+966512345678', '111222');
-    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    const body = JSON.parse(String((sendCalls()[0] as [string, RequestInit])[1].body));
     expect(body.method).toBe('whatsapp');
     expect(body.template_id).toBe(31);
   });
@@ -90,7 +92,7 @@ describe('sendOtpViaAuthentica', () => {
     vi.stubEnv('AUTHENTICA_TEMPLATE_ID', 'abc');
     fetchMock.mockResolvedValue(ok200());
     await sendOtpViaAuthentica('+966512345678', '111222');
-    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    const body = JSON.parse(String((sendCalls()[0] as [string, RequestInit])[1].body));
     expect('template_id' in body).toBe(false);
   });
 
@@ -122,7 +124,7 @@ describe('requestOtp with the provider', () => {
     const r = await requestOtp(phone);
     // no devCode once a real SMS goes out — echoing it would defeat the check
     expect(r).toEqual({ ok: true });
-    const sent = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    const sent = JSON.parse(String((sendCalls()[0] as [string, RequestInit])[1].body));
     expect(sent.phone).toBe(phone);
     expect(sent.otp).toMatch(/^\d{6}$/);
     // round-trip integrity: what Authentica carried is what our DB verifies
@@ -138,7 +140,7 @@ describe('requestOtp with the provider', () => {
     // A timeout/failure is an UNKNOWN outcome — the row must exist so that a
     // message that actually arrived can still be used.
     expect(await prisma.otpCode.count({ where: { phone } })).toBe(1);
-    const sent = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    const sent = JSON.parse(String((sendCalls()[0] as [string, RequestInit])[1].body));
     expect(await verifyOtp(phone, sent.otp)).toBe('ok');
   });
 
@@ -150,7 +152,9 @@ describe('requestOtp with the provider', () => {
       expect(await requestOtp(phone)).toEqual({ ok: false, error: 'sms_send_failed' });
     }
     expect(await requestOtp(phone)).toEqual({ ok: false, error: 'rate_limited' });
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    // Count send-otp calls only — the low-balance alert check may also hit
+    // the balance endpoint after each request.
+    expect(sendCalls()).toHaveLength(5);
   });
 
   it('concurrent requests cannot exceed the cap (atomic per-phone lock)', async () => {
@@ -160,7 +164,7 @@ describe('requestOtp with the provider', () => {
     const results = await Promise.all(Array.from({ length: 7 }, () => requestOtp(phone)));
     expect(results.filter((r) => r.ok).length).toBe(5);
     expect(results.filter((r) => !r.ok && r.error === 'rate_limited').length).toBe(2);
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(sendCalls()).toHaveLength(5);
     expect(await prisma.otpCode.count({ where: { phone } })).toBe(5);
   });
 
