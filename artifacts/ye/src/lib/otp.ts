@@ -68,6 +68,14 @@ export async function requestOtp(phone: string): Promise<OtpRequestResult> {
   // verify. verifyOtp checks the latest unconsumed row, so after a retry
   // the newest SMS always wins (standard "use the latest code" UX).
   const delivered = await deliverOtp(phone, code);
+  // Record the provider outcome (only when a real provider was called) so
+  // the admin dashboard can surface recent delivery failures. Best-effort:
+  // a stats write must never break the login flow.
+  if (configured) {
+    await prisma.otpCode
+      .update({ where: { id: created.id }, data: { delivered } })
+      .catch(() => {});
+  }
   if (!delivered) {
     // Distinguish "provider down/rejected" (retryable) from "never set up".
     return { ok: false, error: configured ? 'sms_send_failed' : 'sms_not_configured' };

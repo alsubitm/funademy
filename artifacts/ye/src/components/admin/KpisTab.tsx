@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 export function KpisTab() {
   const [kpis, setKpis] = useState<any | null>(null);
+  const [sms, setSms] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   // Current month in Asia/Riyadh (UTC+3): shift then read the UTC date fields.
@@ -11,10 +12,15 @@ export function KpisTab() {
 
   useEffect(() => {
     (async () => {
-      const [k, r] = await Promise.all([fetch('/svc/admin/kpis'), fetch(`/svc/admin/report?month=${month}`)]);
+      const [k, r, s] = await Promise.all([
+        fetch('/svc/admin/kpis'),
+        fetch(`/svc/admin/report?month=${month}`),
+        fetch('/svc/admin/sms'),
+      ]);
       if (k.status === 401) { window.location.reload(); return; }
       if (k.ok) setKpis(await k.json());
       if (r.ok) setRows((await r.json()).rows || []);
+      if (s.ok) setSms(await s.json());
       setLoading(false);
     })();
   }, [month]);
@@ -66,6 +72,57 @@ export function KpisTab() {
             <div className="text-xs font-bold text-[#5F6B92] mt-1">{c.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* SMS credit — family login depends on OTP delivery, so low credit is an incident-in-waiting */}
+      <div className={`rounded-[24px] border p-6 shadow-[0_8px_30px_rgba(7,17,42,0.04)] ${
+        sms?.low || sms?.balanceError === 'provider_error'
+          ? 'bg-[#FFF6F5] border-[#F3C1BB]'
+          : 'bg-white border-[#DFE5F2]'
+      }`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="font-display font-bold text-[#101A38] flex items-center gap-2">
+              <span>📨</span> رصيد الرسائل النصية (Authentica)
+            </div>
+            <p className="text-xs text-[#5F6B92] mt-1 font-medium">تسجيل دخول العائلات يعتمد على رموز SMS — إذا نفد الرصيد يتوقف الدخول.</p>
+          </div>
+          <div className="text-left" dir="ltr">
+            {sms === null ? (
+              <span className="font-mono text-sm text-[#5F6B92]">…</span>
+            ) : sms.balanceSar !== null ? (
+              <span className={`font-mono font-bold text-3xl ${sms.low ? 'text-[#C6362B]' : 'text-[#101A38]'}`}>
+                {sms.balanceSar.toLocaleString('en-US')} <span className="text-sm">SAR</span>
+              </span>
+            ) : (
+              <span className="font-mono font-bold text-sm text-[#C6362B]">
+                {sms.balanceError === 'not_configured' ? 'غير مفعّل' : 'تعذّر جلب الرصيد'}
+              </span>
+            )}
+          </div>
+        </div>
+        {sms?.low && (
+          <div className="mt-4 bg-[#C6362B] text-white rounded-xl px-4 py-3 font-bold text-sm">
+            ⚠️ الرصيد منخفض (أقل من {sms.lowThresholdSar} ر.س) — اشحن رصيد Authentica الآن حتى لا يتوقف تسجيل دخول العائلات.
+          </div>
+        )}
+        {sms?.balanceError === 'provider_error' && (
+          <div className="mt-4 bg-[#7A2A22] text-white rounded-xl px-4 py-3 font-bold text-sm">
+            تعذّر الاتصال بمزود الرسائل للتحقق من الرصيد — أعد المحاولة لاحقاً أو تحقق من حالة Authentica.
+          </div>
+        )}
+        {sms?.balanceError === 'not_configured' && (
+          <div className="mt-4 bg-[#FFF1D6] text-[#7A5200] rounded-xl px-4 py-3 font-bold text-sm">
+            مزود الرسائل غير مفعّل في هذه البيئة (لا يوجد مفتاح Authentica).
+          </div>
+        )}
+        {sms !== null && (
+          <div className="mt-4 flex flex-wrap gap-6 text-xs font-bold text-[#5F6B92]">
+            <span>رسائل ناجحة آخر ٢٤ ساعة: <span className="font-mono text-[#101A38]">{sms.sent24h}</span></span>
+            <span>محاولات فاشلة آخر ٢٤ ساعة: <span className={`font-mono ${sms.failed24h > 0 ? 'text-[#C6362B]' : 'text-[#101A38]'}`}>{sms.failed24h}</span></span>
+            {sms.cachedAt && <span dir="ltr" className="font-mono opacity-70">آخر تحديث: {new Date(sms.cachedAt).toLocaleTimeString('en-GB')}</span>}
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-[24px] border border-[#DFE5F2] overflow-hidden shadow-[0_8px_30px_rgba(7,17,42,0.04)]">

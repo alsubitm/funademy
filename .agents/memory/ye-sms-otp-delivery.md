@@ -21,3 +21,4 @@ description: How family-login OTP SMS delivery works via Authentica, and the rel
 - API keys come from portal.authentica.sa/applications.
 
 **How to apply:** any new OTP channel or SMS provider swap goes through `deliverOtp()` in the OTP lib; keep persist-before-send ordering and the advisory-lock quota; never log codes or provider response bodies (they can echo the code).
+- Admin SMS health: ye_otp_codes.delivered (null = no real provider call) feeds failure counts; Authentica balance is admin-only, cached ~5min in-module, and NEVER substitutes a stale/fake number on provider error.

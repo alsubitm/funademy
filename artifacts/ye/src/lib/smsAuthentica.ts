@@ -27,6 +27,7 @@
  */
 
 const SEND_URL = 'https://api.authentica.sa/api/v2/send-otp';
+const BALANCE_URL = 'https://api.authentica.sa/api/v2/balance';
 const TIMEOUT_MS = 15_000;
 
 export const authenticaConfigured = (): boolean => !!process.env.AUTHENTICA_API_KEY;
@@ -73,6 +74,54 @@ export async function sendOtpViaAuthentica(
   } catch (e) {
     console.error('[sms] Authentica send-otp error:', e instanceof Error ? e.message : String(e));
     return { ok: false };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export type AuthenticaBalanceResult =
+  | { ok: true; balanceSar: number }
+  | { ok: false; error: 'not_configured' | 'provider_error' };
+
+/**
+ * Fetch the prepaid SMS balance (SAR) from Authentica. Never throws and
+ * never exposes the key. Callers cache; this always hits the provider.
+ *
+ * Response shape is parsed defensively: the docs show { balance: <number> }
+ * but we also accept a string number or a { data: { balance } } wrapper.
+ */
+export async function getAuthenticaBalance(): Promise<AuthenticaBalanceResult> {
+  const apiKey = process.env.AUTHENTICA_API_KEY;
+  if (!apiKey) return { ok: false, error: 'not_configured' };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(BALANCE_URL, {
+      method: 'GET',
+      headers: { Accept: 'application/json', 'X-Authorization': apiKey },
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      console.error(`[sms] Authentica balance failed: HTTP ${res.status}`);
+      return { ok: false, error: 'provider_error' };
+    }
+    const body: unknown = await res.json().catch(() => null);
+    const raw =
+      body && typeof body === 'object'
+        ? ((body as Record<string, unknown>).balance ??
+          ((body as Record<string, unknown>).data as Record<string, unknown> | undefined)?.balance)
+        : undefined;
+    const balance = typeof raw === 'string' ? Number(raw) : raw;
+    if (typeof balance !== 'number' || !Number.isFinite(balance)) {
+      console.error('[sms] Authentica balance: unexpected response shape');
+      return { ok: false, error: 'provider_error' };
+    }
+    return { ok: true, balanceSar: balance };
+  } catch (e) {
+    console.error('[sms] Authentica balance error:', e instanceof Error ? e.message : String(e));
+    return { ok: false, error: 'provider_error' };
   } finally {
     clearTimeout(timer);
   }

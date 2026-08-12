@@ -128,6 +128,10 @@ model OtpCode {
   expiresAt DateTime
   attempts  Int      @default(0)
   consumed  Boolean  @default(false)
+  // Delivery outcome of the provider send: null = no real provider call
+  // (dev devCode path) or unknown; false = provider rejected/errored.
+  // Lets the admin dashboard surface recent sms_send_failed counts.
+  delivered Boolean?
   createdAt DateTime @default(now())
 
   @@index([phone, createdAt])
