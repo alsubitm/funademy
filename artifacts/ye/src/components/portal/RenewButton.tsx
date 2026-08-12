@@ -23,6 +23,7 @@ const T = {
     fail: 'تعذّر إتمام الدفع، حاول مجدداً',
     sim: 'وضع تجريبي — لن يُخصم مبلغ حقيقي',
     live: 'سيتم تحويلك إلى صفحة الدفع الآمنة',
+    none: 'الدفع الإلكتروني غير متاح حالياً — تواصل معنا لإتمام التجديد',
   },
   en: {
     renew: 'Renew / Pay',
@@ -34,6 +35,7 @@ const T = {
     fail: 'Payment failed, please try again',
     sim: 'Simulation mode — no real charge',
     live: 'You will be redirected to a secure payment page',
+    none: 'Online payment is temporarily unavailable — contact us to renew',
   },
 };
 
@@ -42,16 +44,20 @@ export function RenewButton({
   enrollmentId,
   amountSar,
   live = { moyasar: false, tamara: false },
+  available = { moyasar: true, tamara: true },
 }: {
   lang: Lang;
   enrollmentId: number;
   amountSar: number;
   live?: { moyasar: boolean; tamara: boolean };
+  /** Methods that may be OFFERED (production hides non-live providers). */
+  available?: { moyasar: boolean; tamara: boolean };
 }) {
   const t = T[lang];
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [provider, setProvider] = useState(PROVIDERS[0].id);
+  const offered = PROVIDERS.filter((p) => (p.id === 'tamara' ? available.tamara : available.moyasar));
+  const [provider, setProvider] = useState(offered[0]?.id ?? PROVIDERS[0].id);
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'fail'>('idle');
 
   const providerLive = provider === 'tamara' ? live.tamara : live.moyasar;
@@ -90,11 +96,18 @@ export function RenewButton({
     <div className="ptl-renew-box">
       {state === 'done' ? (
         <div className="ok">{t.done}</div>
+      ) : offered.length === 0 ? (
+        <>
+          <div className="err">{t.none}</div>
+          <div className="acts">
+            <button className="cx" onClick={() => setOpen(false)}>{t.cancel}</button>
+          </div>
+        </>
       ) : (
         <>
           <div className="lbl">{t.pick}</div>
           <div className="provs">
-            {PROVIDERS.map((p) => (
+            {offered.map((p) => (
               <button
                 key={p.id}
                 className={`prov ${provider === p.id ? 'sel' : ''}`}

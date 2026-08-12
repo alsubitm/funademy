@@ -43,6 +43,71 @@ export function providerLive(provider: PaymentProvider): boolean {
   return provider === 'tamara' ? tamaraLive() : moyasarLive();
 }
 
+/** Published deployment — same gating pattern as outboxActive() in xapiOutbox.ts. */
+export function productionDeployment(): boolean {
+  return process.env.REPLIT_DEPLOYMENT === '1';
+}
+
+/* ---- Tamara payment-types availability (cached) ----
+ * A live Tamara token is NOT enough: the merchant account must have at least
+ * one payment type enabled, otherwise every checkout dies with
+ * `payment_type_unsupported` (production incident 2026-08-12). We poll
+ * GET /checkout/payment-types and cache the answer briefly.
+ * Returns: true = types enabled, false = definitively NONE ([]),
+ * null = could not determine (network/provider error) — callers treat null
+ * as available so a transient outage doesn't hide a working method. */
+const TAMARA_TYPES_TTL_MS = 5 * 60 * 1000;
+let tamaraTypesCache: { value: boolean | null; at: number } | null = null;
+
+/** Test hook — clears the payment-types cache. */
+export function resetTamaraPaymentTypesCache(): void {
+  tamaraTypesCache = null;
+}
+
+export async function tamaraPaymentTypesAvailable(): Promise<boolean | null> {
+  if (!tamaraLive()) return null;
+  if (tamaraTypesCache && Date.now() - tamaraTypesCache.at < TAMARA_TYPES_TTL_MS) {
+    return tamaraTypesCache.value;
+  }
+  let value: boolean | null = null;
+  try {
+    const res = await fetch(`${TAMARA_BASE()}/checkout/payment-types?country=SA&currency=SAR`, {
+      headers: tamaraHeaders(),
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = (await res.json()) as unknown;
+      value = Array.isArray(data) ? data.length > 0 : null;
+    } else {
+      console.error('[payments] Tamara payment-types error:', res.status);
+    }
+  } catch (e) {
+    console.error('[payments] Tamara payment-types network error:', e);
+  }
+  // Cache definitive answers; also cache unknown briefly to avoid hammering.
+  tamaraTypesCache = { value, at: Date.now() };
+  return value;
+}
+
+/**
+ * Which payment methods the UI may OFFER right now.
+ * - Development (no REPLIT_DEPLOYMENT): everything is offered — non-live
+ *   providers run the clearly-flagged simulated flow.
+ * - Production: only live providers, and Tamara additionally requires the
+ *   merchant account to have payment types enabled.
+ */
+export async function paymentAvailability(): Promise<{ moyasar: boolean; tamara: boolean }> {
+  const prod = productionDeployment();
+  const moyasar = moyasarLive() || !prod;
+  let tamara: boolean;
+  if (tamaraLive()) {
+    tamara = (await tamaraPaymentTypesAvailable()) !== false;
+  } else {
+    tamara = !prod;
+  }
+  return { moyasar, tamara };
+}
+
 export type CreatePaymentOptions = {
   /** Absolute URL the customer returns to after paying (we verify server-side). */
   callbackUrl: string;
@@ -73,7 +138,13 @@ export async function createPayment(
   }
 
   if (!providerLive(provider) || !opts) {
-    // SIMULATED fallback — no credentials configured for this provider.
+    if (productionDeployment()) {
+      // NEVER simulate on the published site — a visitor must not finish
+      // checkout without real money collected (incident 2026-08-12).
+      console.error(`[payments] createPayment ${provider} refused: provider not configured in production`);
+      return { status: 'failed', provider, error: 'provider_not_configured' };
+    }
+    // SIMULATED fallback — development only, no credentials for this provider.
     void description;
     return {
       status: 'paid',
@@ -85,6 +156,12 @@ export async function createPayment(
   }
 
   try {
+    if (provider === 'tamara' && (await tamaraPaymentTypesAvailable()) === false) {
+      // Merchant account has NO payment types enabled — every checkout would
+      // be rejected with payment_type_unsupported. Fail fast instead.
+      console.error('[payments] createPayment tamara refused: no payment types enabled on merchant account');
+      return { status: 'failed', provider: 'tamara', error: 'payment_type_unsupported' };
+    }
     return provider === 'tamara'
       ? await createTamaraCheckout(amountSar, description, opts)
       : await createMoyasarInvoice(provider, amountSar, description, opts);

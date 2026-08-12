@@ -53,6 +53,7 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Done | null>(null);
   const [live, setLive] = useState<{ moyasar: boolean; tamara: boolean }>({ moyasar: false, tamara: false });
+  const [avail, setAvail] = useState<{ moyasar: boolean; tamara: boolean }>({ moyasar: true, tamara: true });
 
   const errMsg = (k: string | null) => (k ? d.errors[k] ?? d.errors.generic : null);
 
@@ -76,7 +77,18 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
         fetch('/svc/enroll/runs', { cache: 'no-store' }),
         fetch('/svc/pay/config', { cache: 'no-store' }),
       ]);
-      if (cfgRes.ok) setLive(await cfgRes.json());
+      if (cfgRes.ok) {
+        const cfg = await cfgRes.json();
+        setLive({ moyasar: !!cfg.moyasar, tamara: !!cfg.tamara });
+        const av = cfg.available ?? { moyasar: true, tamara: true };
+        setAvail(av);
+        // Never leave a hidden method selected.
+        setProvider((p) => {
+          const ok = (key: string) => (key === 'tamara' ? av.tamara : av.moyasar);
+          if (ok(p)) return p;
+          return av.moyasar ? 'moyasar_mada' : av.tamara ? 'tamara' : p;
+        });
+      }
       if (meRes.ok) {
         const me = await meRes.json();
         setAuthed(true);
@@ -330,19 +342,27 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
             </div>
 
             <h3 style={{ marginTop: 20 }}>{d.payTitle}</h3>
-            <div className="enr-stub-note">
-              {(provider === 'tamara' ? live.tamara : live.moyasar) ? d.liveNote : d.stubNote}
-            </div>
-            <div className="enr-pay-opts">
-              {Object.entries(d.providers).map(([key, label]) => (
-                <button key={key} className={`enr-pay ${provider === key ? 'sel' : ''}`} onClick={() => setProvider(key)}>
-                  {label}
+            {!avail.moyasar && !avail.tamara ? (
+              <div className="acct-err" role="alert">{d.noPayMethods}</div>
+            ) : (
+              <>
+                <div className="enr-stub-note">
+                  {(provider === 'tamara' ? live.tamara : live.moyasar) ? d.liveNote : d.stubNote}
+                </div>
+                <div className="enr-pay-opts">
+                  {Object.entries(d.providers)
+                    .filter(([key]) => (key === 'tamara' ? avail.tamara : avail.moyasar))
+                    .map(([key, label]) => (
+                      <button key={key} className={`enr-pay ${provider === key ? 'sel' : ''}`} onClick={() => setProvider(key)}>
+                        {label}
+                      </button>
+                    ))}
+                </div>
+                <button className="acct-btn" onClick={checkout} disabled={busy}>
+                  {busy ? d.paying : (provider === 'tamara' ? live.tamara : live.moyasar) ? d.payNowReal : d.payNow}
                 </button>
-              ))}
-            </div>
-            <button className="acct-btn" onClick={checkout} disabled={busy}>
-              {busy ? d.paying : (provider === 'tamara' ? live.tamara : live.moyasar) ? d.payNowReal : d.payNow}
-            </button>
+              </>
+            )}
           </>
         )}
       </div>

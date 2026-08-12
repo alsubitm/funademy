@@ -7,7 +7,7 @@ import { effectiveMonthlySar, subscriptionState } from '@/lib/billing';
 import { RenewButton } from '@/components/portal/RenewButton';
 import { portalSessions, joinUrlFor } from '@/lib/portal-sessions';
 import { formatRiyadh } from '@/lib/appointments';
-import { moyasarLive, tamaraLive } from '@/lib/payments';
+import { moyasarLive, tamaraLive, paymentAvailability } from '@/lib/payments';
 
 type Lang = 'ar' | 'en';
 
@@ -419,6 +419,7 @@ async function RenewalAlert({ lang, familyId, d }: { lang: Lang; familyId: numbe
 
   const hasDue = flagged.some(({ st }) => st === 'due');
   const progName = (p: { nameAr: string; nameEn: string }) => (lang === 'ar' ? p.nameAr : p.nameEn);
+  const available = await paymentAvailability();
 
   return (
     <div className={`ptl-alert ${hasDue ? 'due' : 'due_soon'}`} role="alert">
@@ -435,7 +436,7 @@ async function RenewalAlert({ lang, familyId, d }: { lang: Lang; familyId: numbe
               {st === 'due' ? d.alertDue : d.alertDueSoon} {e.student.firstName} — {progName(e.courseRun.program)}
               {e.paidThrough ? ` (${d.alertOn} ${fmtDate(lang, e.paidThrough)})` : ''}
             </span>
-            <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} />
+            <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} live={{ moyasar: moyasarLive(), tamara: tamaraLive() }} available={available} />
           </div>
         );
       })}
@@ -463,6 +464,7 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
     paid: d.subPaid, due_soon: d.subDueSoon, due: d.subDue, none: d.subNone,
   };
   const progName = (p: { nameAr: string; nameEn: string }) => (lang === 'ar' ? p.nameAr : p.nameEn);
+  const available = await paymentAvailability();
 
   return (
     <div className="ptl-card">
@@ -504,7 +506,7 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
                 </div>
                 <div className="ptl-sub-side">
                   <span className={`ptl-tag sub-${st}`}>{stateLabel[st]}</span>
-                  <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} live={{ moyasar: moyasarLive(), tamara: tamaraLive() }} />
+                  <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} live={{ moyasar: moyasarLive(), tamara: tamaraLive() }} available={available} />
                 </div>
               </div>
             );

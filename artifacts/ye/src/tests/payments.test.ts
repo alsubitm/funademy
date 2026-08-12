@@ -1048,6 +1048,186 @@ describe('admin refund', () => {
   });
 });
 
+// ────────────────────────────────────────────────────────────
+// Production fail-closed: no simulated payments on the published site
+// (incident 2026-08-12 — enrollment activated with no real money collected)
+// ────────────────────────────────────────────────────────────
+import {
+  createPayment,
+  paymentAvailability,
+  resetTamaraPaymentTypesCache,
+} from '@/lib/payments';
+
+describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
+  let prodRunId: number;
+
+  beforeAll(async () => {
+    const now = new Date();
+    const run = await prisma.courseRun.create({
+      data: {
+        programId,
+        startDate: now,
+        endDate: new Date(now.getTime() + 90 * 24 * 3600 * 1000),
+        weekday: 3,
+        time: '18:00',
+        format: 'in_person',
+        capacity: 5,
+        seatsLeft: 5,
+        monthlyPriceSar: BASE_SAR,
+      },
+    });
+    prodRunId = run.id;
+  });
+
+  beforeEach(() => {
+    vi.stubEnv('REPLIT_DEPLOYMENT', '1');
+    resetTamaraPaymentTypesCache();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    resetTamaraPaymentTypesCache();
+  });
+
+  it('createPayment refuses to simulate for every provider (provider_not_configured)', async () => {
+    for (const provider of ['moyasar_mada', 'moyasar_applepay', 'moyasar_stcpay', 'tamara'] as const) {
+      const res = await createPayment(provider, 100, 'test');
+      expect(res.status).toBe('failed');
+      if (res.status === 'failed') expect(res.error).toBe('provider_not_configured');
+    }
+  });
+
+  it('checkout without provider credentials fails (402), releases seats, records no active enrollment', async () => {
+    asFamily(familyB.id);
+    cookieJar.set(CART_COOKIE, encodeCart(familyB.id, [{ studentId: studentB1.id, courseRunId: prodRunId }]));
+
+    const res = await checkoutPOST(jsonReq('/svc/enroll/checkout', 'POST', { provider: 'moyasar_mada' }));
+    expect(res.status).toBe(402);
+    expect((await res.json()).error).toBe('payment_failed');
+
+    // Seat returned, no lingering enrollment, payment marked failed (not paid/simulated).
+    const run = await prisma.courseRun.findUnique({ where: { id: prodRunId } });
+    expect(run!.seatsLeft).toBe(5);
+    expect(await prisma.enrollment.count({ where: { studentId: studentB1.id, courseRunId: prodRunId } })).toBe(0);
+    const p = await prisma.payment.findFirst({
+      where: { familyId: familyB.id, kind: 'enrollment' },
+      orderBy: { id: 'desc' },
+    });
+    expect(p!.status).toBe('failed');
+    expect(p!.simulated).toBe(false);
+    cookieJar.delete(CART_COOKIE);
+  });
+
+  it('renewal without provider credentials fails (402) and paidThrough is untouched', async () => {
+    const before = await prisma.enrollment.findUnique({ where: { id: enrollmentA1 } });
+    asFamily(familyA.id);
+    const res = await renewPOST(jsonReq('/svc/account/renew', 'POST', { enrollmentId: enrollmentA1, provider: 'moyasar_mada' }));
+    expect(res.status).toBe(402);
+
+    const after = await prisma.enrollment.findUnique({ where: { id: enrollmentA1 } });
+    expect(after!.paidThrough?.getTime()).toBe(before!.paidThrough?.getTime());
+  });
+
+  it('live Moyasar checkout still works in production (redirect)', async () => {
+    vi.stubEnv('MOYASAR_SECRET_KEY', 'sk_test_fake');
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(typeof input === 'string' ? input : (input as Request).url);
+      if (url.includes('/v1/invoices')) {
+        return new Response(JSON.stringify({ id: 'inv_prod_1', url: 'https://moyasar.example/pay' }), { status: 201 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+
+    asFamily(familyB.id);
+    cookieJar.set(CART_COOKIE, encodeCart(familyB.id, [{ studentId: studentB1.id, courseRunId: prodRunId }]));
+    const res = await checkoutPOST(jsonReq('/svc/enroll/checkout', 'POST', { provider: 'moyasar_mada' }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.redirectUrl).toBe('https://moyasar.example/pay');
+
+    // Cleanup: roll back the initiated payment + pending enrollment + seat.
+    const p = await prisma.payment.findFirst({ where: { reference: 'inv_prod_1' }, include: { items: true } });
+    await prisma.payment.delete({ where: { id: p!.id } });
+    await prisma.enrollment.deleteMany({ where: { studentId: studentB1.id, courseRunId: prodRunId, status: 'pending' } });
+    await prisma.courseRun.update({ where: { id: prodRunId }, data: { seatsLeft: 5 } });
+    cookieJar.delete(CART_COOKIE);
+  });
+
+  it('payment availability hides everything when nothing is live in production', async () => {
+    expect(await paymentAvailability()).toEqual({ moyasar: false, tamara: false });
+  });
+
+  it('payment availability offers everything in development (no REPLIT_DEPLOYMENT)', async () => {
+    vi.unstubAllEnvs();
+    expect(await paymentAvailability()).toEqual({ moyasar: true, tamara: true });
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// Tamara payment-types gating (merchant account with no types enabled)
+// ────────────────────────────────────────────────────────────
+describe('Tamara payment-types gating', () => {
+  beforeEach(() => {
+    vi.stubEnv('TAMARA_API_TOKEN', 'test-token');
+    resetTamaraPaymentTypesCache();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    resetTamaraPaymentTypesCache();
+  });
+
+  const mockTypes = (body: unknown, status = 200) =>
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(typeof input === 'string' ? input : (input as Request).url);
+      if (url.includes('/checkout/payment-types')) {
+        return new Response(JSON.stringify(body), { status });
+      }
+      if (url.includes('/checkout')) {
+        return new Response(JSON.stringify({ order_id: 'tmr_1', checkout_url: 'https://tamara.example/pay' }), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+
+  it('hides Tamara when the account has NO payment types ([])', async () => {
+    mockTypes([]);
+    expect((await paymentAvailability()).tamara).toBe(false);
+  });
+
+  it('offers Tamara when payment types are enabled', async () => {
+    mockTypes([{ name: 'PAY_BY_INSTALMENTS' }]);
+    expect((await paymentAvailability()).tamara).toBe(true);
+  });
+
+  it('stays available on a transient payment-types error (unknown ≠ disabled)', async () => {
+    mockTypes({ message: 'oops' }, 500);
+    expect((await paymentAvailability()).tamara).toBe(true);
+  });
+
+  it('createPayment fails fast with payment_type_unsupported instead of a dead checkout', async () => {
+    mockTypes([]);
+    const res = await createPayment('tamara', 100, 'test', {
+      callbackUrl: 'http://test.local/svc/pay/return?paymentId=1',
+      orderRef: '1',
+      consumer: { name: 'Test Parent', phone: '+966500000000' },
+    });
+    expect(res.status).toBe('failed');
+    if (res.status === 'failed') expect(res.error).toBe('payment_type_unsupported');
+  });
+
+  it('createPayment proceeds to checkout when types are enabled', async () => {
+    mockTypes([{ name: 'PAY_BY_INSTALMENTS' }]);
+    const res = await createPayment('tamara', 100, 'test', {
+      callbackUrl: 'http://test.local/svc/pay/return?paymentId=1',
+      orderRef: '1',
+      consumer: { name: 'Test Parent', phone: '+966500000000' },
+    });
+    expect(res.status).toBe('redirect');
+  });
+});
+
 describe('receipt', () => {
   it('requires login (401)', async () => {
     asFamily(null);
