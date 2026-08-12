@@ -23,3 +23,16 @@ Provider refunds are external financial ops: claim `paid → refunding` atomical
 - Tamara sends a JWT `tamaraToken` (HS256, signed with the notification token) in `Authorization: Bearer` and/or `?tamaraToken=` query param — verify sig + alg pin + exp; no body HMAC.
 **Why:** initial implementation assumed body-HMAC headers for both; real production webhooks would all have been 401-rejected.
 **How to apply:** any new payment provider webhook — check the provider's actual notification-auth spec before coding; never assume a signature header convention.
+
+## Findings from production systems check (2026-08-12)
+- Tamara live rejected ALL checkouts with `payment_type_unsupported`; the
+  merchant account itself had NO payment types enabled — verify with
+  `GET https://api.tamara.co/checkout/payment-types?country=SA&currency=SAR`
+  (Bearer TAMARA_API_TOKEN). `[]` means an account-side problem (Tamara must
+  enable PAY_BY_INSTALMENTS) — no code fix applies.
+- MOYASAR_WEBHOOK_SECRET being set does NOT mean cards are live: without
+  MOYASAR_SECRET_KEY the published site completed a real family's 1380 SAR
+  enrollment as a flagged SIMULATED payment. Sim-in-prod is a revenue hole;
+  either set the key or hide unconfigured methods in prod (follow-up task).
+- Live-by-presence keys leak into vitest unless stripped in tests/setup-env.ts
+  (see ye-tests-isolation).

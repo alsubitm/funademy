@@ -3,7 +3,7 @@
 - [Booking/payment review bar](booking-payment-review-bar.md) — capacity/money endpoints need FOR UPDATE transactions, conditional credit updates, provider-gated charges/refunds with persisted refs.
 - [YE global CSS element selectors leak](ye-global-css-leaks.md) — RESOLVED: bare selectors scoped to `.site-nav`/`.site-footer`/`.sec`/`.faq details`; new public sections need the `sec` class.
 - [YE build-resilience guard](ye-build-resilience-guard.md) — vitest spawns real next build with unreachable DB; nested build needs whitelist env or it fails with /_document errors.
-- [YE test DB isolation](ye-tests-isolation.md) — vitest suites must use the fail-closed ye_test DB pattern; validation registration can hijack the .replit Project workflow.
+- [YE test DB isolation](ye-tests-isolation.md) — fail-closed ye_test DB pattern; setup-env strips provider keys (real-SMS incident); validation registration can hijack the .replit Project workflow.
 - [YE payments live/sim switching](ye-payments-live-sim.md) — providers go live purely by secret presence; settlement re-verifies via provider API, never trusts redirects; seats release on failure.
 - [YE appointments & Google Calendar](ye-appointments-gcal.md) — consultKey unique claim before Meet creation; one event per class occurrence; connector invites replace email provider.
 - [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages public schema (db push drops undeclared tables — declare raw-SQL tables as models!); YE uses /svc routes; shared brick counter via raw SQL.
