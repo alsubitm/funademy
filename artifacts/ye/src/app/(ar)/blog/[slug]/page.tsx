@@ -47,30 +47,42 @@ export default async function BlogPostPage(props: { params: Promise<{ slug: stri
   const base = siteUrl();
   const articleSchema = {
     '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    '@id': `${base}/blog/${post.slug}`,
-    headline: post.titleAr,
-    description: post.excerptAr ?? undefined,
-    url: `${base}/blog/${post.slug}`,
-    datePublished: post.publishedAt?.toISOString() ?? post.createdAt.toISOString(),
-    dateModified: post.updatedAt?.toISOString() ?? post.createdAt.toISOString(),
-    inLanguage: 'ar',
-    author: {
-      '@type': 'Organization',
-      '@id': `${base}/#organization`,
-      name: 'FunAdemy',
-      url: base,
-    },
-    publisher: {
-      '@type': 'Organization',
-      '@id': `${base}/#organization`,
-      name: 'FunAdemy',
-      logo: {
-        '@type': 'ImageObject',
-        url: `${base}/brand/ye-logo.svg`,
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${base}/blog/${post.slug}`,
+        headline: post.titleAr,
+        description: post.excerptAr ?? undefined,
+        url: `${base}/blog/${post.slug}`,
+        datePublished: post.publishedAt?.toISOString() ?? post.createdAt.toISOString(),
+        dateModified: post.updatedAt?.toISOString() ?? post.createdAt.toISOString(),
+        inLanguage: 'ar',
+        author: {
+          '@type': 'Organization',
+          '@id': `${base}/#organization`,
+          name: 'FunAdemy',
+          url: base,
+        },
+        publisher: {
+          '@type': 'Organization',
+          '@id': `${base}/#organization`,
+          name: 'FunAdemy',
+          logo: {
+            '@type': 'ImageObject',
+            url: `${base}/brand/ye-logo.svg`,
+          },
+        },
+        isPartOf: { '@id': `${base}/#website` },
       },
-    },
-    isPartOf: { '@id': `${base}/#website` },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: base },
+          { '@type': 'ListItem', position: 2, name: 'المدونة', item: `${base}/blog` },
+          { '@type': 'ListItem', position: 3, name: post.titleAr, item: `${base}/blog/${post.slug}` },
+        ],
+      },
+    ],
   };
 
   return (
