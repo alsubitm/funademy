@@ -5,10 +5,19 @@ import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { ConsultFlow } from '@/components/consult/ConsultFlow';
 import { consultDict } from '@/app/(ar)/consult/dict';
 import '../../(ar)/book/page.css';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'Book a Consultation | FunAdemy',
   description: 'Book a free Google Meet consultation to help choose the right program for your child.',
+  alternates: {
+    canonical: `${siteUrl()}/en/consult`,
+    languages: {
+      'ar-SA': `${siteUrl()}/consult`,
+      'en': `${siteUrl()}/en/consult`,
+      'x-default': `${siteUrl()}/consult`,
+    },
+  },
 };
 
 export default function ConsultPageEn() {

@@ -5,10 +5,19 @@ import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { ConsultFlow } from '@/components/consult/ConsultFlow';
 import { consultDict } from './dict';
 import '../book/page.css';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'حجز موعد استشارة | FunAdemy',
   description: 'احجز موعد استشارة مجانية عبر Google Meet لمساعدتك في اختيار البرنامج الأنسب لطفلك.',
+  alternates: {
+    canonical: `${siteUrl()}/consult`,
+    languages: {
+      'ar-SA': `${siteUrl()}/consult`,
+      'en': `${siteUrl()}/en/consult`,
+      'x-default': `${siteUrl()}/consult`,
+    },
+  },
 };
 
 export default function ConsultPage() {

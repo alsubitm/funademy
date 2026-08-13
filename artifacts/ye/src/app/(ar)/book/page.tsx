@@ -7,10 +7,19 @@ import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { BookingFlow } from '@/components/book/BookingFlow';
 import { bookDict } from './dict';
 import './page.css';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'حجز حصة تجريبية | FunAdemy',
   description: 'سجّل طفلك في حصة تجريبية مجانية ليعيش تجربة المهندس الصغير.',
+  alternates: {
+    canonical: `${siteUrl()}/book`,
+    languages: {
+      'ar-SA': `${siteUrl()}/book`,
+      'en': `${siteUrl()}/en/book`,
+      'x-default': `${siteUrl()}/book`,
+    },
+  },
 };
 
 export default async function BookPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {

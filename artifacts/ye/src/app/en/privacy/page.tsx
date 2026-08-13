@@ -1,9 +1,18 @@
 import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'Privacy Policy | FunAdemy',
   description: 'How FunAdemy collects, protects and uses family and child data.',
+  alternates: {
+    canonical: `${siteUrl()}/en/privacy`,
+    languages: {
+      'ar-SA': `${siteUrl()}/privacy`,
+      'en': `${siteUrl()}/en/privacy`,
+      'x-default': `${siteUrl()}/privacy`,
+    },
+  },
 };
 
 export default function PrivacyPageEn() {

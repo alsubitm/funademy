@@ -5,10 +5,19 @@ import { EnrollFlow } from '@/components/enroll/EnrollFlow';
 import { enrollDict } from './dict';
 import '@/app/(ar)/account/page.css';
 import './page.css';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'التسجيل الشهري | FunAdemy',
   description: 'سجّل أطفالك في برامج FunAdemy الشهرية — خصم ١٠٪ تلقائي للأشقاء.',
+  alternates: {
+    canonical: `${siteUrl()}/enroll`,
+    languages: {
+      'ar-SA': `${siteUrl()}/enroll`,
+      'en': `${siteUrl()}/en/enroll`,
+      'x-default': `${siteUrl()}/enroll`,
+    },
+  },
 };
 
 export default async function EnrollPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {

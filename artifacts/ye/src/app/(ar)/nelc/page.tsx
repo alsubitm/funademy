@@ -1,5 +1,6 @@
 import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER, NELC_LICENSE_NO } from '@/lib/constants';
+import { siteUrl } from '@/lib/site-url';
 
 // Dynamically rendered so the env var NELC_LICENSE_NO is not statically baked
 // in at build time. In practice, license number changes require a new
@@ -11,6 +12,14 @@ export const metadata = {
   title: 'الجاهزية للمركز الوطني للتعليم الإلكتروني | FunAdemy',
   description:
     'جاهزية منصة FunAdemy للترخيص والتكامل مع المركز الوطني للتعليم الإلكتروني (NELC) والمنصة الوطنية FutureX.',
+  alternates: {
+    canonical: `${siteUrl()}/nelc`,
+    languages: {
+      'ar-SA': `${siteUrl()}/nelc`,
+      'en': `${siteUrl()}/en/nelc`,
+      'x-default': `${siteUrl()}/nelc`,
+    },
+  },
 };
 
 export default function NelcPage() {

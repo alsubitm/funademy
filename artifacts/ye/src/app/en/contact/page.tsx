@@ -6,10 +6,19 @@ import { TrackedWaLink } from '@/components/contact/TrackedWaLink';
 import { contactDict } from '@/app/(ar)/contact/dict';
 import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constants';
 import '@/app/(ar)/contact/page.css';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'Contact Us | FunAdemy',
   description: 'Contact the Young Engineers team for any inquiries.',
+  alternates: {
+    canonical: `${siteUrl()}/en/contact`,
+    languages: {
+      'ar-SA': `${siteUrl()}/contact`,
+      'en': `${siteUrl()}/en/contact`,
+      'x-default': `${siteUrl()}/contact`,
+    },
+  },
 };
 
 export default function ContactPageEn() {

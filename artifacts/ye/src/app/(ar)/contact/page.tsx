@@ -6,10 +6,19 @@ import { TrackedWaLink } from '@/components/contact/TrackedWaLink';
 import { contactDict } from './dict';
 import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constants';
 import './page.css';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'تواصل معنا | FunAdemy',
   description: 'تواصل مع فريق المهندس الصغير للإجابة على جميع استفساراتك.',
+  alternates: {
+    canonical: `${siteUrl()}/contact`,
+    languages: {
+      'ar-SA': `${siteUrl()}/contact`,
+      'en': `${siteUrl()}/en/contact`,
+      'x-default': `${siteUrl()}/contact`,
+    },
+  },
 };
 
 export default function ContactPage() {

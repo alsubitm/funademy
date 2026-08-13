@@ -7,10 +7,19 @@ import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { BookingFlow } from '@/components/book/BookingFlow';
 import { bookDict } from '@/app/(ar)/book/dict';
 import '@/app/(ar)/book/page.css';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'Book a Trial | FunAdemy',
   description: 'Register your child for a free trial class to experience the Young Engineer journey.',
+  alternates: {
+    canonical: `${siteUrl()}/en/book`,
+    languages: {
+      'ar-SA': `${siteUrl()}/book`,
+      'en': `${siteUrl()}/en/book`,
+      'x-default': `${siteUrl()}/book`,
+    },
+  },
 };
 
 export default async function BookPageEn({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {

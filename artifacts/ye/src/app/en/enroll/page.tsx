@@ -5,10 +5,19 @@ import { EnrollFlow } from '@/components/enroll/EnrollFlow';
 import { enrollDict } from '@/app/(ar)/enroll/dict';
 import '@/app/(ar)/account/page.css';
 import '@/app/(ar)/enroll/page.css';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'Monthly Enrollment | FunAdemy',
   description: 'Enroll your children in FunAdemy monthly programs — automatic 10% sibling discount.',
+  alternates: {
+    canonical: `${siteUrl()}/en/enroll`,
+    languages: {
+      'ar-SA': `${siteUrl()}/enroll`,
+      'en': `${siteUrl()}/en/enroll`,
+      'x-default': `${siteUrl()}/enroll`,
+    },
+  },
 };
 
 export default async function EnrollPageEn({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {

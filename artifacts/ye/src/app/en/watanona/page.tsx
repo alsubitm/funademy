@@ -2,10 +2,19 @@ export const revalidate = 300;
 import { Metadata } from 'next';
 import { WatanonaPage } from '../../(ar)/watanona/WatanonaPage';
 
+import { siteUrl } from '@/lib/site-url';
 const _siteUrl = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
 export const metadata: Metadata = {
   title: 'Our Children Build Our Homeland | FunAdemy',
   description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day by FunAdemy · e² Young Engineers Riyadh.',
+  alternates: {
+    canonical: `${siteUrl()}/en/watanona`,
+    languages: {
+      'ar-SA': `${siteUrl()}/watanona`,
+      'en': `${siteUrl()}/en/watanona`,
+      'x-default': `${siteUrl()}/watanona`,
+    },
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',

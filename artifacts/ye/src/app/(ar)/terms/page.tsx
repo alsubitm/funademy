@@ -1,9 +1,18 @@
 import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
+import { siteUrl } from '@/lib/site-url';
 
 export const metadata = {
   title: 'الشروط والأحكام | FunAdemy',
   description: 'شروط استخدام منصة FunAdemy وسياسات الدفع والاسترداد والدعم.',
+  alternates: {
+    canonical: `${siteUrl()}/terms`,
+    languages: {
+      'ar-SA': `${siteUrl()}/terms`,
+      'en': `${siteUrl()}/en/terms`,
+      'x-default': `${siteUrl()}/terms`,
+    },
+  },
 };
 
 export default function TermsPage() {
