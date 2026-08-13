@@ -1,5 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -26,11 +26,12 @@ model Program {
   buildsAr    String[]
   termsEn     String[] // term structure lines
   termsAr     String[]
-  position    Int      @default(0)
-  slots       ScheduleSlot[]
-  bookings    Booking[]
-  courseRuns  CourseRun[]
-  skills      Skill[]
+  coverImageUrl String?
+  position      Int      @default(0)
+  slots         ScheduleSlot[]
+  bookings      Booking[]
+  courseRuns    CourseRun[]
+  skills        Skill[]
 
   @@map("ye_programs")
 }
@@ -529,8 +530,9 @@ model BlogPost {
   excerptEn   String?
   contentAr   String
   contentEn   String?
-  coverEmoji  String   @default("📚")
-  published   Boolean  @default(true)
+  coverEmoji     String   @default("📚")
+  coverImageUrl  String?
+  published      Boolean  @default(true)
   publishedAt DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt

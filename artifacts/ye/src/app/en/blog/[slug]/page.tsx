@@ -10,7 +10,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   if (!post || !post.published) return {};
   const base = siteUrl();
-  const ogImage = `${base}/og-default.jpg`;
+  const ogImage = post.coverImageUrl ?? `${base}/og-default.jpg`;
   const title = post.titleEn || post.titleAr;
   const description = post.excerptEn || post.excerptAr;
   return {
@@ -34,6 +34,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     },
     twitter: {
       card: 'summary_large_image',
+      site: '@YEYoungEngineers',
       title,
       description: description ?? undefined,
       images: [ogImage],

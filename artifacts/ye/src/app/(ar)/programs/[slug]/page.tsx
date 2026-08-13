@@ -11,7 +11,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const program = await safeQuery(() => prisma.program.findUnique({ where: { slug } }), null, 'program:metadata');
   if (!program) return {};
   const base = siteUrl();
-  const ogImage = `${base}/og-default.jpg`;
+  const ogImage = program.coverImageUrl ?? `${base}/og-default.jpg`;
   return {
     title: `${program.nameAr} - FunAdemy · e² Young Engineers`,
     description: program.taglineAr,
@@ -32,6 +32,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     },
     twitter: {
       card: 'summary_large_image',
+      site: '@YEYoungEngineers',
       title: `${program.nameAr} — FunAdemy`,
       description: program.taglineAr ?? undefined,
       images: [ogImage],

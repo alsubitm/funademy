@@ -43,6 +43,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    site: '@YEYoungEngineers',
     title: 'FunAdemy — e² Young Engineers',
     description:
       'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين من أي مكان.',
