@@ -10,4 +10,5 @@
 - [NELC readiness](nelc-readiness.md) — registered mirrors wizard example verbatim; other steps follow NELC package per-step shapes; ONE send per national ID (fresh ID per attempt); WAF → browser relay; no fake success.
 - [Task-merge clobber risk](task-merge-clobber.md) — stale-base task merges silently revert main's recent work on shared files; grep key symbols after merges, restore via `git log --all -S`.
 - [YE learning platform](ye-learning-platform.md) — kids learning (XP/badges/streaks/PIN) ported from Manara; access = active enrollment; kid session = ye_kid cookie; admin CurriculumTab in AdminDashboard.
+- [YE SEO canonical URL](ye-seo-canonical.md) — absolute URLs only via site-url.ts (funademy.io hardcoded, SITE_URL override); never REPLIT_DOMAINS; sitemap/llms.txt stay force-dynamic.
 - [YE SMS OTP delivery](ye-sms-otp-delivery.md) — Authentica carries OUR codes (custom-OTP send); live by key presence; persist-before-send (timeout ≠ undelivered); advisory-lock caps provider calls; OTP-only API.

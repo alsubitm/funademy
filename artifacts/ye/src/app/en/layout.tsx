@@ -21,7 +21,7 @@ const plexMono = IBM_Plex_Mono({
   variable: '--font-mono',
 });
 
-const SITE_URL = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
+const SITE_URL = siteUrl();
 const OG_IMAGE = `${SITE_URL}/og-default.jpg`;
 
 export const metadata: Metadata = {

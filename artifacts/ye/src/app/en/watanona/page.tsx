@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { WatanonaPage } from '../../(ar)/watanona/WatanonaPage';
 
 import { siteUrl } from '@/lib/site-url';
-const _siteUrl = `https://${(process.env.REPLIT_DOMAINS ?? '').split(',')[0] || 'funademy.sa'}`;
+const _siteUrl = siteUrl();
 export const metadata: Metadata = {
   title: 'Our Children Build Our Homeland | FunAdemy',
   description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day by FunAdemy · e² Young Engineers Riyadh.',

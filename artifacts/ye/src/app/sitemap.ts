@@ -1,7 +1,14 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
+import { siteUrl } from '@/lib/site-url';
 
-const PROGRAM_SLUGS = [
+// Evaluate at request time (with the production env + database), never at
+// build time: the publish build runs in the workspace env, which would bake
+// dev-database slugs into the deployed sitemap.
+export const dynamic = 'force-dynamic';
+
+/** Fallback only — the live list comes from the Program table. */
+const PROGRAM_SLUGS_FALLBACK = [
   'big-builders',
   'smartivo',
   'bricks-challenge',
@@ -10,19 +17,17 @@ const PROGRAM_SLUGS = [
   'algoc',
 ];
 
-function baseUrl(): string {
-  // In production the platform serves the site at the deployed domain root.
-  const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
-  return domain ? `https://${domain}` : 'http://localhost';
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = baseUrl();
+  const base = siteUrl();
   const now = new Date();
   const blogSlugs = await prisma.blogPost
     .findMany({ where: { published: true }, select: { slug: true } })
     .then((posts) => posts.map((p) => p.slug))
     .catch(() => [] as string[]);
+  const programSlugs = await prisma.program
+    .findMany({ select: { slug: true }, orderBy: { position: 'asc' } })
+    .then((programs) => programs.map((p) => p.slug))
+    .catch(() => PROGRAM_SLUGS_FALLBACK);
   const paths = [
     '/',
     '/en',
@@ -44,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/en/terms',
     '/nelc',
     '/en/nelc',
-    ...PROGRAM_SLUGS.flatMap((s) => [`/programs/${s}`, `/en/programs/${s}`]),
+    ...programSlugs.flatMap((s) => [`/programs/${s}`, `/en/programs/${s}`]),
     ...blogSlugs.flatMap((s) => [`/blog/${s}`, `/en/blog/${s}`]),
   ];
   return paths.map((p) => ({
