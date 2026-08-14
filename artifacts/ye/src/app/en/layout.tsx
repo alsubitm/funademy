@@ -25,6 +25,7 @@ const SITE_URL = siteUrl();
 const OG_IMAGE = `${SITE_URL}/og-default.jpg`;
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'FunAdemy — e² Young Engineers',
     template: '%s | FunAdemy',

@@ -3,14 +3,14 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { BlogArticle } from '@/components/blog/BlogArticle';
-import { siteUrl } from '@/lib/site-url';
+import { siteUrl, ogImageUrl } from '@/lib/site-url';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   if (!post || !post.published) return {};
   const base = siteUrl();
-  const ogImage = post.coverImageUrl ?? `${base}/og-default.jpg`;
+  const ogImage = ogImageUrl(post.coverImageUrl);
   return {
     title: post.titleAr,
     description: post.excerptAr,

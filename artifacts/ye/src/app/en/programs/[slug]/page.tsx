@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
 import { notFound } from 'next/navigation';
-import { siteUrl } from '@/lib/site-url';
+import { siteUrl, ogImageUrl } from '@/lib/site-url';
 import { ProgramDetail } from '@/app/(ar)/programs/[slug]/ProgramDetail';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -11,7 +11,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const program = await safeQuery(() => prisma.program.findUnique({ where: { slug } }), null, 'program-en:metadata');
   if (!program) return {};
   const base = siteUrl();
-  const ogImage = program.coverImageUrl ?? `${base}/og-default.jpg`;
+  const ogImage = ogImageUrl(program.coverImageUrl);
   return {
     title: `${program.nameEn} - FunAdemy · e² Young Engineers`,
     description: program.taglineEn,
