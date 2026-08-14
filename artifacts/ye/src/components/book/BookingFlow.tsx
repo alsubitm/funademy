@@ -292,27 +292,27 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
         {step === 3 && (
           <div className="form-grid">
             <div className="f-group">
-              <label>{d.parentName}</label>
-              <input type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} disabled={isPending} />
+              <label htmlFor="book-parent-name">{d.parentName}</label>
+              <input id="book-parent-name" type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} disabled={isPending} />
             </div>
             <div className="f-group">
-              <label>{d.mobile}</label>
-              <input type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isPending} />
+              <label htmlFor="book-mobile">{d.mobile}</label>
+              <input id="book-mobile" type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isPending} />
             </div>
             <div className="f-group">
-              <label>{d.childName}</label>
-              <input type="text" value={childFirstName} onChange={(e) => setChildFirstName(e.target.value)} disabled={isPending} />
+              <label htmlFor="book-child-name">{d.childName}</label>
+              <input id="book-child-name" type="text" value={childFirstName} onChange={(e) => setChildFirstName(e.target.value)} disabled={isPending} />
             </div>
             <div className="f-group">
-              <label>{d.birthYear}</label>
-              <select value={childBirthYear} onChange={(e) => setChildBirthYear(e.target.value)} disabled={isPending}>
+              <label htmlFor="book-birth-year">{d.birthYear}</label>
+              <select id="book-birth-year" value={childBirthYear} onChange={(e) => setChildBirthYear(e.target.value)} disabled={isPending}>
                 <option value="">--</option>
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
             <div className="f-group">
-              <label>{d.email}</label>
-              <input type="email" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isPending} />
+              <label htmlFor="book-email">{d.email}</label>
+              <input id="book-email" type="email" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isPending} />
             </div>
           </div>
         )}

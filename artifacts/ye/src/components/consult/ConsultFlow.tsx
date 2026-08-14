@@ -153,20 +153,20 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
                 <h3>{d.yourDetails}</h3>
                 <div className="form-grid">
                   <div className="f-group">
-                    <label>{d.parentName}</label>
-                    <input type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} disabled={isPending} />
+                    <label htmlFor="consult-parent-name">{d.parentName}</label>
+                    <input id="consult-parent-name" type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} disabled={isPending} />
                   </div>
                   <div className="f-group">
-                    <label>{d.mobile}</label>
-                    <input type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isPending} />
+                    <label htmlFor="consult-mobile">{d.mobile}</label>
+                    <input id="consult-mobile" type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isPending} />
                   </div>
                   <div className="f-group">
-                    <label>{d.email}</label>
-                    <input type="email" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isPending} />
+                    <label htmlFor="consult-email">{d.email}</label>
+                    <input id="consult-email" type="email" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isPending} />
                   </div>
                   <div className="f-group">
-                    <label>{d.notes}</label>
-                    <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isPending} />
+                    <label htmlFor="consult-notes">{d.notes}</label>
+                    <input id="consult-notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isPending} />
                   </div>
                 </div>
                 <div className="w-acts" style={{ marginTop: '16px' }}>
