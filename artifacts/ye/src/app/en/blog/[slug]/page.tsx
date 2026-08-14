@@ -48,6 +48,7 @@ export default async function BlogPostPageEn(props: { params: Promise<{ slug: st
   if (!post || !post.published) notFound();
 
   const base = siteUrl();
+  const ogImage = ogImageUrl(post.coverImageUrl);
   const title = post.titleEn || post.titleAr;
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -56,6 +57,7 @@ export default async function BlogPostPageEn(props: { params: Promise<{ slug: st
         '@type': 'BlogPosting',
         '@id': `${base}/en/blog/${post.slug}`,
         headline: title,
+        image: ogImage,
         description: (post.excerptEn || post.excerptAr) ?? undefined,
         url: `${base}/en/blog/${post.slug}`,
         datePublished: post.publishedAt?.toISOString() ?? post.createdAt.toISOString(),
