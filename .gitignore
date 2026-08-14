@@ -5,6 +5,7 @@ dist
 tmp
 out-tsc
 .next-build-test/
+.next-seo-guard-test/
 *.tsbuildinfo
 .expo
 .expo-shared
