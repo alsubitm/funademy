@@ -10,27 +10,27 @@ export function generateMetadata(): Metadata {
   const base = siteUrl();
   const ogImage = `${base}/og-default.jpg`;
   return {
-    title: 'المدونة | FunAdemy',
-    description: 'مقالات ونصائح للأهالي حول التعلم بالهندسة واللعب وتنمية مهارات الأطفال.',
+    title: 'مدونة فناديمي | تعليم STEM وهندسة الأطفال بالرياض',
+    description: 'مقالات ونصائح للأهالي حول تعليم STEM وهندسة الأطفال بالليغو® في الرياض. أفكار وأنشطة لتنمية مهارات أطفالك مع e² Young Engineers.',
     alternates: {
       canonical: `${base}/blog`,
       languages: {
         'x-default': `${base}/blog`,
         'ar-SA': `${base}/blog`,
-        'en': `${base}/en/blog`,
+        'en-SA': `${base}/en/blog`,
       },
     },
     openGraph: {
       type: 'website',
       locale: 'ar_SA',
-      title: 'المدونة | FunAdemy',
-      description: 'مقالات ونصائح للأهالي حول التعلم بالهندسة واللعب وتنمية مهارات الأطفال.',
+      title: 'مدونة فناديمي | تعليم STEM وهندسة الأطفال بالرياض',
+      description: 'مقالات ونصائح للأهالي حول تعليم STEM وهندسة الأطفال بالليغو® في الرياض.',
       images: [{ url: ogImage, width: 1200, height: 630, alt: 'FunAdemy Blog' }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'المدونة | FunAdemy',
-      description: 'مقالات ونصائح للأهالي حول التعلم بالهندسة واللعب وتنمية مهارات الأطفال.',
+      title: 'مدونة فناديمي | تعليم STEM وهندسة الأطفال بالرياض',
+      description: 'مقالات ونصائح للأهالي حول تعليم STEM وهندسة الأطفال بالليغو® في الرياض.',
       images: [ogImage],
     },
   };

@@ -7,15 +7,30 @@ import { consultDict } from '@/app/(ar)/consult/dict';
 import '../../(ar)/book/page.css';
 import { siteUrl } from '@/lib/site-url';
 
+const _consultBase = siteUrl();
 export const metadata = {
   title: 'Book a Consultation | FunAdemy',
   description: 'Book a free Google Meet consultation to help choose the right program for your child.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_SA',
+    title: 'Book a Consultation | FunAdemy',
+    description: 'Book a free Google Meet consultation to help choose the right program for your child.',
+    images: [{ url: `${_consultBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'Book a Consultation | FunAdemy',
+    description: 'Book a free Google Meet consultation to help choose the right program for your child.',
+    images: [`${_consultBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/en/consult`,
+    canonical: `${_consultBase}/en/consult`,
     languages: {
-      'ar-SA': `${siteUrl()}/consult`,
-      'en': `${siteUrl()}/en/consult`,
-      'x-default': `${siteUrl()}/consult`,
+      'ar-SA': `${_consultBase}/consult`,
+      'en-SA': `${_consultBase}/en/consult`,
+      'x-default': `${_consultBase}/consult`,
     },
   },
 };

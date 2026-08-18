@@ -9,15 +9,31 @@ import { bookDict } from '@/app/(ar)/book/dict';
 import '@/app/(ar)/book/page.css';
 import { siteUrl } from '@/lib/site-url';
 
+const _bookBase = siteUrl();
 export const metadata = {
   title: 'Book a Trial | FunAdemy',
-  description: 'Register your child for a free trial class to experience the Young Engineer journey.',
+  description:
+    'Register your child for a free trial class with Young Engineers Riyadh and experience building moving LEGO® models. STEM programs for kids aged 4–18 — in-person and online.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_SA',
+    title: 'Book a Trial | FunAdemy',
+    description: 'Register your child for a free trial class to experience the Young Engineer journey.',
+    images: [{ url: `${_bookBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'Book a Trial | FunAdemy',
+    description: 'Register your child for a free trial class to experience the Young Engineer journey.',
+    images: [`${_bookBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/en/book`,
+    canonical: `${_bookBase}/en/book`,
     languages: {
-      'ar-SA': `${siteUrl()}/book`,
-      'en': `${siteUrl()}/en/book`,
-      'x-default': `${siteUrl()}/book`,
+      'ar-SA': `${_bookBase}/book`,
+      'en-SA': `${_bookBase}/en/book`,
+      'x-default': `${_bookBase}/book`,
     },
   },
 };

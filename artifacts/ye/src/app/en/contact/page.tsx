@@ -8,15 +8,31 @@ import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constan
 import '@/app/(ar)/contact/page.css';
 import { siteUrl } from '@/lib/site-url';
 
+const _contactBase = siteUrl();
 export const metadata = {
   title: 'Contact Us | FunAdemy',
-  description: 'Contact the Young Engineers team for any inquiries.',
+  description:
+    'Reach the FunAdemy — Young Engineers Riyadh — team via WhatsApp, phone or email. We answer your questions about STEM programs for kids aged 4–18 in Riyadh.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_SA',
+    title: 'Contact Us | FunAdemy',
+    description: 'Reach the FunAdemy team via WhatsApp, phone or email.',
+    images: [{ url: `${_contactBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'Contact Us | FunAdemy',
+    description: 'Reach the FunAdemy team via WhatsApp, phone or email.',
+    images: [`${_contactBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/en/contact`,
+    canonical: `${_contactBase}/en/contact`,
     languages: {
-      'ar-SA': `${siteUrl()}/contact`,
-      'en': `${siteUrl()}/en/contact`,
-      'x-default': `${siteUrl()}/contact`,
+      'ar-SA': `${_contactBase}/contact`,
+      'en-SA': `${_contactBase}/en/contact`,
+      'x-default': `${_contactBase}/contact`,
     },
   },
 };

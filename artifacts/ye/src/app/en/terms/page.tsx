@@ -2,15 +2,31 @@ import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { siteUrl } from '@/lib/site-url';
 
+const _termsBase = siteUrl();
 export const metadata = {
   title: 'Terms & Conditions | FunAdemy',
-  description: 'FunAdemy terms of use, payment, refund and support policies.',
+  description:
+    'Read the FunAdemy terms of use, booking, payment, refund and support policies. STEM programs for kids in Riyadh governed by Saudi law.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_SA',
+    title: 'Terms & Conditions | FunAdemy',
+    description: 'FunAdemy terms of use, payment, refund and support policies.',
+    images: [{ url: `${_termsBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'Terms & Conditions | FunAdemy',
+    description: 'FunAdemy terms of use, payment, refund and support policies.',
+    images: [`${_termsBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/en/terms`,
+    canonical: `${_termsBase}/en/terms`,
     languages: {
-      'ar-SA': `${siteUrl()}/terms`,
-      'en': `${siteUrl()}/en/terms`,
-      'x-default': `${siteUrl()}/terms`,
+      'ar-SA': `${_termsBase}/terms`,
+      'en-SA': `${_termsBase}/en/terms`,
+      'x-default': `${_termsBase}/terms`,
     },
   },
 };

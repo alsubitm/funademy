@@ -2,15 +2,31 @@ import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { siteUrl } from '@/lib/site-url';
 
+const _privacyBase = siteUrl();
 export const metadata = {
   title: 'Privacy Policy | FunAdemy',
-  description: 'How FunAdemy collects, protects and uses family and child data.',
+  description:
+    'Learn how FunAdemy collects, protects and uses family and child data in line with the Saudi Personal Data Protection Law (PDPL).',
+  openGraph: {
+    type: 'website',
+    locale: 'en_SA',
+    title: 'Privacy Policy | FunAdemy',
+    description: 'How FunAdemy collects, protects and uses family and child data.',
+    images: [{ url: `${_privacyBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'Privacy Policy | FunAdemy',
+    description: 'How FunAdemy collects, protects and uses family and child data.',
+    images: [`${_privacyBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/en/privacy`,
+    canonical: `${_privacyBase}/en/privacy`,
     languages: {
-      'ar-SA': `${siteUrl()}/privacy`,
-      'en': `${siteUrl()}/en/privacy`,
-      'x-default': `${siteUrl()}/privacy`,
+      'ar-SA': `${_privacyBase}/privacy`,
+      'en-SA': `${_privacyBase}/en/privacy`,
+      'x-default': `${_privacyBase}/privacy`,
     },
   },
 };

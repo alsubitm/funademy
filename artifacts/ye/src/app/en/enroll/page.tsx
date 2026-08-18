@@ -7,15 +7,31 @@ import '@/app/(ar)/account/page.css';
 import '@/app/(ar)/enroll/page.css';
 import { siteUrl } from '@/lib/site-url';
 
+const _enrollBase = siteUrl();
 export const metadata = {
   title: 'Monthly Enrollment | FunAdemy',
-  description: 'Enroll your children in FunAdemy monthly programs — automatic 10% sibling discount.',
+  description:
+    'Enroll your children in FunAdemy monthly STEM programs — LEGO® engineering, coding and robotics in Riyadh. Automatic 10% sibling discount. In-person and online for ages 4–18.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_SA',
+    title: 'Monthly Enrollment | FunAdemy',
+    description: 'Enroll your children in FunAdemy monthly programs — automatic 10% sibling discount.',
+    images: [{ url: `${_enrollBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'Monthly Enrollment | FunAdemy',
+    description: 'Enroll your children in FunAdemy monthly programs — automatic 10% sibling discount.',
+    images: [`${_enrollBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/en/enroll`,
+    canonical: `${_enrollBase}/en/enroll`,
     languages: {
-      'ar-SA': `${siteUrl()}/enroll`,
-      'en': `${siteUrl()}/en/enroll`,
-      'x-default': `${siteUrl()}/enroll`,
+      'ar-SA': `${_enrollBase}/enroll`,
+      'en-SA': `${_enrollBase}/en/enroll`,
+      'x-default': `${_enrollBase}/enroll`,
     },
   },
 };

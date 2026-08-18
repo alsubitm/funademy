@@ -9,15 +9,31 @@ import { bookDict } from './dict';
 import './page.css';
 import { siteUrl } from '@/lib/site-url';
 
+const _bookBase = siteUrl();
 export const metadata = {
   title: 'حجز حصة تجريبية | FunAdemy',
-  description: 'سجّل طفلك في حصة تجريبية مجانية ليعيش تجربة المهندس الصغير.',
+  description:
+    'سجّل طفلك في حصة تجريبية مجانية مع المهندس الصغير الرياض ليعيش تجربة بناء نماذج LEGO® متحركة. برامج STEM للأطفال من ٤ إلى ١٨ سنة — حصص حضورية وأونلاين.',
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    title: 'حجز حصة تجريبية | FunAdemy',
+    description: 'سجّل طفلك في حصة تجريبية مجانية ليعيش تجربة المهندس الصغير.',
+    images: [{ url: `${_bookBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'حجز حصة تجريبية | FunAdemy',
+    description: 'سجّل طفلك في حصة تجريبية مجانية ليعيش تجربة المهندس الصغير.',
+    images: [`${_bookBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/book`,
+    canonical: `${_bookBase}/book`,
     languages: {
-      'ar-SA': `${siteUrl()}/book`,
-      'en': `${siteUrl()}/en/book`,
-      'x-default': `${siteUrl()}/book`,
+      'ar-SA': `${_bookBase}/book`,
+      'en-SA': `${_bookBase}/en/book`,
+      'x-default': `${_bookBase}/book`,
     },
   },
 };

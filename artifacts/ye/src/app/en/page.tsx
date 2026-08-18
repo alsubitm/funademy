@@ -14,7 +14,7 @@ export function generateMetadata(): Metadata {
       languages: {
         'x-default': `${base}/`,
         'ar-SA': `${base}/`,
-        'en': `${base}/en`,
+        'en-SA': `${base}/en`,
       },
     },
   };

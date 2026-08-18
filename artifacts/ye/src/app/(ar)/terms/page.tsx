@@ -2,15 +2,31 @@ import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { siteUrl } from '@/lib/site-url';
 
+const _termsBase = siteUrl();
 export const metadata = {
   title: 'الشروط والأحكام | FunAdemy',
-  description: 'شروط استخدام منصة FunAdemy وسياسات الدفع والاسترداد والدعم.',
+  description:
+    'اطّلع على شروط استخدام منصة FunAdemy وسياسات الحجز والدفع والاسترداد والدعم الفني. برامج STEM للأطفال في الرياض بموجب الأنظمة السعودية.',
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    title: 'الشروط والأحكام | FunAdemy',
+    description: 'شروط استخدام منصة FunAdemy وسياسات الدفع والاسترداد والدعم.',
+    images: [{ url: `${_termsBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'الشروط والأحكام | FunAdemy',
+    description: 'شروط استخدام منصة FunAdemy وسياسات الدفع والاسترداد والدعم.',
+    images: [`${_termsBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/terms`,
+    canonical: `${_termsBase}/terms`,
     languages: {
-      'ar-SA': `${siteUrl()}/terms`,
-      'en': `${siteUrl()}/en/terms`,
-      'x-default': `${siteUrl()}/terms`,
+      'ar-SA': `${_termsBase}/terms`,
+      'en-SA': `${_termsBase}/en/terms`,
+      'x-default': `${_termsBase}/terms`,
     },
   },
 };

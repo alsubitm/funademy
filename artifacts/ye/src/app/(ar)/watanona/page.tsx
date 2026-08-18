@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     canonical: `${siteUrl()}/watanona`,
     languages: {
       'ar-SA': `${siteUrl()}/watanona`,
-      'en': `${siteUrl()}/en/watanona`,
+      'en-SA': `${siteUrl()}/en/watanona`,
       'x-default': `${siteUrl()}/watanona`,
     },
   },

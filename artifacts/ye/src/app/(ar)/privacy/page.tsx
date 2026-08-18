@@ -2,15 +2,31 @@ import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { siteUrl } from '@/lib/site-url';
 
+const _privacyBase = siteUrl();
 export const metadata = {
   title: 'سياسة الخصوصية | FunAdemy',
-  description: 'كيف تجمع منصة FunAdemy بيانات العائلات والأطفال وتحميها وتستخدمها.',
+  description:
+    'تعرّف على كيفية جمع منصة FunAdemy لبيانات العائلات والأطفال وحمايتها واستخدامها، وفق نظام حماية البيانات الشخصية السعودي.',
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    title: 'سياسة الخصوصية | FunAdemy',
+    description: 'كيف تجمع منصة FunAdemy بيانات العائلات والأطفال وتحميها وتستخدمها.',
+    images: [{ url: `${_privacyBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'سياسة الخصوصية | FunAdemy',
+    description: 'كيف تجمع منصة FunAdemy بيانات العائلات والأطفال وتحميها وتستخدمها.',
+    images: [`${_privacyBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/privacy`,
+    canonical: `${_privacyBase}/privacy`,
     languages: {
-      'ar-SA': `${siteUrl()}/privacy`,
-      'en': `${siteUrl()}/en/privacy`,
-      'x-default': `${siteUrl()}/privacy`,
+      'ar-SA': `${_privacyBase}/privacy`,
+      'en-SA': `${_privacyBase}/en/privacy`,
+      'x-default': `${_privacyBase}/privacy`,
     },
   },
 };

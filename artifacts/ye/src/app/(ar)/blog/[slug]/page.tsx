@@ -19,7 +19,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
       languages: {
         'x-default': `${base}/blog/${slug}`,
         'ar-SA': `${base}/blog/${slug}`,
-        'en': `${base}/en/blog/${slug}`,
+        'en-SA': `${base}/en/blog/${slug}`,
       },
     },
     openGraph: {

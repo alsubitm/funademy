@@ -10,27 +10,27 @@ export function generateMetadata(): Metadata {
   const base = siteUrl();
   const ogImage = `${base}/og-default.jpg`;
   return {
-    title: 'Blog | FunAdemy',
-    description: "Articles and tips for parents on learning through engineering, play, and building kids' skills.",
+    title: 'FunAdemy Blog | STEM & Engineering Tips for Kids in Riyadh',
+    description: "Articles and tips for parents on STEM education and LEGO® engineering for kids in Riyadh. Activities and ideas to build your child's skills with e² Young Engineers.",
     alternates: {
       canonical: `${base}/en/blog`,
       languages: {
         'x-default': `${base}/blog`,
         'ar-SA': `${base}/blog`,
-        'en': `${base}/en/blog`,
+        'en-SA': `${base}/en/blog`,
       },
     },
     openGraph: {
       type: 'website',
-      locale: 'en_US',
-      title: 'Blog | FunAdemy',
-      description: "Articles and tips for parents on learning through engineering, play, and building kids' skills.",
+      locale: 'en_SA',
+      title: 'FunAdemy Blog | STEM & Engineering Tips for Kids in Riyadh',
+      description: "Articles and tips for parents on STEM education and LEGO® engineering for kids in Riyadh.",
       images: [{ url: ogImage, width: 1200, height: 630, alt: 'FunAdemy Blog' }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'Blog | FunAdemy',
-      description: "Articles and tips for parents on learning through engineering, play, and building kids' skills.",
+      title: 'FunAdemy Blog | STEM & Engineering Tips for Kids in Riyadh',
+      description: "Articles and tips for parents on STEM education and LEGO® engineering for kids in Riyadh.",
       images: [ogImage],
     },
   };

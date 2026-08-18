@@ -7,15 +7,30 @@ import { consultDict } from './dict';
 import '../book/page.css';
 import { siteUrl } from '@/lib/site-url';
 
+const _consultBase = siteUrl();
 export const metadata = {
   title: 'حجز موعد استشارة | FunAdemy',
   description: 'احجز موعد استشارة مجانية عبر Google Meet لمساعدتك في اختيار البرنامج الأنسب لطفلك.',
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    title: 'حجز موعد استشارة | FunAdemy',
+    description: 'احجز موعد استشارة مجانية عبر Google Meet لمساعدتك في اختيار البرنامج الأنسب لطفلك.',
+    images: [{ url: `${_consultBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'حجز موعد استشارة | FunAdemy',
+    description: 'احجز موعد استشارة مجانية عبر Google Meet لمساعدتك في اختيار البرنامج الأنسب لطفلك.',
+    images: [`${_consultBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/consult`,
+    canonical: `${_consultBase}/consult`,
     languages: {
-      'ar-SA': `${siteUrl()}/consult`,
-      'en': `${siteUrl()}/en/consult`,
-      'x-default': `${siteUrl()}/consult`,
+      'ar-SA': `${_consultBase}/consult`,
+      'en-SA': `${_consultBase}/en/consult`,
+      'x-default': `${_consultBase}/consult`,
     },
   },
 };

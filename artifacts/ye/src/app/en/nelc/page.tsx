@@ -8,16 +8,31 @@ import { siteUrl } from '@/lib/site-url';
 // updated) — no code change is needed.
 export const dynamic = 'force-dynamic';
 
+const _nelcBase = siteUrl();
 export const metadata = {
   title: 'NELC Readiness | FunAdemy',
   description:
     'FunAdemy readiness for licensing and integration with the Saudi National eLearning Center (NELC) and the FutureX national platform.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_SA',
+    title: 'NELC Readiness | FunAdemy',
+    description: 'FunAdemy readiness for licensing and integration with the Saudi National eLearning Center (NELC) and the FutureX national platform.',
+    images: [{ url: `${_nelcBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'NELC Readiness | FunAdemy',
+    description: 'FunAdemy readiness for licensing and integration with the Saudi National eLearning Center (NELC).',
+    images: [`${_nelcBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/en/nelc`,
+    canonical: `${_nelcBase}/en/nelc`,
     languages: {
-      'ar-SA': `${siteUrl()}/nelc`,
-      'en': `${siteUrl()}/en/nelc`,
-      'x-default': `${siteUrl()}/nelc`,
+      'ar-SA': `${_nelcBase}/nelc`,
+      'en-SA': `${_nelcBase}/en/nelc`,
+      'x-default': `${_nelcBase}/nelc`,
     },
   },
 };

@@ -6,25 +6,24 @@ import { prisma } from '@/lib/db';
 export function generateMetadata(): Metadata {
   const base = siteUrl();
   const ogImage = `${base}/og-default.jpg`;
-  const arTitle = 'FunAdemy — برامج STEM وليغو للأطفال في الرياض';
-  const arDesc = 'تعليم STEM عبر نماذج LEGO® للأطفال من ٤–١٨ سنة. حصص أونلاين وحضورية في الرياض.';
   return {
-    title: { absolute: `${arTitle} | e² Young Engineers` },
-    description: 'تعليم STEM وهندسة الروبوتات عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة في الرياض. سجّل طفلك الآن — حصص أونلاين وحضورية.',
+    title: { absolute: 'المهندس الصغير الرياض — برامج STEM بالليغو للأطفال | FunAdemy' },
+    description:
+      'تعليم STEM عبر نماذج LEGO® للأطفال من ٤ إلى ١٨ سنة في الرياض. سجّل تجربتك المجانية اليوم مع e² Young Engineers — ترخيص فالكون آي.',
     openGraph: {
       siteName: 'FunAdemy',
       type: 'website',
       locale: 'ar_SA',
       url: `${base}/`,
-      title: arTitle,
-      description: arDesc,
+      title: 'المهندس الصغير الرياض — e² Young Engineers',
+      description: 'برامج STEM بالليغو للأطفال في الرياض. احجز تجربة مجانية.',
       images: [{ url: ogImage, width: 1200, height: 630, alt: 'FunAdemy — e² Young Engineers Riyadh' }],
     },
     twitter: {
       card: 'summary_large_image',
       site: '@YEYoungEngineers',
-      title: arTitle,
-      description: arDesc,
+      title: 'المهندس الصغير الرياض — e² Young Engineers',
+      description: 'برامج STEM بالليغو للأطفال في الرياض. احجز تجربة مجانية.',
       images: [ogImage],
     },
     alternates: {
@@ -32,7 +31,7 @@ export function generateMetadata(): Metadata {
       languages: {
         'x-default': `${base}/`,
         'ar-SA': `${base}/`,
-        'en': `${base}/en`,
+        'en-SA': `${base}/en`,
       },
     },
   };

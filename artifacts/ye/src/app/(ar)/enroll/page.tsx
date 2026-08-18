@@ -7,15 +7,31 @@ import '@/app/(ar)/account/page.css';
 import './page.css';
 import { siteUrl } from '@/lib/site-url';
 
+const _enrollBase = siteUrl();
 export const metadata = {
   title: 'التسجيل الشهري | FunAdemy',
-  description: 'سجّل أطفالك في برامج FunAdemy الشهرية — خصم ١٠٪ تلقائي للأشقاء.',
+  description:
+    'سجّل أطفالك في برامج FunAdemy الشهرية لتعلم STEM والهندسة والروبوتكس بالليغو® في الرياض. خصم ١٠٪ تلقائي للأشقاء — حصص حضورية وأونلاين للأطفال من ٤ إلى ١٨ سنة.',
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    title: 'التسجيل الشهري | FunAdemy',
+    description: 'سجّل أطفالك في برامج FunAdemy الشهرية — خصم ١٠٪ تلقائي للأشقاء.',
+    images: [{ url: `${_enrollBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'التسجيل الشهري | FunAdemy',
+    description: 'سجّل أطفالك في برامج FunAdemy الشهرية — خصم ١٠٪ تلقائي للأشقاء.',
+    images: [`${_enrollBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/enroll`,
+    canonical: `${_enrollBase}/enroll`,
     languages: {
-      'ar-SA': `${siteUrl()}/enroll`,
-      'en': `${siteUrl()}/en/enroll`,
-      'x-default': `${siteUrl()}/enroll`,
+      'ar-SA': `${_enrollBase}/enroll`,
+      'en-SA': `${_enrollBase}/en/enroll`,
+      'x-default': `${_enrollBase}/enroll`,
     },
   },
 };

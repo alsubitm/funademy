@@ -1,8 +1,8 @@
-import type { Metadata } from 'next';
 import { Baloo_Bhaijaan_2, IBM_Plex_Sans_Arabic, IBM_Plex_Mono } from 'next/font/google';
 import { siteUrl } from '@/lib/site-url';
 import { PHONE_DISPLAY } from '@/lib/constants';
 import '../globals.css';
+import type { Metadata, Viewport } from 'next';
 
 const baloo = Baloo_Bhaijaan_2({
   subsets: ['arabic', 'latin'],
@@ -25,6 +25,11 @@ const plexMono = IBM_Plex_Mono({
 const SITE_URL = siteUrl();
 const OG_IMAGE = `${SITE_URL}/og-default.jpg`;
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // userScalable must remain enabled for WCAG 1.4.4 (Resize Text) compliance
+};
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -32,7 +37,7 @@ export const metadata: Metadata = {
     template: '%s | FunAdemy',
   },
   description:
-    'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة في الرياض — حصص أونلاين وحضورية. e² Young Engineers.',
+    'FunAdemy — حيث المتعة تلتقي بالأكاديمية. تعليم STEM عبر نماذج LEGO® للأطفال من ٤ إلى ١٨ سنة. e² Young Engineers، ترخيص فالكون آي.',
   openGraph: {
     siteName: 'FunAdemy',
     type: 'website',
@@ -40,7 +45,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
     title: 'FunAdemy — e² Young Engineers',
     description:
-      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين من أي مكان.',
+      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين وحضورية في الرياض.',
     images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'FunAdemy — e² Young Engineers Riyadh' }],
   },
   twitter: {
@@ -48,7 +53,7 @@ export const metadata: Metadata = {
     site: '@YEYoungEngineers',
     title: 'FunAdemy — e² Young Engineers',
     description:
-      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين من أي مكان.',
+      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين وحضورية في الرياض.',
     images: [OG_IMAGE],
   },
 };

@@ -8,16 +8,31 @@ import { siteUrl } from '@/lib/site-url';
 // updated) — no code change is needed.
 export const dynamic = 'force-dynamic';
 
+const _nelcBase = siteUrl();
 export const metadata = {
   title: 'الجاهزية للمركز الوطني للتعليم الإلكتروني | FunAdemy',
   description:
     'جاهزية منصة FunAdemy للترخيص والتكامل مع المركز الوطني للتعليم الإلكتروني (NELC) والمنصة الوطنية FutureX.',
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    title: 'الجاهزية للمركز الوطني للتعليم الإلكتروني | FunAdemy',
+    description: 'جاهزية منصة FunAdemy للترخيص والتكامل مع المركز الوطني للتعليم الإلكتروني (NELC) والمنصة الوطنية FutureX.',
+    images: [{ url: `${_nelcBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'الجاهزية للمركز الوطني للتعليم الإلكتروني | FunAdemy',
+    description: 'جاهزية منصة FunAdemy للترخيص والتكامل مع المركز الوطني للتعليم الإلكتروني (NELC).',
+    images: [`${_nelcBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/nelc`,
+    canonical: `${_nelcBase}/nelc`,
     languages: {
-      'ar-SA': `${siteUrl()}/nelc`,
-      'en': `${siteUrl()}/en/nelc`,
-      'x-default': `${siteUrl()}/nelc`,
+      'ar-SA': `${_nelcBase}/nelc`,
+      'en-SA': `${_nelcBase}/en/nelc`,
+      'x-default': `${_nelcBase}/nelc`,
     },
   },
 };

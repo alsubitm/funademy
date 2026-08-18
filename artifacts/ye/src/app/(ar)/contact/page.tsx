@@ -8,15 +8,31 @@ import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constan
 import './page.css';
 import { siteUrl } from '@/lib/site-url';
 
+const _contactBase = siteUrl();
 export const metadata = {
   title: 'تواصل معنا | FunAdemy',
-  description: 'تواصل مع فريق المهندس الصغير للإجابة على جميع استفساراتك.',
+  description:
+    'تواصل مع فريق فناديمي — المهندس الصغير الرياض — عبر واتساب أو الهاتف أو البريد الإلكتروني. نجيب على استفساراتك حول برامج STEM للأطفال من ٤ إلى ١٨ سنة في الرياض.',
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    title: 'تواصل معنا | FunAdemy',
+    description: 'تواصل مع فريق فناديمي عبر واتساب أو الهاتف أو البريد الإلكتروني.',
+    images: [{ url: `${_contactBase}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@YEYoungEngineers',
+    title: 'تواصل معنا | FunAdemy',
+    description: 'تواصل مع فريق فناديمي عبر واتساب أو الهاتف أو البريد الإلكتروني.',
+    images: [`${_contactBase}/og-default.jpg`],
+  },
   alternates: {
-    canonical: `${siteUrl()}/contact`,
+    canonical: `${_contactBase}/contact`,
     languages: {
-      'ar-SA': `${siteUrl()}/contact`,
-      'en': `${siteUrl()}/en/contact`,
-      'x-default': `${siteUrl()}/contact`,
+      'ar-SA': `${_contactBase}/contact`,
+      'en-SA': `${_contactBase}/en/contact`,
+      'x-default': `${_contactBase}/contact`,
     },
   },
 };

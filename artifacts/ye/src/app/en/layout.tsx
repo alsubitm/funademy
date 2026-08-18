@@ -1,8 +1,8 @@
-import type { Metadata } from 'next';
 import { Baloo_Bhaijaan_2, IBM_Plex_Sans_Arabic, IBM_Plex_Mono } from 'next/font/google';
 import { siteUrl } from '@/lib/site-url';
 import { PHONE_DISPLAY } from '@/lib/constants';
 import '../globals.css';
+import type { Metadata, Viewport } from 'next';
 
 const baloo = Baloo_Bhaijaan_2({
   subsets: ['arabic', 'latin'],
@@ -25,6 +25,11 @@ const plexMono = IBM_Plex_Mono({
 const SITE_URL = siteUrl();
 const OG_IMAGE = `${SITE_URL}/og-default.jpg`;
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // userScalable must remain enabled for WCAG 1.4.4 (Resize Text) compliance
+};
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
