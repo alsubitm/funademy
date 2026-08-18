@@ -16,7 +16,7 @@ export default function AccountPage() {
     <>
       <SiteHeader lang="ar" />
       <SandStripe />
-      <main className="acct-pg">
+      <main id="main-content" className="acct-pg">
         <div className="wrap" style={{ position: 'relative', paddingTop: '60px' }}>
           <div style={{ textAlign: 'center' }}>
             <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>{d.kick}</span>

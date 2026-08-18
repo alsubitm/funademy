@@ -353,7 +353,7 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
                   {Object.entries(d.providers)
                     .filter(([key]) => (key === 'tamara' ? avail.tamara : avail.moyasar))
                     .map(([key, label]) => (
-                      <button key={key} className={`enr-pay ${provider === key ? 'sel' : ''}`} onClick={() => setProvider(key)}>
+                      <button key={key} className={`enr-pay ${provider === key ? 'sel' : ''}`} aria-pressed={provider === key} onClick={() => setProvider(key)}>
                         {label}
                       </button>
                     ))}

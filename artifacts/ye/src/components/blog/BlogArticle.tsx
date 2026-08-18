@@ -68,7 +68,7 @@ export function BlogArticle({
     <>
       <SiteHeader lang={lang} />
       <SandStripe />
-      <main className="blog-pg">
+      <main id="main-content" className="blog-pg">
         <article className="b-article wrap">
           <Link href={blogBase} className="b-back">
             {ar ? '→ العودة إلى المدونة' : '← Back to blog'}

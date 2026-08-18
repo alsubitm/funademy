@@ -50,6 +50,7 @@ export function ProgramDetail({
     <>
       <SiteHeader lang={lang} />
       
+      <main id="main-content">
       {/* Visible breadcrumb for UX and crawlability */}
       <nav aria-label={isAr ? 'مسار التنقل' : 'Breadcrumb'} className="prog-breadcrumb">
         <div className="wrap">
@@ -237,6 +238,7 @@ export function ProgramDetail({
 
       </section>
 
+      </main>
       <SandStripe />
       <SiteFooter lang={lang} />
       <WhatsAppFloat lang={lang} />

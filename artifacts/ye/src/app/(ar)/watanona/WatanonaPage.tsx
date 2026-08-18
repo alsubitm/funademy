@@ -20,6 +20,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
     <>
       <SiteHeader lang={lang} />
       
+      <main id="main-content">
       {/* Hero */}
       <section className="sec watanona-hero">
         <div className="bpgrid"></div>
@@ -157,6 +158,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
         </div>
       </section>
 
+      </main>
       <SandStripe />
       <SiteFooter lang={lang} />
       <WhatsAppFloat lang={lang} />

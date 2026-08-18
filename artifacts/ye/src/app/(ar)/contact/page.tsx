@@ -45,7 +45,7 @@ export default function ContactPage() {
       <SiteHeader lang="ar" />
       <SandStripe />
       
-      <main className="contact-pg">
+      <main id="main-content" className="contact-pg">
         <div className="bpgrid light"></div>
         
         <div className="c-hero">

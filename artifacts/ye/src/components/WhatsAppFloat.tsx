@@ -14,7 +14,8 @@ export function WhatsAppFloat({ lang }: { lang: 'ar' | 'en' }) {
   };
 
   return (
-    <a href={link} className="wa" onClick={handleClick} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+    <a href={link} className="wa" onClick={handleClick} target="_blank" rel="noopener noreferrer"
+       aria-label={lang === 'ar' ? 'تواصل عبر واتساب (يفتح في نافذة جديدة)' : 'Chat on WhatsApp (opens in new tab)'}>
       <div className="pulse"></div>
       <svg viewBox="0 0 24 24">
         <path d="M12.031 0C5.385 0 .003 5.383.003 12.03c0 2.124.553 4.195 1.605 6.02L0 24l6.096-1.597c1.765.952 3.753 1.454 5.932 1.454h.005c6.643 0 12.025-5.383 12.025-12.03S18.675 0 12.031 0zm0 21.84c-1.802 0-3.56-.484-5.1-1.4l-.365-.216-3.791.993.993-3.791-.216-.365c-.917-1.54-1.4-3.298-1.4-5.1 0-5.46 4.442-9.902 9.902-9.902s9.902 4.442 9.902 9.902-4.442 9.902-9.902 9.902z" />

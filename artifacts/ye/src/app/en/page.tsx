@@ -79,21 +79,23 @@ export default async function EnglishHomePage() {
         />
       )}
       <SiteHeader lang="en" />
-      <Hero lang="en" />
-      <LiveTicker slots={slots} lang="en" />
-      <SandStripe />
-      <Stats lang="en" />
-      <Platforms lang="en" />
-      <PathMap lang="en" />
-      <Kits programs={programs} lang="en" />
-      <Workshop lang="en" />
-      <WatanTeaser lang="en" />
-      <Territory lang="en" />
-      <Testimonials lang="en" testimonials={testimonials} />
-      <Pricing lang="en" />
-      <Certificate lang="en" />
-      <FAQ faqs={faqs} lang="en" />
-      <SandStripe />
+      <main id="main-content">
+        <Hero lang="en" />
+        <LiveTicker slots={slots} lang="en" />
+        <SandStripe />
+        <Stats lang="en" />
+        <Platforms lang="en" />
+        <PathMap lang="en" />
+        <Kits programs={programs} lang="en" />
+        <Workshop lang="en" />
+        <WatanTeaser lang="en" />
+        <Territory lang="en" />
+        <Testimonials lang="en" testimonials={testimonials} />
+        <Pricing lang="en" />
+        <Certificate lang="en" />
+        <FAQ faqs={faqs} lang="en" />
+        <SandStripe />
+      </main>
       <SiteFooter lang="en" />
       <WhatsAppFloat lang="en" />
     </>

@@ -54,7 +54,7 @@ export function ProgramsListing({
     <>
       <SiteHeader lang={lang} />
       <SandStripe />
-      <main>
+      <main id="main-content">
         <section className="sec bg-white">
           <div className="wrap">
             {/* Page header */}

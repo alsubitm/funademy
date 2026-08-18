@@ -25,7 +25,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     <>
       <SiteHeader lang="ar" />
       <SandStripe />
-      <main className="ptl-pg">
+      <main id="main-content" className="ptl-pg">
         <div className="ptl-wrap" style={{ paddingTop: '50px' }}>
           <div style={{ textAlign: 'center' }}>
             <span className="kick">{d.kick}</span>

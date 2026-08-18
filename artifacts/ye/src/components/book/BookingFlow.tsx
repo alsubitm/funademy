@@ -188,11 +188,18 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   return (
     <div className="w-box">
       <div className="w-header">
-        <div className="w-steps">
-          <div className={`w-step ${step === 1 ? 'active' : step > 1 ? 'done' : ''}`}>{d.step1}</div>
-          <div className={`w-step ${step === 2 ? 'active' : step > 2 ? 'done' : ''}`}>{d.step2}</div>
-          <div className={`w-step ${step === 3 ? 'active' : ''}`}>{d.step3}</div>
-        </div>
+        {/* WCAG 1.3.1: step indicators as semantic ordered list with aria-current */}
+        <ol className="w-steps" aria-label={lang === 'ar' ? 'خطوات الحجز' : 'Booking steps'}>
+          {[d.step1, d.step2, d.step3].map((label, i) => (
+            <li
+              key={i}
+              className={`w-step ${step === i + 1 ? 'active' : step > i + 1 ? 'done' : ''}`}
+              aria-current={step === i + 1 ? 'step' : undefined}
+            >
+              {label}
+            </li>
+          ))}
+        </ol>
         {step === 1 && <h3>{d.selectProgram}</h3>}
         {step === 2 && <h3>{d.selectSlot}</h3>}
         {step === 3 && <h3>{d.fillDetails}</h3>}
@@ -284,7 +291,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
               );
               if (isFull) {
                 return (
-                  <div key={s.id} className="slot-item full" aria-disabled="true">
+                  <div key={s.id} className="slot-item full">
                     {slotInfo}
                     <a
                       href={waitlistWaLink(lang === 'ar' ? selectedProgram?.nameAr || '' : selectedProgram?.nameEn || '')}

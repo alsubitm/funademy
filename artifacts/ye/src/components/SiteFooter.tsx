@@ -30,33 +30,41 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
               <YELogo height={30} onDark />
             </div>
           </div>
-          <div>
-            <h4>{ar ? 'المنصات' : 'Platforms'}</h4>
-            <Link href={p('/portal')}>{ar ? 'بوابة الأهالي' : 'Parent portal'}</Link>
-            <Link href={p('/book')}>{ar ? 'حجز مقعد' : 'Book a seat'}</Link>
-            <Link href={p('/enroll')}>{ar ? 'الاشتراك الشهري' : 'Monthly enrollment'}</Link>
-            <Link href={p('/consult')}>{ar ? 'استشارة مجانية' : 'Free consultation'}</Link>
-          </div>
-          <div>
-            <h4>{ar ? 'روابط سريعة' : 'Quick Links'}</h4>
-            <Link href={p('/programs')}>{d.navPrograms}</Link>
-            <a href="#pricing">{d.navPricing}</a>
-            <a href="#faq">FAQ</a>
-            <Link href={p('/blog')}>{ar ? 'المدونة' : 'Blog'}</Link>
-            <Link href={p('/watanona')}>{ar ? 'حملة وطنّونا' : 'Watanona Campaign'}</Link>
-            <Link href={p('/contact')}>{ar ? 'تواصل معنا' : 'Contact us'}</Link>
-          </div>
-          <div>
-            <h4>{ar ? 'تواصل معنا' : 'Contact'}</h4>
-            <a href={`https://wa.me/${WHATSAPP_NUMBER}`}>WhatsApp: {PHONE_DISPLAY}</a>
-            <a href={`mailto:${EMAIL}`}>Email: {EMAIL}</a>
-            <h4 style={{ marginTop: 18 }}>{ar ? 'السياسات والامتثال' : 'Policies & Compliance'}</h4>
-            <Link href={p('/privacy')}>{ar ? 'سياسة الخصوصية' : 'Privacy policy'}</Link>
-            <Link href={p('/terms')}>{ar ? 'الشروط والأحكام' : 'Terms & conditions'}</Link>
-            <Link href={p('/nelc')}>
-              {ar ? 'الجاهزية للمركز الوطني للتعليم الإلكتروني' : 'NELC readiness'}
-            </Link>
-          </div>
+          <nav aria-labelledby="footer-platforms">
+            <h4 id="footer-platforms">{ar ? 'المنصات' : 'Platforms'}</h4>
+            <ul>
+              <li><Link href={p('/portal')}>{ar ? 'بوابة الأهالي' : 'Parent portal'}</Link></li>
+              <li><Link href={p('/book')}>{ar ? 'حجز مقعد' : 'Book a seat'}</Link></li>
+              <li><Link href={p('/enroll')}>{ar ? 'الاشتراك الشهري' : 'Monthly enrollment'}</Link></li>
+              <li><Link href={p('/consult')}>{ar ? 'استشارة مجانية' : 'Free consultation'}</Link></li>
+            </ul>
+          </nav>
+          <nav aria-labelledby="footer-quicklinks">
+            <h4 id="footer-quicklinks">{ar ? 'روابط سريعة' : 'Quick Links'}</h4>
+            <ul>
+              <li><Link href={p('/programs')}>{d.navPrograms}</Link></li>
+              <li><a href="#pricing">{d.navPricing}</a></li>
+              <li><a href="#faq">FAQ</a></li>
+              <li><Link href={p('/blog')}>{ar ? 'المدونة' : 'Blog'}</Link></li>
+              <li><Link href={p('/watanona')}>{ar ? 'حملة وطنّونا' : 'Watanona Campaign'}</Link></li>
+              <li><Link href={p('/contact')}>{ar ? 'تواصل معنا' : 'Contact us'}</Link></li>
+            </ul>
+          </nav>
+          <nav aria-labelledby="footer-contact">
+            <h4 id="footer-contact">{ar ? 'تواصل معنا' : 'Contact'}</h4>
+            <ul>
+              <li><a href={`https://wa.me/${WHATSAPP_NUMBER}`}>WhatsApp: {PHONE_DISPLAY}</a></li>
+              <li><a href={`mailto:${EMAIL}`}>Email: {EMAIL}</a></li>
+            </ul>
+            <h4 style={{ marginTop: 18 }} id="footer-policies">{ar ? 'السياسات والامتثال' : 'Policies & Compliance'}</h4>
+            <ul aria-labelledby="footer-policies">
+              <li><Link href={p('/privacy')}>{ar ? 'سياسة الخصوصية' : 'Privacy policy'}</Link></li>
+              <li><Link href={p('/terms')}>{ar ? 'الشروط والأحكام' : 'Terms & conditions'}</Link></li>
+              <li><Link href={p('/nelc')}>
+                {ar ? 'الجاهزية للمركز الوطني للتعليم الإلكتروني' : 'NELC readiness'}
+              </Link></li>
+            </ul>
+          </nav>
         </div>
         <div className="fbot">
           <span>{BRAND.creditLine}</span>

@@ -54,7 +54,12 @@ const EXCLUDED_PREFIXES = [
  * the file's <section> legitimately must not carry the `sec` class.
  */
 const FILE_EXCEPTIONS = new Set<string>([
-  // (none currently)
+  // Hero uses <section className="hero"> without the .sec token because it is a
+  // full-bleed landing hero with its own padding and layered background system.
+  // Adding .sec would impose the standard 100px section padding on top of the
+  // hero's own layout and break its appearance. The <section> element is still
+  // semantically correct; the opt-out is purely cosmetic.
+  'components/home/Hero.tsx',
 ]);
 
 function isExcluded(rel: string): boolean {

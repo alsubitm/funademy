@@ -44,7 +44,7 @@ export default async function EnrollPage({ searchParams }: { searchParams: Promi
     <>
       <SiteHeader lang="ar" />
       <SandStripe />
-      <main className="enr-pg">
+      <main id="main-content" className="enr-pg">
         <div className="wrap" style={{ position: 'relative', paddingTop: '60px' }}>
           <div style={{ textAlign: 'center' }}>
             <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>{d.kick}</span>

@@ -24,7 +24,7 @@ export function BlogList({ posts, lang }: { posts: Post[]; lang: 'ar' | 'en' }) 
     <>
       <SiteHeader lang={lang} />
       <SandStripe />
-      <main className="blog-pg">
+      <main id="main-content" className="blog-pg">
         <div className="b-hero">
           <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>BLOG</span>
           <h1>{ar ? 'المدونة' : 'Blog'}</h1>

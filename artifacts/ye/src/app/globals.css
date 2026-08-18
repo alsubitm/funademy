@@ -56,6 +56,25 @@ html {
   scroll-behavior: smooth;
 }
 
+/* WCAG 2.4.7 Focus Visible — keyboard focus ring scoped to public-site containers.
+   Scoped (not bare) to satisfy CSS isolation rule (globals-css-guard.test.ts):
+   prevents style leaking into internal screens (/admin, /portal, /account). */
+:where(.site-nav, .top, .hero, .sec, .site-footer,
+       .w-box, .enr-box, .book-pg, .enr-pg, .contact-pg,
+       .blog-pg, .legal, .prog-hero, .prog-breadcrumb, .prog-content,
+       .wa, .faq) :focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Contrasting focus ring on dark-background sections */
+.hero :focus-visible,
+.price :focus-visible,
+.site-footer :focus-visible {
+  outline-color: var(--yellow);
+}
+
 body {
   font-family: var(--font-body);
   color: var(--color-ink);
@@ -425,6 +444,8 @@ h2{font-weight:800;font-size:clamp(32px,4.5vw,48px);line-height:1.1;letter-spaci
 .fgrid{display:grid;grid-template-columns:2fr 1fr 1fr 1.2fr;gap:40px}
 @media(max-width:960px){.fgrid{grid-template-columns:1fr 1fr}}
 .site-footer h4{color:#fff;font-family:var(--font-display);font-size:16px;margin-bottom:20px;letter-spacing:0.02em}
+.site-footer nav ul{list-style:none;padding:0;margin:0}
+.site-footer nav ul li{padding:0;margin:0}
 .site-footer a{display:block;color:rgba(255,255,255,0.7);text-decoration:none;font-size:14.5px;padding:6px 0;font-weight:600;transition:all 0.2s}
 .site-footer a:hover{color:var(--yellow);transform:translateX(4px)}
 [dir='rtl'] .site-footer a:hover{transform:translateX(-4px)}

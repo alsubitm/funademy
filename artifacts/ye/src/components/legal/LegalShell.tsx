@@ -24,7 +24,7 @@ export function LegalShell({
     <>
       <SiteHeader lang={lang} />
       <SandStripe />
-      <main className="legal">
+      <main id="main-content" className="legal">
         <span className="kick" style={{ color: 'var(--blue)', borderColor: 'var(--blue)' }}>{kick}</span>
         <h1>{title}</h1>
         {intro ? <p className="intro">{intro}</p> : null}

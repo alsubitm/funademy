@@ -56,7 +56,7 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
       <SiteHeader lang="ar" />
       <SandStripe />
       
-      <main className="book-pg">
+      <main id="main-content" className="book-pg">
         <div className="bpgrid light"></div>
         <div className="wrap" style={{ position: 'relative', paddingTop: '60px' }}>
           <div style={{ textAlign: 'center' }}>
