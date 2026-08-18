@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { WatanonaPage } from './WatanonaPage';
 
 import { siteUrl } from '@/lib/site-url';
+import { EXHIBITION_DATE_ISO } from '@/lib/constants';
 const _siteUrl = siteUrl();
 export const metadata: Metadata = {
   title: 'أطفالنا يبنون وطننا | FunAdemy',
@@ -30,6 +31,35 @@ export const metadata: Metadata = {
   },
 };
 
+const _base = siteUrl();
+const campaignSchemaAr = {
+  '@context': 'https://schema.org',
+  '@type': 'EducationalEvent',
+  name: 'أطفالنا يبنون وطننا',
+  description: 'شارك معنا في أضخم خريطة للمملكة مبنية بمكعبات ليغو®. مبادرة وطنية بمناسبة اليوم الوطني برعاية Young Engineers الرياض.',
+  url: `${_base}/watanona`,
+  inLanguage: 'ar',
+  organizer: { '@id': `${_base}/#organization` },
+  startDate: EXHIBITION_DATE_ISO,
+  endDate: EXHIBITION_DATE_ISO,
+  eventStatus: 'https://schema.org/EventScheduled',
+  eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+  location: {
+    '@type': 'Place',
+    name: 'الرياض',
+    address: { '@type': 'PostalAddress', addressLocality: 'Riyadh', addressCountry: 'SA' },
+  },
+  image: `${_base}/og-default.jpg`,
+};
+
 export default function Page() {
-  return <WatanonaPage lang="ar" />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(campaignSchemaAr) }}
+      />
+      <WatanonaPage lang="ar" />
+    </>
+  );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Baloo_Bhaijaan_2, IBM_Plex_Sans_Arabic, IBM_Plex_Mono } from 'next/font/google';
 import { siteUrl } from '@/lib/site-url';
+import { PHONE_DISPLAY } from '@/lib/constants';
 import '../globals.css';
 
 const baloo = Baloo_Bhaijaan_2({
@@ -79,7 +80,12 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
           addressLocality: 'Riyadh',
           addressCountry: 'SA',
         },
-        sameAs: [],
+        sameAs: [
+          'https://www.instagram.com/funademy_sa/',
+          'https://twitter.com/YEYoungEngineers',
+          'https://www.facebook.com/funademy.sa/',
+          'https://www.youtube.com/@funademy',
+        ],
       },
       {
         '@type': 'LocalBusiness',
@@ -87,12 +93,26 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
         name: 'FunAdemy — e² Young Engineers Riyadh',
         url: base,
         image: `${base}/brand/ye-logo.svg`,
+        telephone: PHONE_DISPLAY,
         address: {
           '@type': 'PostalAddress',
           addressLocality: 'Riyadh',
           addressRegion: 'Riyadh Province',
           addressCountry: 'SA',
         },
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: 24.7136,
+          longitude: 46.6753,
+        },
+        openingHoursSpecification: [
+          {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'],
+            opens: '09:00',
+            closes: '21:00',
+          },
+        ],
         priceRange: '$$',
         currenciesAccepted: 'SAR',
         paymentAccepted: 'Cash, Credit Card',
@@ -107,10 +127,7 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
         publisher: { '@id': `${base}/#organization` },
         potentialAction: {
           '@type': 'SearchAction',
-          target: {
-            '@type': 'EntryPoint',
-            urlTemplate: `${base}/en/blog?q={search_term_string}`,
-          },
+          target: `${base}/en/blog?q={search_term_string}`,
           'query-input': 'required name=search_term_string',
         },
       },

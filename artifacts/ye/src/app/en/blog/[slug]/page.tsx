@@ -30,6 +30,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
       title,
       description: description ?? undefined,
       publishedTime: post.publishedAt?.toISOString(),
+      modifiedTime: post.updatedAt?.toISOString(),
       images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
     },
     twitter: {

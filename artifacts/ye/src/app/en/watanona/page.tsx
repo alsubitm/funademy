@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { WatanonaPage } from '../../(ar)/watanona/WatanonaPage';
 
 import { siteUrl } from '@/lib/site-url';
+import { EXHIBITION_DATE_ISO } from '@/lib/constants';
 const _siteUrl = siteUrl();
 export const metadata: Metadata = {
   title: 'Our Children Build Our Homeland | FunAdemy',
@@ -30,6 +31,35 @@ export const metadata: Metadata = {
   },
 };
 
+const _base = siteUrl();
+const campaignSchemaEn = {
+  '@context': 'https://schema.org',
+  '@type': 'EducationalEvent',
+  name: 'Our Children Build Our Homeland',
+  description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day by FunAdemy · e² Young Engineers Riyadh.',
+  url: `${_base}/en/watanona`,
+  inLanguage: 'en',
+  organizer: { '@id': `${_base}/#organization` },
+  startDate: EXHIBITION_DATE_ISO,
+  endDate: EXHIBITION_DATE_ISO,
+  eventStatus: 'https://schema.org/EventScheduled',
+  eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+  location: {
+    '@type': 'Place',
+    name: 'Riyadh',
+    address: { '@type': 'PostalAddress', addressLocality: 'Riyadh', addressCountry: 'SA' },
+  },
+  image: `${_base}/og-default.jpg`,
+};
+
 export default function Page() {
-  return <WatanonaPage lang="en" />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(campaignSchemaEn) }}
+      />
+      <WatanonaPage lang="en" />
+    </>
+  );
 }

@@ -69,6 +69,7 @@ CREATE TABLE "ye_programs" (
     "buildsAr" TEXT[],
     "termsEn" TEXT[],
     "termsAr" TEXT[],
+    "coverImageUrl" TEXT,
     "position" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "ye_programs_pkey" PRIMARY KEY ("id")
@@ -137,9 +138,18 @@ CREATE TABLE "ye_otp_codes" (
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "attempts" INTEGER NOT NULL DEFAULT 0,
     "consumed" BOOLEAN NOT NULL DEFAULT false,
+    "delivered" BOOLEAN,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_otp_codes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_admin_alerts" (
+    "key" TEXT NOT NULL,
+    "sent_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ye_admin_alerts_pkey" PRIMARY KEY ("key")
 );
 
 -- CreateTable
@@ -397,6 +407,7 @@ CREATE TABLE "ye_blog_posts" (
     "contentAr" TEXT NOT NULL,
     "contentEn" TEXT,
     "coverEmoji" TEXT NOT NULL DEFAULT '📚',
+    "coverImageUrl" TEXT,
     "published" BOOLEAN NOT NULL DEFAULT true,
     "publishedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

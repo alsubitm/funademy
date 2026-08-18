@@ -89,7 +89,35 @@ export default async function ProgramPage(props: { params: Promise<{ slug: strin
           suggestedMinAge: program.ageMin,
           suggestedMaxAge: program.ageMax,
         },
-        courseMode: program.format === 'online' ? 'online' : 'onsite',
+        hasCourseInstance: program.slots.length > 0
+          ? program.slots.map(slot => ({
+              '@type': 'CourseInstance',
+              courseMode: slot.format === 'online' ? 'online' : 'onsite',
+              courseSchedule: {
+                '@type': 'Schedule',
+                byDay: `https://schema.org/${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][slot.weekday]}`,
+                startTime: slot.time,
+              },
+              instructor: {
+                '@type': 'Organization',
+                name: 'FunAdemy — e² Young Engineers',
+                url: base,
+              },
+              ...(slot.location ? {
+                location: { '@type': 'Place', name: slot.location, address: { '@type': 'PostalAddress', addressLocality: 'Riyadh', addressCountry: 'SA' } },
+              } : {}),
+            }))
+          : [
+              {
+                '@type': 'CourseInstance',
+                courseMode: program.format === 'online' ? 'online' : 'onsite',
+                instructor: {
+                  '@type': 'Organization',
+                  name: 'FunAdemy — e² Young Engineers',
+                  url: base,
+                },
+              },
+            ],
       },
       {
         '@type': 'BreadcrumbList',
