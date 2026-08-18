@@ -12,6 +12,7 @@ type Post = {
   contentAr: string;
   contentEn: string | null;
   coverEmoji: string;
+  coverImageUrl: string | null;
   publishedAt: Date;
 };
 
@@ -52,7 +53,23 @@ export function BlogArticle({ post, lang }: { post: Post; lang: 'ar' | 'en' }) {
           <Link href={ar ? '/blog' : '/en/blog'} className="b-back">
             {ar ? '→ العودة إلى المدونة' : '← Back to blog'}
           </Link>
-          <div className="b-emoji big" aria-hidden>{post.coverEmoji}</div>
+          {post.coverImageUrl ? (
+            // Plain <img> is intentional: coverImageUrl may be any validated
+            // HTTPS URL, and next/image requires remotePatterns for external
+            // hosts. A standard img element works for all origins without
+            // server-side optimisation config.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              className="b-cover-img"
+              src={post.coverImageUrl}
+              alt={title}
+              width={1200}
+              height={630}
+              style={{ width: '100%', height: 'auto', borderRadius: 12, display: 'block' }}
+            />
+          ) : (
+            <div className="b-emoji big" aria-hidden>{post.coverEmoji}</div>
+          )}
           <div className="b-date">
             {new Date(post.publishedAt).toLocaleDateString(ar ? 'ar-SA' : 'en-US', {
               year: 'numeric', month: 'long', day: 'numeric',

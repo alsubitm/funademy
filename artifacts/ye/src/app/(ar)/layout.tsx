@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: '%s | FunAdemy',
   },
   description:
-    'FunAdemy — حيث المتعة تلتقي بالأكاديمية. تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين من أي مكان. e² Young Engineers، ترخيص فالكون آي.',
+    'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة في الرياض — حصص أونلاين وحضورية. e² Young Engineers.',
   openGraph: {
     siteName: 'FunAdemy',
     type: 'website',

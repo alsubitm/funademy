@@ -44,7 +44,7 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
                 <li>{lang === 'ar' ? 'بيئة تفاعلية اجتماعية' : 'Interactive social environment'}</li>
                 <li>{lang === 'ar' ? 'متابعة وتواصل مستمر' : 'Continuous follow-up'}</li>
               </ul>
-              <a className="btn y" style={{ width: '100%', justifyContent: 'center' }} href="/book">
+              <a className="btn y" style={{ width: '100%', justifyContent: 'center' }} href={lang === 'ar' ? '/book' : '/en/book'}>
                 {d.navTrial}
               </a>
             </div>

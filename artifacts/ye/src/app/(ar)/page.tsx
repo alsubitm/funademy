@@ -5,7 +5,28 @@ import { prisma } from '@/lib/db';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
+  const ogImage = `${base}/og-default.jpg`;
+  const arTitle = 'FunAdemy — برامج STEM وليغو للأطفال في الرياض';
+  const arDesc = 'تعليم STEM عبر نماذج LEGO® للأطفال من ٤–١٨ سنة. حصص أونلاين وحضورية في الرياض.';
   return {
+    title: { absolute: `${arTitle} | e² Young Engineers` },
+    description: 'تعليم STEM وهندسة الروبوتات عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة في الرياض. سجّل طفلك الآن — حصص أونلاين وحضورية.',
+    openGraph: {
+      siteName: 'FunAdemy',
+      type: 'website',
+      locale: 'ar_SA',
+      url: `${base}/`,
+      title: arTitle,
+      description: arDesc,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: 'FunAdemy — e² Young Engineers Riyadh' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: '@YEYoungEngineers',
+      title: arTitle,
+      description: arDesc,
+      images: [ogImage],
+    },
     alternates: {
       canonical: `${base}/`,
       languages: {

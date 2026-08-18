@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: '%s | FunAdemy',
   },
   description:
-    'FunAdemy — Where fun meets academia. STEM education through moving LEGO® models for children ages 4–18 — online classes from anywhere. e² Young Engineers, Falcon Eye license.',
+    'STEM education through moving LEGO® models for children ages 4–18 in Riyadh. Online and in-person classes. e² Young Engineers, Falcon Eye license.',
   openGraph: {
     siteName: 'FunAdemy',
     type: 'website',
