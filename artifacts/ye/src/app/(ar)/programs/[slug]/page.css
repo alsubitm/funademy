@@ -1,3 +1,28 @@
+/* Breadcrumb nav above hero */
+.prog-breadcrumb {
+  background: #F5F8FF;
+  border-bottom: 1px solid var(--line, #dfe5f2);
+  padding: 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.prog-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.prog-breadcrumb li { color: var(--mut, #5f6b92); }
+.prog-breadcrumb li a {
+  color: var(--blue, #1c54cb);
+  text-decoration: none;
+}
+.prog-breadcrumb li a:hover { text-decoration: underline; }
+.prog-breadcrumb li[aria-current="page"] { color: var(--ink, #101a38); }
+
 .prog-hero {
   background: linear-gradient(165deg, var(--bp) 0%, var(--bp-deep) 100%);
   color: #fff;

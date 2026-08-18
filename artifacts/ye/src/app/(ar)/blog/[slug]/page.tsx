@@ -43,7 +43,23 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 
 export default async function BlogPostPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
-  const post = await prisma.blogPost.findUnique({ where: { slug } });
+  const [post, relatedPosts] = await Promise.all([
+    prisma.blogPost.findUnique({ where: { slug } }),
+    prisma.blogPost.findMany({
+      where: { published: true, slug: { not: slug } },
+      orderBy: { publishedAt: 'desc' },
+      take: 3,
+      select: {
+        slug: true,
+        titleAr: true,
+        titleEn: true,
+        excerptAr: true,
+        excerptEn: true,
+        coverEmoji: true,
+        publishedAt: true,
+      },
+    }),
+  ]);
   if (!post || !post.published) notFound();
 
   const base = siteUrl();
@@ -95,7 +111,7 @@ export default async function BlogPostPage(props: { params: Promise<{ slug: stri
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
       />
-      <BlogArticle post={post} lang="ar" />
+      <BlogArticle post={post} lang="ar" relatedPosts={relatedPosts} />
     </>
   );
 }

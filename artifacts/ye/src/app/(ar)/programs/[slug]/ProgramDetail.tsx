@@ -50,6 +50,23 @@ export function ProgramDetail({
     <>
       <SiteHeader lang={lang} />
       
+      {/* Visible breadcrumb for UX and crawlability */}
+      <nav aria-label={isAr ? 'مسار التنقل' : 'Breadcrumb'} className="prog-breadcrumb">
+        <div className="wrap">
+          <ol>
+            <li>
+              <Link href={isAr ? '/' : '/en'}>{isAr ? 'الرئيسية' : 'Home'}</Link>
+            </li>
+            <li aria-hidden="true">›</li>
+            <li>
+              <Link href={isAr ? '/programs' : '/en/programs'}>{isAr ? 'البرامج' : 'Programs'}</Link>
+            </li>
+            <li aria-hidden="true">›</li>
+            <li aria-current="page">{isAr ? program.nameAr : program.nameEn}</li>
+          </ol>
+        </div>
+      </nav>
+
       <header className="prog-hero" style={{ '--kit-color': program.color, '--field-tint': FIELDS[CATALOG[program.slug]?.field ?? 'mech'].tint } as React.CSSProperties}>
         <div className="bpgrid"></div>
         <div className="wrap prog-hero-in">

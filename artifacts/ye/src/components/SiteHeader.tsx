@@ -30,15 +30,15 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
           </Link>
           <div className="links">
             <a href="#path">{d.navPath}</a>
-            <a href="#programs">{d.navPrograms}</a>
+            <Link href={lang === 'ar' ? '/programs' : '/en/programs'}>{d.navPrograms}</Link>
             <a href="#workshop">{d.navWorkshop}</a>
             <a href="#pricing">{d.navPricing}</a>
             <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
             <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
             <LangSwitcher lang={lang} />
-            <a className="btn y" href="#pricing">
+            <Link className="btn y" href={lang === 'ar' ? '/book' : '/en/book'}>
               {d.navTrial}
-            </a>
+            </Link>
           </div>
         </div>
       </nav>

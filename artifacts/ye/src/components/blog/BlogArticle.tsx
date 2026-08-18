@@ -16,6 +16,16 @@ type Post = {
   publishedAt: Date;
 };
 
+type RelatedPost = {
+  slug: string;
+  titleAr: string;
+  titleEn: string | null;
+  excerptAr: string;
+  excerptEn: string | null;
+  coverEmoji: string;
+  publishedAt: Date;
+};
+
 /** Renders simple markdown-ish content: blank-line paragraphs + **bold**. */
 function Paragraphs({ text }: { text: string }) {
   return (
@@ -37,12 +47,22 @@ function Paragraphs({ text }: { text: string }) {
   );
 }
 
-export function BlogArticle({ post, lang }: { post: Post; lang: 'ar' | 'en' }) {
+export function BlogArticle({
+  post,
+  lang,
+  relatedPosts = [],
+}: {
+  post: Post;
+  lang: 'ar' | 'en';
+  relatedPosts?: RelatedPost[];
+}) {
   const ar = lang === 'ar';
   const title = (!ar && post.titleEn) || post.titleAr;
   const content = (!ar && post.contentEn) || post.contentAr;
   // Fall back to Arabic direction when no English translation exists.
   const contentIsAr = ar || !post.contentEn;
+  const blogBase = ar ? '/blog' : '/en/blog';
+  const bookHref = ar ? '/book' : '/en/book';
 
   return (
     <>
@@ -50,7 +70,7 @@ export function BlogArticle({ post, lang }: { post: Post; lang: 'ar' | 'en' }) {
       <SandStripe />
       <main className="blog-pg">
         <article className="b-article wrap">
-          <Link href={ar ? '/blog' : '/en/blog'} className="b-back">
+          <Link href={blogBase} className="b-back">
             {ar ? '→ العودة إلى المدونة' : '← Back to blog'}
           </Link>
           {post.coverImageUrl ? (
@@ -79,7 +99,51 @@ export function BlogArticle({ post, lang }: { post: Post; lang: 'ar' | 'en' }) {
           <div className="b-body" dir={contentIsAr ? 'rtl' : 'ltr'}>
             <Paragraphs text={content} />
           </div>
+
+          {/* Contextual CTA — links to booking flow */}
+          <div className="b-cta-box">
+            <div className="b-cta-emoji" aria-hidden>🚀</div>
+            <div>
+              <strong>
+                {ar
+                  ? 'هل أعجبك ما قرأت؟ جرّب برامجنا مجاناً!'
+                  : 'Interested in our programs?'}
+              </strong>
+              <p>
+                {ar
+                  ? 'احجز حصة تجريبية مجانية لطفلك وشاهد كيف نجعل التعلم متعة حقيقية.'
+                  : 'Book a free trial class and see how we make learning genuinely fun for kids ages 4–18.'}
+              </p>
+            </div>
+            <Link href={bookHref} className="btn y">
+              {ar ? 'احجز حصة تجريبية مجانية' : 'Book a free trial class'}
+            </Link>
+          </div>
         </article>
+
+        {/* Related articles */}
+        {relatedPosts.length > 0 && (
+          <div className="b-related wrap">
+            <h2 className="b-related-title">
+              {ar ? 'مقالات ذات صلة' : 'Related articles'}
+            </h2>
+            <div className="b-grid">
+              {relatedPosts.map((p) => (
+                <Link key={p.slug} href={`${blogBase}/${p.slug}`} className="b-card">
+                  <div className="b-emoji" aria-hidden>{p.coverEmoji}</div>
+                  <div className="b-date">
+                    {new Date(p.publishedAt).toLocaleDateString(ar ? 'ar-SA' : 'en-US', {
+                      year: 'numeric', month: 'long', day: 'numeric',
+                    })}
+                  </div>
+                  <h2>{(!ar && p.titleEn) || p.titleAr}</h2>
+                  <p>{(!ar && p.excerptEn) || p.excerptAr}</p>
+                  <span className="b-more">{ar ? 'اقرأ المقال ←' : 'Read article →'}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
       <SandStripe />
       <SiteFooter lang={lang} />

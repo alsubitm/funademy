@@ -33,15 +33,13 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
           <div>
             <h4>{ar ? 'المنصات' : 'Platforms'}</h4>
             <Link href={p('/portal')}>{ar ? 'بوابة الأهالي' : 'Parent portal'}</Link>
-            <Link href="/learn">{ar ? 'منصة تعلّم الأطفال' : 'Kids learning platform (Arabic)'}</Link>
             <Link href={p('/book')}>{ar ? 'حجز مقعد' : 'Book a seat'}</Link>
             <Link href={p('/enroll')}>{ar ? 'الاشتراك الشهري' : 'Monthly enrollment'}</Link>
             <Link href={p('/consult')}>{ar ? 'استشارة مجانية' : 'Free consultation'}</Link>
-            <Link href="/admin">{ar ? 'لوحة الإدارة (للفريق)' : 'Admin (staff)'}</Link>
           </div>
           <div>
             <h4>{ar ? 'روابط سريعة' : 'Quick Links'}</h4>
-            <a href="#programs">{d.navPrograms}</a>
+            <Link href={p('/programs')}>{d.navPrograms}</Link>
             <a href="#pricing">{d.navPricing}</a>
             <a href="#faq">FAQ</a>
             <Link href={p('/blog')}>{ar ? 'المدونة' : 'Blog'}</Link>
