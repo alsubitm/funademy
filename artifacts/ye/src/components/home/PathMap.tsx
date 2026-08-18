@@ -55,7 +55,7 @@ export function PathMap({ lang }: { lang: 'ar' | 'en' }) {
                 const above = s.y < 200;
                 return (
                   <g key={s.slug} transform={`translate(${s.x},${s.y})`}>
-                    <a href={`/programs/${s.slug}`}>
+                    <a href={lang === 'ar' ? `/programs/${s.slug}` : `/en/programs/${s.slug}`}>
                       <circle r="30" fill={s.fill} stroke="var(--ink)" strokeWidth="5" style={{ cursor: 'pointer' }} />
                       <text y="9" fontSize="26">{s.icon}</text>
                       <text y={above ? -44 : 56} fontSize="15" fill="var(--ink)">
