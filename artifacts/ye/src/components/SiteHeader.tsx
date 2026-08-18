@@ -11,7 +11,7 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
 
   return (
     <>
-      <div className="top">
+      <div className="top" role="navigation" aria-label={lang === 'ar' ? 'معلومات التواصل' : 'Contact info'}>
         <div className="wrap">
           <span>{d.topBanner}</span>
           <span dir="ltr">
@@ -21,9 +21,9 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
         </div>
       </div>
 
-      <nav className="site-nav">
+      <nav className="site-nav" aria-label={lang === 'ar' ? 'القائمة الرئيسية' : 'Main navigation'}>
         <div className="wrap nav-in">
-          <Link href={lang === 'ar' ? '/' : '/en'} className="brand">
+          <Link href={lang === 'ar' ? '/' : '/en'} className="brand" aria-label={lang === 'ar' ? 'FunAdemy — الصفحة الرئيسية' : 'FunAdemy — Home'}>
             <FlipMark size={42} />
             <Wordmark lang={lang} style={{ fontSize: 26, lineHeight: 1 }} />
             <YELogo height={28} className="opacity-70 hover:opacity-100 transition-opacity" />

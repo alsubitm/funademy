@@ -220,12 +220,18 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
             {programs.filter((p) => ageFilter === null || (ageFilter >= p.ageMin && ageFilter <= p.ageMax) || p.id === programId).map((p) => {
               const isSelected = p.id === programId;
               return (
-                <div key={p.id} className={`prog-card ${isSelected ? 'sel' : ''}`} onClick={() => { setProgramId(p.id); setSlotId(null); }}>
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={isSelected}
+                  className={`prog-card ${isSelected ? 'sel' : ''}`}
+                  onClick={() => { setProgramId(p.id); setSlotId(null); }}
+                >
                   <div className="check">✓</div>
                   <div className="p-code">{p.kitCode}</div>
                   <h4>{lang === 'ar' ? p.nameAr : p.nameEn}</h4>
                   <div className="p-age">{d.ageRange} {p.ageMin}-{p.ageMax} {d.years}</div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -260,12 +266,8 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
               const isFull = s.seatsLeft <= 0;
               const isSelected = s.id === slotId;
               const fmtLabel = s.format === 'online' ? d.online : d.inPerson;
-              return (
-                <div 
-                  key={s.id} 
-                  className={`slot-item ${isSelected ? 'sel' : ''} ${isFull ? 'full' : ''}`}
-                  onClick={() => !isFull && setSlotId(s.id)}
-                >
+              const slotInfo = (
+                <>
                   <div className="slot-main">
                     <div className="slot-time">{weekdays[s.weekday]} — {s.time}</div>
                     <div className="slot-meta">
@@ -274,16 +276,37 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
                     </div>
                   </div>
                   <div className="slot-action">
-                    {isFull ? (
-                      <>
-                        <div className="slot-seats">{d.fullSlot}</div>
-                        <a href={waitlistWaLink(lang === 'ar' ? selectedProgram?.nameAr || '' : selectedProgram?.nameEn || '')} target="_blank" rel="noopener noreferrer" className="btn" onClick={e => e.stopPropagation()}>WhatsApp</a>
-                      </>
-                    ) : (
-                      <div className="slot-seats"><b>{s.seatsLeft}</b> {d.seatsLeft}</div>
-                    )}
+                    <div className="slot-seats">
+                      {isFull ? d.fullSlot : <><b>{s.seatsLeft}</b> {d.seatsLeft}</>}
+                    </div>
                   </div>
-                </div>
+                </>
+              );
+              if (isFull) {
+                return (
+                  <div key={s.id} className="slot-item full" aria-disabled="true">
+                    {slotInfo}
+                    <a
+                      href={waitlistWaLink(lang === 'ar' ? selectedProgram?.nameAr || '' : selectedProgram?.nameEn || '')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn"
+                    >
+                      WhatsApp
+                    </a>
+                  </div>
+                );
+              }
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  aria-pressed={isSelected}
+                  className={`slot-item ${isSelected ? 'sel' : ''}`}
+                  onClick={() => setSlotId(s.id)}
+                >
+                  {slotInfo}
+                </button>
               );
             })}
           </div>

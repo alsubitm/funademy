@@ -6,7 +6,7 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
 
   return (
-    <header className="hero">
+    <section className="sec hero" aria-label={lang === 'ar' ? 'الصفحة الرئيسية' : 'Hero'}>
       <div className="bpgrid"></div>
       <div className="wrap hero-in">
         <div style={{ zIndex: 5 }}>
@@ -73,6 +73,6 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
           </div>
         </div>
       </div>
-    </header>
+    </section>
   );
 }
