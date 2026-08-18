@@ -77,6 +77,7 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
         contactPoint: {
           '@type': 'ContactPoint',
           contactType: 'customer service',
+          telephone: PHONE_DISPLAY,
           areaServed: 'SA',
           availableLanguage: ['Arabic', 'English'],
         },
@@ -96,9 +97,9 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
         '@type': 'LocalBusiness',
         '@id': `${base}/#localbusiness`,
         name: 'FunAdemy — e² Young Engineers Riyadh',
+        telephone: PHONE_DISPLAY,
         url: base,
         image: `${base}/brand/ye-logo.svg`,
-        telephone: PHONE_DISPLAY,
         address: {
           '@type': 'PostalAddress',
           addressLocality: 'Riyadh',
@@ -113,9 +114,15 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
         openingHoursSpecification: [
           {
             '@type': 'OpeningHoursSpecification',
-            dayOfWeek: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'],
-            opens: '09:00',
+            dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'],
+            opens: '16:00',
             closes: '21:00',
+          },
+          {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: ['Friday', 'Saturday'],
+            opens: '10:00',
+            closes: '20:00',
           },
         ],
         priceRange: '$$',
@@ -125,16 +132,11 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
       },
       {
         '@type': 'WebSite',
-        '@id': `${base}/#website`,
-        url: base,
+        '@id': `${base}/en#website`,
+        url: `${base}/en`,
         name: 'FunAdemy',
-        inLanguage: ['ar', 'en'],
+        inLanguage: 'en',
         publisher: { '@id': `${base}/#organization` },
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: `${base}/en/blog?q={search_term_string}`,
-          'query-input': 'required name=search_term_string',
-        },
       },
     ],
   };

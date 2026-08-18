@@ -62,6 +62,22 @@ export default async function EnglishHomePage() {
 
   return (
     <>
+      {faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: faqs.map(faq => ({
+                '@type': 'Question',
+                name: faq.questionEn,
+                acceptedAnswer: { '@type': 'Answer', text: faq.answerEn },
+              })),
+            }),
+          }}
+        />
+      )}
       <SiteHeader lang="en" />
       <Hero lang="en" />
       <LiveTicker slots={slots} lang="en" />

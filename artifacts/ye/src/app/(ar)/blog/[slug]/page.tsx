@@ -77,12 +77,18 @@ export default async function BlogPostPage(props: { params: Promise<{ slug: stri
         datePublished: post.publishedAt?.toISOString() ?? post.createdAt.toISOString(),
         dateModified: post.updatedAt?.toISOString() ?? post.createdAt.toISOString(),
         inLanguage: 'ar',
-        author: {
-          '@type': 'Organization',
-          '@id': `${base}/#organization`,
-          name: 'FunAdemy',
-          url: base,
-        },
+        author: [
+          {
+            '@type': 'Person',
+            name: 'فريق فناديمي',
+            url: base,
+          },
+          {
+            '@type': 'Organization',
+            '@id': `${base}/#organization`,
+            name: 'FunAdemy',
+          },
+        ],
         publisher: {
           '@type': 'Organization',
           '@id': `${base}/#organization`,

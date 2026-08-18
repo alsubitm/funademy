@@ -89,42 +89,42 @@ export default async function ProgramPage(props: { params: Promise<{ slug: strin
           suggestedMinAge: program.ageMin,
           suggestedMaxAge: program.ageMax,
         },
-        hasCourseInstance: program.slots.length > 0
-          ? program.slots.map(slot => ({
-              '@type': 'CourseInstance',
-              courseMode: slot.format === 'online' ? 'online' : 'onsite',
-              courseSchedule: {
-                '@type': 'Schedule',
-                byDay: `https://schema.org/${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][slot.weekday]}`,
-                startTime: slot.time,
+        courseMode: program.format === 'online' ? 'online' : 'onsite',
+        educationalCredentialAwarded: 'شهادة إتمام',
+        hasCourseInstance: program.slots.map(slot => ({
+          '@type': 'CourseInstance',
+          courseMode: slot.format === 'online' ? 'online' : 'onsite',
+          ...(slot.location ? {
+            location: {
+              '@type': 'Place',
+              name: slot.location,
+              address: {
+                '@type': 'PostalAddress',
+                addressLocality: 'Riyadh',
+                addressCountry: 'SA',
               },
-              instructor: {
-                '@type': 'Organization',
-                name: 'FunAdemy — e² Young Engineers',
-                url: base,
-              },
-              ...(slot.location ? {
-                location: { '@type': 'Place', name: slot.location, address: { '@type': 'PostalAddress', addressLocality: 'Riyadh', addressCountry: 'SA' } },
-              } : {}),
-            }))
-          : [
-              {
-                '@type': 'CourseInstance',
-                courseMode: program.format === 'online' ? 'online' : 'onsite',
-                instructor: {
-                  '@type': 'Organization',
-                  name: 'FunAdemy — e² Young Engineers',
-                  url: base,
-                },
-              },
-            ],
+            },
+          } : {}),
+          courseSchedule: {
+            '@type': 'Schedule',
+            byDay: `https://schema.org/${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][slot.weekday]}`,
+            startTime: slot.time,
+          },
+          offers: {
+            '@type': 'Offer',
+            availability: (slot.seatsLeft ?? 1) > 0
+              ? 'https://schema.org/InStock'
+              : 'https://schema.org/SoldOut',
+            priceCurrency: 'SAR',
+            seller: { '@id': `${base}/#organization` },
+          },
+        })),
       },
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: base },
-          { '@type': 'ListItem', position: 2, name: 'البرامج', item: `${base}/#programs` },
-          { '@type': 'ListItem', position: 3, name: program.nameAr, item: `${base}/programs/${program.slug}` },
+          { '@type': 'ListItem', position: 2, name: program.nameAr, item: `${base}/programs/${program.slug}` },
         ],
       },
     ],
