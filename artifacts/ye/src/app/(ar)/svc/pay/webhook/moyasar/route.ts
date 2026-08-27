@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
 import { finalizePayment } from '@/lib/pay-core';
 
 export const dynamic = 'force-dynamic';
@@ -59,14 +59,14 @@ export async function POST(req: NextRequest) {
   const orderRef = Number(metadata.order_ref);
 
   // Restrict lookup to Moyasar providers — never match Tamara or other payments.
-  const payment = await prisma.payment.findFirst({
+  const payment = await withDbRetry(() => prisma.payment.findFirst({
     where: {
       provider: { in: MOYASAR_PROVIDERS },
       ...(Number.isInteger(orderRef) && orderRef > 0
         ? { id: orderRef }
         : { reference: { in: candidates } }),
     },
-  });
+  }), { operation: 'moyasar-webhook-payment-read' });
   if (!payment) return NextResponse.json({ ok: true, note: 'payment_not_found' });
 
   const outcome = await finalizePayment(payment.id);

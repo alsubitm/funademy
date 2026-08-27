@@ -314,4 +314,25 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     expect(r2.status).toBe(201);
     expect((await r2.json()).appointment?.meetUrl).toBe('https://meet.google.com/test-mock');
   });
+
+  it('recovers the real booking flow after the database aborts the seat transaction', async () => {
+    const { program, slot } = await createProgramWithSlot();
+    const body = bookingBody(program.id, slot.id);
+    const originalTransaction = prisma.$transaction.bind(prisma);
+    const transaction = vi
+      .spyOn(prisma, '$transaction')
+      .mockImplementationOnce(originalTransaction)
+      .mockRejectedValueOnce(new Error('57P01 terminating connection due to administrator command'));
+
+    const res = await bookingsPOST(jsonReq('/svc/bookings', body));
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(transaction).toHaveBeenCalledTimes(3); // rate-limit + failed booking + retry
+    transaction.mockRestore();
+
+    expect(await prisma.booking.count({
+      where: { id: json.id, programId: program.id, slotId: slot.id, phone: body.phone },
+    })).toBe(1);
+    expect((await prisma.scheduleSlot.findUniqueOrThrow({ where: { id: slot.id } })).seatsLeft).toBe(11);
+  });
 });

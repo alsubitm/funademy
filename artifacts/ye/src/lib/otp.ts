@@ -1,5 +1,6 @@
 import { createHmac, randomInt } from 'crypto';
-import { prisma } from '@/lib/db';
+import type { Prisma } from '@prisma/client';
+import { prisma, withDbRetry } from '@/lib/db';
 import { authenticaConfigured, sendOtpViaAuthentica } from '@/lib/smsAuthentica';
 
 /**
@@ -52,7 +53,7 @@ export async function requestOtp(phone: string): Promise<OtpRequestResult> {
   // requests cannot exceed the cap. The row is created BEFORE delivery, so
   // EVERY attempt — including failed sends — consumes the hourly quota:
   // provider calls are hard-capped at MAX_REQUESTS_PER_HOUR per phone.
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await withDbRetry(() => prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`otp:${phone}`}))`;
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recent = await tx.otpCode.count({ where: { phone, createdAt: { gte: hourAgo } } });
@@ -60,7 +61,7 @@ export async function requestOtp(phone: string): Promise<OtpRequestResult> {
     return tx.otpCode.create({
       data: { phone, codeHash: hashCode(phone, code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
     });
-  });
+  }), { operation: 'otp-request', kind: 'transaction' });
   if (!created) return { ok: false, error: 'rate_limited' };
 
   // Deliver AFTER persisting: a provider timeout is an UNKNOWN outcome, not
@@ -103,7 +104,19 @@ export async function verifyOtp(
   code: string,
   opts: { consume: boolean } = { consume: true },
 ): Promise<OtpVerifyResult> {
-  const record = await prisma.otpCode.findFirst({
+  return withDbRetry(
+    () => prisma.$transaction((tx) => verifyOtpInTx(tx, phone, code, opts)),
+    { operation: 'otp-verify', kind: 'transaction' },
+  );
+}
+
+export async function verifyOtpInTx(
+  tx: Prisma.TransactionClient,
+  phone: string,
+  code: string,
+  opts: { consume: boolean } = { consume: true },
+): Promise<OtpVerifyResult> {
+  const record = await tx.otpCode.findFirst({
     where: { phone, consumed: false },
     orderBy: { createdAt: 'desc' },
   });
@@ -112,11 +125,11 @@ export async function verifyOtp(
   if (record.attempts >= MAX_VERIFY_ATTEMPTS) return 'too_many_attempts';
 
   if (record.codeHash !== hashCode(phone, code)) {
-    await prisma.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
+    await tx.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
     return 'invalid';
   }
   if (opts.consume) {
-    await prisma.otpCode.update({ where: { id: record.id }, data: { consumed: true } });
+    await tx.otpCode.update({ where: { id: record.id }, data: { consumed: true } });
   }
   return 'ok';
 }

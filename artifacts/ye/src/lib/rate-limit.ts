@@ -8,7 +8,7 @@
  * Not a substitute for a WAF, but stops casual scripted abuse of routes
  * that trigger real Google Calendar events and emails.
  */
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
 
 /**
  * Returns true when the caller is within `max` hits per `windowMs`.
@@ -23,14 +23,14 @@ export async function allowRate(key: string, max: number, windowMs: number): Pro
   const now = new Date();
   const cutoff = new Date(now.getTime() - windowMs);
   try {
-    return await prisma.$transaction(async (tx) => {
+    return await withDbRetry(() => prisma.$transaction(async (tx) => {
       // Per-key mutex, auto-released at transaction end.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
       const hits = await tx.rateLimitHit.count({ where: { key, at: { gt: cutoff } } });
       if (hits >= max) return false;
       await tx.rateLimitHit.create({ data: { key, at: now } });
       return true;
-    });
+    }), { operation: 'rate-limit-claim', kind: 'transaction' });
   } catch (e) {
     console.error('[rate-limit] check failed, rejecting request:', e);
     return false;

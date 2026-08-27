@@ -151,7 +151,12 @@ describe('checkout records a payment', () => {
     );
 
     const before = new Date();
+    const familyRead = vi
+      .spyOn(prisma.family, 'findUnique')
+      .mockRejectedValueOnce(new Error('P1001: Can’t reach database server'));
     const res = await checkoutPOST(jsonReq('/svc/enroll/checkout', 'POST', { provider: 'moyasar_mada' }));
+    expect(familyRead).toHaveBeenCalledTimes(3);
+    familyRead.mockRestore();
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.paid).toBe(true);
@@ -375,7 +380,17 @@ describe('Tamara settlement: authorization vs capture', () => {
       return new Response('{}', { status: 404 });
     });
 
+    const settlementTransaction = vi
+      .spyOn(prisma, '$transaction')
+      .mockRejectedValueOnce(new Error('57P01 terminating connection due to administrator command'));
+    const paymentRead = vi
+      .spyOn(prisma.payment, 'findUnique')
+      .mockRejectedValueOnce(new Error('57P01 terminating connection due to administrator command'));
     const outcome = await finalizePayment(initiatedPaymentId);
+    expect(paymentRead).toHaveBeenCalledTimes(2);
+    paymentRead.mockRestore();
+    expect(settlementTransaction).toHaveBeenCalledTimes(2);
+    settlementTransaction.mockRestore();
     expect(outcome).toBe('paid');
 
     const payment = await prisma.payment.findUnique({ where: { id: initiatedPaymentId } });
@@ -470,7 +485,12 @@ describe('stale payment sweep', () => {
     const runBefore = await prisma.courseRun.findUnique({ where: { id: sweepRunId } });
     expect(runBefore!.seatsLeft).toBe(1); // seat is currently held
 
+    const sweepRead = vi
+      .spyOn(prisma.payment, 'findMany')
+      .mockRejectedValueOnce(new Error('P1001: Can’t reach database server'));
     const { settled, expired } = await sweepStalePayments(45);
+    expect(sweepRead).toHaveBeenCalledTimes(2);
+    sweepRead.mockRestore();
     expect(settled).toBe(0);
     expect(expired).toBeGreaterThanOrEqual(1);
 

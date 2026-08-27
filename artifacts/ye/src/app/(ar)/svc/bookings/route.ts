@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
 import { createMeetEvent, addAttendeeToEvent } from '@/lib/google-calendar';
 import { allowRate, clientIp } from '@/lib/rate-limit';
 import { nextOccurrence, formatRiyadh } from '@/lib/appointments';
@@ -49,48 +49,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
 
-  const outcome = await prisma.$transaction(async (tx) => {
-    const slot = await tx.scheduleSlot.findUnique({
-      where: { id: slotId },
-      include: { program: true },
-    });
-    if (!slot || slot.programId !== programId || !slot.active) return 'slot_not_found' as const;
-    // Validity + seat decrement inside the transaction to avoid races with
-    // concurrent bookings or admin deactivation.
-    const updated = await tx.scheduleSlot.updateMany({
-      where: { id: slotId, programId, active: true, seatsLeft: { gt: 0 } },
-      data: { seatsLeft: { decrement: 1 } },
-    });
-    if (updated.count === 0) {
-      return 'slot_full' as const;
-    }
-    const trialStartsAt = nextOccurrence(slot.weekday, slot.time);
-    const reminderAt = new Date(trialStartsAt.getTime() - 24 * 60 * 60_000);
-    const followUpAt = new Date(trialStartsAt.getTime() + 60 * 60_000);
-    return tx.booking.create({
-      data: {
-        programId,
-        slotId,
-        parentName,
-        phone,
-        childFirstName,
-        childBirthYear,
-        neighborhood,
-        email,
-        contactChannel: contactChannel as 'whatsapp' | 'email' | 'phone',
-        contactConsentAt: new Date(),
-        trialStartsAt,
-        reminderAt,
-        followUpAt,
-        communications: {
-          create: [
-            { kind: 'reminder', dueAt: reminderAt },
-            { kind: 'follow_up', dueAt: followUpAt },
-          ],
-        },
-      },
-    });
-  });
+  const outcome = await withDbRetry(
+    () =>
+      prisma.$transaction(async (tx) => {
+        const slot = await tx.scheduleSlot.findUnique({
+          where: { id: slotId },
+          include: { program: true },
+        });
+        if (!slot || slot.programId !== programId || !slot.active) return 'slot_not_found' as const;
+        // Validity + seat decrement inside the transaction to avoid races with
+        // concurrent bookings or admin deactivation.
+        const updated = await tx.scheduleSlot.updateMany({
+          where: { id: slotId, programId, active: true, seatsLeft: { gt: 0 } },
+          data: { seatsLeft: { decrement: 1 } },
+        });
+        if (updated.count === 0) {
+          return 'slot_full' as const;
+        }
+        const trialStartsAt = nextOccurrence(slot.weekday, slot.time);
+        const reminderAt = new Date(trialStartsAt.getTime() - 24 * 60 * 60_000);
+        const followUpAt = new Date(trialStartsAt.getTime() + 60 * 60_000);
+        return tx.booking.create({
+          data: {
+            programId,
+            slotId,
+            parentName,
+            phone,
+            childFirstName,
+            childBirthYear,
+            neighborhood,
+            email,
+            contactChannel: contactChannel as 'whatsapp' | 'email' | 'phone',
+            contactConsentAt: new Date(),
+            trialStartsAt,
+            reminderAt,
+            followUpAt,
+            communications: {
+              create: [
+                { kind: 'reminder', dueAt: reminderAt },
+                { kind: 'follow_up', dueAt: followUpAt },
+              ],
+            },
+          },
+        });
+      }),
+    { operation: 'trial-booking-seat-reservation', kind: 'transaction' },
+  );
 
   if (outcome === 'slot_not_found') return NextResponse.json({ error: 'slot_not_found' }, { status: 404 });
   if (outcome === 'slot_full') return NextResponse.json({ error: 'slot_full' }, { status: 409 });
@@ -100,7 +104,10 @@ export async function POST(req: NextRequest) {
   // undo the booking — the family is contacted manually in that case.
   let appointment: { startsAt: string; meetUrl: string | null; whenAr: string; whenEn: string } | null = null;
   try {
-    const slot = await prisma.scheduleSlot.findUnique({ where: { id: slotId }, include: { program: true } });
+    const slot = await withDbRetry(
+      () => prisma.scheduleSlot.findUnique({ where: { id: slotId }, include: { program: true } }),
+      { operation: 'trial-booking-slot-read' },
+    );
     if (slot) {
       // Newly-created bookings always persist this value. The fallback keeps
       // the route type-safe while legacy nullable rows remain migration-safe.
@@ -110,9 +117,13 @@ export async function POST(req: NextRequest) {
       // One class occurrence = one meeting: reuse the event already created
       // for another trial booking into the same program/time, adding this
       // guest to it instead of creating a parallel meeting.
-      const existing = await prisma.appointment.findFirst({
-        where: { kind: 'trial', programId, startsAt, status: 'scheduled', calendarEventId: { not: null } },
-      });
+      const existing = await withDbRetry(
+        () =>
+          prisma.appointment.findFirst({
+            where: { kind: 'trial', programId, startsAt, status: 'scheduled', calendarEventId: { not: null } },
+          }),
+        { operation: 'trial-booking-appointment-read' },
+      );
       let meet: { eventId: string; meetUrl: string | null };
       if (existing?.calendarEventId) {
         meet = { eventId: existing.calendarEventId, meetUrl: existing.meetUrl };

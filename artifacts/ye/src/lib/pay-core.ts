@@ -1,6 +1,6 @@
-import { prisma } from '@/lib/db';
 import { addOneMonth } from '@/lib/billing';
 import { reconcilePaymentCreation, verifyPayment, type PaymentProvider, PAYMENT_PROVIDERS } from '@/lib/payments';
+import { prisma, withDbRetry } from '@/lib/db';
 
 /**
  * Shared finalization for live payments.
@@ -27,7 +27,10 @@ import { reconcilePaymentCreation, verifyPayment, type PaymentProvider, PAYMENT_
 export type FinalizeOutcome = 'paid' | 'pending' | 'failed' | 'not_found';
 
 export async function finalizePayment(paymentId: number): Promise<FinalizeOutcome> {
-  const payment = await prisma.payment.findUnique({ where: { id: paymentId }, include: { items: true } });
+  const payment = await withDbRetry(
+    () => prisma.payment.findUnique({ where: { id: paymentId }, include: { items: true } }),
+    { operation: 'payment-finalize-read' },
+  );
   if (!payment) return 'not_found';
   if (payment.status === 'paid') return 'paid';
   if (payment.status === 'failed') return 'failed';
@@ -43,12 +46,15 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
       console.error(`[payments] ADMIN ACTION REQUIRED: checkout creation for payment ${payment.id} is still indeterminate`);
       return 'pending';
     }
-    const saved = await prisma.payment.updateMany({
+    const saved = await withDbRetry(() => prisma.$transaction((tx) => tx.payment.updateMany({
       where: { id: payment.id, status: { in: ['initiated', 'expired'] }, reference: providerReference },
       data: { reference: creation.reference },
-    });
+    })), { operation: 'payment-finalize-save-reference', kind: 'transaction' });
     if (saved.count === 0) {
-      const current = await prisma.payment.findUnique({ where: { id: payment.id }, select: { reference: true } });
+      const current = await withDbRetry(
+        () => prisma.payment.findUnique({ where: { id: payment.id }, select: { reference: true } }),
+        { operation: 'payment-finalize-reference-read' },
+      );
       if (!current) return 'not_found';
       providerReference = current.reference;
     } else {
@@ -62,7 +68,7 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
 
   if (verdict === 'failed') {
     // Mark terminal failed (idempotent — covers both initiated and expired).
-    await prisma.$transaction(async (tx) => {
+    await withDbRetry(() => prisma.$transaction(async (tx) => {
       const claimed = await tx.payment.updateMany({
         where: { id: paymentId, status: { in: ['initiated', 'expired'] } },
         data: { status: 'failed' },
@@ -72,13 +78,13 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
         await tx.paymentItem.updateMany({ where: { paymentId }, data: { trialBookingId: null } });
         if (!isExpired) await _cancelEnrollmentsInTx(tx, payment.items);
       }
-    });
+    }), { operation: 'payment-finalize-failed', kind: 'transaction' });
     return 'failed';
   }
 
   // Provider says paid — settle exactly once.
   const now = new Date();
-  await prisma.$transaction(async (tx) => {
+  await withDbRetry(() => prisma.$transaction(async (tx) => {
     const claimed = await tx.payment.updateMany({
       where: { id: paymentId, status: { in: ['initiated', 'expired'] } },
       data: { status: 'paid' },
@@ -132,7 +138,7 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
         await tx.paymentItem.update({ where: { id: item.id }, data: { periodStart: base, periodEnd } });
       }
     }
-  });
+  }), { operation: 'payment-finalize-paid', kind: 'transaction' });
 
   return 'paid';
 }
@@ -143,9 +149,12 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
  * or already-expired ones.
  */
 export async function releasePayment(paymentId: number): Promise<void> {
-  const payment = await prisma.payment.findUnique({ where: { id: paymentId }, include: { items: true } });
+  const payment = await withDbRetry(
+    () => prisma.payment.findUnique({ where: { id: paymentId }, include: { items: true } }),
+    { operation: 'payment-release-read' },
+  );
   if (!payment) return;
-  await prisma.$transaction(async (tx) => {
+  await withDbRetry(() => prisma.$transaction(async (tx) => {
     const claimed = await tx.payment.updateMany({
       where: { id: paymentId, status: 'initiated' },
       data: { status: 'failed' },
@@ -154,7 +163,7 @@ export async function releasePayment(paymentId: number): Promise<void> {
     if (payment.kind !== 'enrollment') return;
     await tx.paymentItem.updateMany({ where: { paymentId }, data: { trialBookingId: null } });
     await _cancelEnrollmentsInTx(tx, payment.items);
-  });
+  }), { operation: 'payment-release', kind: 'transaction' });
 }
 
 /**
@@ -190,11 +199,11 @@ export async function sweepStalePayments(
   maxAgeMinutes = 45,
 ): Promise<{ settled: number; expired: number; errors: number }> {
   const cutoff = new Date(Date.now() - maxAgeMinutes * 60_000);
-  const stale = await prisma.payment.findMany({
+  const stale = await withDbRetry(() => prisma.payment.findMany({
     where: { status: 'initiated', createdAt: { lt: cutoff } },
     include: { items: true },
     take: 50,
-  });
+  }), { operation: 'payment-sweep-read' });
 
   let settled = 0, expiredCount = 0, errors = 0;
 
@@ -208,10 +217,10 @@ export async function sweepStalePayments(
           continue;
         }
         if (creation.status === 'found') {
-          await prisma.payment.updateMany({
+          await withDbRetry(() => prisma.$transaction((tx) => tx.payment.updateMany({
             where: { id: payment.id, status: 'initiated', reference: payment.reference },
             data: { reference: creation.reference },
-          });
+          })), { operation: 'payment-sweep-save-reference', kind: 'transaction' });
           payment.reference = creation.reference;
         }
       }
@@ -221,7 +230,7 @@ export async function sweepStalePayments(
         await finalizePayment(payment.id);
         settled++;
       } else if (verdict === 'failed') {
-        await prisma.$transaction(async (tx) => {
+        await withDbRetry(() => prisma.$transaction(async (tx) => {
           const claimed = await tx.payment.updateMany({
             where: { id: payment.id, status: 'initiated' },
             data: { status: 'failed' },
@@ -231,12 +240,12 @@ export async function sweepStalePayments(
             await tx.paymentItem.updateMany({ where: { paymentId: payment.id }, data: { trialBookingId: null } });
             await _cancelEnrollmentsInTx(tx, payment.items);
           }
-        });
+        }), { operation: 'payment-sweep-failed', kind: 'transaction' });
         expiredCount++;
       } else {
         // Still pending after timeout — mark `expired` and release seats.
         // Enrollment rows are preserved (cancelled, not deleted) for reconciliation.
-        await prisma.$transaction(async (tx) => {
+        await withDbRetry(() => prisma.$transaction(async (tx) => {
           const claimed = await tx.payment.updateMany({
             where: { id: payment.id, status: 'initiated' },
             data: { status: 'expired' },
@@ -246,7 +255,7 @@ export async function sweepStalePayments(
             console.warn(`[payments] sweep: payment ${payment.id} expired (provider pending) — releasing seats, reconcilable via late webhook`);
             await _cancelEnrollmentsInTx(tx, payment.items);
           }
-        });
+        }), { operation: 'payment-sweep-expire', kind: 'transaction' });
         expiredCount++;
       }
     } catch (e) {

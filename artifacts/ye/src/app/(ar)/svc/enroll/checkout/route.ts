@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
 import { CART_COOKIE, priceCart, readCart } from '@/lib/cart';
 import { createPayment, PAYMENT_PROVIDERS, type PaymentProvider } from '@/lib/payments';
@@ -43,10 +43,17 @@ export async function POST(req: NextRequest) {
   // Free seats held by abandoned checkouts before enforcing capacity.
   await sweepStalePayments().catch(() => undefined);
 
-  const cart = await priceCart(familyId, await readCart(familyId));
+  const rawCart = await readCart(familyId);
+  const cart = await withDbRetry(
+    () => priceCart(familyId, rawCart),
+    { operation: 'checkout-cart-pricing' },
+  );
   if (cart.items.length === 0) return NextResponse.json({ error: 'cart_empty' }, { status: 400 });
 
-  const family = await prisma.family.findUnique({ where: { id: familyId } });
+  const family = await withDbRetry(
+    () => prisma.family.findUnique({ where: { id: familyId } }),
+    { operation: 'checkout-family-read' },
+  );
   if (!family) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const periodStart = new Date();
@@ -59,7 +66,7 @@ export async function POST(req: NextRequest) {
     | { error: string; item?: number }
     | { enrollmentIds: number[]; paymentId: number };
   try {
-    const created = await prisma.$transaction(async (tx) => {
+    const created = await withDbRetry(() => prisma.$transaction(async (tx) => {
       const enrollmentIds: number[] = [];
       for (const item of cart.items) {
         const existing = await tx.enrollment.findUnique({
@@ -125,7 +132,7 @@ export async function POST(req: NextRequest) {
         },
       });
       return { enrollmentIds, paymentId: payment.id };
-    });
+    }), { operation: 'checkout-seat-reservation', kind: 'transaction' });
     outcome = created;
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';
@@ -157,10 +164,13 @@ export async function POST(req: NextRequest) {
 
   if (payment.status === 'indeterminate') {
     if (payment.reference) {
-      await prisma.payment.updateMany({
-        where: { id: paymentId, status: 'initiated' },
-        data: { reference: payment.reference },
-      }).catch((e) => {
+      await withDbRetry(
+        () => prisma.payment.updateMany({
+          where: { id: paymentId, status: 'initiated' },
+          data: { reference: payment.reference },
+        }),
+        { operation: 'checkout-partial-provider-reference' },
+      ).catch((e) => {
         console.error(`[payments] ADMIN ACTION REQUIRED: partial provider reference was not saved for payment ${paymentId}:`, e);
       });
     }
@@ -171,7 +181,7 @@ export async function POST(req: NextRequest) {
   if (payment.status === 'failed') {
     // Roll everything back — seats must not stay held for a payment that
     // never started.
-    await prisma.$transaction(async (tx) => {
+    await withDbRetry(() => prisma.$transaction(async (tx) => {
       await tx.payment.updateMany({ where: { id: paymentId, status: 'initiated' }, data: { status: 'failed' } });
       await tx.paymentItem.updateMany({ where: { paymentId }, data: { trialBookingId: null } });
       for (let i = 0; i < cart.items.length; i++) {
@@ -180,7 +190,7 @@ export async function POST(req: NextRequest) {
           await tx.courseRun.update({ where: { id: cart.items[i].courseRunId }, data: { seatsLeft: { increment: 1 } } });
         }
       }
-    });
+    }), { operation: 'checkout-provider-failure-release', kind: 'transaction' });
     return NextResponse.json({ error: 'payment_failed' }, { status: 402 });
   }
 
@@ -188,7 +198,10 @@ export async function POST(req: NextRequest) {
     // LIVE: hand the parent to the provider's secure page. Cart is kept until
     // payment is confirmed (cleared by /svc/pay/return).
     try {
-      await prisma.payment.update({ where: { id: paymentId }, data: { reference: payment.reference } });
+      await withDbRetry(
+        () => prisma.payment.update({ where: { id: paymentId }, data: { reference: payment.reference } }),
+        { operation: 'checkout-provider-reference' },
+      );
     } catch (e) {
       // The provider checkout exists, so releasing/retrying could create a
       // duplicate charge. Keep INIT + held seats for the reconciliation sweep.
@@ -199,7 +212,7 @@ export async function POST(req: NextRequest) {
   }
 
   // SIMULATED: settle immediately in this request.
-  await prisma.$transaction(async (tx) => {
+  await withDbRetry(() => prisma.$transaction(async (tx) => {
     await tx.payment.update({
       where: { id: paymentId },
       data: { reference: payment.reference, status: 'paid', simulated: true },
@@ -208,7 +221,7 @@ export async function POST(req: NextRequest) {
       where: { id: { in: enrollmentIds } },
       data: { status: 'active', startedAt: new Date(), paidThrough: periodEnd },
     });
-  });
+  }), { operation: 'checkout-simulated-settlement', kind: 'transaction' });
 
   const res = NextResponse.json({
     paid: true,
@@ -234,10 +247,10 @@ export async function GET(req: NextRequest) {
   const paymentId = Number(req.nextUrl.searchParams.get('paymentId'));
   if (!Number.isInteger(paymentId)) return NextResponse.json({ error: 'invalid_payment' }, { status: 400 });
 
-  const payment = await prisma.payment.findFirst({
+  const payment = await withDbRetry(() => prisma.payment.findFirst({
     where: { id: paymentId, familyId, kind: 'enrollment' },
     include: { items: true },
-  });
+  }), { operation: 'checkout-status-read' });
   if (!payment) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
   return NextResponse.json({

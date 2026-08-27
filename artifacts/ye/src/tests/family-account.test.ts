@@ -113,7 +113,12 @@ describe('OTP request', () => {
 
   it('sends a code for a valid phone (dev code returned outside production)', async () => {
     const { local } = freshPhone();
+    const transaction = vi
+      .spyOn(prisma, '$transaction')
+      .mockRejectedValueOnce(new Error('57P01 terminating connection due to administrator command'));
     await getDevCode(local);
+    expect(transaction).toHaveBeenCalledTimes(2);
+    transaction.mockRestore();
   });
 
   it('rate-limits after 5 requests in an hour (429)', async () => {
@@ -156,7 +161,12 @@ describe('verify → session', () => {
     expect((await first.json()).needName).toBe(true);
 
     // resubmit the SAME code with the parent name → family created + cookie
+    const loginTransaction = vi
+      .spyOn(prisma, '$transaction')
+      .mockRejectedValueOnce(new Error('57P01 terminating connection due to administrator command'));
     const second = await verify({ phone: local, code, parentName: `أم فهد ${RUN}` });
+    expect(loginTransaction).toHaveBeenCalledTimes(2);
+    loginTransaction.mockRestore();
     expect(second.status).toBe(200);
     const json = await second.json();
     expect(json.parentName).toBe(`أم فهد ${RUN}`);

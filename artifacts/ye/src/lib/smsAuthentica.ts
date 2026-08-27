@@ -65,6 +65,22 @@ export async function sendLowBalanceAlertViaAuthentica(
   return sendNumericPayload(phone, payload, templateId);
 }
 
+/**
+ * Database-outage alert. Configure AUTHENTICA_DB_ALERT_TEMPLATE_ID with text
+ * such as "تنبيه فناديمي: تعذر الاتصال بقاعدة البيانات بعد إعادة المحاولة.
+ * رمز التنبيه {otp}". The fixed numeric code contains no secret or user data.
+ */
+export async function sendDbOutageAlertViaAuthentica(
+  phone: string,
+): Promise<AuthenticaSendResult> {
+  const templateRaw =
+    process.env.AUTHENTICA_DB_ALERT_TEMPLATE_ID ??
+    process.env.AUTHENTICA_ALERT_TEMPLATE_ID ??
+    process.env.AUTHENTICA_TEMPLATE_ID;
+  const templateId = templateRaw && /^\d+$/.test(templateRaw) ? Number(templateRaw) : undefined;
+  return sendNumericPayload(phone, '1001', templateId);
+}
+
 async function sendNumericPayload(
   phone: string,
   code: string,

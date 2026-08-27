@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
 import { finalizePayment } from '@/lib/pay-core';
 import { CART_COOKIE } from '@/lib/cart';
@@ -20,7 +20,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL(`${base}/portal`, req.nextUrl));
   }
 
-  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  const payment = await withDbRetry(
+    () => prisma.payment.findUnique({ where: { id: paymentId } }),
+    { operation: 'payment-return-read' },
+  );
   if (!payment) return NextResponse.redirect(new URL(`${base}/portal`, req.nextUrl));
 
   const outcome = await finalizePayment(paymentId);

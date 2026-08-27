@@ -12,3 +12,4 @@
 - [YE learning platform](ye-learning-platform.md) — kids learning (XP/badges/streaks/PIN) ported from Manara; access = active enrollment; kid session = ye_kid cookie; admin CurriculumTab in AdminDashboard.
 - [YE SEO canonical URL](ye-seo-canonical.md) — absolute URLs via canonical helper only (SITE_URL override); never REPLIT_DOMAINS; sanitize DB-stored URLs before metadata; sitemap/llms.txt force-dynamic.
 - [YE SMS OTP delivery](ye-sms-otp-delivery.md) — Authentica carries OUR codes (custom-OTP send); live by key presence; persist-before-send (timeout ≠ undelivered); advisory-lock caps provider calls; OTP-only API.
+- [Database retry safety](database-retry-safety.md) — retry reads broadly, but replay transactions only after failures that prove PostgreSQL aborted or never began them.
