@@ -1,140 +1,187 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { WEEKDAYS_AR } from '@/lib/constants';
+import { useEffect, useState } from 'react';
+
+type Metrics = {
+  total: number;
+  attended: number;
+  enrolled: number;
+  attendanceRatePct: number;
+  bookingConversionPct: number;
+  attendedConversionPct: number;
+};
+
+const emptyMetrics: Metrics = {
+  total: 0,
+  attended: 0,
+  enrolled: 0,
+  attendanceRatePct: 0,
+  bookingConversionPct: 0,
+  attendedConversionPct: 0,
+};
+
+const fmtDate = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat('ar-SA', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Riyadh',
+      }).format(new Date(value))
+    : '—';
+
+const communicationLabel = (item: any) => {
+  if (!item) return 'غير موجود';
+  if (item.status === 'sent') return 'أُرسل';
+  if (item.status === 'failed') return `فشل بعد ${item.attempts} محاولات`;
+  if (item.status === 'sending') return 'جارٍ الإرسال';
+  return 'مجدول';
+};
 
 export function BookingsTab() {
   const [bookings, setBookings] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<Metrics>(emptyMetrics);
   const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState<number | null>(null);
 
   const fetchBookings = async () => {
     try {
-      const res = await fetch('/svc/admin/bookings');
-      if (res.status === 401) window.location.reload();
+      const res = await fetch('/svc/admin/bookings', { cache: 'no-store' });
+      if (res.status === 401) return window.location.reload();
       const data = await res.json();
       setBookings(data.bookings || []);
+      setMetrics(data.metrics || emptyMetrics);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBookings();
+    void fetchBookings();
   }, []);
 
-  const updateStatus = async (id: number, status: string) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+  const update = async (id: number, patch: Record<string, unknown>) => {
+    setSavingId(id);
     const res = await fetch('/svc/admin/bookings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status })
+      body: JSON.stringify({ id, ...patch }),
     });
-    if (!res.ok) {
-       fetchBookings();
-    }
+    await fetchBookings();
+    setSavingId(null);
+    return res.ok;
   };
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <div className="w-8 h-8 border-4 border-[#DFE5F2] border-t-[#1C54CB] rounded-full animate-spin"></div>
-      <div className="text-[#5F6B92] font-bold font-mono tracking-widest text-sm uppercase">LOADING...</div>
-    </div>
-  );
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-[#DFE5F2] border-t-[#1C54CB] rounded-full animate-spin" /></div>;
+  }
+
+  const cards = [
+    ['الحجوزات', metrics.total, 'كل الحجوزات التجريبية'],
+    ['الحضور', `${metrics.attendanceRatePct}%`, `${metrics.attended} حضروا`],
+    ['تحويل الحجز', `${metrics.bookingConversionPct}%`, `${metrics.enrolled} اشتراكات مدفوعة`],
+    ['تحويل الحاضرين', `${metrics.attendedConversionPct}%`, 'من الحضور إلى اشتراك'],
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 sm:p-8 rounded-[24px] shadow-[0_8px_30px_rgba(7,17,42,0.04)] border border-[#DFE5F2]">
-        <div>
-          <h2 className="text-3xl font-display font-bold text-[#101A38]">الحجوزات</h2>
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-[#5F6B92] text-sm font-medium">إجمالي التسجيلات</span>
-            <div className="bg-[#F0F5FF] text-[#1C54CB] px-3 py-1 rounded-full font-mono font-bold text-sm border border-[#1C54CB]/20">
-              {bookings.length}
-            </div>
+      <div className="bg-white p-6 sm:p-8 rounded-[24px] border border-[#DFE5F2] shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-display font-bold text-[#101A38]">متابعة الحجوزات التجريبية</h2>
+            <p className="text-[#5F6B92] mt-2">الخطوة القادمة، المسؤول، الحضور، والتحويل إلى اشتراك مدفوع.</p>
           </div>
+          <a href="/svc/admin/bookings?format=csv" className="bg-[#101A38] text-white px-6 py-3 rounded-xl font-bold self-start">تصدير CSV</a>
         </div>
-        <a 
-          href="/svc/admin/bookings?format=csv"
-          className="bg-[#101A38] text-white px-6 py-3 rounded-xl font-display font-bold shadow-[0_4px_0_#051036] hover:translate-y-[-2px] hover:shadow-[0_6px_0_#051036] active:translate-y-[2px] active:shadow-[0_2px_0_#051036] transition-all inline-flex items-center gap-2"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          تصدير CSV
-        </a>
       </div>
 
-      <div className="bg-white rounded-[24px] shadow-[0_8px_30px_rgba(7,17,42,0.04)] border border-[#DFE5F2] overflow-x-auto">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>التاريخ</th>
-              <th>ولي الأمر / الهاتف</th>
-              <th>الطفل / العمر</th>
-              <th>المدينة</th>
-              <th>البرنامج / الموعد</th>
-              <th>الحالة</th>
-              <th>إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookings.map(b => (
-              <tr key={b.id}>
-                <td data-label="#" className="font-mono text-xs text-[#5F6B92] font-bold">
-                  <div className="bg-[#F7FAFF] px-2 py-1 rounded-md border border-[#DFE5F2] inline-block">#{b.id}</div>
-                </td>
-                <td data-label="التاريخ" className="text-sm font-medium text-[#101A38]">
-                  {new Date(b.createdAt).toLocaleDateString('ar-SA')}
-                </td>
-                <td data-label="ولي الأمر">
-                  <div className="font-bold text-[#101A38]">{b.parentName}</div>
-                  <div className="font-mono text-xs text-[#5F6B92] mt-1 bg-[#F7FAFF] px-2 py-1 rounded-md inline-block" dir="ltr">{b.phone}</div>
-                </td>
-                <td data-label="الطفل">
-                  <div className="font-bold text-[#101A38]">{b.childFirstName}</div>
-                  <div className="text-xs text-[#1C54CB] font-bold mt-1 bg-[#F0F5FF] px-2 py-1 rounded-md inline-block">
-                    {new Date().getFullYear() - b.childBirthYear} سنوات
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {cards.map(([label, value, hint]) => (
+          <div key={String(label)} className="bg-white rounded-2xl border border-[#DFE5F2] p-5">
+            <div className="text-sm font-bold text-[#5F6B92]">{label}</div>
+            <div className="text-3xl font-mono font-bold text-[#1C54CB] mt-2">{value}</div>
+            <div className="text-xs text-[#5F6B92] mt-1">{hint}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-4">
+        {bookings.map((b) => (
+          <article key={b.id} className="bg-white rounded-[24px] border border-[#DFE5F2] p-5 sm:p-6 shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
+            <div className="grid lg:grid-cols-[1.2fr_1fr_1fr] gap-5">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-lg text-[#101A38]">{b.childFirstName}</strong>
+                  <span className={`status-badge ${b.converted ? 'enrolled' : b.status}`}>{b.converted ? 'مشترك مدفوع' : b.status === 'new' ? 'جديد' : 'تم التواصل'}</span>
+                </div>
+                <div className="font-bold mt-2">{b.parentName}</div>
+                <a href={`tel:${b.phone}`} dir="ltr" className="text-sm text-[#1C54CB]">{b.phone}</a>
+                {b.email && <div className="text-sm text-[#5F6B92]" dir="ltr">{b.email}</div>}
+                <div className="text-xs text-[#5F6B92] mt-2">
+                  موافقة التواصل: {b.contactConsentAt ? `${fmtDate(b.contactConsentAt)} · بريد إلكتروني` : 'غير مسجلة — لا يجوز التواصل'}
+                </div>
+              </div>
+
+              <div className="text-sm">
+                <div className="font-bold text-[#1C54CB]">{b.program.nameAr}</div>
+                <div className="mt-2"><b>الحصة:</b> {fmtDate(b.trialStartsAt)}</div>
+                <div className="mt-1"><b>الخطوة القادمة:</b> {b.nextAction}</div>
+                <div className="mt-1 text-[#5F6B92]">{fmtDate(b.nextActionAt)}</div>
+                {b.communications?.length > 0 && (
+                  <div className="mt-2 text-xs text-[#5F6B92]">
+                    التذكير: {communicationLabel(b.communications.find((item: any) => item.kind === 'reminder'))}
+                    {' · '}
+                    المتابعة: {communicationLabel(b.communications.find((item: any) => item.kind === 'follow_up'))}
                   </div>
-                </td>
-                <td data-label="المدينة" className="text-sm font-bold text-[#5F6B92]">{b.neighborhood}</td>
-                <td data-label="البرنامج">
-                  <div className="font-display font-bold text-[15px] text-[#1C54CB] leading-tight">{b.program?.nameAr}</div>
-                  <div className="text-xs text-[#5F6B92] mt-1.5 font-bold flex items-center gap-1.5">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    {b.slot ? `${WEEKDAYS_AR[b.slot.weekday]} - ${b.slot.time}` : 'لم يحدد'}
-                  </div>
-                </td>
-                <td data-label="الحالة">
-                  <span className={`status-badge ${b.status}`}>
-                    {b.status === 'new' ? 'جديد' : b.status === 'contacted' ? 'تم التواصل' : 'مسجل'}
-                  </span>
-                </td>
-                <td data-label="إجراءات">
-                  <select 
-                    value={b.status}
-                    onChange={(e) => updateStatus(b.id, e.target.value)}
-                    className="bg-[#F7FAFF] border-2 border-[#DFE5F2] rounded-xl px-3 py-2 text-sm font-bold text-[#101A38] outline-none w-full max-w-[120px] focus:border-[#1C54CB] cursor-pointer appearance-none transition-colors"
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23101A38' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, backgroundPosition: 'left 8px center', backgroundRepeat: 'no-repeat', paddingLeft: '32px' }}
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-xs font-bold text-[#5F6B92]">
+                  مسؤول المتابعة
+                  <input
+                    defaultValue={b.assignedTo}
+                    onBlur={(e) => e.target.value !== b.assignedTo && void update(b.id, { assignedTo: e.target.value })}
+                    className="mt-1 w-full bg-[#F7FAFF] border border-[#DFE5F2] rounded-xl px-3 py-2 text-sm text-[#101A38]"
+                  />
+                </label>
+                <label className="block text-xs font-bold text-[#5F6B92]">
+                  حضور الحصة
+                  <select
+                    value={b.trialAttendance}
+                    disabled={savingId === b.id}
+                    onChange={(e) => void update(b.id, { trialAttendance: e.target.value })}
+                    className="mt-1 w-full bg-[#F7FAFF] border border-[#DFE5F2] rounded-xl px-3 py-2 text-sm text-[#101A38]"
                   >
-                    <option value="new">جديد</option>
-                    <option value="contacted">تم التواصل</option>
-                    <option value="enrolled">مسجل</option>
+                    <option value="pending">بانتظار التسجيل</option>
+                    <option value="present">حضر</option>
+                    <option value="absent">لم يحضر</option>
                   </select>
-                </td>
-              </tr>
-            ))}
-            {bookings.length === 0 && (
-              <tr>
-                <td colSpan={8} className="text-center py-16">
-                  <div className="w-16 h-16 bg-[#F0F5FF] rounded-full flex items-center justify-center mx-auto mb-4 text-[#1C54CB]">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  </div>
-                  <div className="text-lg font-display font-bold text-[#101A38]">لا توجد حجوزات</div>
-                  <div className="text-sm text-[#5F6B92] mt-1">لم يتم تسجيل أي طلبات حتى الآن.</div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-[#DFE5F2]">
+              {!b.contactConsentAt ? (
+                <span className="bg-[#FFF4E5] text-[#9A5B00] px-4 py-2 rounded-xl text-sm font-bold">يلزم إعادة تأكيد موافقة التواصل</span>
+              ) : !b.converted && b.trialAttendance === 'present' ? (
+                <>
+                  <a href={b.enrollmentUrl} target="_blank" className="bg-[#1C54CB] text-white px-4 py-2 rounded-xl text-sm font-bold">فتح رابط التسجيل والدفع</a>
+                </>
+              ) : !b.converted ? <span className="bg-[#F0F5FF] text-[#1C54CB] px-4 py-2 rounded-xl text-sm font-bold">التذكير والمتابعة مجدولان بالبريد</span> : null}
+              {b.communications?.filter((item: any) => item.status === 'failed').map((item: any) => (
+                <button
+                  key={item.id}
+                  onClick={() => void update(b.id, { retryCommunicationId: item.id })}
+                  className="bg-[#FFF0F0] text-[#B42318] px-4 py-2 rounded-xl text-sm font-bold"
+                  title={item.lastError || undefined}
+                >
+                  إعادة محاولة {item.kind === 'reminder' ? 'التذكير' : 'المتابعة'}
+                </button>
+              ))}
+            </div>
+          </article>
+        ))}
+        {bookings.length === 0 && <div className="bg-white rounded-2xl p-12 text-center text-[#5F6B92]">لا توجد حجوزات تجريبية بعد.</div>}
       </div>
     </div>
   );

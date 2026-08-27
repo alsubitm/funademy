@@ -8,26 +8,26 @@ datasource db {
 }
 
 model Program {
-  id          Int      @id @default(autoincrement())
-  slug        String   @unique
-  kitCode     String // KIT-01 ... KIT-06
-  nameEn      String
-  nameAr      String
-  ageMin      Int
-  ageMax      Int
-  format      Format
-  color       String // hex from the brand system
-  level       Int // 1-5 level meter
-  taglineEn   String
-  taglineAr   String
-  descEn      String
-  descAr      String
-  buildsEn    String[] // what kids build
-  buildsAr    String[]
-  termsEn     String[] // term structure lines
-  termsAr     String[]
+  id            Int            @id @default(autoincrement())
+  slug          String         @unique
+  kitCode       String // KIT-01 ... KIT-06
+  nameEn        String
+  nameAr        String
+  ageMin        Int
+  ageMax        Int
+  format        Format
+  color         String // hex from the brand system
+  level         Int // 1-5 level meter
+  taglineEn     String
+  taglineAr     String
+  descEn        String
+  descAr        String
+  buildsEn      String[] // what kids build
+  buildsAr      String[]
+  termsEn       String[] // term structure lines
+  termsAr       String[]
   coverImageUrl String?
-  position      Int      @default(0)
+  position      Int            @default(0)
   slots         ScheduleSlot[]
   bookings      Booking[]
   courseRuns    CourseRun[]
@@ -44,36 +44,84 @@ enum Format {
 }
 
 model ScheduleSlot {
-  id        Int      @id @default(autoincrement())
-  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  id        Int       @id @default(autoincrement())
+  program   Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
   programId Int
   weekday   Int // 0=Sunday ... 6=Saturday
   time      String // "17:00"
   format    Format
   location  String? // e.g. "Al Yasmin partner school" for in-person
-  capacity  Int      @default(12)
-  seatsLeft Int      @default(12)
-  active    Boolean  @default(true)
+  capacity  Int       @default(12)
+  seatsLeft Int       @default(12)
+  active    Boolean   @default(true)
   bookings  Booking[]
 
   @@map("ye_schedule_slots")
 }
 
 model Booking {
-  id             Int          @id @default(autoincrement())
-  program        Program      @relation(fields: [programId], references: [id])
-  programId      Int
-  slot           ScheduleSlot @relation(fields: [slotId], references: [id])
-  slotId         Int
-  parentName     String
-  phone          String
-  childFirstName String
-  childBirthYear Int
-  neighborhood   String // legacy field — always "riyadh" (city-level only)
-  status         BookingStatus @default(new)
-  createdAt      DateTime     @default(now())
+  id               Int             @id @default(autoincrement())
+  program          Program         @relation(fields: [programId], references: [id])
+  programId        Int
+  slot             ScheduleSlot    @relation(fields: [slotId], references: [id])
+  slotId           Int
+  parentName       String
+  phone            String
+  childFirstName   String
+  childBirthYear   Int
+  neighborhood     String // legacy field — always "riyadh" (city-level only)
+  status           BookingStatus   @default(new)
+  email            String?
+  contactChannel   ContactChannel  @default(whatsapp)
+  contactConsentAt DateTime?
+  trialStartsAt    DateTime?
+  reminderAt       DateTime?
+  followUpAt       DateTime?
+  assignedTo       String          @default("فريق القبول")
+  trialAttendance  TrialAttendance @default(pending)
+  attendedAt       DateTime?
+  createdAt        DateTime        @default(now())
+  communications   TrialCommunication[]
+  conversionItem   PaymentItem?    @relation("TrialConversion")
 
+  @@index([trialStartsAt])
+  @@index([followUpAt])
   @@map("ye_bookings")
+}
+
+enum TrialCommunicationKind {
+  reminder
+  follow_up
+
+  @@map("ye_trial_communication_kind")
+}
+
+enum TrialCommunicationStatus {
+  pending
+  sending
+  sent
+  failed
+
+  @@map("ye_trial_communication_status")
+}
+
+model TrialCommunication {
+  id        Int                      @id @default(autoincrement())
+  booking   Booking                  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId Int
+  kind      TrialCommunicationKind
+  dueAt     DateTime
+  status    TrialCommunicationStatus @default(pending)
+  attempts  Int                      @default(0)
+  claimedAt DateTime?
+  claimToken String?
+  sentAt    DateTime?
+  lastError String?
+  createdAt DateTime                 @default(now())
+
+  @@unique([bookingId, kind])
+  @@index([status, dueAt])
+  @@map("ye_trial_communications")
 }
 
 enum BookingStatus {
@@ -84,38 +132,54 @@ enum BookingStatus {
   @@map("ye_booking_status")
 }
 
+enum ContactChannel {
+  whatsapp
+  email
+  phone
+
+  @@map("ye_contact_channel")
+}
+
+enum TrialAttendance {
+  pending
+  present
+  absent
+
+  @@map("ye_trial_attendance")
+}
+
 // ————————————————————————— Phase 1: Families & Students —————————————————————————
 
 model Family {
-  id         Int       @id @default(autoincrement())
-  phone      String    @unique // normalized +9665XXXXXXXX
-  parentName String
-  email      String?
-  locale     String    @default("ar")
-  createdAt  DateTime  @default(now())
-  students      Student[]
-  payments      Payment[]
-  lrnChildren   LrnChild[]
+  id          Int        @id @default(autoincrement())
+  phone       String     @unique // normalized +9665XXXXXXXX
+  parentName  String
+  email       String?
+  locale      String     @default("ar")
+  createdAt   DateTime   @default(now())
+  students    Student[]
+  payments    Payment[]
+  lrnChildren LrnChild[]
 
   @@map("ye_families")
 }
 
 model Student {
-  id          Int      @id @default(autoincrement())
-  family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  familyId    Int
-  firstName   String
-  birthYear   Int
+  id             Int             @id @default(autoincrement())
+  family         Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  familyId       Int
+  firstName      String
+  birthYear      Int
   // Saudi national ID / iqama (10 digits, starts 1 or 2) — the child's
   // learner identity for NELC live-class attendance statements. Optional:
   // without it attendance is never reported. Unique across all students.
-  nationalId  String?  @unique
-  createdAt   DateTime @default(now())
-  enrollments Enrollment[]
-  attendance  Attendance[]
-  skills      StudentSkill[]
-  badges      StudentBadge[]
-  bricks      WatanBrick[]
+  nationalId     String?         @unique
+  createdAt      DateTime        @default(now())
+  enrollments    Enrollment[]
+  attendance     Attendance[]
+  skills         StudentSkill[]
+  badges         StudentBadge[]
+  bricks         WatanBrick[]
   makeupRequests MakeupRequest[]
 
   @@index([familyId])
@@ -177,15 +241,15 @@ model CourseRun {
 }
 
 model ClassSession {
-  id          Int           @id @default(autoincrement())
-  courseRun   CourseRun     @relation(fields: [courseRunId], references: [id], onDelete: Cascade)
-  courseRunId Int
-  date        DateTime
-  status      SessionStatus @default(scheduled)
-  note        String?
-  meetingUrl   String? // per-session override of courseRun.meetingUrl
-  recordingUrl String? // link to the class recording after the session
-  attendance  Attendance[]
+  id             Int             @id @default(autoincrement())
+  courseRun      CourseRun       @relation(fields: [courseRunId], references: [id], onDelete: Cascade)
+  courseRunId    Int
+  date           DateTime
+  status         SessionStatus   @default(scheduled)
+  note           String?
+  meetingUrl     String? // per-session override of courseRun.meetingUrl
+  recordingUrl   String? // link to the class recording after the session
+  attendance     Attendance[]
   makeupRequests MakeupRequest[] @relation("MissedSession")
   makeupsInto    MakeupRequest[] @relation("MakeupSession")
 
@@ -232,18 +296,18 @@ enum EnrollmentStatus {
 // ————————————————————————— Payments & Receipts —————————————————————————
 
 model Payment {
-  id          Int           @id @default(autoincrement())
-  family      Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  id          Int             @id @default(autoincrement())
+  family      Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
   familyId    Int
   kind        PaymentKind
   provider    String // moyasar_mada | moyasar_applepay | moyasar_stcpay | tamara
   reference   String // provider reference (SIM-* while simulated)
   status      PaymentTxStatus @default(paid)
   subtotalSar Int
-  discountSar Int           @default(0)
+  discountSar Int             @default(0)
   totalSar    Int
-  simulated   Boolean       @default(true)
-  createdAt   DateTime      @default(now())
+  simulated   Boolean         @default(true)
+  createdAt   DateTime        @default(now())
   items       PaymentItem[]
 
   @@index([familyId, createdAt])
@@ -264,6 +328,8 @@ model PaymentItem {
   baseSar      Int
   discountPct  Int         @default(0)
   totalSar     Int
+  trialBooking   Booking? @relation("TrialConversion", fields: [trialBookingId], references: [id], onDelete: SetNull)
+  trialBookingId Int?     @unique
 
   @@index([paymentId])
   @@map("ye_payment_items")
@@ -279,8 +345,8 @@ enum PaymentKind {
 enum PaymentTxStatus {
   initiated // created, awaiting provider confirmation (redirect/3DS in progress)
   paid
-  failed    // provider confirmed decline/expiry — seats released, terminal
-  expired   // our timeout fired, seats released — still reconcilable if provider later settles
+  failed // provider confirmed decline/expiry — seats released, terminal
+  expired // our timeout fired, seats released — still reconcilable if provider later settles
   refunding // admin refund claimed — provider call in flight (prevents duplicate provider refunds)
   refunded
 
@@ -308,20 +374,20 @@ model Attendance {
 // admin approves/rejects, and the decision (plus adminNote) is what the
 // parent sees in the portal — no separate notification table needed yet.
 model MakeupRequest {
-  id        Int          @id @default(autoincrement())
-  student   Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId Int
-  session   ClassSession @relation("MissedSession", fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId Int
-  status    MakeupStatus @default(pending)
-  note      String? // parent note (≤300 chars, enforced in API)
-  adminNote String? // admin reply shown to the parent (e.g. proposed makeup date)
+  id              Int           @id @default(autoincrement())
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId       Int
+  session         ClassSession  @relation("MissedSession", fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId       Int
+  status          MakeupStatus  @default(pending)
+  note            String? // parent note (≤300 chars, enforced in API)
+  adminNote       String? // admin reply shown to the parent (e.g. proposed makeup date)
   // The concrete makeup session booked on approval — shows in the child's
   // upcoming sessions and adds the child to that session's attendance roster.
   makeupSession   ClassSession? @relation("MakeupSession", fields: [makeupSessionId], references: [id], onDelete: SetNull)
   makeupSessionId Int?
-  createdAt DateTime     @default(now())
-  decidedAt DateTime?
+  createdAt       DateTime      @default(now())
+  decidedAt       DateTime?
 
   @@unique([studentId, sessionId])
   @@index([status, createdAt])
@@ -448,13 +514,13 @@ model Testimonial {
 }
 
 model FaqEntry {
-  id        Int     @id @default(autoincrement())
+  id         Int     @id @default(autoincrement())
   questionEn String
   questionAr String
-  answerEn  String
-  answerAr  String
-  published Boolean @default(true)
-  position  Int     @default(0)
+  answerEn   String
+  answerAr   String
+  published  Boolean @default(true)
+  position   Int     @default(0)
 
   @@map("ye_faqs")
 }
@@ -484,13 +550,11 @@ model ClickEvent {
 enum AppointmentKind {
   trial
   consult
-
 }
 
 enum AppointmentStatus {
   scheduled
   cancelled
-
 }
 
 model Appointment {
@@ -522,20 +586,20 @@ model Appointment {
 // Blog posts (migrated from Manara CMS). Arabic is required; English mirror
 // fields are optional — public EN pages fall back to Arabic when absent.
 model BlogPost {
-  id          Int      @id @default(autoincrement())
-  slug        String   @unique
-  titleAr     String
-  titleEn     String?
-  excerptAr   String
-  excerptEn   String?
-  contentAr   String
-  contentEn   String?
-  coverEmoji     String   @default("📚")
-  coverImageUrl  String?
-  published      Boolean  @default(true)
-  publishedAt DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id            Int      @id @default(autoincrement())
+  slug          String   @unique
+  titleAr       String
+  titleEn       String?
+  excerptAr     String
+  excerptEn     String?
+  contentAr     String
+  contentEn     String?
+  coverEmoji    String   @default("📚")
+  coverImageUrl String?
+  published     Boolean  @default(true)
+  publishedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 
   @@index([published, publishedAt])
   @@map("ye_blog_posts")
@@ -577,27 +641,27 @@ enum LrnExerciseType {
 }
 
 model LrnSubject {
-  id       Int         @id @default(autoincrement())
+  id       Int       @id @default(autoincrement())
   nameAr   String
   nameEn   String
-  slug     String      @unique
-  icon     String      // emoji or icon key
-  color    String      // hex color
-  position Int         @default(0)
+  slug     String    @unique
+  icon     String // emoji or icon key
+  color    String // hex color
+  position Int       @default(0)
   units    LrnUnit[]
 
   @@map("ye_lrn_subjects")
 }
 
 model LrnUnit {
-  id        Int        @id @default(autoincrement())
-  subject   LrnSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  id        Int         @id @default(autoincrement())
+  subject   LrnSubject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   subjectId Int
   band      LrnBand
   titleAr   String
   titleEn   String
-  position  Int        @default(0)
-  status    LrnStatus  @default(published)
+  position  Int         @default(0)
+  status    LrnStatus   @default(published)
   lessons   LrnLesson[]
 
   @@index([subjectId, band])
@@ -605,19 +669,19 @@ model LrnUnit {
 }
 
 model LrnLesson {
-  id              Int          @id @default(autoincrement())
-  unit            LrnUnit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  unitId          Int
-  titleAr         String
-  titleEn         String
-  descAr          String?
-  descEn          String?
-  videoUrl        String?
-  videoType       LrnVideoType @default(youtube)
-  durationMinutes Int          @default(8)
-  position        Int          @default(0)
-  status          LrnStatus    @default(published)
-  isFreeSample    Boolean      @default(false)
+  id               Int                  @id @default(autoincrement())
+  unit             LrnUnit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unitId           Int
+  titleAr          String
+  titleEn          String
+  descAr           String?
+  descEn           String?
+  videoUrl         String?
+  videoType        LrnVideoType         @default(youtube)
+  durationMinutes  Int                  @default(8)
+  position         Int                  @default(0)
+  status           LrnStatus            @default(published)
+  isFreeSample     Boolean              @default(false)
   exercises        LrnExercise[]
   completions      LrnCompletion[]
   firstCompletions LrnFirstCompletion[]
@@ -643,24 +707,24 @@ model LrnExercise {
 
 /// Standalone kid profile for the learning platform (not tied to Student enrollment)
 model LrnChild {
-  id                Int             @id @default(autoincrement())
-  family            Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  id                Int                  @id @default(autoincrement())
+  family            Family               @relation(fields: [familyId], references: [id], onDelete: Cascade)
   familyId          Int
   name              String
-  avatar            String          @default("⭐")
-  band              LrnBand         @default(explorers)
-  pin               String          // scrypt salt:hash
+  avatar            String               @default("⭐")
+  band              LrnBand              @default(explorers)
+  pin               String // scrypt salt:hash
   // Saudi national ID / iqama of the CHILD (10 digits, starts 1 or 2) —
   // entered by the parent, used ONLY as the xAPI actor identity for NELC
   // production learning-record statements. null = no statements are sent
   // for this child. Unique when set: one learner identity per child.
-  nationalId        String?         @unique
-  xp                Int             @default(0)
-  streak            Int             @default(0)
-  lastActiveDate    String?         // ISO date YYYY-MM-DD
-  badges            String[]        @default([])
+  nationalId        String?              @unique
+  xp                Int                  @default(0)
+  streak            Int                  @default(0)
+  lastActiveDate    String? // ISO date YYYY-MM-DD
+  badges            String[]             @default([])
   dailyLimitMinutes Int?
-  createdAt         DateTime        @default(now())
+  createdAt         DateTime             @default(now())
   completions       LrnCompletion[]
   firstCompletions  LrnFirstCompletion[]
 
@@ -674,7 +738,7 @@ model LrnCompletion {
   childId          Int
   lesson           LrnLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   lessonId         Int
-  score            Float     // 0-100
+  score            Float // 0-100
   timeSpentSeconds Int       @default(0)
   createdAt        DateTime  @default(now())
 

@@ -36,7 +36,7 @@ type Done = { reference: string; totalSar: number; discountSar: number; items: D
 
 const fmt = (lang: Lang, v: number | string) => (lang === 'ar' ? arabicDigits(v) : String(v));
 
-export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; preselectProgramSlug?: string }) {
+export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lang: Lang; preselectProgramSlug?: string; trialBookingId?: number }) {
   const d = enrollDict[lang];
   const weekdays = lang === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN;
   const accountHref = lang === 'ar' ? '/account' : '/en/account';
@@ -123,7 +123,7 @@ export function EnrollFlow({ lang, preselectProgramSlug }: { lang: Lang; presele
       const res = await fetch('/svc/enroll/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId: childId, courseRunId }),
+        body: JSON.stringify({ studentId: childId, courseRunId, trialBookingId }),
       });
       const data = await res.json();
       if (!res.ok) return setError(data.error ?? 'generic');

@@ -39,6 +39,7 @@ export const metadata = {
 export default async function EnrollPageEn({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
   const program = typeof sp.program === 'string' ? sp.program : undefined;
+  const trialBookingId = typeof sp.trial === 'string' && /^\d+$/.test(sp.trial) ? Number(sp.trial) : undefined;
   const d = enrollDict.en;
   return (
     <>
@@ -51,7 +52,7 @@ export default async function EnrollPageEn({ searchParams }: { searchParams: Pro
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '32px' }}>{d.title}</h1>
             <p className="sub" style={{ margin: '8px auto 0' }}>{d.sub}</p>
           </div>
-          <EnrollFlow lang="en" preselectProgramSlug={program} />
+          <EnrollFlow lang="en" preselectProgramSlug={program} trialBookingId={trialBookingId} />
         </div>
       </main>
       <SiteFooter lang="en" />

@@ -62,20 +62,39 @@ export async function POST(req: NextRequest) {
     const created = await prisma.$transaction(async (tx) => {
       const enrollmentIds: number[] = [];
       for (const item of cart.items) {
+        const existing = await tx.enrollment.findUnique({
+          where: { studentId_courseRunId: { studentId: item.studentId, courseRunId: item.courseRunId } },
+        });
+        if (existing && existing.status !== 'cancelled') throw new Error(`already_enrolled:${item.studentId}`);
         const updated = await tx.courseRun.updateMany({
           where: { id: item.courseRunId, active: true, endDate: { gte: new Date() }, seatsLeft: { gt: 0 } },
           data: { seatsLeft: { decrement: 1 } },
         });
         if (updated.count === 0) throw new Error(`run_full:${item.courseRunId}`);
-        const enrollment = await tx.enrollment.create({
-          data: {
-            studentId: item.studentId,
-            courseRunId: item.courseRunId,
-            status: 'pending',
-            monthlyPriceSar: item.baseSar,
-            discountPct: item.discountPct,
-          },
-        });
+        const enrollment = existing
+          ? await (async () => {
+              const reclaimed = await tx.enrollment.updateMany({
+                where: { id: existing.id, status: 'cancelled' },
+                data: {
+                  status: 'pending',
+                  monthlyPriceSar: item.baseSar,
+                  discountPct: item.discountPct,
+                  startedAt: null,
+                  paidThrough: null,
+                },
+              });
+              if (reclaimed.count === 0) throw new Error(`already_enrolled:${item.studentId}`);
+              return existing;
+            })()
+          : await tx.enrollment.create({
+              data: {
+                studentId: item.studentId,
+                courseRunId: item.courseRunId,
+                status: 'pending',
+                monthlyPriceSar: item.baseSar,
+                discountPct: item.discountPct,
+              },
+            });
         enrollmentIds.push(enrollment.id);
       }
       const payment = await tx.payment.create({
@@ -100,6 +119,7 @@ export async function POST(req: NextRequest) {
               baseSar: item.baseSar,
               discountPct: item.discountPct,
               totalSar: Math.round(item.totalSar),
+              trialBookingId: item.trialBookingId,
             })),
           },
         },
@@ -153,6 +173,7 @@ export async function POST(req: NextRequest) {
     // never started.
     await prisma.$transaction(async (tx) => {
       await tx.payment.updateMany({ where: { id: paymentId, status: 'initiated' }, data: { status: 'failed' } });
+      await tx.paymentItem.updateMany({ where: { paymentId }, data: { trialBookingId: null } });
       for (let i = 0; i < cart.items.length; i++) {
         const deleted = await tx.enrollment.deleteMany({ where: { id: enrollmentIds[i], status: 'pending' } });
         if (deleted.count > 0) {

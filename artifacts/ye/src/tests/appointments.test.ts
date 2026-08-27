@@ -261,7 +261,9 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     childFirstName: 'Test',
     childBirthYear: new Date().getFullYear() - 8,
     neighborhood: 'Test',
-    ...(email ? { email } : {}),
+    contactConsent: true,
+    contactChannel: 'email',
+    email: email ?? 'trial-reminders@example.com',
   });
 
   it('second booking into the same program/time reuses the event and adds the guest', async () => {

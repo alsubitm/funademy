@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
   const childBirthYear = Number(b.childBirthYear);
   const neighborhood = String(b.neighborhood ?? '').trim();
   const email = String(b.email ?? '').trim() || null;
+  const contactConsent = b.contactConsent === true;
+  const contactChannel = String(b.contactChannel ?? 'email');
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
@@ -39,12 +41,20 @@ export async function POST(req: NextRequest) {
     !parentName ||
     !childFirstName ||
     !/^(\+?966|0)?5\d{8}$/.test(phone.replace(/[\s-]/g, '')) ||
-    !(childBirthYear >= currentYear - 19 && childBirthYear <= currentYear - 3)
+    !(childBirthYear >= currentYear - 19 && childBirthYear <= currentYear - 3) ||
+    !contactConsent ||
+    contactChannel !== 'email' ||
+    !email
   ) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
 
   const outcome = await prisma.$transaction(async (tx) => {
+    const slot = await tx.scheduleSlot.findUnique({
+      where: { id: slotId },
+      include: { program: true },
+    });
+    if (!slot || slot.programId !== programId || !slot.active) return 'slot_not_found' as const;
     // Validity + seat decrement inside the transaction to avoid races with
     // concurrent bookings or admin deactivation.
     const updated = await tx.scheduleSlot.updateMany({
@@ -52,12 +62,33 @@ export async function POST(req: NextRequest) {
       data: { seatsLeft: { decrement: 1 } },
     });
     if (updated.count === 0) {
-      const slot = await tx.scheduleSlot.findUnique({ where: { id: slotId } });
-      if (!slot || slot.programId !== programId || !slot.active) return 'slot_not_found' as const;
       return 'slot_full' as const;
     }
+    const trialStartsAt = nextOccurrence(slot.weekday, slot.time);
+    const reminderAt = new Date(trialStartsAt.getTime() - 24 * 60 * 60_000);
+    const followUpAt = new Date(trialStartsAt.getTime() + 60 * 60_000);
     return tx.booking.create({
-      data: { programId, slotId, parentName, phone, childFirstName, childBirthYear, neighborhood },
+      data: {
+        programId,
+        slotId,
+        parentName,
+        phone,
+        childFirstName,
+        childBirthYear,
+        neighborhood,
+        email,
+        contactChannel: contactChannel as 'whatsapp' | 'email' | 'phone',
+        contactConsentAt: new Date(),
+        trialStartsAt,
+        reminderAt,
+        followUpAt,
+        communications: {
+          create: [
+            { kind: 'reminder', dueAt: reminderAt },
+            { kind: 'follow_up', dueAt: followUpAt },
+          ],
+        },
+      },
     });
   });
 
@@ -71,7 +102,9 @@ export async function POST(req: NextRequest) {
   try {
     const slot = await prisma.scheduleSlot.findUnique({ where: { id: slotId }, include: { program: true } });
     if (slot) {
-      const startsAt = nextOccurrence(slot.weekday, slot.time);
+      // Newly-created bookings always persist this value. The fallback keeps
+      // the route type-safe while legacy nullable rows remain migration-safe.
+      const startsAt = outcome.trialStartsAt ?? nextOccurrence(slot.weekday, slot.time);
       const durationMin = CATALOG[slot.program.slug]?.lessonMin ?? 45;
 
       // One class occurrence = one meeting: reuse the event already created

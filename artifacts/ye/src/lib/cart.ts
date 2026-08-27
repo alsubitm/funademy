@@ -26,7 +26,7 @@ export const CART_COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60,
 };
 
-export type CartItem = { studentId: number; courseRunId: number };
+export type CartItem = { studentId: number; courseRunId: number; trialBookingId?: number };
 
 const sign = (v: string) => createHmac('sha256', getSecret()).update(v).digest('hex');
 
@@ -49,6 +49,11 @@ export async function readCart(familyId: number): Promise<CartItem[]> {
     if (data.f !== familyId || !Array.isArray(data.i)) return [];
     return data.i
       .filter((x: CartItem) => Number.isInteger(x?.studentId) && Number.isInteger(x?.courseRunId))
+      .map((x: CartItem) => ({
+        studentId: x.studentId,
+        courseRunId: x.courseRunId,
+        ...(Number.isInteger(x.trialBookingId) ? { trialBookingId: x.trialBookingId } : {}),
+      }))
       .slice(0, 20);
   } catch {
     return [];
@@ -75,6 +80,7 @@ export type PricedItem = {
   baseSar: number;
   discountPct: number;
   totalSar: number;
+  trialBookingId?: number;
 };
 
 export type PricedCart = {
@@ -91,29 +97,49 @@ export type PricedCart = {
  */
 export async function priceCart(familyId: number, items: CartItem[]): Promise<PricedCart> {
   const currentYear = new Date().getFullYear();
-  const [students, runs] = await Promise.all([
+  const [family, students, runs, trialBookings] = await Promise.all([
+    prisma.family.findUnique({ where: { id: familyId }, select: { phone: true } }),
     prisma.student.findMany({ where: { familyId, id: { in: items.map((i) => i.studentId) } } }),
     prisma.courseRun.findMany({
       where: { id: { in: items.map((i) => i.courseRunId) }, active: true, endDate: { gte: new Date() } },
       include: { program: true },
     }),
+    prisma.booking.findMany({
+      where: { id: { in: items.flatMap((i) => i.trialBookingId ? [i.trialBookingId] : []) } },
+    }),
   ]);
   const sMap = new Map(students.map((s) => [s.id, s]));
   const rMap = new Map(runs.map((r) => [r.id, r]));
+  const bMap = new Map(trialBookings.map((b) => [b.id, b]));
+  const normalizePhone = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    return digits.startsWith('966') ? `+${digits}` : digits.startsWith('0') ? `+966${digits.slice(1)}` : `+966${digits}`;
+  };
 
   const valid = items.flatMap((it) => {
     const s = sMap.get(it.studentId);
     const r = rMap.get(it.courseRunId);
     if (!s || !r) return [];
+    const trial = it.trialBookingId ? bMap.get(it.trialBookingId) : null;
+    if (
+      it.trialBookingId &&
+      (!trial ||
+        !family ||
+        trial.programId !== r.programId ||
+        trial.trialAttendance !== 'present' ||
+        trial.contactConsentAt == null ||
+        normalizePhone(trial.phone) !== normalizePhone(family.phone) ||
+        trial.childFirstName.trim().toLowerCase() !== s.firstName.trim().toLowerCase())
+    ) return [];
     const age = currentYear - s.birthYear;
     if (age < r.program.ageMin || age > r.program.ageMax) return [];
-    return [{ s, r }];
+    return [{ s, r, trialBookingId: trial?.id }];
   });
 
   // deterministic order: most expensive first pays full price
   valid.sort((a, b) => b.r.monthlyPriceSar - a.r.monthlyPriceSar || a.s.id - b.s.id);
 
-  const priced: PricedItem[] = valid.map(({ s, r }, idx) => {
+  const priced: PricedItem[] = valid.map(({ s, r, trialBookingId }, idx) => {
     const discountPct = idx === 0 ? 0 : SIBLING_DISCOUNT_PCT;
     const totalSar = Math.round(r.monthlyPriceSar * (100 - discountPct)) / 100;
     return {
@@ -134,6 +160,7 @@ export async function priceCart(familyId: number, items: CartItem[]): Promise<Pr
       baseSar: r.monthlyPriceSar,
       discountPct,
       totalSar,
+      ...(trialBookingId ? { trialBookingId } : {}),
     };
   });
 

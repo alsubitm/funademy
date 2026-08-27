@@ -26,6 +26,9 @@ export async function createMeetEvent(opts: {
     start: { dateTime: opts.startsAt.toISOString(), timeZone: 'Asia/Riyadh' },
     end: { dateTime: end.toISOString(), timeZone: 'Asia/Riyadh' },
     conferenceData: { createRequest: { requestId: `funademy-${Date.now()}-${Math.random().toString(36).slice(2, 10)}` } },
+    // The durable trial communication outbox sends the reminder at its due
+    // time; disable Calendar's default reminders to avoid duplicate emails.
+    reminders: { useDefault: false },
   };
   if (opts.attendeeEmail) body.attendees = [{ email: opts.attendeeEmail }];
 
@@ -49,6 +52,40 @@ export async function createMeetEvent(opts: {
     event.conferenceData?.entryPoints?.find((e) => e.entryPointType === 'video')?.uri ??
     null;
   return { eventId: event.id, meetUrl, htmlLink: event.htmlLink ?? null };
+}
+
+/**
+ * Sends a consented transactional email at its due time through Calendar.
+ * A deterministic event id makes retries idempotent: a 409 means the earlier
+ * attempt already created (and emailed) the event.
+ */
+export async function sendCalendarNotice(opts: {
+  communicationId: number;
+  summary: string;
+  description: string;
+  startsAt: Date;
+  attendeeEmail: string;
+}): Promise<void> {
+  const connectors = new ReplitConnectors();
+  const end = new Date(opts.startsAt.getTime() + 15 * 60_000);
+  const body = {
+    // Google event ids accept base32hex characters only (a-v and 0-9).
+    id: `trialnotice${opts.communicationId}`,
+    summary: opts.summary,
+    description: opts.description,
+    start: { dateTime: opts.startsAt.toISOString(), timeZone: 'Asia/Riyadh' },
+    end: { dateTime: end.toISOString(), timeZone: 'Asia/Riyadh' },
+    attendees: [{ email: opts.attendeeEmail }],
+    reminders: { useDefault: false },
+  };
+  const res = await connectors.proxy(
+    'google-calendar',
+    '/calendar/v3/calendars/primary/events?sendUpdates=all',
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+  );
+  if (!res.ok && res.status !== 409) {
+    throw new Error(`Google Calendar notice failed (${res.status})`);
+  }
 }
 
 /** Adds a guest to an existing event (Google re-emails the invitation). */

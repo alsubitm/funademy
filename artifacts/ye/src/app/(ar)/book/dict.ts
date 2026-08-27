@@ -32,11 +32,14 @@ export const bookDict = {
     confirmMsg: 'مرحباً! أود تأكيد حجز الحصة التجريبية لطفلي',
     ageRange: 'للعمر',
     years: 'سنوات',
-    email: 'البريد الإلكتروني (اختياري — لإرسال دعوة التقويم)',
+    email: 'البريد الإلكتروني (مطلوب للتذكير والمتابعة)',
     apptWhen: 'موعد حصتك التجريبية',
     apptJoin: 'رابط الدخول للحصة (Google Meet)',
     apptEmailSent: 'أرسلنا دعوة التقويم إلى بريدك الإلكتروني 📩',
     apptPending: 'سنرسل لك موعد الحصة ورابط الدخول عبر الواتساب قريباً.'
+    ,contactChannel: 'وسيلة التواصل المفضلة'
+    ,contactEmail: 'البريد الإلكتروني'
+    ,contactConsent: 'أوافق على إرسال تذكير الحصة والمتابعة بعدها إلى بريدي الإلكتروني.'
   },
   en: {
     title: 'Book a Free Trial',
@@ -71,10 +74,13 @@ export const bookDict = {
     confirmMsg: 'Hello! I would like to confirm the trial class booking for my child',
     ageRange: 'Ages',
     years: 'years',
-    email: 'Email (optional — for the calendar invite)',
+    email: 'Email (required for reminders and follow-up)',
     apptWhen: 'Your trial class time',
     apptJoin: 'Class join link (Google Meet)',
     apptEmailSent: 'A calendar invitation was emailed to you 📩',
     apptPending: 'We will send you the class time and join link on WhatsApp shortly.'
+    ,contactChannel: 'Preferred contact method'
+    ,contactEmail: 'Email'
+    ,contactConsent: 'I agree to receive the trial reminder and post-class follow-up by email.'
   }
 };

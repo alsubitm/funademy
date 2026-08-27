@@ -16,3 +16,11 @@ description: How FunAdemy's appointment/Meet system works and its invariants
 **Why:** Owner swapped Meet accounts mid-operation with an upcoming trial booked; verified nothing breaks, but old events can no longer be auto-modified through the site.
 
 **How to apply:** After any account swap, check prod for upcoming scheduled appointments with a stored calendar event and tell the owner those stay manageable only from the old account; verify the connected account with a `calendars/primary` read, and remember event times are created with explicit Riyadh timezone regardless of the account's own display timezone.
+
+# Connector imports in scheduled workers
+
+**Rule:** Never import the Google connector dependency into Next instrumentation. Keep connector work behind a protected server route and let the in-process timer call that route over localhost.
+
+**Why:** The connector SDK depends on `node:child_process`; Next's instrumentation compiler cannot bundle it and will make every page return 500 even though normal route bundles support it.
+
+**How to apply:** Any periodic Calendar job should persist work first, expose an internal authenticated worker route, and keep instrumentation limited to a lightweight localhost trigger.

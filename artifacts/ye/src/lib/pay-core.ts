@@ -67,8 +67,11 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
         where: { id: paymentId, status: { in: ['initiated', 'expired'] } },
         data: { status: 'failed' },
       });
-      if (claimed.count === 0 || isExpired) return; // expired already released seats
-      if (payment.kind === 'enrollment') await _cancelEnrollmentsInTx(tx, payment.items);
+      if (claimed.count === 0) return;
+      if (payment.kind === 'enrollment') {
+        await tx.paymentItem.updateMany({ where: { paymentId }, data: { trialBookingId: null } });
+        if (!isExpired) await _cancelEnrollmentsInTx(tx, payment.items);
+      }
     });
     return 'failed';
   }
@@ -149,6 +152,7 @@ export async function releasePayment(paymentId: number): Promise<void> {
     });
     if (claimed.count === 0) return;
     if (payment.kind !== 'enrollment') return;
+    await tx.paymentItem.updateMany({ where: { paymentId }, data: { trialBookingId: null } });
     await _cancelEnrollmentsInTx(tx, payment.items);
   });
 }
@@ -223,7 +227,10 @@ export async function sweepStalePayments(
             data: { status: 'failed' },
           });
           if (claimed.count === 0) return;
-          if (payment.kind === 'enrollment') await _cancelEnrollmentsInTx(tx, payment.items);
+          if (payment.kind === 'enrollment') {
+            await tx.paymentItem.updateMany({ where: { paymentId: payment.id }, data: { trialBookingId: null } });
+            await _cancelEnrollmentsInTx(tx, payment.items);
+          }
         });
         expiredCount++;
       } else {

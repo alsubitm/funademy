@@ -83,6 +83,22 @@ export async function register() {
     } catch (e) {
       console.error('[nelc-outbox] periodic flush failed:', e);
     }
+    // Keep the Google connector out of the instrumentation bundle (its SDK
+    // depends on node:child_process, which Next's instrumentation compiler
+    // cannot bundle). The protected localhost route owns the actual worker.
+    try {
+      const port = process.env.PORT;
+      const secret = process.env.SESSION_SECRET;
+      if (port && secret) {
+        const res = await fetch(`http://127.0.0.1:${port}/svc/trial-followups/sweep`, {
+          method: 'POST',
+          headers: { 'x-internal-sweep': secret },
+        });
+        if (!res.ok) console.error(`[trial-followup] periodic delivery returned ${res.status}`);
+      }
+    } catch (e) {
+      console.error('[trial-followup] periodic delivery failed:', e);
+    }
   };
 
   // One-time data reconciliation: the academy is online-only (Aug 2026).

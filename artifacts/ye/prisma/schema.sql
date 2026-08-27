@@ -5,7 +5,19 @@ CREATE SCHEMA IF NOT EXISTS "public";
 CREATE TYPE "ye_format" AS ENUM ('online', 'in_person');
 
 -- CreateEnum
+CREATE TYPE "ye_trial_communication_kind" AS ENUM ('reminder', 'follow_up');
+
+-- CreateEnum
+CREATE TYPE "ye_trial_communication_status" AS ENUM ('pending', 'sending', 'sent', 'failed');
+
+-- CreateEnum
 CREATE TYPE "ye_booking_status" AS ENUM ('new', 'contacted', 'enrolled');
+
+-- CreateEnum
+CREATE TYPE "ye_contact_channel" AS ENUM ('whatsapp', 'email', 'phone');
+
+-- CreateEnum
+CREATE TYPE "ye_trial_attendance" AS ENUM ('pending', 'present', 'absent');
 
 -- CreateEnum
 CREATE TYPE "ye_session_status" AS ENUM ('scheduled', 'completed', 'cancelled');
@@ -101,9 +113,35 @@ CREATE TABLE "ye_bookings" (
     "childBirthYear" INTEGER NOT NULL,
     "neighborhood" TEXT NOT NULL,
     "status" "ye_booking_status" NOT NULL DEFAULT 'new',
+    "email" TEXT,
+    "contactChannel" "ye_contact_channel" NOT NULL DEFAULT 'whatsapp',
+    "contactConsentAt" TIMESTAMP(3),
+    "trialStartsAt" TIMESTAMP(3),
+    "reminderAt" TIMESTAMP(3),
+    "followUpAt" TIMESTAMP(3),
+    "assignedTo" TEXT NOT NULL DEFAULT 'فريق القبول',
+    "trialAttendance" "ye_trial_attendance" NOT NULL DEFAULT 'pending',
+    "attendedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_bookings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_trial_communications" (
+    "id" SERIAL NOT NULL,
+    "bookingId" INTEGER NOT NULL,
+    "kind" "ye_trial_communication_kind" NOT NULL,
+    "dueAt" TIMESTAMP(3) NOT NULL,
+    "status" "ye_trial_communication_status" NOT NULL DEFAULT 'pending',
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "claimedAt" TIMESTAMP(3),
+    "claimToken" TEXT,
+    "sentAt" TIMESTAMP(3),
+    "lastError" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ye_trial_communications_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -231,6 +269,7 @@ CREATE TABLE "ye_payment_items" (
     "baseSar" INTEGER NOT NULL,
     "discountPct" INTEGER NOT NULL DEFAULT 0,
     "totalSar" INTEGER NOT NULL,
+    "trialBookingId" INTEGER,
 
     CONSTRAINT "ye_payment_items_pkey" PRIMARY KEY ("id")
 );
@@ -631,6 +670,18 @@ CREATE TABLE "campaign_brick_events" (
 CREATE UNIQUE INDEX "ye_programs_slug_key" ON "ye_programs"("slug");
 
 -- CreateIndex
+CREATE INDEX "ye_bookings_trialStartsAt_idx" ON "ye_bookings"("trialStartsAt");
+
+-- CreateIndex
+CREATE INDEX "ye_bookings_followUpAt_idx" ON "ye_bookings"("followUpAt");
+
+-- CreateIndex
+CREATE INDEX "ye_trial_communications_status_dueAt_idx" ON "ye_trial_communications"("status", "dueAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_trial_communications_bookingId_kind_key" ON "ye_trial_communications"("bookingId", "kind");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_families_phone_key" ON "ye_families"("phone");
 
 -- CreateIndex
@@ -656,6 +707,9 @@ CREATE UNIQUE INDEX "ye_enrollments_studentId_courseRunId_key" ON "ye_enrollment
 
 -- CreateIndex
 CREATE INDEX "ye_payments_familyId_createdAt_idx" ON "ye_payments"("familyId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_payment_items_trialBookingId_key" ON "ye_payment_items"("trialBookingId");
 
 -- CreateIndex
 CREATE INDEX "ye_payment_items_paymentId_idx" ON "ye_payment_items"("paymentId");
@@ -775,6 +829,9 @@ ALTER TABLE "ye_bookings" ADD CONSTRAINT "ye_bookings_programId_fkey" FOREIGN KE
 ALTER TABLE "ye_bookings" ADD CONSTRAINT "ye_bookings_slotId_fkey" FOREIGN KEY ("slotId") REFERENCES "ye_schedule_slots"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "ye_trial_communications" ADD CONSTRAINT "ye_trial_communications_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "ye_bookings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ye_students" ADD CONSTRAINT "ye_students_familyId_fkey" FOREIGN KEY ("familyId") REFERENCES "ye_families"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -797,6 +854,9 @@ ALTER TABLE "ye_payment_items" ADD CONSTRAINT "ye_payment_items_paymentId_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "ye_payment_items" ADD CONSTRAINT "ye_payment_items_enrollmentId_fkey" FOREIGN KEY ("enrollmentId") REFERENCES "ye_enrollments"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_payment_items" ADD CONSTRAINT "ye_payment_items_trialBookingId_fkey" FOREIGN KEY ("trialBookingId") REFERENCES "ye_bookings"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ye_attendance" ADD CONSTRAINT "ye_attendance_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ye_class_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;

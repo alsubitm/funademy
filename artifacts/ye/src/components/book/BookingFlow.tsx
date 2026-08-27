@@ -51,6 +51,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   const [childFirstName, setChildFirstName] = useState('');
   const [childBirthYear, setChildBirthYear] = useState('');
   const [email, setEmail] = useState('');
+  const [contactConsent, setContactConsent] = useState(false);
   const neighborhood = 'riyadh';
   const [appointment, setAppointment] = useState<{
     startsAt: string;
@@ -92,7 +93,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
 
   const onSubmit = () => {
     setError('');
-    if (!parentName || !phone || !childFirstName || !childBirthYear) {
+    if (!parentName || !phone || !childFirstName || !childBirthYear || !contactConsent || !email.trim()) {
       setError(d.valError);
       return;
     }
@@ -118,6 +119,8 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
             childBirthYear: Number(childBirthYear),
             neighborhood,
             email: email.trim() || undefined,
+            contactChannel: 'email',
+            contactConsent,
           }),
         });
 
@@ -344,6 +347,20 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
               <label htmlFor="book-email">{d.email}</label>
               <input id="book-email" type="email" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isPending} />
             </div>
+            <div className="f-group">
+              <label>{d.contactChannel}</label>
+              <div style={{ padding: '12px 14px', border: '1px solid var(--line)', borderRadius: 10 }}>{d.contactEmail}</div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, gridColumn: '1 / -1', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={contactConsent}
+                onChange={(e) => setContactConsent(e.target.checked)}
+                disabled={isPending}
+                style={{ width: 18, height: 18, marginTop: 3 }}
+              />
+              <span>{d.contactConsent}</span>
+            </label>
           </div>
         )}
       </div>
