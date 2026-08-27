@@ -79,4 +79,4 @@ pnpm --filter @workspace/ye run start  # production server
 
 ## Contact
 
-WhatsApp: +966 50 555 8387 · CR license 4030388340
+WhatsApp: +966 50 555 1021 · CR license 4030388340

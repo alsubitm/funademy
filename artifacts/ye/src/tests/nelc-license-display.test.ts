@@ -70,10 +70,10 @@ vi.mock('@/lib/constants', () => ({
   get NELC_LICENSE_NO() {
     return process.env.NELC_LICENSE_NO ?? '';
   },
-  PHONE_DISPLAY: '+966 50 555 8387',
-  WHATSAPP_NUMBER: '966505558387',
+  PHONE_DISPLAY: '+966 50 555 1021',
+  WHATSAPP_NUMBER: '966505551021',
   EMAIL: 'ceo@example.com',
-  waLink: (msg: string) => `https://wa.me/966505558387?text=${encodeURIComponent(msg)}`,
+  waLink: (msg: string) => `https://wa.me/966505551021?text=${encodeURIComponent(msg)}`,
   WA_DEFAULT_AR: 'مرحباً',
 }));
 

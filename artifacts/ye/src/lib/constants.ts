@@ -1,5 +1,5 @@
-export const WHATSAPP_NUMBER = '966505558387';
-export const PHONE_DISPLAY = '+966 50 555 8387';
+export const WHATSAPP_NUMBER = '966505551021';
+export const PHONE_DISPLAY = '+966 50 555 1021';
 export const EMAIL = 'ceo@falconeye.sa';
 export const LICENSE_NO = '4030388340';
 /**
