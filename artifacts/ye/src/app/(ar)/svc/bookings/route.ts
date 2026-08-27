@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, withDbRetry } from '@/lib/db';
-import { createMeetEvent, addAttendeeToEvent } from '@/lib/google-calendar';
 import { allowRate, clientIp } from '@/lib/rate-limit';
-import { nextOccurrence, formatRiyadh } from '@/lib/appointments';
-import { CATALOG } from '@/lib/catalog';
+import { createTrialBooking } from '@/lib/chat-booking';
+import { formatRiyadh } from '@/lib/appointments';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,123 +47,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
 
-  const outcome = await withDbRetry(
-    () =>
-      prisma.$transaction(async (tx) => {
-        const slot = await tx.scheduleSlot.findUnique({
-          where: { id: slotId },
-          include: { program: true },
-        });
-        if (!slot || slot.programId !== programId || !slot.active) return 'slot_not_found' as const;
-        // Validity + seat decrement inside the transaction to avoid races with
-        // concurrent bookings or admin deactivation.
-        const updated = await tx.scheduleSlot.updateMany({
-          where: { id: slotId, programId, active: true, seatsLeft: { gt: 0 } },
-          data: { seatsLeft: { decrement: 1 } },
-        });
-        if (updated.count === 0) {
-          return 'slot_full' as const;
-        }
-        const trialStartsAt = nextOccurrence(slot.weekday, slot.time);
-        const reminderAt = new Date(trialStartsAt.getTime() - 24 * 60 * 60_000);
-        const followUpAt = new Date(trialStartsAt.getTime() + 60 * 60_000);
-        return tx.booking.create({
-          data: {
-            programId,
-            slotId,
-            parentName,
-            phone,
-            childFirstName,
-            childBirthYear,
-            neighborhood,
-            email,
-            contactChannel: contactChannel as 'whatsapp' | 'email' | 'phone',
-            contactConsentAt: new Date(),
-            trialStartsAt,
-            reminderAt,
-            followUpAt,
-            communications: {
-              create: [
-                { kind: 'reminder', dueAt: reminderAt },
-                { kind: 'follow_up', dueAt: followUpAt },
-              ],
-            },
-          },
-        });
-      }),
-    { operation: 'trial-booking-seat-reservation', kind: 'transaction' },
-  );
-
-  if (outcome === 'slot_not_found') return NextResponse.json({ error: 'slot_not_found' }, { status: 404 });
-  if (outcome === 'slot_full') return NextResponse.json({ error: 'slot_full' }, { status: 409 });
-
-  // Auto-schedule the trial meeting: next occurrence of the slot's weekday/
-  // time, with an auto-created Google Meet link. Calendar failure must not
-  // undo the booking — the family is contacted manually in that case.
-  let appointment: { startsAt: string; meetUrl: string | null; whenAr: string; whenEn: string } | null = null;
+  let outcome;
   try {
-    const slot = await withDbRetry(
-      () => prisma.scheduleSlot.findUnique({ where: { id: slotId }, include: { program: true } }),
-      { operation: 'trial-booking-slot-read' },
-    );
-    if (slot) {
-      // Newly-created bookings always persist this value. The fallback keeps
-      // the route type-safe while legacy nullable rows remain migration-safe.
-      const startsAt = outcome.trialStartsAt ?? nextOccurrence(slot.weekday, slot.time);
-      const durationMin = CATALOG[slot.program.slug]?.lessonMin ?? 45;
-
-      // One class occurrence = one meeting: reuse the event already created
-      // for another trial booking into the same program/time, adding this
-      // guest to it instead of creating a parallel meeting.
-      const existing = await withDbRetry(
-        () =>
-          prisma.appointment.findFirst({
-            where: { kind: 'trial', programId, startsAt, status: 'scheduled', calendarEventId: { not: null } },
-          }),
-        { operation: 'trial-booking-appointment-read' },
-      );
-      let meet: { eventId: string; meetUrl: string | null };
-      if (existing?.calendarEventId) {
-        meet = { eventId: existing.calendarEventId, meetUrl: existing.meetUrl };
-        if (email) {
-          await addAttendeeToEvent(existing.calendarEventId, email).catch((e) =>
-            console.error('[bookings] add attendee failed:', e),
-          );
-        }
-      } else {
-        meet = await createMeetEvent({
-          summary: `حصة تجريبية FunAdemy — ${slot.program.nameAr}`,
-          description: `حصة تجريبية عبر موقع FunAdemy\nالبرنامج: ${slot.program.nameAr} / ${slot.program.nameEn}`,
-          startsAt,
-          durationMin,
-          attendeeEmail: email,
-        });
-      }
-      const appt = await prisma.appointment.create({
-        data: {
-          kind: 'trial',
-          parentName,
-          phone,
-          email,
-          childFirstName,
-          programId,
-          bookingId: outcome.id,
-          startsAt,
-          durationMin,
-          meetUrl: meet.meetUrl,
-          calendarEventId: meet.eventId,
-        },
-      });
-      appointment = {
-        startsAt: appt.startsAt.toISOString(),
-        meetUrl: appt.meetUrl,
-        whenAr: formatRiyadh(appt.startsAt, 'ar'),
-        whenEn: formatRiyadh(appt.startsAt, 'en'),
-      };
-    }
+    outcome = await createTrialBooking({
+      programId,
+      slotId,
+      parentName,
+      phone,
+      email,
+      childFirstName,
+      childBirthYear,
+      neighborhood,
+    });
   } catch (e) {
-    console.error('[bookings] trial appointment scheduling failed:', e);
+    const code = e instanceof Error ? e.message : 'booking_failed';
+    if (code === 'slot_not_found') return NextResponse.json({ error: code }, { status: 404 });
+    if (['slot_full', 'already_booked', 'program_not_eligible'].includes(code)) {
+      return NextResponse.json({ error: code }, { status: 409 });
+    }
+    throw e;
   }
-
-  return NextResponse.json({ id: outcome.id, appointment }, { status: 201 });
+  const appointment = outcome.appointment
+    ? {
+        startsAt: outcome.appointment.startsAt.toISOString(),
+        meetUrl: outcome.appointment.meetUrl,
+        whenAr: formatRiyadh(outcome.appointment.startsAt, 'ar'),
+        whenEn: formatRiyadh(outcome.appointment.startsAt, 'en'),
+      }
+    : null;
+  return NextResponse.json({ id: outcome.booking.id, appointment }, { status: 201 });
 }

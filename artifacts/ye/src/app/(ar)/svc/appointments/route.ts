@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { createMeetEvent } from '@/lib/google-calendar';
-import { consultAvailability, formatRiyadh, CONSULT_DURATION_MIN } from '@/lib/appointments';
+import { formatRiyadh } from '@/lib/appointments';
 import { allowRate, clientIp } from '@/lib/rate-limit';
-import { Prisma } from '@prisma/client';
+import { createConsultation } from '@/lib/chat-booking';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,55 +41,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }
 
-  // The chosen time must be one of the currently open consultation slots.
-  const open = await consultAvailability();
-  if (!open.some((s) => s.startsAt === startsAt.toISOString())) {
-    return NextResponse.json({ error: 'slot_unavailable' }, { status: 409 });
-  }
-
-  // Claim the slot atomically first — the unique consultKey guarantees two
-  // concurrent requests can never book the same consultation window.
   let appt;
   try {
-    appt = await prisma.appointment.create({
-      data: {
-        kind: 'consult',
-        parentName,
-        phone,
-        email,
-        notes,
-        startsAt,
-        durationMin: CONSULT_DURATION_MIN,
-        consultKey: startsAt.toISOString(),
-      },
-    });
+    appt = await createConsultation({ parentName, phone, email, notes, startsAt });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+    if (e instanceof Error && e.message === 'slot_unavailable') {
       return NextResponse.json({ error: 'slot_unavailable' }, { status: 409 });
     }
+    if (e instanceof Error && e.message === 'calendar_failed') return NextResponse.json({ error: 'calendar_failed' }, { status: 502 });
     throw e;
   }
-
-  // Then create the meeting; if Google fails, release the claim explicitly.
-  let meet;
-  try {
-    meet = await createMeetEvent({
-      summary: `استشارة FunAdemy — ${parentName}`,
-      description: `موعد استشارة عبر موقع FunAdemy\nالاسم: ${parentName}\nالجوال: ${phone}${notes ? `\nملاحظات: ${notes}` : ''}`,
-      startsAt,
-      durationMin: CONSULT_DURATION_MIN,
-      attendeeEmail: email,
-    });
-  } catch (e) {
-    console.error('[appointments] calendar event failed:', e);
-    await prisma.appointment.delete({ where: { id: appt.id } }).catch(() => {});
-    return NextResponse.json({ error: 'calendar_failed' }, { status: 502 });
-  }
-
-  appt = await prisma.appointment.update({
-    where: { id: appt.id },
-    data: { meetUrl: meet.meetUrl, calendarEventId: meet.eventId },
-  });
 
   return NextResponse.json(
     {

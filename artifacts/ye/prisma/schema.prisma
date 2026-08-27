@@ -151,17 +151,161 @@ enum TrialAttendance {
 // ————————————————————————— Phase 1: Families & Students —————————————————————————
 
 model Family {
-  id          Int        @id @default(autoincrement())
-  phone       String     @unique // normalized +9665XXXXXXXX
-  parentName  String
-  email       String?
-  locale      String     @default("ar")
-  createdAt   DateTime   @default(now())
-  students    Student[]
-  payments    Payment[]
-  lrnChildren LrnChild[]
+  id                Int                @id @default(autoincrement())
+  phone             String             @unique // normalized +9665XXXXXXXX
+  parentName        String
+  email             String?
+  locale            String             @default("ar")
+  createdAt         DateTime           @default(now())
+  students          Student[]
+  payments          Payment[]
+  lrnChildren       LrnChild[]
+  chatConversations ChatConversation[]
+  chatActions       ChatActionAudit[]
 
   @@map("ye_families")
+}
+
+// ————————————————————— Family support chat (Task 166) —————————————————————
+
+enum ChatRole {
+  user
+  assistant
+  system
+
+  @@map("ye_chat_role")
+}
+
+enum ChatConversationStatus {
+  open
+  closed
+
+  @@map("ye_chat_conversation_status")
+}
+
+enum ChatActionKind {
+  request_makeup
+  book_consultation
+  book_trial
+
+  @@map("ye_chat_action_kind")
+}
+
+enum ChatActionStatus {
+  prepared
+  confirmed
+  executing
+  succeeded
+  failed
+  expired
+
+  @@map("ye_chat_action_status")
+}
+
+model ChatConversation {
+  id               String            @id @default(cuid())
+  family           Family?           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  familyId         Int?
+  visitorTokenHash String?
+  title            String?
+  locale           String            @default("ar")
+  status           ChatConversationStatus @default(open)
+  contactMethod    String?
+  contactValue     String?
+  consentAt        DateTime
+  consentVersion   String            @default("chat-v1")
+  familyVerifiedAt DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now()) @updatedAt
+  expiresAt        DateTime
+  messages         ChatMessage[]
+  escalations      ChatEscalation[]
+  actions          ChatActionAudit[]
+
+  @@index([familyId, updatedAt])
+  @@index([visitorTokenHash, updatedAt])
+  @@index([expiresAt])
+  @@map("ye_chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(cuid())
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  role           ChatRole
+  content        String
+  sourceRefs     Json?
+  providerId     String?
+  idempotencyKey String?
+  createdAt      DateTime         @default(now())
+  expiresAt      DateTime
+
+  @@unique([conversationId, idempotencyKey])
+  @@index([conversationId, createdAt])
+  @@index([expiresAt])
+  @@map("ye_chat_messages")
+}
+
+model ChatEscalation {
+  id             String           @id @default(cuid())
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  reason         String
+  summary        String?
+  status         String           @default("open")
+  assignedTo     String?
+  contactMethod  String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now()) @updatedAt
+  resolvedAt     DateTime?
+  expiresAt      DateTime
+
+  @@index([conversationId, createdAt])
+  @@index([status, createdAt])
+  @@index([expiresAt])
+  @@map("ye_chat_escalations")
+}
+
+model ChatAudit {
+  id             String           @id @default(cuid())
+  conversationId String
+  familyId       Int?
+  event          String
+  detail         Json?
+  createdAt      DateTime         @default(now())
+  expiresAt      DateTime
+
+  @@index([conversationId, createdAt])
+  @@index([expiresAt])
+  @@map("ye_chat_audit")
+}
+
+// Append-only audit for chat-originated actions. Payloads contain only the
+// minimum validated fields needed to execute an action and never payment data.
+model ChatActionAudit {
+  id             String           @id @default(cuid())
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  family         Family?          @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  familyId       Int?
+  kind           ChatActionKind
+  status         ChatActionStatus @default(prepared)
+  payload        Json
+  result         Json?
+  errorCode      String?
+  idempotencyKey String           @unique
+  preparedAt     DateTime         @default(now())
+  confirmedAt    DateTime?
+  executionStartedAt DateTime?
+  executionAttempts Int              @default(0)
+  executedAt     DateTime?
+  updatedAt      DateTime         @default(now()) @updatedAt
+  expiresAt      DateTime
+
+  @@index([conversationId, preparedAt])
+  @@index([familyId, preparedAt])
+  @@index([expiresAt])
+  @@map("ye_chat_action_audit")
 }
 
 model Student {

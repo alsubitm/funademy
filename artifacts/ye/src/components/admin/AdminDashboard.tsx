@@ -14,6 +14,7 @@ import { PaymentsTab } from './PaymentsTab';
 import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
 import CurriculumTab from './CurriculumTab';
 import { NelcTab } from './NelcTab';
+import { SupportTab } from './SupportTab';
 
 export function AdminDashboard({ programs }: { programs: any[] }) {
   const [activeTab, setActiveTab] = useState('bookings');
@@ -83,6 +84,11 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
       id: 'nelc',
       label: 'نيلك',
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+    },
+    {
+      id: 'support',
+      label: 'الدعم',
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
     },
   ];
 
@@ -182,6 +188,7 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
           {activeTab === 'bricks' && <BricksTab />}
           {activeTab === 'curriculum' && <CurriculumTab />}
           {activeTab === 'nelc' && <NelcTab />}
+          {activeTab === 'support' && <SupportTab />}
         </div>
       </main>
     </div>

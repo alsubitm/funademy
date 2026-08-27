@@ -46,6 +46,7 @@ export default function PrivacyPageEn() {
         <li><strong>Child data:</strong> name and age group to pick the right program, plus learning progress (completed lessons, XP, badges).</li>
         <li><strong>Booking & payment data:</strong> booked courses, subscriptions and invoices. Payments are processed by licensed providers (Moyasar and Tamara) — <strong>we never store card numbers</strong>.</li>
         <li><strong>Technical data:</strong> essential cookies for secure login sessions only — no advertising cookies.</li>
+        <li><strong>Assistant chats:</strong> if you consent to using the assistant, we process your message text and store chat history to answer and follow up on your request. Do not send card numbers or sensitive payment details in chat.</li>
       </ul>
 
       <h2>How we use it</h2>
@@ -54,6 +55,7 @@ export default function PrivacyPageEn() {
         <li>Showing your children's learning progress in the parent portal and learning platform.</li>
         <li>Contacting you about class times, reminders and renewals.</li>
         <li>Creating Google Calendar invites for consultations you book.</li>
+        <li>Answering questions through the assistant, and carrying out an action only after showing a clear confirmation card and receiving your confirmation.</li>
       </ul>
 
       <h2>Children's data protection</h2>

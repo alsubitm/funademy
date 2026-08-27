@@ -3,6 +3,7 @@ import { siteUrl } from '@/lib/site-url';
 import { PHONE_DISPLAY } from '@/lib/constants';
 import '../globals.css';
 import type { Metadata, Viewport } from 'next';
+import { PublicChatMount } from '@/components/chat/PublicChatMount';
 
 const baloo = Baloo_Bhaijaan_2({
   subsets: ['arabic', 'latin'],
@@ -149,7 +150,10 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PublicChatMount lang="en" />
+      </body>
     </html>
   );
 }

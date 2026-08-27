@@ -20,6 +20,18 @@ CREATE TYPE "ye_contact_channel" AS ENUM ('whatsapp', 'email', 'phone');
 CREATE TYPE "ye_trial_attendance" AS ENUM ('pending', 'present', 'absent');
 
 -- CreateEnum
+CREATE TYPE "ye_chat_role" AS ENUM ('user', 'assistant', 'system');
+
+-- CreateEnum
+CREATE TYPE "ye_chat_conversation_status" AS ENUM ('open', 'closed');
+
+-- CreateEnum
+CREATE TYPE "ye_chat_action_kind" AS ENUM ('request_makeup', 'book_consultation', 'book_trial');
+
+-- CreateEnum
+CREATE TYPE "ye_chat_action_status" AS ENUM ('prepared', 'confirmed', 'executing', 'succeeded', 'failed', 'expired');
+
+-- CreateEnum
 CREATE TYPE "ye_session_status" AS ENUM ('scheduled', 'completed', 'cancelled');
 
 -- CreateEnum
@@ -154,6 +166,93 @@ CREATE TABLE "ye_families" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_families_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_chat_conversations" (
+    "id" TEXT NOT NULL,
+    "familyId" INTEGER,
+    "visitorTokenHash" TEXT,
+    "title" TEXT,
+    "locale" TEXT NOT NULL DEFAULT 'ar',
+    "status" "ye_chat_conversation_status" NOT NULL DEFAULT 'open',
+    "contactMethod" TEXT,
+    "contactValue" TEXT,
+    "consentAt" TIMESTAMP(3) NOT NULL,
+    "consentVersion" TEXT NOT NULL DEFAULT 'chat-v1',
+    "familyVerifiedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_chat_conversations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_chat_messages" (
+    "id" TEXT NOT NULL,
+    "conversationId" TEXT NOT NULL,
+    "role" "ye_chat_role" NOT NULL,
+    "content" TEXT NOT NULL,
+    "sourceRefs" JSONB,
+    "providerId" TEXT,
+    "idempotencyKey" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_chat_messages_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_chat_escalations" (
+    "id" TEXT NOT NULL,
+    "conversationId" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "summary" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "assignedTo" TEXT,
+    "contactMethod" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvedAt" TIMESTAMP(3),
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_chat_escalations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_chat_audit" (
+    "id" TEXT NOT NULL,
+    "conversationId" TEXT NOT NULL,
+    "familyId" INTEGER,
+    "event" TEXT NOT NULL,
+    "detail" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_chat_audit_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_chat_action_audit" (
+    "id" TEXT NOT NULL,
+    "conversationId" TEXT NOT NULL,
+    "familyId" INTEGER,
+    "kind" "ye_chat_action_kind" NOT NULL,
+    "status" "ye_chat_action_status" NOT NULL DEFAULT 'prepared',
+    "payload" JSONB NOT NULL,
+    "result" JSONB,
+    "errorCode" TEXT,
+    "idempotencyKey" TEXT NOT NULL,
+    "preparedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "confirmedAt" TIMESTAMP(3),
+    "executionStartedAt" TIMESTAMP(3),
+    "executionAttempts" INTEGER NOT NULL DEFAULT 0,
+    "executedAt" TIMESTAMP(3),
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_chat_action_audit_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -685,6 +784,51 @@ CREATE UNIQUE INDEX "ye_trial_communications_bookingId_kind_key" ON "ye_trial_co
 CREATE UNIQUE INDEX "ye_families_phone_key" ON "ye_families"("phone");
 
 -- CreateIndex
+CREATE INDEX "ye_chat_conversations_familyId_updatedAt_idx" ON "ye_chat_conversations"("familyId", "updatedAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_conversations_visitorTokenHash_updatedAt_idx" ON "ye_chat_conversations"("visitorTokenHash", "updatedAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_conversations_expiresAt_idx" ON "ye_chat_conversations"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_messages_conversationId_createdAt_idx" ON "ye_chat_messages"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_messages_expiresAt_idx" ON "ye_chat_messages"("expiresAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_chat_messages_conversationId_idempotencyKey_key" ON "ye_chat_messages"("conversationId", "idempotencyKey");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_escalations_conversationId_createdAt_idx" ON "ye_chat_escalations"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_escalations_status_createdAt_idx" ON "ye_chat_escalations"("status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_escalations_expiresAt_idx" ON "ye_chat_escalations"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_audit_conversationId_createdAt_idx" ON "ye_chat_audit"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_audit_expiresAt_idx" ON "ye_chat_audit"("expiresAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_chat_action_audit_idempotencyKey_key" ON "ye_chat_action_audit"("idempotencyKey");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_action_audit_conversationId_preparedAt_idx" ON "ye_chat_action_audit"("conversationId", "preparedAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_action_audit_familyId_preparedAt_idx" ON "ye_chat_action_audit"("familyId", "preparedAt");
+
+-- CreateIndex
+CREATE INDEX "ye_chat_action_audit_expiresAt_idx" ON "ye_chat_action_audit"("expiresAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_students_nationalId_key" ON "ye_students"("nationalId");
 
 -- CreateIndex
@@ -830,6 +974,21 @@ ALTER TABLE "ye_bookings" ADD CONSTRAINT "ye_bookings_slotId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "ye_trial_communications" ADD CONSTRAINT "ye_trial_communications_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES "ye_bookings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_chat_conversations" ADD CONSTRAINT "ye_chat_conversations_familyId_fkey" FOREIGN KEY ("familyId") REFERENCES "ye_families"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_chat_messages" ADD CONSTRAINT "ye_chat_messages_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "ye_chat_conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_chat_escalations" ADD CONSTRAINT "ye_chat_escalations_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "ye_chat_conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_chat_action_audit" ADD CONSTRAINT "ye_chat_action_audit_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "ye_chat_conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_chat_action_audit" ADD CONSTRAINT "ye_chat_action_audit_familyId_fkey" FOREIGN KEY ("familyId") REFERENCES "ye_families"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ye_students" ADD CONSTRAINT "ye_students_familyId_fkey" FOREIGN KEY ("familyId") REFERENCES "ye_families"("id") ON DELETE CASCADE ON UPDATE CASCADE;
