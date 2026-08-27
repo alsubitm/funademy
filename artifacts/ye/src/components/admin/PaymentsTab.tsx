@@ -33,6 +33,7 @@ type PaymentRow = {
   parentName: string;
   phone: string;
   students: string[];
+  attentionRequired: boolean;
 };
 
 export function PaymentsTab() {
@@ -121,6 +122,11 @@ export function PaymentsTab() {
                   <span className="font-display font-bold text-[#101A38]" dir="ltr">{p.totalSar} SAR</span>
                 </div>
               </div>
+              {p.attentionRequired && (
+                <div className="rounded-xl border border-[#F3C3C0] bg-[#FDECEC] px-4 py-3 text-sm font-bold text-[#B3261E]">
+                  تنبيه: تعذّر تأكيد إنشاء عملية الدفع أو حفظ مرجعها. لا تُعد المحاولة قبل مراجعة مزود الدفع؛ ستتم المصالحة تلقائياً.
+                </div>
+              )}
               {p.status === 'paid' && (
                 <div className="pt-2 border-t border-[#DFE5F2]">
                   {confirmId === p.id ? (

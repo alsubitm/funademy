@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { addOneMonth } from '@/lib/billing';
-import { verifyPayment, type PaymentProvider, PAYMENT_PROVIDERS } from '@/lib/payments';
+import { reconcilePaymentCreation, verifyPayment, type PaymentProvider, PAYMENT_PROVIDERS } from '@/lib/payments';
 
 /**
  * Shared finalization for live payments.
@@ -36,7 +36,27 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
   if (payment.status !== 'initiated' && !isExpired) return 'failed';
   if (!PAYMENT_PROVIDERS.includes(payment.provider as PaymentProvider)) return 'failed';
 
-  const verdict = await verifyPayment(payment.provider as PaymentProvider, payment.reference);
+  let providerReference = payment.reference;
+  if (/^INIT-\d+$/.test(providerReference)) {
+    const creation = await reconcilePaymentCreation(payment.provider as PaymentProvider, String(payment.id));
+    if (creation.status === 'unknown') {
+      console.error(`[payments] ADMIN ACTION REQUIRED: checkout creation for payment ${payment.id} is still indeterminate`);
+      return 'pending';
+    }
+    const saved = await prisma.payment.updateMany({
+      where: { id: payment.id, status: { in: ['initiated', 'expired'] }, reference: providerReference },
+      data: { reference: creation.reference },
+    });
+    if (saved.count === 0) {
+      const current = await prisma.payment.findUnique({ where: { id: payment.id }, select: { reference: true } });
+      if (!current) return 'not_found';
+      providerReference = current.reference;
+    } else {
+      providerReference = creation.reference;
+    }
+  }
+
+  const verdict = await verifyPayment(payment.provider as PaymentProvider, providerReference);
 
   if (verdict === 'pending') return 'pending';
 
@@ -176,6 +196,21 @@ export async function sweepStalePayments(
 
   for (const payment of stale) {
     try {
+      if (/^INIT-\d+$/.test(payment.reference)) {
+        const creation = await reconcilePaymentCreation(payment.provider as PaymentProvider, String(payment.id));
+        if (creation.status === 'unknown') {
+          console.error(`[payments] ADMIN ACTION REQUIRED: checkout creation for payment ${payment.id} is still indeterminate`);
+          errors++;
+          continue;
+        }
+        if (creation.status === 'found') {
+          await prisma.payment.updateMany({
+            where: { id: payment.id, status: 'initiated', reference: payment.reference },
+            data: { reference: creation.reference },
+          });
+          payment.reference = creation.reference;
+        }
+      }
       const verdict = await verifyPayment(payment.provider as PaymentProvider, payment.reference);
 
       if (verdict === 'paid') {

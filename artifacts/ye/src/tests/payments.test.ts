@@ -34,7 +34,7 @@ import { POST as checkoutPOST } from '@/app/(ar)/svc/enroll/checkout/route';
 import { POST as renewPOST } from '@/app/(ar)/svc/account/renew/route';
 import { GET as paymentsGET } from '@/app/(ar)/svc/account/payments/route';
 import { GET as receiptGET } from '@/app/(ar)/svc/account/payments/[id]/receipt/route';
-import { finalizePayment, sweepStalePayments } from '@/lib/pay-core';
+import { finalizePayment, releasePayment, sweepStalePayments } from '@/lib/pay-core';
 import { adminToken, ADMIN_COOKIE } from '@/lib/auth';
 import { GET as adminPaymentsGET, POST as adminRefundPOST } from '@/app/(ar)/svc/admin/payments/route';
 
@@ -1090,6 +1090,31 @@ describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
     resetTamaraPaymentTypesCache();
   });
 
+  async function expectIndeterminateCheckout(fetchImpl: typeof fetch, expectedReference: RegExp = /^INIT-/) {
+    vi.stubEnv('MOYASAR_SECRET_KEY', 'sk_test_fake');
+    vi.spyOn(global, 'fetch').mockImplementation(fetchImpl);
+    asFamily(familyB.id);
+    cookieJar.set(CART_COOKIE, encodeCart(familyB.id, [{ studentId: studentB1.id, courseRunId: prodRunId }]));
+
+    const res = await checkoutPOST(jsonReq('/svc/enroll/checkout', 'POST', { provider: 'moyasar_mada' }));
+    expect(res.status).toBe(503);
+    const json = await res.json();
+    expect(json.error).toBe('payment_pending_reconciliation');
+
+    const payment = await prisma.payment.findUnique({ where: { id: json.paymentId }, include: { items: true } });
+    expect(payment?.status).toBe('initiated');
+    expect(payment?.reference).toMatch(expectedReference);
+    const enrollment = await prisma.enrollment.findUnique({ where: { id: payment!.items[0].enrollmentId! } });
+    expect(enrollment?.status).toBe('pending');
+    expect((await prisma.courseRun.findUnique({ where: { id: prodRunId } }))?.seatsLeft).toBe(4);
+
+    await releasePayment(payment!.id);
+    expect((await prisma.courseRun.findUnique({ where: { id: prodRunId } }))?.seatsLeft).toBe(5);
+    await prisma.payment.delete({ where: { id: payment!.id } });
+    await prisma.enrollment.delete({ where: { id: enrollment!.id } });
+    cookieJar.delete(CART_COOKIE);
+  }
+
   it('createPayment refuses to simulate for every provider (provider_not_configured)', async () => {
     for (const provider of ['moyasar_mada', 'moyasar_applepay', 'moyasar_stcpay', 'tamara'] as const) {
       const res = await createPayment(provider, 100, 'test');
@@ -1116,6 +1141,93 @@ describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
     });
     expect(p!.status).toBe('failed');
     expect(p!.simulated).toBe(false);
+    cookieJar.delete(CART_COOKIE);
+  });
+
+  it('treats a non-JSON provider 4xx as definitive and releases the seat immediately', async () => {
+    vi.stubEnv('MOYASAR_SECRET_KEY', 'sk_test_fake');
+    vi.spyOn(global, 'fetch').mockImplementation(async () =>
+      new Response('', { status: 422 }),
+    );
+    asFamily(familyB.id);
+    cookieJar.set(CART_COOKIE, encodeCart(familyB.id, [{ studentId: studentB1.id, courseRunId: prodRunId }]));
+
+    const res = await checkoutPOST(jsonReq('/svc/enroll/checkout', 'POST', { provider: 'moyasar_mada' }));
+    expect(res.status).toBe(402);
+    const payment = await prisma.payment.findFirst({
+      where: { familyId: familyB.id, kind: 'enrollment' },
+      orderBy: { id: 'desc' },
+      include: { items: true },
+    });
+    expect(payment?.status).toBe('failed');
+    expect((await prisma.courseRun.findUnique({ where: { id: prodRunId } }))?.seatsLeft).toBe(5);
+    cookieJar.delete(CART_COOKIE);
+  });
+
+  it('keeps the hold reconcilable when provider creation times out', async () => {
+    await expectIndeterminateCheckout(async () => {
+      throw new DOMException('timed out', 'AbortError');
+    });
+  });
+
+  it('keeps the hold reconcilable when provider creation returns a server error', async () => {
+    await expectIndeterminateCheckout(async () =>
+      new Response(JSON.stringify({ message: 'upstream unavailable' }), { status: 503 }),
+    );
+  });
+
+  it('treats an incomplete Moyasar 2xx response as indeterminate, not a seat-releasing failure', async () => {
+    await expectIndeterminateCheckout(
+      async () => new Response(JSON.stringify({ id: 'inv_without_redirect' }), { status: 201 }),
+      /^inv_without_redirect$/,
+    );
+  });
+
+  it('does not release or recreate when the provider reference cannot be saved', async () => {
+    vi.stubEnv('MOYASAR_SECRET_KEY', 'sk_test_fake');
+    vi.spyOn(global, 'fetch').mockImplementation(async () =>
+      new Response(JSON.stringify({ id: 'inv_save_lost', url: 'https://moyasar.example/pay' }), { status: 201 }),
+    );
+    const updateSpy = vi.spyOn(prisma.payment, 'update').mockRejectedValueOnce(new Error('database disconnected'));
+    asFamily(familyB.id);
+    cookieJar.set(CART_COOKIE, encodeCart(familyB.id, [{ studentId: studentB1.id, courseRunId: prodRunId }]));
+
+    const res = await checkoutPOST(jsonReq('/svc/enroll/checkout', 'POST', { provider: 'moyasar_mada' }));
+    expect(res.status).toBe(503);
+    const json = await res.json();
+    expect(json.error).toBe('payment_pending_reconciliation');
+
+    updateSpy.mockRestore();
+    const payment = await prisma.payment.findUnique({ where: { id: json.paymentId }, include: { items: true } });
+    expect(payment?.status).toBe('initiated');
+    expect(payment?.reference).toMatch(/^INIT-/);
+    expect((await prisma.courseRun.findUnique({ where: { id: prodRunId } }))?.seatsLeft).toBe(4);
+
+    // An early return/webhook must never verify INIT-* as a provider reference.
+    vi.mocked(global.fetch).mockImplementationOnce(async () => new Response('{}', { status: 404 }));
+    expect(await finalizePayment(payment!.id)).toBe('pending');
+    expect((await prisma.payment.findUnique({ where: { id: payment!.id } }))?.status).toBe('initiated');
+    expect((await prisma.courseRun.findUnique({ where: { id: prodRunId } }))?.seatsLeft).toBe(4);
+
+    // Once lookup finds the checkout, central finalization stores the real
+    // reference and settles without creating another provider operation.
+    vi.mocked(global.fetch).mockImplementation(async (input) => {
+      const url = String(typeof input === 'string' ? input : (input as Request).url);
+      if (url.includes('?metadata')) {
+        return new Response(JSON.stringify({ invoices: [{ id: 'inv_save_lost' }] }), { status: 200 });
+      }
+      if (url.endsWith('/v1/invoices/inv_save_lost')) {
+        return new Response(JSON.stringify({ status: 'paid' }), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+    expect(await finalizePayment(payment!.id)).toBe('paid');
+    expect((await prisma.payment.findUnique({ where: { id: payment!.id } }))?.reference).toBe('inv_save_lost');
+    expect((await prisma.enrollment.findUnique({ where: { id: payment!.items[0].enrollmentId! } }))?.status).toBe('active');
+
+    await prisma.payment.delete({ where: { id: payment!.id } });
+    await prisma.enrollment.delete({ where: { id: payment!.items[0].enrollmentId! } });
+    await prisma.courseRun.update({ where: { id: prodRunId }, data: { seatsLeft: 5 } });
     cookieJar.delete(CART_COOKIE);
   });
 
@@ -1225,6 +1337,23 @@ describe('Tamara payment-types gating', () => {
       consumer: { name: 'Test Parent', phone: '+966500000000' },
     });
     expect(res.status).toBe('redirect');
+  });
+
+  it('treats an incomplete Tamara 2xx response as indeterminate', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(typeof input === 'string' ? input : (input as Request).url);
+      if (url.includes('/checkout/payment-types')) {
+        return new Response(JSON.stringify([{ name: 'PAY_BY_INSTALMENTS' }]), { status: 200 });
+      }
+      return new Response(JSON.stringify({ order_id: 'tmr_without_redirect' }), { status: 200 });
+    });
+    const res = await createPayment('tamara', 100, 'test', {
+      callbackUrl: 'http://test.local/svc/pay/return?paymentId=1',
+      orderRef: '1',
+      consumer: { name: 'Test Parent', phone: '+966500000000' },
+    });
+    expect(res.status).toBe('indeterminate');
+    if (res.status === 'indeterminate') expect(res.reference).toBe('tmr_without_redirect');
   });
 });
 

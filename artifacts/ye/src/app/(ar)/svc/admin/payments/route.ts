@@ -29,6 +29,7 @@ export async function GET() {
       parentName: p.family.parentName,
       phone: p.family.phone,
       students: p.items.map((i) => i.studentName),
+      attentionRequired: p.status === 'initiated' && /^INIT-\d+$/.test(p.reference),
     })),
   });
 }

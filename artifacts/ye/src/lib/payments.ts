@@ -122,7 +122,8 @@ export type CreatePaymentOptions = {
 export type PaymentResult =
   | { status: 'paid'; reference: string; provider: PaymentProvider; amountSar: number; simulated: true }
   | { status: 'redirect'; reference: string; redirectUrl: string; provider: PaymentProvider; amountSar: number }
-  | { status: 'failed'; provider: PaymentProvider; error: string };
+  | { status: 'failed'; provider: PaymentProvider; error: string; indeterminate?: false }
+  | { status: 'indeterminate'; provider: PaymentProvider; error: string; reference?: string };
 
 export async function createPayment(
   provider: PaymentProvider,
@@ -167,7 +168,46 @@ export async function createPayment(
       : await createMoyasarInvoice(provider, amountSar, description, opts);
   } catch (e) {
     console.error(`[payments] createPayment ${provider} failed:`, e);
-    return { status: 'failed', provider, error: 'provider_error' };
+    // A timeout/lost response may mean the provider created the checkout even
+    // though we did not receive its reference. Never release the hold or retry
+    // creation blindly; the INIT order reference is reconciled separately.
+    return { status: 'indeterminate', provider, error: 'provider_status_unknown' };
+  }
+}
+
+export type CreationReconciliation =
+  | { status: 'found'; reference: string }
+  | { status: 'unknown' };
+
+/** Locate a checkout by our unique order reference after a lost create response. */
+export async function reconcilePaymentCreation(
+  provider: PaymentProvider,
+  orderRef: string,
+): Promise<CreationReconciliation> {
+  if (!providerLive(provider)) return { status: 'unknown' };
+  try {
+    if (provider === 'tamara') {
+      const res = await fetch(`${TAMARA_BASE()}/orders?order_reference_id=${encodeURIComponent(orderRef)}`, {
+        headers: tamaraHeaders(),
+        cache: 'no-store',
+      });
+      if (!res.ok) return { status: 'unknown' };
+      const data = (await res.json().catch(() => ({}))) as { order_id?: string; orders?: { order_id?: string }[] };
+      const reference = data.order_id || data.orders?.[0]?.order_id;
+      return reference ? { status: 'found', reference } : { status: 'unknown' };
+    }
+
+    const res = await fetch(
+      `${MOYASAR_BASE()}/v1/invoices?metadata[order_ref]=${encodeURIComponent(orderRef)}`,
+      { headers: { Authorization: moyasarAuth() }, cache: 'no-store' },
+    );
+    if (!res.ok) return { status: 'unknown' };
+    const data = (await res.json().catch(() => ({}))) as { id?: string; invoices?: { id?: string }[] };
+    const reference = data.id || data.invoices?.[0]?.id;
+    return reference ? { status: 'found', reference } : { status: 'unknown' };
+  } catch (e) {
+    console.error(`[payments] creation reconciliation ${provider} order ${orderRef} failed:`, e);
+    return { status: 'unknown' };
   }
 }
 
@@ -252,10 +292,12 @@ async function createMoyasarInvoice(
       metadata: { order_ref: opts.orderRef, preferred_method: provider },
     }),
   });
-  const data = (await res.json()) as { id?: string; url?: string; message?: string };
+  const data = (await res.json().catch(() => ({}))) as { id?: string; url?: string; message?: string };
   if (!res.ok || !data.id || !data.url) {
     console.error('[payments] Moyasar invoice error:', res.status, data);
-    return { status: 'failed', provider, error: 'provider_error' };
+    return res.ok || res.status >= 500 || res.status === 408 || res.status === 429
+      ? { status: 'indeterminate', provider, error: 'provider_status_unknown', reference: data.id }
+      : { status: 'failed', provider, error: 'provider_error' };
   }
   return { status: 'redirect', reference: data.id, redirectUrl: data.url, provider, amountSar };
 }
@@ -400,10 +442,12 @@ async function createTamaraCheckout(
       },
     }),
   });
-  const data = (await res.json()) as { order_id?: string; checkout_url?: string; message?: string };
+  const data = (await res.json().catch(() => ({}))) as { order_id?: string; checkout_url?: string; message?: string };
   if (!res.ok || !data.order_id || !data.checkout_url) {
     console.error('[payments] Tamara checkout error:', res.status, data);
-    return { status: 'failed', provider: 'tamara', error: 'provider_error' };
+    return res.ok || res.status >= 500 || res.status === 408 || res.status === 429
+      ? { status: 'indeterminate', provider: 'tamara', error: 'provider_status_unknown', reference: data.order_id }
+      : { status: 'failed', provider: 'tamara', error: 'provider_error' };
   }
   return { status: 'redirect', reference: data.order_id, redirectUrl: data.checkout_url, provider: 'tamara', amountSar };
 }

@@ -48,32 +48,50 @@ export async function POST(req: NextRequest) {
   const base = enrollment.paidThrough && enrollment.paidThrough > now ? enrollment.paidThrough : now;
   const periodEnd = addOneMonth(base);
 
-  const record = await prisma.payment.create({
-    data: {
-      familyId,
-      kind: 'renewal',
-      provider,
-      reference: `INIT-${Date.now()}`,
-      status: 'initiated',
-      subtotalSar: enrollment.monthlyPriceSar,
-      discountSar: enrollment.monthlyPriceSar - totalSar,
-      totalSar,
-      simulated: false,
-      items: {
-        create: [{
-          enrollmentId: enrollment.id,
-          studentName: enrollment.student.firstName,
-          programAr: enrollment.courseRun.program.nameAr,
-          programEn: enrollment.courseRun.program.nameEn,
-          periodStart: base,
-          periodEnd,
-          baseSar: enrollment.monthlyPriceSar,
-          discountPct: enrollment.discountPct,
-          totalSar,
-        }],
+  const claim = await prisma.$transaction(async (tx) => {
+    // Serialize renewal creation per enrollment. A retry after a lost provider
+    // response must reuse the outstanding operation, never create a second charge.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(94613, ${enrollment.id}::int)`;
+    const outstanding = await tx.payment.findFirst({
+      where: { kind: 'renewal', status: 'initiated', items: { some: { enrollmentId: enrollment.id } } },
+      select: { id: true },
+    });
+    if (outstanding) return { outstandingId: outstanding.id, record: null };
+    const record = await tx.payment.create({
+      data: {
+        familyId,
+        kind: 'renewal',
+        provider,
+        reference: `INIT-${Date.now()}`,
+        status: 'initiated',
+        subtotalSar: enrollment.monthlyPriceSar,
+        discountSar: enrollment.monthlyPriceSar - totalSar,
+        totalSar,
+        simulated: false,
+        items: {
+          create: [{
+            enrollmentId: enrollment.id,
+            studentName: enrollment.student.firstName,
+            programAr: enrollment.courseRun.program.nameAr,
+            programEn: enrollment.courseRun.program.nameEn,
+            periodStart: base,
+            periodEnd,
+            baseSar: enrollment.monthlyPriceSar,
+            discountPct: enrollment.discountPct,
+            totalSar,
+          }],
+        },
       },
-    },
+    });
+    return { outstandingId: null, record };
   });
+  if (claim.outstandingId != null) {
+    return NextResponse.json(
+      { error: 'payment_pending_reconciliation', paymentId: claim.outstandingId },
+      { status: 409 },
+    );
+  }
+  const record = claim.record!;
 
   const origin = originFromRequest(req);
   const payment = await createPayment(
@@ -92,13 +110,31 @@ export async function POST(req: NextRequest) {
     },
   );
 
+  if (payment.status === 'indeterminate') {
+    if (payment.reference) {
+      await prisma.payment.updateMany({
+        where: { id: record.id, status: 'initiated' },
+        data: { reference: payment.reference },
+      }).catch((e) => {
+        console.error(`[payments] ADMIN ACTION REQUIRED: partial renewal reference was not saved for payment ${record.id}:`, e);
+      });
+    }
+    console.error(`[payments] ADMIN ACTION REQUIRED: renewal checkout creation outcome unknown for payment ${record.id}`);
+    return NextResponse.json({ error: 'payment_pending_reconciliation', paymentId: record.id }, { status: 503 });
+  }
+
   if (payment.status === 'failed') {
     await prisma.payment.updateMany({ where: { id: record.id, status: 'initiated' }, data: { status: 'failed' } });
     return NextResponse.json({ error: 'payment_failed' }, { status: 402 });
   }
 
   if (payment.status === 'redirect') {
-    await prisma.payment.update({ where: { id: record.id }, data: { reference: payment.reference } });
+    try {
+      await prisma.payment.update({ where: { id: record.id }, data: { reference: payment.reference } });
+    } catch (e) {
+      console.error(`[payments] ADMIN ACTION REQUIRED: renewal provider reference was not saved for payment ${record.id}:`, e);
+      return NextResponse.json({ error: 'payment_pending_reconciliation', paymentId: record.id }, { status: 503 });
+    }
     return NextResponse.json({ redirectUrl: payment.redirectUrl, paymentId: record.id });
   }
 

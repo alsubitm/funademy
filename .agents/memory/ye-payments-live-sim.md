@@ -12,8 +12,13 @@ Providers auto-switch to live by secret presence: Moyasar when `MOYASAR_SECRET_K
 - Settlement (return URL and webhooks) re-verifies status via provider API (`verifyPayment`) — never trusts redirect params. Guarded `updateMany` makes initiated→paid/failed idempotent.
 - Tamara: only returns `paid` after capture succeeds or status is `fully_captured`. Authorised-but-uncaptured → `pending`.
 - Timeout sweep marks overdue payments `expired` (not `failed`): seats released but payment remains reconcilable. If provider later confirms paid, `finalizePayment` re-seats or logs for refund. Terminal failure uses `failed` status only when provider explicitly declines.
+- Payment creation failures are classified by certainty: definitive non-retryable 4xx rejections release enrollment holds immediately; timeout/network/5xx/incomplete 2xx outcomes remain `initiated` and must never trigger a blind retry.
+- Internal `INIT-*` references are resolved by the provider order reference before every verification path (return, webhook, sweep). Unknown lookup remains pending with an admin alert; only a found provider reference may be verified.
+- Renewal creation is serialized per enrollment and reuses an outstanding initiated operation, preventing a client retry after a lost response from creating a second provider checkout.
 
-**How to apply:** check `providerLive()` in `src/lib/payments.ts`; never hardcode a test-mode boolean. Webhook expiry uses `SWEEP_SECRET` or `ADMIN_PASSWORD`.
+**Why:** a provider can create a real checkout even when its response is lost or incomplete; releasing the seat or retrying creation in that state can cause overselling or duplicate charges.
+
+**How to apply:** check `providerLive()` in `src/lib/payments.ts`; never hardcode a test-mode boolean. Any new creation path must preserve the definitive-vs-ambiguous distinction and reconcile placeholders centrally before provider verification. Webhook expiry uses `SWEEP_SECRET` or `ADMIN_PASSWORD`.
 
 ## Refunds (admin)
 Provider refunds are external financial ops: claim `paid → refunding` atomically (guarded updateMany) BEFORE calling the provider so concurrent requests can't duplicate the refund. Classify failures — definitive pre-execution rejections (4xx, lookup failures) roll back to `paid`; ambiguous outcomes (timeout/5xx/lost response) reconcile by re-reading provider state, and if still unknown stay `refunding` (fail closed, manual reconciliation) — never auto-retry an unknown refund.

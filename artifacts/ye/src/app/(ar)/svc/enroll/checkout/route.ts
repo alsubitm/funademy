@@ -135,6 +135,19 @@ export async function POST(req: NextRequest) {
     },
   );
 
+  if (payment.status === 'indeterminate') {
+    if (payment.reference) {
+      await prisma.payment.updateMany({
+        where: { id: paymentId, status: 'initiated' },
+        data: { reference: payment.reference },
+      }).catch((e) => {
+        console.error(`[payments] ADMIN ACTION REQUIRED: partial provider reference was not saved for payment ${paymentId}:`, e);
+      });
+    }
+    console.error(`[payments] ADMIN ACTION REQUIRED: checkout creation outcome unknown for payment ${paymentId}`);
+    return NextResponse.json({ error: 'payment_pending_reconciliation', paymentId }, { status: 503 });
+  }
+
   if (payment.status === 'failed') {
     // Roll everything back — seats must not stay held for a payment that
     // never started.
@@ -153,7 +166,14 @@ export async function POST(req: NextRequest) {
   if (payment.status === 'redirect') {
     // LIVE: hand the parent to the provider's secure page. Cart is kept until
     // payment is confirmed (cleared by /svc/pay/return).
-    await prisma.payment.update({ where: { id: paymentId }, data: { reference: payment.reference } });
+    try {
+      await prisma.payment.update({ where: { id: paymentId }, data: { reference: payment.reference } });
+    } catch (e) {
+      // The provider checkout exists, so releasing/retrying could create a
+      // duplicate charge. Keep INIT + held seats for the reconciliation sweep.
+      console.error(`[payments] ADMIN ACTION REQUIRED: provider reference was not saved for payment ${paymentId}:`, e);
+      return NextResponse.json({ error: 'payment_pending_reconciliation', paymentId }, { status: 503 });
+    }
     return NextResponse.json({ redirectUrl: payment.redirectUrl, paymentId });
   }
 
