@@ -166,12 +166,12 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
           {appointment ? (
             <div className="appt-box" style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
               <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CalendarDays size={16} className="text-blue-600" /> <b>{d.apptWhen}:</b> {lang === 'ar' ? appointment.whenAr : appointment.whenEn}
+                <CalendarDays size={16} style={{ color: 'var(--cyan)' }} /> <b style={{ color: 'var(--mut)' }}>{d.apptWhen}:</b> {lang === 'ar' ? appointment.whenAr : appointment.whenEn}
               </p>
               {appointment.meetUrl && (
                 <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Video size={16} className="text-blue-600" /> <b>{d.apptJoin}:</b>{' '}
-                  <a href={appointment.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr">
+                  <Video size={16} style={{ color: 'var(--cyan)' }} /> <b style={{ color: 'var(--mut)' }}>{d.apptJoin}:</b>{' '}
+                  <a href={appointment.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ color: 'var(--cyan)' }}>
                     {appointment.meetUrl}
                   </a>
                 </p>

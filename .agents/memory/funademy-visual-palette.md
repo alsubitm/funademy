@@ -5,8 +5,8 @@ description: The intended relationship between the original brand colors and pur
 
 # Additive palette, never replacement
 
-**Rule:** FunAdemy’s visual identity keeps deep navy, royal blue, and bright cyan as foundational brand colors. Purple and luminous yellow/gold are added as complementary layers for depth, motion, highlights, and key actions; they must never replace the original palette or turn the site into a purple-only design.
+**Rule:** FunAdemy’s visual identity is bold and futuristic: deep, dark spatial backgrounds; crisp engineered geometry; luminous cyan and purple energy; and strong contrast. Deep navy, royal blue, and bright cyan remain foundational. Purple and luminous yellow/gold are complementary layers; yellow has clear action significance and neither accent replaces the original palette.
 
-**Why:** The owner explicitly corrected a redesign that over-indexed on purple. The desired result is a rich five-color system that remains recognizably FunAdemy while feeling more energetic and impressive.
+**Why:** The owner explicitly rejected a cautious recolor, selected the bold futuristic direction, and previously corrected a redesign that over-indexed on purple. The desired result is a memorable next-generation invention lab—not a generic children’s template or a purple-only site.
 
-**How to apply:** For future public-site design work, preserve visible roles for all five colors. Navy provides trust and large dark surfaces, blue drives navigation and structure, cyan supplies technical glow, yellow leads calls to action, and purple adds dimensional transitions and selected accents. Extend shared tokens/components rather than recoloring one feature in isolation.
+**How to apply:** For future public-site design work, use the bold futuristic direction across the whole journey while keeping forms and utility screens highly legible. Navy provides trust and large dark surfaces, blue drives structure, cyan supplies technical glow, yellow leads calls to action, and purple adds dimensional depth. Extend shared tokens/components rather than recoloring one feature in isolation.

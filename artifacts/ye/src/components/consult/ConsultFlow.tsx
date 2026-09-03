@@ -95,15 +95,15 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
         <div className="success-box">
           <div className="icon" style={{ fontSize: '48px', color: 'var(--yellow)' }}><PartyPopper size={48} /></div>
           <h3>{d.successTitle}</h3>
-          <div style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
-            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}><CalendarDays size={16} className="text-blue-600" /> <b>{d.when}:</b> {when}</p>
+          <div style={{ margin: '16px 0', padding: '14px', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '4px', textAlign: 'start', background: 'rgba(0,0,0,0.4)' }}>
+            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}><CalendarDays size={16} style={{ color: 'var(--cyan)' }} /> <b style={{ color: 'var(--mut)' }}>{d.when}:</b> {when}</p>
             {confirmed.meetUrl && (
               <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Video size={16} className="text-blue-600" /> <b>{d.join}:</b>{' '}
-                <a href={confirmed.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr">{confirmed.meetUrl}</a>
+                <Video size={16} style={{ color: 'var(--cyan)' }} /> <b style={{ color: 'var(--mut)' }}>{d.join}:</b>{' '}
+                <a href={confirmed.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ color: 'var(--cyan)' }}>{confirmed.meetUrl}</a>
               </p>
             )}
-            {confirmed.emailInvited && <p style={{ margin: '4px 0' }}>{d.emailSent}</p>}
+            {confirmed.emailInvited && <p style={{ margin: '4px 0', color: 'var(--mut)' }}>{d.emailSent}</p>}
           </div>
           <a href={waLink(msg)} target="_blank" rel="noopener noreferrer" className="btn wa">{d.waBtn}</a>
         </div>

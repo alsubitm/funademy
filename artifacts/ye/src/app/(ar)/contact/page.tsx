@@ -85,15 +85,15 @@ export default function ContactPage() {
 
         <div className="terr-box wrap">
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '30px', borderTop: '1px solid var(--line)', paddingTop: '30px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '30px', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '30px' }}>
             <div>
-              <div style={{ marginBottom: '8px' }}><School size={24} className="text-blue-600" /></div>
-              <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '18px' }}>{d.venueTitle}</h4>
+              <div style={{ marginBottom: '8px' }}><School size={24} style={{ color: 'var(--cyan)' }} /></div>
+              <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '18px', color: '#fff' }}>{d.venueTitle}</h4>
               <p style={{ color: 'var(--mut)', fontSize: '14px', marginTop: '4px' }}>{d.venueDesc}</p>
             </div>
             <div>
-              <div style={{ marginBottom: '8px' }}><Laptop size={24} className="text-blue-600" /></div>
-              <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '18px' }}>{d.onlineTitle}</h4>
+              <div style={{ marginBottom: '8px' }}><Laptop size={24} style={{ color: 'var(--cyan)' }} /></div>
+              <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '18px', color: '#fff' }}>{d.onlineTitle}</h4>
               <p style={{ color: 'var(--mut)', fontSize: '14px', marginTop: '4px' }}>{d.onlineDesc}</p>
             </div>
           </div>
