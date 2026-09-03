@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { bookDict } from '@/app/(ar)/book/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { getSavedAge, saveAge } from '@/lib/savedAge';
+import { PartyPopper, CalendarDays, Video } from 'lucide-react';
 
 type BookingFlowProps = {
   programs: any[];
@@ -159,17 +160,17 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
     return (
       <div className="w-box">
         <div className="success-box">
-          <div className="icon">🎉</div>
+          <div className="icon" style={{ fontSize: '48px', color: 'var(--yellow)' }}><PartyPopper size={48} /></div>
           <h3>{d.successTitle}</h3>
           <p>{d.successDesc}</p>
           {appointment ? (
             <div className="appt-box" style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
-              <p style={{ margin: '4px 0' }}>
-                🗓️ <b>{d.apptWhen}:</b> {lang === 'ar' ? appointment.whenAr : appointment.whenEn}
+              <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CalendarDays size={16} className="text-blue-600" /> <b>{d.apptWhen}:</b> {lang === 'ar' ? appointment.whenAr : appointment.whenEn}
               </p>
               {appointment.meetUrl && (
-                <p style={{ margin: '4px 0' }}>
-                  🎥 <b>{d.apptJoin}:</b>{' '}
+                <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Video size={16} className="text-blue-600" /> <b>{d.apptJoin}:</b>{' '}
                   <a href={appointment.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr">
                     {appointment.meetUrl}
                   </a>

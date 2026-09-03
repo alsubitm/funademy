@@ -8,11 +8,17 @@ import { RenewButton } from '@/components/portal/RenewButton';
 import { portalSessions, joinUrlFor } from '@/lib/portal-sessions';
 import { formatRiyadh } from '@/lib/appointments';
 import { moyasarLive, tamaraLive, paymentAvailability } from '@/lib/payments';
+import { GraduationCap, CalendarDays, MessageCircle, Puzzle, Medal, Repeat, Laptop, MapPin, Star, Settings, Circle, Rocket, Crown, Zap, Wind } from 'lucide-react';
 
 type Lang = 'ar' | 'en';
 
-const BADGE_ICONS: Record<string, string> = {
-  star: '⭐', gear: '⚙️', rocket: '🚀', crown: '👑', bolt: '⚡', kite: '🪁',
+const BADGE_ICONS: Record<string, React.ReactNode> = {
+  star: <Star size={24} className="text-yellow-500 fill-current" />,
+  gear: <Settings size={24} className="text-gray-500" />,
+  rocket: <Rocket size={24} className="text-blue-500" />,
+  crown: <Crown size={24} className="text-yellow-600 fill-current" />,
+  bolt: <Zap size={24} className="text-orange-500 fill-current" />,
+  kite: <Wind size={24} className="text-teal-500" />,
 };
 
 function fmtDate(lang: Lang, d: Date): string {
@@ -152,7 +158,7 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
           borderRadius: 14, padding: '16px 20px', marginBottom: 0,
         }}
       >
-        <span style={{ fontSize: 36 }}>🎓</span>
+        <span style={{ fontSize: 36, color: '#FFCA17' }}><GraduationCap size={36} /></span>
         <div>
           <div style={{ fontWeight: 800, fontSize: 16 }}>منصة التعلّم</div>
           <div style={{ fontSize: 13, opacity: .85, marginTop: 2 }}>دروس، تمارين، XP وشارات — ابدأ الآن!</div>
@@ -199,7 +205,7 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
 
       {/* enrollments */}
       <div className="ptl-card">
-        <h3><span className="ico">🎓</span>{d.enrollments}</h3>
+        <h3><span className="ico text-blue-600 inline-block mr-1"><GraduationCap size={20} /></span>{d.enrollments}</h3>
         {enrollments.length === 0 ? (
           <div className="ptl-empty">
             {d.noEnroll}
@@ -233,7 +239,7 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
       {/* appointments (trial / consultation meetings) */}
       {appointments.length > 0 && (
         <div className="ptl-card">
-          <h3><span className="ico">🗓️</span>{d.appointments}</h3>
+          <h3><span className="ico text-blue-600 inline-block mr-1"><CalendarDays size={20} /></span>{d.appointments}</h3>
           {appointments.map((a) => (
             <div key={a.id} className="ptl-enr">
               <div className="info">
@@ -337,12 +343,12 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
               <span className="p">
                 {progName(m.session.courseRun.program)}
                 {m.makeupSession && (
-                  <span className="loc">
-                    🔁 {d.mkSlot}: {fmtDate(lang, m.makeupSession.date)} — {weekdays[m.makeupSession.courseRun.weekday]} {fmt(lang, m.makeupSession.courseRun.time)}
-                    {m.makeupSession.courseRun.format === 'online' ? ` · 💻 ${d.online}` : m.makeupSession.courseRun.location ? ` · 📍 ${m.makeupSession.courseRun.location}` : ''}
+                  <span className="loc flex items-center gap-1">
+                    <Repeat size={14} className="text-blue-500" /> {d.mkSlot}: {fmtDate(lang, m.makeupSession.date)} — {weekdays[m.makeupSession.courseRun.weekday]} {fmt(lang, m.makeupSession.courseRun.time)}
+                    {m.makeupSession.courseRun.format === 'online' ? <><Laptop size={14} className="text-gray-500 ml-1" /> {d.online}</> : m.makeupSession.courseRun.location ? <><MapPin size={14} className="text-red-500 ml-1" /> {m.makeupSession.courseRun.location}</> : ''}
                   </span>
                 )}
-                {m.adminNote && <span className="loc">💬 {m.adminNote}</span>}
+                {m.adminNote && <span className="loc flex items-center gap-1"><MessageCircle size={14} className="text-blue-500" /> {m.adminNote}</span>}
               </span>
               <span className={`ptl-mk ${m.status}`}>{mkLabel[m.status]}</span>
             </div>
@@ -352,7 +358,7 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
 
       {/* skill map */}
       <div className="ptl-card">
-        <h3><span className="ico">🧩</span>{d.skills}</h3>
+        <h3><span className="ico text-blue-600 inline-block mr-1"><Puzzle size={20} /></span>{d.skills}</h3>
         {programSkills.length === 0 ? (
           <div className="ptl-empty">{d.noEnroll}</div>
         ) : (
@@ -368,7 +374,7 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
                     const st = skillState.get(sk.id) ?? 'locked';
                     return (
                       <div key={sk.id} className={`ptl-skill ${st}`}>
-                        <span className="st">{st === 'mastered' ? '★' : st === 'in_progress' ? '⚙' : '·'}</span>
+                        <span className="st">{st === 'mastered' ? <Star size={12} className="fill-current inline" /> : st === 'in_progress' ? <Settings size={12} className="inline" /> : <Circle size={8} className="fill-current inline" />}</span>
                         <span className="lbl">{lang === 'ar' ? sk.nameAr : sk.nameEn}</span>
                         <span className="state">{skillLabel[st]}</span>
                       </div>
@@ -386,14 +392,14 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
 
       {/* badges */}
       <div className="ptl-card">
-        <h3><span className="ico">🏅</span>{d.badges}</h3>
+        <h3><span className="ico text-yellow-500 inline-block mr-1"><Medal size={20} /></span>{d.badges}</h3>
         {studentBadges.length === 0 ? (
           <div className="ptl-empty">{d.noBadges}</div>
         ) : (
           <div className="ptl-badges">
             {studentBadges.map((b) => (
               <div key={b.id} className="ptl-badge">
-                <div className="ico">{BADGE_ICONS[b.badge.iconKey] ?? '⭐'}</div>
+                <div className="ico flex justify-center mb-2">{BADGE_ICONS[b.badge.iconKey] ?? <Star size={24} className="text-yellow-500 fill-current" />}</div>
                 <div className="nm">{lang === 'ar' ? b.badge.nameAr : b.badge.nameEn}</div>
                 <div className="dt">{d.awardedOn} {fmtDate(lang, b.awardedAt)}</div>
               </div>

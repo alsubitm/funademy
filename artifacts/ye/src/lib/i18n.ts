@@ -1,6 +1,6 @@
 export const dict = {
   ar: {
-    topBanner: "🎓 التسجيل للعام الدراسي الجديد مفتوح — حصص أونلاين",
+    topBanner: "التسجيل للعام الدراسي الجديد مفتوح — حصص أونلاين",
     whatsapp: "واتساب",
     navPath: "مسار التعلم",
     navPrograms: "البرامج",
@@ -26,7 +26,7 @@ export const dict = {
     pricingSub: "١٣٨٠ ريال للطفل — بمعدل ٤-٦ حصص شهرياً",
   },
   en: {
-    topBanner: "🎓 New school year enrollment open — live online classes",
+    topBanner: "New school year enrollment open — live online classes",
     whatsapp: "WhatsApp",
     navPath: "Learning path",
     navPrograms: "Programs",

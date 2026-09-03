@@ -3,6 +3,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';
+import { Rocket } from 'lucide-react';
 import './blog.css';
 
 type Post = {
@@ -102,7 +103,7 @@ export function BlogArticle({
 
           {/* Contextual CTA — links to booking flow */}
           <div className="b-cta-box">
-            <div className="b-cta-emoji" aria-hidden>🚀</div>
+            <div className="b-cta-emoji" aria-hidden><Rocket size={48} className="text-blue-600" /></div>
             <div>
               <strong>
                 {ar

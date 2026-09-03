@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { consultDict } from '@/app/(ar)/consult/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
+import { PartyPopper, CalendarDays, Video } from 'lucide-react';
 
 const RIYADH_OFFSET_MS = 3 * 60 * 60 * 1000;
 
@@ -92,13 +93,13 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
     return (
       <div className="w-box">
         <div className="success-box">
-          <div className="icon">🎉</div>
+          <div className="icon" style={{ fontSize: '48px', color: 'var(--yellow)' }}><PartyPopper size={48} /></div>
           <h3>{d.successTitle}</h3>
           <div style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
-            <p style={{ margin: '4px 0' }}>🗓️ <b>{d.when}:</b> {when}</p>
+            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}><CalendarDays size={16} className="text-blue-600" /> <b>{d.when}:</b> {when}</p>
             {confirmed.meetUrl && (
-              <p style={{ margin: '4px 0' }}>
-                🎥 <b>{d.join}:</b>{' '}
+              <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Video size={16} className="text-blue-600" /> <b>{d.join}:</b>{' '}
                 <a href={confirmed.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr">{confirmed.meetUrl}</a>
               </p>
             )}

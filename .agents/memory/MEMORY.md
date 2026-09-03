@@ -15,3 +15,4 @@
 - [Database retry safety](database-retry-safety.md) — retry reads broadly, but replay transactions only after failures that prove PostgreSQL aborted or never began them.
 - [Replit AI setup availability](replit-ai-setup-availability.md) — AI setup callback may be absent despite skill docs; keep provider failure fail-closed and never invent gateway credentials.
 - [WhatsApp support delivery safety](whatsapp-support-delivery-safety.md) — canonical sender threads and an idempotent outbox prevent duplicate/misrouted replies; ambiguous sends are never auto-retried.
+- [FunAdemy visual palette](funademy-visual-palette.md) — navy/blue/cyan remain foundational; purple and yellow are additive accents, never replacements.

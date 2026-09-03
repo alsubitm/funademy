@@ -5,6 +5,7 @@ import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { TrackedWaLink } from '@/components/contact/TrackedWaLink';
 import { contactDict } from './dict';
 import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constants';
+import { Phone, Mail, School, Laptop } from 'lucide-react';
 import './page.css';
 import { siteUrl } from '@/lib/site-url';
 
@@ -68,14 +69,14 @@ export default function ContactPage() {
           </div>
 
           <div className="c-card">
-            <div className="icon">📞</div>
+            <div className="icon"><Phone size={30} /></div>
             <h3>{d.phoneLabel}</h3>
             <p>يمكنك أيضاً الاتصال بنا مباشرة على رقم الهاتف الموحد.</p>
             <a href={`tel:+${WHATSAPP_NUMBER}`} className="link" dir="ltr">{PHONE_DISPLAY}</a>
           </div>
 
           <div className="c-card">
-            <div className="icon">✉️</div>
+            <div className="icon"><Mail size={30} /></div>
             <h3>{d.emailLabel}</h3>
             <p>للمراسلات الرسمية والشراكات، يمكنك مراسلتنا عبر البريد الإلكتروني.</p>
             <a href={`mailto:${EMAIL}`} className="link">{EMAIL}</a>
@@ -86,12 +87,12 @@ export default function ContactPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '30px', borderTop: '1px solid var(--line)', paddingTop: '30px' }}>
             <div>
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏫</div>
+              <div style={{ marginBottom: '8px' }}><School size={24} className="text-blue-600" /></div>
               <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '18px' }}>{d.venueTitle}</h4>
               <p style={{ color: 'var(--mut)', fontSize: '14px', marginTop: '4px' }}>{d.venueDesc}</p>
             </div>
             <div>
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>💻</div>
+              <div style={{ marginBottom: '8px' }}><Laptop size={24} className="text-blue-600" /></div>
               <h4 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '18px' }}>{d.onlineTitle}</h4>
               <p style={{ color: 'var(--mut)', fontSize: '14px', marginTop: '4px' }}>{d.onlineDesc}</p>
             </div>

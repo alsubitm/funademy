@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CATALOG, FIELDS, PATH_ORDER, type FieldId } from '@/lib/catalog';
 import { arabicDigits } from '@/lib/constants';
 import { getSavedAge, saveAge } from '@/lib/savedAge';
+import { Blocks, Gamepad2, Settings, Cpu, Bot, Laptop, Telescope } from 'lucide-react';
 
 interface Program {
   id: number;
@@ -39,14 +40,14 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
   };
 
   const getIcon = (slug: string) => {
-    if (slug.includes('builder')) return '🧱';
-    if (slug.includes('smart')) return '🎮';
-    if (slug.includes('challenge')) return '⚙️';
-    if (slug.includes('robo')) return '🦾';
-    if (slug.includes('play')) return '🤖';
-    if (slug.includes('algoc')) return '💻';
-    if (slug.includes('galileo')) return '🔭';
-    return '⚙️';
+    if (slug.includes('builder')) return <Blocks size={48} className="drop-shadow-lg" />;
+    if (slug.includes('smart')) return <Gamepad2 size={48} className="drop-shadow-lg" />;
+    if (slug.includes('challenge')) return <Settings size={48} className="drop-shadow-lg" />;
+    if (slug.includes('robo')) return <Cpu size={48} className="drop-shadow-lg" />;
+    if (slug.includes('play')) return <Bot size={48} className="drop-shadow-lg" />;
+    if (slug.includes('algoc')) return <Laptop size={48} className="drop-shadow-lg" />;
+    if (slug.includes('galileo')) return <Telescope size={48} className="drop-shadow-lg" />;
+    return <Settings size={48} className="drop-shadow-lg" />;
   };
 
   const fitsAge = (p: Program) => age === null || (age >= p.ageMin && age <= p.ageMax);

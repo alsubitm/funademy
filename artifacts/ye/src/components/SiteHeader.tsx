@@ -5,6 +5,7 @@ import { YELogo } from '@/components/brand/YELogo';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { LangSwitcher } from '@/components/LangSwitcher';
+import { Phone, GraduationCap } from 'lucide-react';
 
 export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
@@ -16,9 +17,9 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
       </a>
       <div className="top" role="navigation" aria-label={lang === 'ar' ? 'معلومات التواصل' : 'Contact info'}>
         <div className="wrap">
-          <span>{d.topBanner}</span>
+          <span className="flex items-center gap-2"><GraduationCap size={16} /> {d.topBanner}</span>
           <span dir="ltr">
-            📞 <a href={`tel:+${WHATSAPP_NUMBER}`}>{PHONE_DISPLAY}</a> ·{' '}
+            <Phone size={14} className="inline-block mr-1" /> <a href={`tel:+${WHATSAPP_NUMBER}`}>{PHONE_DISPLAY}</a> ·{' '}
             <a href={`https://wa.me/${WHATSAPP_NUMBER}`}>{d.whatsapp}</a>
           </span>
         </div>

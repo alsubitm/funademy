@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { ScrollReveal } from '@/components/ScrollReveal';
+import { Users, Rocket, CalendarCheck, Puzzle, GraduationCap, Newspaper, Flag, MessageCircle } from 'lucide-react';
+import React from 'react';
 
-type Card = { icon: string; title: string; desc: string; href: string };
+type Card = { icon: React.ReactNode; title: string; desc: string; href: string };
 
 const CARDS: Record<'ar' | 'en', { kick: string; title: string; sub: string; cards: Card[] }> = {
   ar: {
@@ -9,14 +11,14 @@ const CARDS: Record<'ar' | 'en', { kick: string; title: string; sub: string; car
     title: 'كل خدمات FunAdemy في مكان واحد',
     sub: 'من الحجز الأول حتى متابعة تقدّم طفلك — هذه بواباتك السريعة.',
     cards: [
-      { icon: '👨‍👩‍👧', title: 'بوابة الأهالي', desc: 'الاشتراكات، الحضور، المدفوعات، وتقارير الأبناء', href: '/portal' },
-      { icon: '🚀', title: 'منصة تعلّم الأطفال', desc: 'دروس تفاعلية ونقاط وأوسمة لكل طفل مشترك', href: '/learn' },
-      { icon: '🗓️', title: 'حجز مقعد', desc: 'احجز مقعد طفلك في الدورات والحصص القادمة', href: '/book' },
-      { icon: '🧩', title: 'الاشتراك الشهري', desc: 'سجّل في برنامج شهري مستمر يناسب عمر طفلك', href: '/enroll' },
-      { icon: '🎓', title: 'استشارة مجانية', desc: 'جلسة تعريفية مع معلّم لاختيار البرنامج المناسب', href: '/consult' },
-      { icon: '📰', title: 'المدونة', desc: 'مقالات للأهالي عن الهندسة والبرمجة للأطفال', href: '/blog' },
-      { icon: '🇸🇦', title: 'حملة وطنّونا', desc: 'أطفالنا يبنون وطننا — شارك بمكعّبك في جدار الوطن', href: '/watanona' },
-      { icon: '💬', title: 'تواصل معنا', desc: 'واتساب، هاتف، وبريد — نرد عليك بسرعة', href: '/contact' },
+      { icon: <Users size={24} />, title: 'بوابة الأهالي', desc: 'الاشتراكات، الحضور، المدفوعات، وتقارير الأبناء', href: '/portal' },
+      { icon: <Rocket size={24} />, title: 'منصة تعلّم الأطفال', desc: 'دروس تفاعلية ونقاط وأوسمة لكل طفل مشترك', href: '/learn' },
+      { icon: <CalendarCheck size={24} />, title: 'حجز مقعد', desc: 'احجز مقعد طفلك في الدورات والحصص القادمة', href: '/book' },
+      { icon: <Puzzle size={24} />, title: 'الاشتراك الشهري', desc: 'سجّل في برنامج شهري مستمر يناسب عمر طفلك', href: '/enroll' },
+      { icon: <GraduationCap size={24} />, title: 'استشارة مجانية', desc: 'جلسة تعريفية مع معلّم لاختيار البرنامج المناسب', href: '/consult' },
+      { icon: <Newspaper size={24} />, title: 'المدونة', desc: 'مقالات للأهالي عن الهندسة والبرمجة للأطفال', href: '/blog' },
+      { icon: <Flag size={24} />, title: 'حملة وطنّونا', desc: 'أطفالنا يبنون وطننا — شارك بمكعّبك في جدار الوطن', href: '/watanona' },
+      { icon: <MessageCircle size={24} />, title: 'تواصل معنا', desc: 'واتساب، هاتف، وبريد — نرد عليك بسرعة', href: '/contact' },
     ],
   },
   en: {
@@ -24,14 +26,14 @@ const CARDS: Record<'ar' | 'en', { kick: string; title: string; sub: string; car
     title: 'All of FunAdemy in one place',
     sub: 'From your first booking to tracking your child’s progress — quick doors to everything.',
     cards: [
-      { icon: '👨‍👩‍👧', title: 'Parent portal', desc: 'Subscriptions, attendance, payments & progress reports', href: '/en/portal' },
-      { icon: '🚀', title: 'Kids learning platform (Arabic)', desc: 'Interactive lessons, XP and badges for enrolled kids', href: '/learn' },
-      { icon: '🗓️', title: 'Book a seat', desc: 'Reserve your child’s seat in upcoming classes', href: '/en/book' },
-      { icon: '🧩', title: 'Monthly enrollment', desc: 'Join an ongoing monthly program that fits their age', href: '/en/enroll' },
-      { icon: '🎓', title: 'Free consultation', desc: 'An intro session with a teacher to pick the right program', href: '/en/consult' },
-      { icon: '📰', title: 'Blog', desc: 'Articles for parents on kids engineering & coding', href: '/en/blog' },
-      { icon: '🇸🇦', title: 'Watanona campaign', desc: 'Our Kids Build Our Homeland — place your brick', href: '/en/watanona' },
-      { icon: '💬', title: 'Contact us', desc: 'WhatsApp, phone and email — quick replies', href: '/en/contact' },
+      { icon: <Users size={24} />, title: 'Parent portal', desc: 'Subscriptions, attendance, payments & progress reports', href: '/en/portal' },
+      { icon: <Rocket size={24} />, title: 'Kids learning platform (Arabic)', desc: 'Interactive lessons, XP and badges for enrolled kids', href: '/learn' },
+      { icon: <CalendarCheck size={24} />, title: 'Book a seat', desc: 'Reserve your child’s seat in upcoming classes', href: '/en/book' },
+      { icon: <Puzzle size={24} />, title: 'Monthly enrollment', desc: 'Join an ongoing monthly program that fits their age', href: '/en/enroll' },
+      { icon: <GraduationCap size={24} />, title: 'Free consultation', desc: 'An intro session with a teacher to pick the right program', href: '/en/consult' },
+      { icon: <Newspaper size={24} />, title: 'Blog', desc: 'Articles for parents on kids engineering & coding', href: '/en/blog' },
+      { icon: <Flag size={24} />, title: 'Watanona campaign', desc: 'Our Kids Build Our Homeland — place your brick', href: '/en/watanona' },
+      { icon: <MessageCircle size={24} />, title: 'Contact us', desc: 'WhatsApp, phone and email — quick replies', href: '/en/contact' },
     ],
   },
 };

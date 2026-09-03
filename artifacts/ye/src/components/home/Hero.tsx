@@ -1,6 +1,7 @@
 import { dict } from '@/lib/i18n';
 import { LICENSE_NO } from '@/lib/constants';
 import Image from 'next/image';
+import { Rocket, Star } from 'lucide-react';
 
 export function Hero({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
@@ -54,18 +55,25 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
 
         <div className="photo-frame">
           <div className="img-wrap">
-            <Image src="/hero-kids.jpg" alt="Children building robotics" fill priority style={{ objectFit: 'cover' }} />
+            <Image
+              src="/hero-kids.jpg"
+              alt="Children building robotics"
+              fill
+              priority
+              sizes="(max-width: 920px) 100vw, 50vw"
+              style={{ objectFit: 'cover' }}
+            />
             <div className="glow"></div>
           </div>
           <div className="floating-badge">
-            <div className="icon">🚀</div>
+            <div className="icon"><Rocket size={24} /></div>
             <div className="text">
               <b>100%</b>
               <span>{lang === 'ar' ? 'متعة التعلم' : 'Fun Learning'}</span>
             </div>
           </div>
           <div className="floating-badge" style={{ top: '-20px', bottom: 'auto', right: '-20px', left: 'auto', animationDelay: '-3s' }}>
-            <div className="icon" style={{ background: 'rgba(255, 202, 23, 0.15)', color: 'var(--yellow)' }}>⭐</div>
+            <div className="icon" style={{ background: 'rgba(255, 202, 23, 0.15)', color: 'var(--yellow)' }}><Star size={24} fill="currentColor" /></div>
             <div className="text">
               <b>{lang === 'ar' ? 'معتمد' : 'Certified'}</b>
               <span>e² Young Engineers</span>

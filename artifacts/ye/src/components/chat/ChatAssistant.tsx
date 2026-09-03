@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { waLink } from '@/lib/constants';
 import type { ChatAction, ChatMessage, ChatSession, ChatSource } from './types';
+import { Sparkles, MessageCircle } from 'lucide-react';
 
 type Lang = 'ar' | 'en';
 type JsonRecord = Record<string, unknown>;
@@ -472,7 +473,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
 
       {!consented ? (
         <div className="chat-ui__consent">
-          <div className="chat-ui__bot-mark" aria-hidden="true">✦</div>
+          <div className="chat-ui__bot-mark" aria-hidden="true"><Sparkles size={36} /></div>
           <h2>{t.name}</h2>
           <p>{t.intro}</p>
           <label className="chat-ui__consent-copy">
@@ -585,7 +586,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
         onClick={() => setOpen((value) => !value)}
         data-testid="button-open-chat"
       >
-        <span aria-hidden="true">✦</span>
+        <span aria-hidden="true"><MessageCircle size={26} /></span>
         <span>{lang === 'ar' ? 'اسألنا' : 'Ask us'}</span>
       </button>
     </div>
