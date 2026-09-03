@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json().catch(() => null);
   const action = String(body?.action ?? '');
   const target = body?.target === 'conversation' ? 'conversation' : 'escalation';
-  if (!['assign', 'close', 'reopen'].includes(action) || (action === 'assign' && target !== 'escalation')) {
+  if (!['assign', 'close', 'reopen'].includes(action)) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
 
@@ -62,7 +62,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!fields.has('assignedTo')) {
       return NextResponse.json({ error: 'assignment_not_configured' }, { status: 409 });
     }
-    await db.chatEscalation.update({ where: { id }, data: { assignedTo } });
+    const model = target === 'conversation' ? db.chatConversation : db.chatEscalation;
+    await model.update({ where: { id }, data: { assignedTo } });
   } else {
     const closed = action === 'close';
     const model = target === 'conversation' ? db.chatConversation : db.chatEscalation;

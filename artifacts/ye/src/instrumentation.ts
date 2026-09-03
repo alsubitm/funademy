@@ -99,6 +99,17 @@ export async function register() {
     } catch (e) {
       console.error('[trial-followup] periodic delivery failed:', e);
     }
+    // WhatsApp outbox safety: a process may stop after persisting an intent.
+    // Never auto-resend an ambiguous attempt; surface it as uncertain to staff.
+    try {
+      const { reconcileStaleWhatsAppDispatches } = await import('@/lib/whatsapp-dispatch');
+      const reconciled = await reconcileStaleWhatsAppDispatches();
+      if (reconciled.count) {
+        console.warn(`[whatsapp] marked ${reconciled.count} interrupted dispatches uncertain`);
+      }
+    } catch (e) {
+      console.error('[whatsapp] dispatch reconciliation failed:', e);
+    }
   };
 
   // One-time data reconciliation: the academy is online-only (Aug 2026).

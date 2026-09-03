@@ -46,7 +46,7 @@ export default function PrivacyPageEn() {
         <li><strong>Child data:</strong> name and age group to pick the right program, plus learning progress (completed lessons, XP, badges).</li>
         <li><strong>Booking & payment data:</strong> booked courses, subscriptions and invoices. Payments are processed by licensed providers (Moyasar and Tamara) — <strong>we never store card numbers</strong>.</li>
         <li><strong>Technical data:</strong> essential cookies for secure login sessions only — no advertising cookies.</li>
-        <li><strong>Assistant chats:</strong> if you consent to using the assistant, we process your message text and store chat history to answer and follow up on your request. Do not send card numbers or sensitive payment details in chat.</li>
+        <li><strong>Support chats:</strong> if you consent to the website assistant or start a chat with our WhatsApp Business number, we process the contact number and message text to provide support and follow up. We retain the transcript for 90 days. Do not send card numbers or sensitive payment details.</li>
       </ul>
 
       <h2>How we use it</h2>
@@ -68,14 +68,16 @@ export default function PrivacyPageEn() {
       <h2>Sharing</h2>
       <p>
         We do not sell your data or share it with marketers. We share only the minimum needed with operational
-        providers: licensed payment gateways (Moyasar, Tamara) and the calendar service for consultations. We may
+        providers: licensed payment gateways (Moyasar, Tamara), the calendar service for consultations, and
+        Meta/WhatsApp when you choose WhatsApp support. We send that provider only the contact number and message
+        content needed to operate the channel. We may
         disclose data where Saudi law requires it.
       </p>
 
       <h2>Your rights</h2>
       <p>
         Under the Saudi Personal Data Protection Law (PDPL) you may request access to, correction of, or deletion
-        of your data. Contact us and we will respond within a reasonable time.
+        of your data, including website and WhatsApp support transcripts. Contact us and we will respond within a reasonable time.
       </p>
 
       <div className="card-note">

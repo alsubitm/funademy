@@ -178,6 +178,9 @@ CREATE TABLE "ye_chat_conversations" (
     "status" "ye_chat_conversation_status" NOT NULL DEFAULT 'open',
     "contactMethod" TEXT,
     "contactValue" TEXT,
+    "channel" TEXT NOT NULL DEFAULT 'website',
+    "whatsappPhoneHash" TEXT,
+    "assignedTo" TEXT,
     "consentAt" TIMESTAMP(3) NOT NULL,
     "consentVersion" TEXT NOT NULL DEFAULT 'chat-v1',
     "familyVerifiedAt" TIMESTAMP(3),
@@ -197,6 +200,12 @@ CREATE TABLE "ye_chat_messages" (
     "sourceRefs" JSONB,
     "providerId" TEXT,
     "idempotencyKey" TEXT,
+    "channel" TEXT NOT NULL DEFAULT 'website',
+    "direction" TEXT NOT NULL DEFAULT 'inbound',
+    "deliveryStatus" TEXT,
+    "deliveryError" TEXT,
+    "dispatchStartedAt" TIMESTAMP(3),
+    "deliveredAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expiresAt" TIMESTAMP(3) NOT NULL,
 
@@ -784,6 +793,9 @@ CREATE UNIQUE INDEX "ye_trial_communications_bookingId_kind_key" ON "ye_trial_co
 CREATE UNIQUE INDEX "ye_families_phone_key" ON "ye_families"("phone");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ye_chat_conversations_whatsappPhoneHash_key" ON "ye_chat_conversations"("whatsappPhoneHash");
+
+-- CreateIndex
 CREATE INDEX "ye_chat_conversations_familyId_updatedAt_idx" ON "ye_chat_conversations"("familyId", "updatedAt");
 
 -- CreateIndex
@@ -800,6 +812,9 @@ CREATE INDEX "ye_chat_messages_expiresAt_idx" ON "ye_chat_messages"("expiresAt")
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ye_chat_messages_conversationId_idempotencyKey_key" ON "ye_chat_messages"("conversationId", "idempotencyKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_chat_messages_providerId_key" ON "ye_chat_messages"("providerId");
 
 -- CreateIndex
 CREATE INDEX "ye_chat_escalations_conversationId_createdAt_idx" ON "ye_chat_escalations"("conversationId", "createdAt");

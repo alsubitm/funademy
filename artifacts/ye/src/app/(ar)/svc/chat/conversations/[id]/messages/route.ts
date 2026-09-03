@@ -74,6 +74,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       conversationId: id,
       role: 'user',
       content: parsed.data.content,
+      channel: 'website',
+      direction: 'inbound',
       idempotencyKey: parsed.data.idempotencyKey,
       expiresAt: chatExpiry(),
     },
@@ -162,7 +164,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           .filter((source) => answer.includes(source.id))
           .map(({ id: sourceId, title, url }) => ({ id: sourceId, title, url }));
         const assistant = await prisma.chatMessage.create({
-          data: { conversationId: id, role: 'assistant', content: answer, sourceRefs: refs, expiresAt: chatExpiry() },
+          data: { conversationId: id, role: 'assistant', content: answer, sourceRefs: refs, channel: 'website', direction: 'outbound', expiresAt: chatExpiry() },
         });
         await prisma.chatConversation.update({ where: { id }, data: { expiresAt: chatExpiry() } });
         controller.enqueue(sse({ type: 'delta', content: answer }));
