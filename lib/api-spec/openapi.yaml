@@ -1,0 +1,1379 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Manara Academy API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: children
+  - name: curriculum
+  - name: learning
+  - name: parent
+  - name: subscription
+  - name: marketing
+  - name: blog
+  - name: admin
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a parent account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParentRegistration"
+      responses:
+        "201":
+          description: Registered and logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in (parent, teacher, or admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginCredentials"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Current session (user + active child profile if any)
+      responses:
+        "200":
+          description: Current session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: Not logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /auth/parent-gate:
+    post:
+      operationId: verifyParentGate
+      tags: [auth]
+      summary: Verify parent PIN to exit child mode back to the parent zone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PinCheck"
+      responses:
+        "200":
+          description: PIN correct, child session cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: Wrong PIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /children:
+    get:
+      operationId: listChildren
+      tags: [children]
+      summary: List child profiles of the logged-in parent
+      responses:
+        "200":
+          description: Child profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChildProfile"
+    post:
+      operationId: createChild
+      tags: [children]
+      summary: Create a child profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChildProfileInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildProfile"
+  /children/{id}:
+    patch:
+      operationId: updateChild
+      tags: [children]
+      summary: Update a child profile (name, avatar, PIN, screen-time limit)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChildProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildProfile"
+    delete:
+      operationId: deleteChild
+      tags: [children]
+      summary: Delete a child profile
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /children/{id}/select:
+    post:
+      operationId: selectChild
+      tags: [children]
+      summary: Enter child mode with the profile's PIN
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PinCheck"
+      responses:
+        "200":
+          description: Child session started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: Wrong PIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /subjects:
+    get:
+      operationId: listSubjects
+      tags: [curriculum]
+      summary: List subjects (optionally filtered by band)
+      parameters:
+        - name: band
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/Band"
+      responses:
+        "200":
+          description: Subjects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subject"
+    post:
+      operationId: createSubject
+      tags: [admin]
+      summary: Create a subject (teacher/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+  /subjects/{id}:
+    get:
+      operationId: getSubject
+      tags: [curriculum]
+      summary: Subject detail with units and lessons
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Subject detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubjectDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /curriculum/outline:
+    get:
+      operationId: getCurriculumOutline
+      tags: [curriculum]
+      summary: Public curriculum outline grouped by band (marketing page)
+      responses:
+        "200":
+          description: Outline per band
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BandOutline"
+  /lessons/{id}:
+    get:
+      operationId: getLesson
+      tags: [learning]
+      summary: Lesson detail with exercises
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Lesson
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+    patch:
+      operationId: updateLesson
+      tags: [admin]
+      summary: Update a lesson (teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LessonUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDetail"
+    delete:
+      operationId: deleteLesson
+      tags: [admin]
+      summary: Delete a lesson (teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /lessons/{id}/complete:
+    post:
+      operationId: completeLesson
+      tags: [learning]
+      summary: Submit lesson completion with exercise answers (child mode)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LessonCompletion"
+      responses:
+        "200":
+          description: Progress result with rewards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompletionResult"
+  /child/home:
+    get:
+      operationId: getChildHome
+      tags: [learning]
+      summary: Child home data (continue lesson, XP, streak, badges, subjects)
+      responses:
+        "200":
+          description: Child home
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildHome"
+        "401":
+          description: No active child session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /parent/overview:
+    get:
+      operationId: getParentOverview
+      tags: [parent]
+      summary: Parent dashboard overview cards per child
+      responses:
+        "200":
+          description: Overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParentOverview"
+  /parent/children/{id}/report:
+    get:
+      operationId: getChildReport
+      tags: [parent]
+      summary: Weekly progress detail for one child (strengths & struggles)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildReport"
+  /parent/data-deletion:
+    post:
+      operationId: requestDataDeletion
+      tags: [parent]
+      summary: Submit a data-deletion request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataDeletionRequest"
+      responses:
+        "201":
+          description: Request recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /subscription:
+    get:
+      operationId: getSubscription
+      tags: [subscription]
+      summary: Current subscription of the logged-in parent
+      responses:
+        "200":
+          description: Subscription (or trial state)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+    post:
+      operationId: startSubscription
+      tags: [subscription]
+      summary: Start a 7-day free trial on a plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionStart"
+      responses:
+        "201":
+          description: Trial started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+  /subscription/cancel:
+    post:
+      operationId: cancelSubscription
+      tags: [subscription]
+      summary: Cancel the subscription
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+  /subscription/invoices:
+    get:
+      operationId: listInvoices
+      tags: [subscription]
+      summary: List invoices
+      responses:
+        "200":
+          description: Invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+  /marketing/content:
+    get:
+      operationId: getMarketingContent
+      tags: [marketing]
+      summary: Public marketing content (plans, testimonials, FAQ, stats)
+      responses:
+        "200":
+          description: Marketing content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingContent"
+  /blog/posts:
+    get:
+      operationId: listBlogPosts
+      tags: [blog]
+      summary: List published blog posts
+      responses:
+        "200":
+          description: Posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlogPost"
+    post:
+      operationId: createBlogPost
+      tags: [admin]
+      summary: Create a blog post (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlogPostInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPost"
+  /blog/posts/{slug}:
+    get:
+      operationId: getBlogPost
+      tags: [blog]
+      summary: Get a blog post by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPost"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /units:
+    post:
+      operationId: createUnit
+      tags: [admin]
+      summary: Create a unit in a subject (teacher/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnitInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unit"
+  /units/{id}:
+    patch:
+      operationId: updateUnit
+      tags: [admin]
+      summary: Update or reorder a unit (teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnitUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unit"
+    delete:
+      operationId: deleteUnit
+      tags: [admin]
+      summary: Delete a unit (teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /lessons:
+    post:
+      operationId: createLesson
+      tags: [admin]
+      summary: Create a lesson with exercises (teacher/admin lesson builder)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LessonInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonDetail"
+  /admin/analytics:
+    get:
+      operationId: getAdminAnalytics
+      tags: [admin]
+      summary: Platform analytics (subscribers, trials, MRR, engagement)
+      responses:
+        "200":
+          description: Analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnalytics"
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: Search parent accounts with subscription status (admin)
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+  /admin/users/{id}:
+    patch:
+      operationId: updateAdminUser
+      tags: [admin]
+      summary: Admin actions on a parent account (extend trial, pause)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      tags: [auth]
+      summary: Verify the parent email with a token from the verification email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerification"
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "400":
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /auth/resend-verification:
+    post:
+      operationId: resendVerification
+      tags: [auth]
+      summary: Resend the email verification link to the logged-in parent
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message: { type: string }
+                  devVerificationUrl:
+                    type: ["string", "null"]
+                    description: Present in development when no email provider is configured
+  /search/lessons:
+    get:
+      operationId: searchLessons
+      tags: [learning]
+      summary: Search published lessons (band-scoped for child sessions)
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        "200":
+          description: Matching lessons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, titleAr, titleEn, subjectNameAr, subjectColor, subjectIcon, durationMinutes]
+                  properties:
+                    id: { type: integer }
+                    titleAr: { type: string }
+                    titleEn: { type: string }
+                    unitTitleAr: { type: string }
+                    subjectNameAr: { type: string }
+                    subjectColor: { type: string }
+                    subjectIcon: { type: string }
+                    durationMinutes: { type: integer }
+                    completed: { type: ["boolean", "null"] }
+  /lessons/{id}/exercises/csv:
+    post:
+      operationId: importExercisesCsv
+      tags: [admin]
+      summary: Bulk-import exercises for a lesson from CSV text (teacher/admin)
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExercisesCsvImport"
+      responses:
+        "200":
+          description: Imported
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [imported, skipped]
+                properties:
+                  imported: { type: integer }
+                  skipped: { type: integer }
+                  errors:
+                    type: array
+                    items: { type: string }
+  /watan/bricks:
+    get:
+      operationId: getBrickCount
+      tags: [marketing]
+      summary: Shared community brick counter for the Watanona campaign page
+      responses:
+        "200":
+          description: Current count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrickCount"
+    post:
+      operationId: placeBrick
+      tags: [marketing]
+      summary: Add bricks to the shared community wall
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrickPlacement"
+      responses:
+        "200":
+          description: Updated count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrickCount"
+components:
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    ApiMessage:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+    Band:
+      type: string
+      enum: [explorers, builders, achievers, graduates]
+    Role:
+      type: string
+      enum: [parent, teacher, admin]
+    ParentRegistration:
+      type: object
+      required: [name, email, password, pin]
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 6 }
+        pin:
+          type: string
+          minLength: 4
+          maxLength: 4
+          description: 4-digit parent PIN used for the child-exit gate
+    LoginCredentials:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    PinCheck:
+      type: object
+      required: [pin]
+      properties:
+        pin: { type: string, minLength: 4, maxLength: 4 }
+    SessionUser:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        emailVerified: { type: boolean }
+        activeChild:
+          oneOf:
+            - $ref: "#/components/schemas/ChildProfile"
+            - type: "null"
+        subscriptionStatus:
+          type: ["string", "null"]
+          description: none | trial | active | past_due | cancelled
+    ChildProfile:
+      type: object
+      required: [id, name, avatar, band, birthYear, birthMonth, xp, streak, badges]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        avatar: { type: string, description: "avatar key, e.g. fox, owl, cat" }
+        band: { $ref: "#/components/schemas/Band" }
+        birthYear: { type: integer }
+        birthMonth: { type: integer }
+        xp: { type: integer }
+        streak: { type: integer }
+        badges:
+          type: array
+          items: { type: string }
+        dailyLimitMinutes: { type: ["integer", "null"] }
+    BrickCount:
+      type: object
+      required: [count]
+      properties:
+        count: { type: integer }
+    BrickPlacement:
+      type: object
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+          maximum: 20
+          description: Number of bricks to add (default 1)
+    EmailVerification:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 1 }
+    ExercisesCsvImport:
+      type: object
+      required: [csv]
+      properties:
+        csv:
+          type: string
+          minLength: 1
+          description: "Columns: type,promptAr,promptEn,options(|-separated),correctAnswer"
+        replace:
+          type: boolean
+          description: Replace existing exercises (default false = append)
+    ChildProfileInput:
+      type: object
+      required: [name, avatar, birthYear, birthMonth, pin]
+      properties:
+        name: { type: string, minLength: 1 }
+        avatar: { type: string }
+        birthYear: { type: integer }
+        birthMonth: { type: integer, minimum: 1, maximum: 12 }
+        pin: { type: string, minLength: 4, maxLength: 4 }
+        dailyLimitMinutes: { type: ["integer", "null"] }
+    ChildProfileUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        avatar: { type: string }
+        pin: { type: string, minLength: 4, maxLength: 4 }
+        dailyLimitMinutes: { type: ["integer", "null"] }
+    BandOutline:
+      type: object
+      required: [band, nameAr, nameEn, ageRange, descriptionAr, subjects]
+      properties:
+        band: { $ref: "#/components/schemas/Band" }
+        nameAr: { type: string }
+        nameEn: { type: string }
+        ageRange: { type: string }
+        descriptionAr: { type: string }
+        subjects:
+          type: array
+          items:
+            type: object
+            required: [nameAr, nameEn, icon, color, unitTitlesAr, sampleLessons]
+            properties:
+              nameAr: { type: string }
+              nameEn: { type: string }
+              icon: { type: string }
+              color: { type: string }
+              unitTitlesAr:
+                type: array
+                items: { type: string }
+              sampleLessons:
+                type: array
+                items: { $ref: "#/components/schemas/LessonSummary" }
+    Subject:
+      type: object
+      required: [id, nameAr, nameEn, slug, icon, color, bands]
+      properties:
+        id: { type: integer }
+        nameAr: { type: string }
+        nameEn: { type: string }
+        slug: { type: string }
+        icon: { type: string }
+        color: { type: string }
+        bands:
+          type: array
+          items: { $ref: "#/components/schemas/Band" }
+        unitCount: { type: ["integer", "null"] }
+        lessonCount: { type: ["integer", "null"] }
+        progressPercent:
+          type: ["number", "null"]
+          description: present when a child session is active
+    SubjectInput:
+      type: object
+      required: [nameAr, nameEn, slug, icon, color]
+      properties:
+        nameAr: { type: string }
+        nameEn: { type: string }
+        slug: { type: string }
+        icon: { type: string }
+        color: { type: string }
+    SubjectDetail:
+      type: object
+      required: [id, nameAr, nameEn, slug, icon, color, bands, units]
+      properties:
+        id: { type: integer }
+        nameAr: { type: string }
+        nameEn: { type: string }
+        slug: { type: string }
+        icon: { type: string }
+        color: { type: string }
+        bands:
+          type: array
+          items: { $ref: "#/components/schemas/Band" }
+        units:
+          type: array
+          items: { $ref: "#/components/schemas/UnitWithLessons" }
+    Unit:
+      type: object
+      required: [id, subjectId, band, titleAr, titleEn, position, status]
+      properties:
+        id: { type: integer }
+        subjectId: { type: integer }
+        band: { $ref: "#/components/schemas/Band" }
+        titleAr: { type: string }
+        titleEn: { type: string }
+        position: { type: integer }
+        status: { type: string, description: draft | published }
+    UnitInput:
+      type: object
+      required: [subjectId, band, titleAr, titleEn]
+      properties:
+        subjectId: { type: integer }
+        band: { $ref: "#/components/schemas/Band" }
+        titleAr: { type: string }
+        titleEn: { type: string }
+        position: { type: ["integer", "null"] }
+        status: { type: ["string", "null"] }
+    UnitUpdate:
+      type: object
+      properties:
+        titleAr: { type: string }
+        titleEn: { type: string }
+        position: { type: integer }
+        status: { type: string }
+    UnitWithLessons:
+      type: object
+      required: [id, subjectId, band, titleAr, titleEn, position, status, lessons]
+      properties:
+        id: { type: integer }
+        subjectId: { type: integer }
+        band: { $ref: "#/components/schemas/Band" }
+        titleAr: { type: string }
+        titleEn: { type: string }
+        position: { type: integer }
+        status: { type: string }
+        lessons:
+          type: array
+          items: { $ref: "#/components/schemas/LessonSummary" }
+    LessonSummary:
+      type: object
+      required: [id, unitId, titleAr, titleEn, durationMinutes, position, status, isFreeSample]
+      properties:
+        id: { type: integer }
+        unitId: { type: integer }
+        titleAr: { type: string }
+        titleEn: { type: string }
+        durationMinutes: { type: integer }
+        position: { type: integer }
+        status: { type: string }
+        isFreeSample: { type: boolean }
+        completed: { type: ["boolean", "null"] }
+        score: { type: ["number", "null"] }
+    LessonDetail:
+      type: object
+      required: [id, unitId, titleAr, titleEn, descriptionAr, descriptionEn, videoUrl, videoType, durationMinutes, position, status, isFreeSample, exercises]
+      properties:
+        id: { type: integer }
+        unitId: { type: integer }
+        titleAr: { type: string }
+        titleEn: { type: string }
+        descriptionAr: { type: string }
+        descriptionEn: { type: string }
+        videoUrl: { type: string }
+        videoType: { type: string, description: youtube | vimeo | mp4 }
+        durationMinutes: { type: integer }
+        position: { type: integer }
+        status: { type: string }
+        isFreeSample: { type: boolean }
+        subjectId: { type: ["integer", "null"] }
+        subjectNameAr: { type: ["string", "null"] }
+        unitTitleAr: { type: ["string", "null"] }
+        exercises:
+          type: array
+          items: { $ref: "#/components/schemas/Exercise" }
+    Exercise:
+      type: object
+      required: [id, lessonId, type, promptAr, promptEn, options, correctAnswer, position]
+      properties:
+        id: { type: integer }
+        lessonId: { type: integer }
+        type:
+          type: string
+          description: multiple_choice | matching | fill_blank | picture_select
+        promptAr: { type: string }
+        promptEn: { type: string }
+        options:
+          type: array
+          description: answer options; for picture_select each option is an emoji/label
+          items: { type: string }
+        correctAnswer: { type: string }
+        position: { type: integer }
+    ExerciseInput:
+      type: object
+      required: [type, promptAr, promptEn, options, correctAnswer]
+      properties:
+        type: { type: string }
+        promptAr: { type: string }
+        promptEn: { type: string }
+        options:
+          type: array
+          items: { type: string }
+        correctAnswer: { type: string }
+        position: { type: ["integer", "null"] }
+    LessonInput:
+      type: object
+      required: [unitId, titleAr, titleEn, descriptionAr, descriptionEn, videoUrl, videoType, durationMinutes]
+      properties:
+        unitId: { type: integer }
+        titleAr: { type: string }
+        titleEn: { type: string }
+        descriptionAr: { type: string }
+        descriptionEn: { type: string }
+        videoUrl: { type: string }
+        videoType: { type: string }
+        durationMinutes: { type: integer }
+        isFreeSample: { type: ["boolean", "null"] }
+        status: { type: ["string", "null"] }
+        position: { type: ["integer", "null"] }
+        exercises:
+          type: array
+          items: { $ref: "#/components/schemas/ExerciseInput" }
+    LessonUpdate:
+      type: object
+      properties:
+        titleAr: { type: string }
+        titleEn: { type: string }
+        descriptionAr: { type: string }
+        descriptionEn: { type: string }
+        videoUrl: { type: string }
+        videoType: { type: string }
+        durationMinutes: { type: integer }
+        isFreeSample: { type: boolean }
+        status: { type: string }
+        position: { type: integer }
+        exercises:
+          type: array
+          description: full replacement of the lesson's exercises when provided
+          items: { $ref: "#/components/schemas/ExerciseInput" }
+    ExerciseAnswer:
+      type: object
+      required: [exerciseId, answer, correct]
+      properties:
+        exerciseId: { type: integer }
+        answer: { type: string }
+        correct: { type: boolean }
+    LessonCompletion:
+      type: object
+      required: [answers, timeSpentSeconds]
+      properties:
+        answers:
+          type: array
+          items: { $ref: "#/components/schemas/ExerciseAnswer" }
+        timeSpentSeconds: { type: integer }
+    CompletionResult:
+      type: object
+      required: [xpEarned, totalXp, streak, newBadges, score]
+      properties:
+        xpEarned: { type: integer }
+        totalXp: { type: integer }
+        streak: { type: integer }
+        newBadges:
+          type: array
+          items: { type: string }
+        score: { type: number, description: 0-100 }
+    ContinueLesson:
+      type: object
+      required: [lessonId, titleAr, titleEn, subjectNameAr, subjectColor, subjectIcon]
+      properties:
+        lessonId: { type: integer }
+        titleAr: { type: string }
+        titleEn: { type: string }
+        subjectNameAr: { type: string }
+        subjectColor: { type: string }
+        subjectIcon: { type: string }
+    ChildHome:
+      type: object
+      required: [child, subjects, todayMinutes, dailyLimitReached]
+      properties:
+        child: { $ref: "#/components/schemas/ChildProfile" }
+        continueLesson:
+          oneOf:
+            - $ref: "#/components/schemas/ContinueLesson"
+            - type: "null"
+        subjects:
+          type: array
+          items: { $ref: "#/components/schemas/Subject" }
+        todayMinutes: { type: integer }
+        dailyLimitReached: { type: boolean }
+    ChildOverviewCard:
+      type: object
+      required: [child, minutesThisWeek, lessonsCompletedThisWeek, lessonsCompletedTotal, subjectsCovered, averageScore]
+      properties:
+        child: { $ref: "#/components/schemas/ChildProfile" }
+        minutesThisWeek: { type: integer }
+        lessonsCompletedThisWeek: { type: integer }
+        lessonsCompletedTotal: { type: integer }
+        subjectsCovered:
+          type: array
+          items: { type: string }
+        averageScore: { type: ["number", "null"] }
+    ParentOverview:
+      type: object
+      required: [children]
+      properties:
+        children:
+          type: array
+          items: { $ref: "#/components/schemas/ChildOverviewCard" }
+    TopicScore:
+      type: object
+      required: [topicAr, topicEn, subjectNameAr, averageScore, attempts]
+      properties:
+        topicAr: { type: string }
+        topicEn: { type: string }
+        subjectNameAr: { type: string }
+        averageScore: { type: number }
+        attempts: { type: integer }
+    DailyActivity:
+      type: object
+      required: [date, minutes, lessonsCompleted]
+      properties:
+        date: { type: string }
+        minutes: { type: integer }
+        lessonsCompleted: { type: integer }
+    ChildReport:
+      type: object
+      required: [child, strengths, struggles, weekActivity, recentLessons]
+      properties:
+        child: { $ref: "#/components/schemas/ChildProfile" }
+        strengths:
+          type: array
+          items: { $ref: "#/components/schemas/TopicScore" }
+        struggles:
+          type: array
+          items: { $ref: "#/components/schemas/TopicScore" }
+        weekActivity:
+          type: array
+          items: { $ref: "#/components/schemas/DailyActivity" }
+        recentLessons:
+          type: array
+          items: { $ref: "#/components/schemas/LessonSummary" }
+    DataDeletionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
+    Subscription:
+      type: object
+      required: [status, plan]
+      properties:
+        status:
+          type: string
+          description: none | trial | active | past_due | cancelled
+        plan:
+          type: string
+          description: none | monthly | annual
+        trialEndsAt: { type: ["string", "null"] }
+        currentPeriodEnd: { type: ["string", "null"] }
+        priceSar: { type: ["number", "null"] }
+        couponCode: { type: ["string", "null"] }
+    SubscriptionStart:
+      type: object
+      required: [plan]
+      properties:
+        plan: { type: string, description: monthly | annual }
+        couponCode: { type: ["string", "null"] }
+        cardLast4:
+          type: ["string", "null"]
+          description: demo card capture (payments provider is swappable)
+    Invoice:
+      type: object
+      required: [id, date, amountSar, status, description]
+      properties:
+        id: { type: integer }
+        date: { type: string }
+        amountSar: { type: number }
+        status: { type: string }
+        description: { type: string }
+    PlanInfo:
+      type: object
+      required: [plan, priceSar, period, savingsPercent]
+      properties:
+        plan: { type: string }
+        priceSar: { type: number }
+        period: { type: string }
+        savingsPercent: { type: ["number", "null"] }
+    Testimonial:
+      type: object
+      required: [nameAr, city, quoteAr, childrenCount]
+      properties:
+        nameAr: { type: string }
+        city: { type: string }
+        quoteAr: { type: string }
+        childrenCount: { type: integer }
+    FaqItem:
+      type: object
+      required: [questionAr, answerAr]
+      properties:
+        questionAr: { type: string }
+        answerAr: { type: string }
+    MarketingContent:
+      type: object
+      required: [plans, testimonials, faq, stats]
+      properties:
+        plans:
+          type: array
+          items: { $ref: "#/components/schemas/PlanInfo" }
+        testimonials:
+          type: array
+          items: { $ref: "#/components/schemas/Testimonial" }
+        faq:
+          type: array
+          items: { $ref: "#/components/schemas/FaqItem" }
+        stats:
+          type: object
+          required: [families, lessons, subjects]
+          properties:
+            families: { type: integer }
+            lessons: { type: integer }
+            subjects: { type: integer }
+    BlogPost:
+      type: object
+      required: [id, slug, titleAr, excerptAr, contentAr, coverEmoji, publishedAt]
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        titleAr: { type: string }
+        excerptAr: { type: string }
+        contentAr: { type: string }
+        coverEmoji: { type: string }
+        publishedAt: { type: string }
+    BlogPostInput:
+      type: object
+      required: [slug, titleAr, excerptAr, contentAr, coverEmoji]
+      properties:
+        slug: { type: string }
+        titleAr: { type: string }
+        excerptAr: { type: string }
+        contentAr: { type: string }
+        coverEmoji: { type: string }
+    AdminAnalytics:
+      type: object
+      required: [totalParents, totalChildren, activeSubscriptions, trialingSubscriptions, trialConversionRate, churnRate, mrrSar, dailyActiveChildren, lessonEngagement]
+      properties:
+        totalParents: { type: integer }
+        totalChildren: { type: integer }
+        activeSubscriptions: { type: integer }
+        trialingSubscriptions: { type: integer }
+        trialConversionRate: { type: number }
+        churnRate: { type: number }
+        mrrSar: { type: number }
+        dailyActiveChildren: { type: integer }
+        lessonEngagement:
+          type: array
+          items:
+            type: object
+            required: [lessonId, titleAr, completions, averageScore]
+            properties:
+              lessonId: { type: integer }
+              titleAr: { type: string }
+              completions: { type: integer }
+              averageScore: { type: number }
+    AdminUser:
+      type: object
+      required: [id, name, email, role, childCount, subscriptionStatus, plan, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        childCount: { type: integer }
+        subscriptionStatus: { type: string }
+        plan: { type: string }
+        createdAt: { type: string }
+    AdminUserUpdate:
+      type: object
+      properties:
+        extendTrialDays: { type: integer }
+        subscriptionStatus: { type: string }

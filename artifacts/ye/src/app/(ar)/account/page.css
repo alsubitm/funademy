@@ -5,54 +5,50 @@
 }
 
 .acct-box {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-radius: 4px;
-  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 240, 255, 0.05);
-  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 24px;
+  box-shadow: 0 32px 64px rgba(7, 17, 42, 0.08), 0 8px 16px rgba(7, 17, 42, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   padding: 40px;
   max-width: 560px;
   margin: 48px auto 0;
   position: relative;
   z-index: 2;
-  clip-path: polygon(24px 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px);
 }
 
 @media (max-width: 640px) {
-  .acct-box { padding: 24px 18px; margin-top: 28px; clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px); }
+  .acct-box { padding: 24px 18px; margin-top: 28px; border-radius: 18px; }
 }
 
 .acct-field { margin-bottom: 18px; }
 
 .acct-field label {
   display: block;
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: 13px;
-  color: var(--mut);
+  font-size: 14px;
+  color: var(--ink);
   margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .acct-field input {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--line);
+  border-radius: 12px;
   padding: 12px 14px;
-  font-size: 14px;
-  font-family: var(--font-mono);
-  background: rgba(0, 0, 0, 0.3);
-  color: #fff;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-  outline: none;
+  font-size: 16px;
+  font-family: var(--font-body);
+  background: #fff;
+  color: var(--ink);
+  transition: border-color 0.2s ease;
 }
 
 .acct-field input:focus {
-  border-color: var(--cyan);
-  background: rgba(0, 240, 255, 0.05);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(28, 84, 203, 0.12);
 }
 
 .acct-btn {
@@ -61,71 +57,68 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  background: rgba(0, 240, 255, 0.1);
-  color: var(--cyan);
-  border: 1px solid rgba(0, 240, 255, 0.3);
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 14px;
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  border: none;
+  border-radius: 999px;
   padding: 14px 24px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 12px 24px rgba(28, 84, 203, 0.25);
 }
-.acct-btn:hover:not(:disabled) { background: rgba(0, 240, 255, 0.2); border-color: var(--cyan); box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); }
-.acct-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.acct-btn:hover:not(:disabled) { background: var(--blue-deep); transform: translateY(-1px); }
+.acct-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .acct-btn.ghost {
   background: transparent;
-  color: #fff;
+  color: var(--blue);
   box-shadow: none;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--line);
   width: auto;
-  font-size: 12px;
+  font-size: 14px;
   padding: 8px 18px;
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
-.acct-btn.ghost:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); background: rgba(0, 240, 255, 0.05); }
+.acct-btn.ghost:hover:not(:disabled) { background: #f4f8ff; }
 
 .acct-btn.danger {
   background: transparent;
-  color: var(--red);
-  border: 1px dashed rgba(239, 68, 68, 0.3);
+  color: #B0483B;
+  border: 2px solid rgba(176, 72, 59, 0.25);
   box-shadow: none;
   width: auto;
-  font-size: 11px;
+  font-size: 13px;
   padding: 6px 14px;
 }
-.acct-btn.danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.1); border-color: var(--red); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+.acct-btn.danger:hover:not(:disabled) { background: rgba(176, 72, 59, 0.06); transform: none; }
 
 .acct-err {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--red);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(176, 72, 59, 0.08);
+  color: #8f382d;
+  border: 1px solid rgba(176, 72, 59, 0.25);
+  border-radius: 12px;
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
-  font-family: var(--font-mono);
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
 }
 
 .acct-note {
-  background: rgba(0, 240, 255, 0.05);
-  border: 1px dashed rgba(0, 240, 255, 0.3);
+  background: #f4f8ff;
+  border: 1.5px dashed rgba(28, 84, 203, 0.35);
+  border-radius: 12px;
   padding: 10px 14px;
-  font-size: 13px;
-  color: var(--cyan);
+  font-size: 14px;
+  color: var(--blue-deep);
   margin-bottom: 16px;
-  font-family: var(--font-mono);
 }
 
 .acct-devcode {
   font-family: var(--font-mono);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.2em;
-  color: var(--yellow);
+  color: var(--blue);
 }
 
 .acct-kids { list-style: none; padding: 0; margin: 0 0 20px; display: grid; gap: 12px; }
@@ -134,31 +127,29 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--line);
+  border-radius: 16px;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.02);
-  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  background: #fff;
 }
-.acct-kid:hover { background: rgba(0, 240, 255, 0.02); border-color: rgba(0, 240, 255, 0.2); }
 
 .acct-kid .k-avatar {
   width: 44px;
   height: 44px;
-  background: rgba(0, 240, 255, 0.1);
-  color: var(--cyan);
+  border-radius: 12px;
+  background: var(--bp);
+  color: var(--yellow);
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 20px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-  border: 1px solid rgba(0, 240, 255, 0.3);
 }
 
 .acct-kid .k-info { flex: 1; min-width: 0; }
-.acct-kid .k-name { font-family: var(--font-display); font-weight: 800; color: #fff; }
-.acct-kid .k-meta { font-size: 12.5px; color: var(--mut); font-family: var(--font-mono); }
+.acct-kid .k-name { font-family: var(--font-display); font-weight: 700; color: var(--ink); }
+.acct-kid .k-meta { font-size: 12.5px; color: var(--mut); }
 .acct-kid .k-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .acct-head {
@@ -169,17 +160,16 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
-.acct-head h2 { font-family: var(--font-mono); font-weight: 700; font-size: 20px; color: #fff; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
-.acct-head .a-phone { font-family: var(--font-mono); font-size: 13px; color: var(--cyan); direction: ltr; background: rgba(0, 240, 255, 0.1); padding: 4px 10px; border: 1px solid rgba(0, 240, 255, 0.3); clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }
+.acct-head h2 { font-family: var(--font-display); font-weight: 800; font-size: 22px; color: var(--ink); margin: 0; }
+.acct-head .a-phone { font-family: var(--font-mono); font-size: 13px; color: var(--mut); direction: ltr; }
 
 .acct-empty {
   text-align: center;
   color: var(--mut);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed var(--line);
+  border-radius: 16px;
   padding: 28px 16px;
   margin-bottom: 20px;
-  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
 }
 
 .acct-form-row { display: grid; grid-template-columns: 1fr 140px; gap: 12px; }

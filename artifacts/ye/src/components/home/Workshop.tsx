@@ -47,13 +47,7 @@ export function Workshop({ lang }: { lang: 'ar' | 'en' }) {
 
         <ScrollReveal className="shop-media">
           <div className="shop-photo">
-            <Image
-              src="/workshop-coding.jpg"
-              alt="Child coding robot"
-              fill
-              sizes="(max-width: 920px) 100vw, 50vw"
-              style={{ objectFit: 'cover' }}
-            />
+            <Image src="/workshop-coding.jpg" alt="Child coding robot" fill style={{ objectFit: 'cover' }} />
             <div className="glow"></div>
           </div>
           <div className="term" dir="ltr">

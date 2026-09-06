@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { trackEvent } from '@/lib/analytics';
 
 // correctAnswer is intentionally absent — the server never sends it.
 // Grading is server-side only; perAnswer results are returned after submission.
@@ -95,7 +96,15 @@ export default function KidLessonPage() {
         body: JSON.stringify({ answers: finalAnswers, timeSpentSeconds: timeSpent }),
       });
       if (r.ok) {
-        const data = await r.json();
+        const data = (await r.json()) as RewardData;
+        const scoreBucket = data.score >= 90 ? '90_100' : data.score >= 70 ? '70_89' : data.score >= 50 ? '50_69' : '0_49';
+        trackEvent('kids_lesson_completed', {
+          subject: lesson?.subjectSlug ?? 'unknown',
+          score_bucket: scoreBucket,
+          exercise_count: finalAnswers.length,
+          xp_earned: data.xpEarned,
+          repeated: lesson?.completed ?? false,
+        });
         setReward(data);
         setStage('reward');
       } else if (r.status === 403) {

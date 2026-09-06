@@ -212,9 +212,6 @@ model ChatConversation {
   status           ChatConversationStatus @default(open)
   contactMethod    String?
   contactValue     String?
-  channel          String            @default("website")
-  whatsappPhoneHash String?           @unique
-  assignedTo       String?
   consentAt        DateTime
   consentVersion   String            @default("chat-v1")
   familyVerifiedAt DateTime?
@@ -240,17 +237,10 @@ model ChatMessage {
   sourceRefs     Json?
   providerId     String?
   idempotencyKey String?
-  channel        String           @default("website")
-  direction      String           @default("inbound")
-  deliveryStatus String?
-  deliveryError  String?
-  dispatchStartedAt DateTime?
-  deliveredAt    DateTime?
   createdAt      DateTime         @default(now())
   expiresAt      DateTime
 
   @@unique([conversationId, idempotencyKey])
-  @@unique([providerId])
   @@index([conversationId, createdAt])
   @@index([expiresAt])
   @@map("ye_chat_messages")

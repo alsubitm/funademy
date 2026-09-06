@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { bookDict } from '@/app/(ar)/book/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { getSavedAge, saveAge } from '@/lib/savedAge';
-import { PartyPopper, CalendarDays, Video } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 type BookingFlowProps = {
   programs: any[];
@@ -62,12 +62,14 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   } | null>(null);
   
   const [error, setError] = useState('');
+  const bookingStartedTracked = useRef(false);
 
   // Derived
   const programSlots = slots.filter((s) => s.programId === programId);
   const hasBothFormats = new Set(programSlots.map((s) => s.format)).size > 1;
   const filteredSlots = programSlots.filter((s) => formatFilter === 'all' || s.format === formatFilter);
   const selectedProgram = programs.find(p => p.id === programId);
+  const selectedSlot = slots.find((s) => s.id === slotId);
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 15 }, (_, i) => currentYear - 18 + i).reverse();
   const weekdays = lang === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN;
@@ -81,6 +83,14 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
     if (step === 2 && !slotId) {
       setError(d.valError);
       return;
+    }
+    if (step === 1 && !bookingStartedTracked.current) {
+      bookingStartedTracked.current = true;
+      trackEvent('trial_booking_started', {
+        lang,
+        program: selectedProgram?.slug ?? 'unknown',
+        age_selected: ageFilter !== null,
+      });
     }
     setStep((s) => (s + 1) as 1 | 2 | 3 | 4);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -127,6 +137,13 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
 
         if (res.status === 201) {
           const data = await res.json().catch(() => null);
+          trackEvent('trial_booking_completed', {
+            lang,
+            program: selectedProgram?.slug ?? 'unknown',
+            format: selectedSlot?.format ?? 'unknown',
+            appointment_created: Boolean(data?.appointment),
+            meet_link_created: Boolean(data?.appointment?.meetUrl),
+          });
           setAppointment(data?.appointment ?? null);
           setStep(4);
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -160,18 +177,18 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
     return (
       <div className="w-box">
         <div className="success-box">
-          <div className="icon" style={{ fontSize: '48px', color: 'var(--yellow)' }}><PartyPopper size={48} /></div>
+          <div className="icon">🎉</div>
           <h3>{d.successTitle}</h3>
           <p>{d.successDesc}</p>
           {appointment ? (
             <div className="appt-box" style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
-              <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CalendarDays size={16} style={{ color: 'var(--cyan)' }} /> <b style={{ color: 'var(--mut)' }}>{d.apptWhen}:</b> {lang === 'ar' ? appointment.whenAr : appointment.whenEn}
+              <p style={{ margin: '4px 0' }}>
+                🗓️ <b>{d.apptWhen}:</b> {lang === 'ar' ? appointment.whenAr : appointment.whenEn}
               </p>
               {appointment.meetUrl && (
-                <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Video size={16} style={{ color: 'var(--cyan)' }} /> <b style={{ color: 'var(--mut)' }}>{d.apptJoin}:</b>{' '}
-                  <a href={appointment.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ color: 'var(--cyan)' }}>
+                <p style={{ margin: '4px 0' }}>
+                  🎥 <b>{d.apptJoin}:</b>{' '}
+                  <a href={appointment.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr">
                     {appointment.meetUrl}
                   </a>
                 </p>

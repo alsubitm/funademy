@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { enrollDict } from '@/app/(ar)/enroll/dict';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
+import { trackEvent } from '@/lib/analytics';
 
 type Lang = 'ar' | 'en';
 type Student = { id: number; firstName: string; birthYear: number };
@@ -68,7 +69,15 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
         const doneRes = await fetch(`/svc/enroll/checkout?paymentId=${encodeURIComponent(paidId)}`, { cache: 'no-store' });
         if (doneRes.ok) {
           const dp = await doneRes.json();
-          if (dp.paid) setDone(dp);
+          if (dp.paid) {
+            trackEvent('monthly_enrollment_completed', {
+              lang,
+              source: 'payment_return',
+              item_count: Array.isArray(dp.items) ? dp.items.length : 0,
+              simulated: dp.simulated !== false,
+            });
+            setDone(dp);
+          }
         }
       }
 
@@ -127,6 +136,14 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
       });
       const data = await res.json();
       if (!res.ok) return setError(data.error ?? 'generic');
+      const selectedRun = runs.find((run) => run.id === courseRunId);
+      trackEvent('monthly_enrollment_started', {
+        lang,
+        program: selectedRun?.program.slug ?? 'unknown',
+        format: selectedRun?.format ?? 'unknown',
+        cart_item_count: data.items?.length ?? 0,
+        discount_applied: Number(data.discountSar ?? 0) > 0,
+      });
       setCart(data);
       setChildId(null);
     } catch {
@@ -145,6 +162,13 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
     setBusy(true);
     setError(null);
     try {
+      trackEvent('monthly_payment_initiated', {
+        lang,
+        provider,
+        item_count: cart.items.length,
+        discount_applied: cart.discountSar > 0,
+        live_provider: provider === 'tamara' ? live.tamara : live.moyasar,
+      });
       const res = await fetch('/svc/enroll/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,6 +181,12 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
         window.location.assign(data.redirectUrl);
         return;
       }
+      trackEvent('monthly_enrollment_completed', {
+        lang,
+        source: 'immediate_confirmation',
+        item_count: cart.items.length,
+        simulated: data.simulated !== false,
+      });
       setDone(data);
       setCart({ items: [], subtotalSar: 0, discountSar: 0, totalSar: 0 });
     } catch {

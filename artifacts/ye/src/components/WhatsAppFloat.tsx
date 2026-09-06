@@ -1,11 +1,13 @@
 'use client';
 import { waLink, WA_DEFAULT_AR } from '@/lib/constants';
+import { trackEvent } from '@/lib/analytics';
 
 export function WhatsAppFloat({ lang }: { lang: 'ar' | 'en' }) {
   const msg = lang === 'ar' ? WA_DEFAULT_AR : 'Hello! I would like to book a free trial class.';
   const link = waLink(msg);
 
   const handleClick = () => {
+    trackEvent('whatsapp_outbound_click', { lang, surface: 'floating_button' });
     fetch('/svc/clicks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { waLink } from '@/lib/constants';
+import { trackEvent } from '@/lib/analytics';
 import type { ChatAction, ChatMessage, ChatSession, ChatSource } from './types';
-import { Sparkles, MessageCircle } from 'lucide-react';
 
 type Lang = 'ar' | 'en';
 type JsonRecord = Record<string, unknown>;
@@ -344,6 +344,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   const acceptConsent = () => {
     if (!consentChecked) return;
     localStorage.setItem('funademy-chat-consent', 'yes');
+    trackEvent('ai_assistant_consented', { lang, mode });
     setConsented(true);
   };
 
@@ -356,8 +357,22 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
         body: JSON.stringify({ reason: 'human_requested' }),
       });
       setEscalated(true);
+      trackEvent('ai_assistant_escalated', {
+        lang,
+        mode,
+        channel: 'whatsapp',
+        reason: 'human_requested',
+      });
+      trackEvent('whatsapp_outbound_click', { lang, surface: 'assistant_escalation' });
       window.open(waLink(lang === 'ar' ? 'مرحباً، سجلت طلب متابعة عبر المساعد.' : 'Hello, I recorded a follow-up request through the assistant.'), '_blank', 'noopener,noreferrer');
     } catch { setError(t.error); } finally { setEscalating(false); }
+  };
+
+  const toggleOpen = () => {
+    setOpen((value) => {
+      if (!value) trackEvent('ai_assistant_opened', { lang, mode });
+      return !value;
+    });
   };
 
   const selectSession = async (id: string) => {
@@ -473,7 +488,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
 
       {!consented ? (
         <div className="chat-ui__consent">
-          <div className="chat-ui__bot-mark" aria-hidden="true"><Sparkles size={36} /></div>
+          <div className="chat-ui__bot-mark" aria-hidden="true">✦</div>
           <h2>{t.name}</h2>
           <p>{t.intro}</p>
           <label className="chat-ui__consent-copy">
@@ -583,10 +598,10 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
         className="chat-ui__launcher"
         aria-label={t.open}
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggleOpen}
         data-testid="button-open-chat"
       >
-        <span aria-hidden="true"><MessageCircle size={26} /></span>
+        <span aria-hidden="true">✦</span>
         <span>{lang === 'ar' ? 'اسألنا' : 'Ask us'}</span>
       </button>
     </div>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { consultDict } from '@/app/(ar)/consult/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
-import { PartyPopper, CalendarDays, Video } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 const RIYADH_OFFSET_MS = 3 * 60 * 60 * 1000;
 
@@ -60,6 +60,13 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
       setError(d.valError);
       return;
     }
+    const slotParts = riyadhParts(startsAt);
+    trackEvent('consultation_started', {
+      lang,
+      weekday: slotParts.weekday,
+      period: slotParts.pm ? 'pm' : 'am',
+      email_provided: Boolean(email.trim()),
+    });
     startTransition(async () => {
       try {
         const res = await fetch('/svc/appointments', {
@@ -69,6 +76,13 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
         });
         if (res.status === 201) {
           const data = await res.json();
+          trackEvent('consultation_booked', {
+            lang,
+            weekday: slotParts.weekday,
+            period: slotParts.pm ? 'pm' : 'am',
+            email_invited: Boolean(data.emailInvited),
+            meet_link_created: Boolean(data.meetUrl),
+          });
           setConfirmed({ whenAr: data.whenAr, whenEn: data.whenEn, meetUrl: data.meetUrl, emailInvited: data.emailInvited });
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (res.status === 409) {
@@ -93,17 +107,17 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
     return (
       <div className="w-box">
         <div className="success-box">
-          <div className="icon" style={{ fontSize: '48px', color: 'var(--yellow)' }}><PartyPopper size={48} /></div>
+          <div className="icon">🎉</div>
           <h3>{d.successTitle}</h3>
-          <div style={{ margin: '16px 0', padding: '14px', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '4px', textAlign: 'start', background: 'rgba(0,0,0,0.4)' }}>
-            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}><CalendarDays size={16} style={{ color: 'var(--cyan)' }} /> <b style={{ color: 'var(--mut)' }}>{d.when}:</b> {when}</p>
+          <div style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
+            <p style={{ margin: '4px 0' }}>🗓️ <b>{d.when}:</b> {when}</p>
             {confirmed.meetUrl && (
-              <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Video size={16} style={{ color: 'var(--cyan)' }} /> <b style={{ color: 'var(--mut)' }}>{d.join}:</b>{' '}
-                <a href={confirmed.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ color: 'var(--cyan)' }}>{confirmed.meetUrl}</a>
+              <p style={{ margin: '4px 0' }}>
+                🎥 <b>{d.join}:</b>{' '}
+                <a href={confirmed.meetUrl} target="_blank" rel="noopener noreferrer" dir="ltr">{confirmed.meetUrl}</a>
               </p>
             )}
-            {confirmed.emailInvited && <p style={{ margin: '4px 0', color: 'var(--mut)' }}>{d.emailSent}</p>}
+            {confirmed.emailInvited && <p style={{ margin: '4px 0' }}>{d.emailSent}</p>}
           </div>
           <a href={waLink(msg)} target="_blank" rel="noopener noreferrer" className="btn wa">{d.waBtn}</a>
         </div>

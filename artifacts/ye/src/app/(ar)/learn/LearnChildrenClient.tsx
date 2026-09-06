@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { LrnChild } from '@prisma/client';
-import { Star, Flame, Rocket, Medal } from 'lucide-react';
 
 /** Saudi national ID / iqama: 10 digits starting with 1 or 2 (mirrors the server rule). */
 const NATIONAL_ID_RE = /^[12]\d{9}$/;
@@ -214,14 +213,11 @@ function ChildCard({
       <div className="learn-child-avatar">{child.avatar}</div>
       <div className="learn-child-name">{child.name}</div>
       <div className="learn-child-band">{BAND_LABELS_AR[child.band]}</div>
-      <div className="learn-child-xp flex items-center justify-center gap-2">
-        <Star size={14} className="text-yellow-500 fill-yellow-500" /> {child.xp} XP &nbsp;|&nbsp;
-        <Flame size={14} className="text-orange-500 fill-orange-500" /> {child.streak}
-      </div>
+      <div className="learn-child-xp">⭐ {child.xp} XP &nbsp;|&nbsp; 🔥 {child.streak}</div>
       {child.badges.length > 0 && (
         <div className="learn-child-badges">
           {child.badges.slice(0, 3).map((b) => (
-            <span key={b} title={b}>{badgeIcons[b] ?? <Medal size={16} />}</span>
+            <span key={b} title={b}>{badgeIcons[b] ?? '🏅'}</span>
           ))}
         </div>
       )}
@@ -249,8 +245,8 @@ function ChildCard({
           </div>
         </div>
       ) : (
-        <button className="btn y learn-enter-btn flex items-center justify-center gap-2" onClick={() => setEntering(true)}>
-          ابدأ التعلّم <Rocket size={18} />
+        <button className="btn y learn-enter-btn" onClick={() => setEntering(true)}>
+          ابدأ التعلّم 🚀
         </button>
       )}
     </div>

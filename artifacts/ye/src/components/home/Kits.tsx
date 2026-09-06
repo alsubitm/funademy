@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { CATALOG, FIELDS, PATH_ORDER, type FieldId } from '@/lib/catalog';
 import { arabicDigits } from '@/lib/constants';
 import { getSavedAge, saveAge } from '@/lib/savedAge';
-import { Blocks, Gamepad2, Settings, Cpu, Bot, Laptop, Telescope } from 'lucide-react';
 
 interface Program {
   id: number;
@@ -40,14 +39,14 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
   };
 
   const getIcon = (slug: string) => {
-    if (slug.includes('builder')) return <Blocks size={48} className="drop-shadow-lg" />;
-    if (slug.includes('smart')) return <Gamepad2 size={48} className="drop-shadow-lg" />;
-    if (slug.includes('challenge')) return <Settings size={48} className="drop-shadow-lg" />;
-    if (slug.includes('robo')) return <Cpu size={48} className="drop-shadow-lg" />;
-    if (slug.includes('play')) return <Bot size={48} className="drop-shadow-lg" />;
-    if (slug.includes('algoc')) return <Laptop size={48} className="drop-shadow-lg" />;
-    if (slug.includes('galileo')) return <Telescope size={48} className="drop-shadow-lg" />;
-    return <Settings size={48} className="drop-shadow-lg" />;
+    if (slug.includes('builder')) return '🧱';
+    if (slug.includes('smart')) return '🎮';
+    if (slug.includes('challenge')) return '⚙️';
+    if (slug.includes('robo')) return '🦾';
+    if (slug.includes('play')) return '🤖';
+    if (slug.includes('algoc')) return '💻';
+    if (slug.includes('galileo')) return '🔭';
+    return '⚙️';
   };
 
   const fitsAge = (p: Program) => age === null || (age >= p.ageMin && age <= p.ageMax);
@@ -61,7 +60,7 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
   })).filter((g) => g.items.length > 0);
 
   return (
-    <section className="sec bg-transparent" id="programs">
+    <section className="sec bg-white" id="programs">
       <div className="wrap">
         <ScrollReveal style={{ textAlign: 'center' }}>
           <span className="kick">THE PROGRAMS</span>
@@ -80,19 +79,18 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
 
         {/* Age filter — "How old is your child?" */}
         <div style={{ textAlign: 'center', marginTop: 26 }}>
-          <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12, color: 'var(--ink)' }}>
+          <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12 }}>
             {lang === 'ar' ? 'كم عمر طفلك؟' : 'How old is your child?'}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', maxWidth: '640px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 640, margin: '0 auto' }}>
             <button
               type="button"
               onClick={() => setAge(null)}
               style={{
-                padding: '8px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                border: '1px solid ' + (age === null ? 'var(--cyan)' : 'rgba(255,255,255,0.1)'),
-                background: age === null ? 'rgba(0,240,255,0.1)' : 'rgba(255,255,255,0.02)',
-                color: age === null ? 'var(--cyan)' : 'var(--mut)',
-                clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)'
+                padding: '8px 16px', borderRadius: 999, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                border: '2px solid #1C54CB',
+                background: age === null ? '#1C54CB' : '#fff',
+                color: age === null ? '#fff' : '#1C54CB',
               }}
             >
               {lang === 'ar' ? 'كل الأعمار' : 'All ages'}
@@ -104,11 +102,10 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
                 onClick={() => setAge(a)}
                 aria-pressed={age === a}
                 style={{
-                  width: 40, height: 40, fontWeight: 800, fontSize: 15, cursor: 'pointer',
-                  border: '1px solid ' + (age === a ? 'var(--cyan)' : 'rgba(255,255,255,0.1)'),
-                  background: age === a ? 'rgba(0,240,255,0.1)' : 'rgba(255,255,255,0.02)',
-                  color: age === a ? 'var(--cyan)' : 'var(--mut)',
-                  clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
+                  width: 40, height: 40, borderRadius: 999, fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                  border: '2px solid ' + (age === a ? '#1C54CB' : '#DFE5F2'),
+                  background: age === a ? '#1C54CB' : '#fff',
+                  color: age === a ? '#fff' : '#101A38',
                 }}
               >
                 {lang === 'ar' ? arabicDigits(a) : a}
@@ -116,7 +113,7 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
             ))}
           </div>
           {age !== null && (
-            <div style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: 'var(--cyan)' }}>
+            <div style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: '#5F6B92' }}>
               {lang === 'ar'
                 ? `البرامج المناسبة لعمر ${arabicDigits(age)} سنوات`
                 : `Programs suitable for age ${age}`}
@@ -125,7 +122,7 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
         </div>
 
         {age !== null && groups.length === 0 && (
-          <div style={{ textAlign: 'center', marginTop: 30, padding: 30, border: '1px dashed rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--red)', clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
+          <div style={{ textAlign: 'center', marginTop: 30, padding: 30, border: '2px dashed #DFE5F2', borderRadius: 16, fontWeight: 700, color: '#5F6B92' }}>
             {lang === 'ar' ? 'لا يوجد برنامج مطابق لهذا العمر حالياً — تواصل معنا لنرشح الأنسب.' : 'No matching program for this age yet — contact us for a recommendation.'}
           </div>
         )}
@@ -166,7 +163,7 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
                         </div>
                         <Link
                           href={lang === 'ar' ? `/programs/${p.slug}` : `/en/programs/${p.slug}`}
-                          style={{ fontSize: 13, color: 'var(--cyan)', fontWeight: 700 }}
+                          style={{ fontSize: 14, color: '#1C54CB', fontWeight: 700 }}
                         >
                           {lang === 'ar' ? 'تفاصيل البرنامج' : 'Learn more'}
                         </Link>

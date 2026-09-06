@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/watanona/"
+title = "أطفالنا يبنون وطننا — Watanona"
+description = "A redesigned Arabic-first scrollytelling campaign page for Young Engineers Riyadh North's 'Our Kids Build Our Homeland' campaign. Features an animated build-the-homeland story (home → neighborhood → city → homeland), an interactive community brick wall with a shared counter, and a WhatsApp signup CTA."
+version = "1.0.0"
+id = "artifacts/watanona"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/watanona/" ]
+localPort = 24563
+
+[services.development]
+run = "pnpm --filter @workspace/watanona run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/watanona", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/watanona/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24563"
+BASE_PATH = "/watanona/"
