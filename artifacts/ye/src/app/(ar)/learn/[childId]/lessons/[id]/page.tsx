@@ -42,17 +42,47 @@ const BADGE_ICONS: Record<string, string> = {
   streak_3: '⚡', streak_7: '💎', perfect_score: '🎯',
 };
 
-function toYoutubeEmbed(url: string) {
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([A-Za-z0-9_-]{11})/);
-  return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : url;
+function safeHttpUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
+  } catch { return null; }
 }
 
-function toVimeoEmbed(url: string) {
-  const m = url.match(/vimeo\.com\/(\d+)/);
-  return m ? `https://player.vimeo.com/video/${m[1]}` : url;
+function toYoutubeEmbed(raw: string): string | null {
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.replace(/^www\./, '');
+    const id = host === 'youtu.be'
+      ? url.pathname.slice(1).split('/')[0]
+      : ['youtube.com', 'm.youtube.com'].includes(host)
+        ? (url.pathname === '/watch' ? url.searchParams.get('v') : url.pathname.match(/^\/embed\/([^/]+)/)?.[1])
+        : null;
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id)
+      ? `https://www.youtube-nocookie.com/embed/${id}?rel=0`
+      : null;
+  } catch { return null; }
+}
+
+function toVimeoEmbed(raw: string): string | null {
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.replace(/^www\./, '');
+    if (!['vimeo.com', 'player.vimeo.com'].includes(host)) return null;
+    const id = url.pathname.match(/(?:\/video)?\/(\d+)(?:\/|$)/)?.[1];
+    return id ? `https://player.vimeo.com/video/${id}` : null;
+  } catch { return null; }
 }
 
 type Stage = 'video' | 'exercises' | 'reward';
+type Answer = { exerciseId: number; answer: string };
+type Draft = {
+  stage: Exclude<Stage, 'reward'>;
+  exIdx: number;
+  selected: string | null;
+  answers: Answer[];
+  elapsedSeconds: number;
+};
 
 export default function KidLessonPage() {
   const params = useParams<{ childId: string; id: string }>();
@@ -62,32 +92,89 @@ export default function KidLessonPage() {
   const [stage, setStage] = useState<Stage>('video');
   const [exIdx, setExIdx] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
-  const [advancing, setAdvancing] = useState(false);
-  const [answers, setAnswers] = useState<Array<{ exerciseId: number; answer: string }>>([]);
+  const [answers, setAnswers] = useState<Answer[]>([]);
   const [reward, setReward] = useState<RewardData | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const startTime = useRef(Date.now());
+  const [error, setError] = useState('');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const draftLoaded = useRef(false);
+  const elapsedRef = useRef(0);
+  const questionRef = useRef<HTMLParagraphElement>(null);
+  const storageKey = `funademy:lesson-draft:${childId}:${id}`;
 
   useEffect(() => {
     fetch(`/svc/learn/lessons/${id}`)
       .then((r) => {
         if (r.status === 401 || r.status === 403) { window.location.href = '/learn'; return null; }
-        return r.ok ? r.json() : null;
+        if (!r.ok) throw new Error(`lesson_load_${r.status}`);
+        return r.json();
       })
       .then((d) => {
         if (d) {
           setLesson(d);
-          setStage(d.videoUrl ? 'video' : d.exercises.length > 0 ? 'exercises' : 'video');
+          const defaultStage = d.videoUrl ? 'video' : d.exercises.length > 0 ? 'exercises' : 'video';
+          try {
+            const saved = sessionStorage.getItem(storageKey);
+            if (saved) {
+              const draft = JSON.parse(saved) as Draft;
+              const validAnswers = Array.isArray(draft.answers)
+                ? draft.answers.filter((a) => d.exercises.some((e: Exercise) => e.id === a.exerciseId))
+                : [];
+              const idx = Math.min(Math.max(Number(draft.exIdx) || 0, 0), Math.max(d.exercises.length - 1, 0));
+              setStage(draft.stage === 'exercises' && d.exercises.length ? 'exercises' : defaultStage);
+              setExIdx(idx);
+              setSelected(typeof draft.selected === 'string' ? draft.selected : null);
+              setAnswers(validAnswers);
+              const elapsed = Math.max(0, Math.round(Number(draft.elapsedSeconds) || 0));
+              elapsedRef.current = elapsed;
+              setElapsedSeconds(elapsed);
+            } else {
+              setStage(defaultStage);
+            }
+          } catch {
+            sessionStorage.removeItem(storageKey);
+            setStage(defaultStage);
+          }
+          draftLoaded.current = true;
         }
       })
-      .catch(() => {})
+      .catch(() => setError(navigator.onLine ? 'تعذر تحميل الدرس. حاول مرة أخرى.' : 'أنت غير متصل بالإنترنت. اتصل ثم أعد المحاولة.'))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, storageKey]);
+
+  useEffect(() => {
+    if (!draftLoaded.current || stage === 'reward') return;
+    const draft: Draft = { stage, exIdx, selected, answers, elapsedSeconds };
+    sessionStorage.setItem(storageKey, JSON.stringify(draft));
+  }, [answers, elapsedSeconds, exIdx, selected, stage, storageKey]);
+
+  useEffect(() => {
+    let last = Date.now();
+    const tick = () => {
+      const now = Date.now();
+      if (document.visibilityState === 'visible' && document.hasFocus() && stage !== 'reward') {
+        elapsedRef.current += Math.min(now - last, 1500) / 1000;
+        const rounded = Math.round(elapsedRef.current);
+        setElapsedSeconds(rounded);
+      }
+      last = now;
+    };
+    const timer = window.setInterval(tick, 1000);
+    const resetClock = () => { last = Date.now(); };
+    window.addEventListener('focus', resetClock);
+    document.addEventListener('visibilitychange', resetClock);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', resetClock);
+      document.removeEventListener('visibilitychange', resetClock);
+    };
+  }, [stage]);
 
   async function submitLesson(finalAnswers: typeof answers) {
     if (submitting) return;
     setSubmitting(true);
-    const timeSpent = Math.round((Date.now() - startTime.current) / 1000);
+    setError('');
+    const timeSpent = Math.round(elapsedRef.current);
     try {
       const r = await fetch(`/svc/learn/lessons/${id}/complete`, {
         method: 'POST',
@@ -98,41 +185,57 @@ export default function KidLessonPage() {
         const data = await r.json();
         setReward(data);
         setStage('reward');
-      } else if (r.status === 403) {
-        // Daily limit reached or lesson locked after the fact — redirect
-        window.location.href = `/learn/${childId}`;
+        sessionStorage.removeItem(storageKey);
+        window.dispatchEvent(new CustomEvent('funademy:child-progress', {
+          detail: {
+            childId: Number(childId),
+            totalXp: data.totalXp,
+            streak: data.streak,
+          },
+        }));
+      } else {
+        const data = await r.json().catch(() => ({}));
+        setError(
+          data.error === 'daily_limit_reached'
+            ? 'تم بلوغ الحد اليومي. إجاباتك محفوظة ويمكنك المحاولة لاحقاً.'
+            : data.error === 'missing_exercise_answer'
+              ? 'بعض الإجابات ناقصة. راجع الأسئلة ثم حاول مجدداً.'
+              : 'لم يتم حفظ إكمال الدرس. إجاباتك محفوظة؛ حاول مرة أخرى.',
+        );
       }
     } catch {
-      // Offline fallback — show reward with no XP
-      setStage('reward');
+      setError(navigator.onLine
+        ? 'تعذر الاتصال بالخادم. إجاباتك محفوظة؛ حاول مرة أخرى.'
+        : 'أنت غير متصل بالإنترنت. إجاباتك محفوظة؛ اتصل ثم أعد المحاولة.');
     } finally {
       setSubmitting(false);
     }
   }
 
   function handleOption(opt: string) {
-    // Prevent double-tap and ignore while advancing to next question
-    if (advancing || selected !== null) return;
+    if (submitting) return;
     setSelected(opt);
-    setAdvancing(true);
+    setError('');
+  }
 
-    const ex = lesson!.exercises[exIdx];
-    const newAnswers = [...answers, { exerciseId: ex.id, answer: opt }];
+  function confirmAnswer() {
+    if (!lesson || selected === null || submitting) return;
+    const ex = lesson.exercises[exIdx];
+    const newAnswers = [...answers.filter((a) => a.exerciseId !== ex.id), { exerciseId: ex.id, answer: selected }];
     setAnswers(newAnswers);
-
-    setTimeout(() => {
-      if (exIdx + 1 < lesson!.exercises.length) {
-        setExIdx((i) => i + 1);
-        setSelected(null);
-        setAdvancing(false);
-      } else {
-        submitLesson(newAnswers);
-      }
-    }, 900);
+    if (exIdx + 1 < lesson.exercises.length) {
+      const nextIdx = exIdx + 1;
+      setExIdx(nextIdx);
+      setSelected(newAnswers.find((a) => a.exerciseId === lesson.exercises[nextIdx].id)?.answer ?? null);
+      requestAnimationFrame(() => questionRef.current?.focus());
+    } else {
+      submitLesson(newAnswers);
+    }
   }
 
   function proceedToExercises() {
     if (!lesson) return;
+    setError('');
     if (lesson.exercises.length > 0) {
       setStage('exercises');
     } else {
@@ -140,13 +243,15 @@ export default function KidLessonPage() {
     }
   }
 
-  if (loading) return <div className="kid-content" style={{ padding: 40, textAlign: 'center' }}>جاري التحميل...</div>;
-  if (!lesson) return null;
+  if (loading) return <div className="kid-content" style={{ padding: 40, textAlign: 'center' }} role="status">جاري التحميل...</div>;
+  if (!lesson) return (
+    <div className="kid-content" style={{ padding: 40, textAlign: 'center' }} role="alert">
+      {error || 'تعذر تحميل الدرس.'}
+      <div><button className="btn y" onClick={() => window.location.reload()}>إعادة المحاولة</button></div>
+    </div>
+  );
 
   const backHref = `/learn/${childId}/subjects/${lesson.subjectSlug}`;
-
-  // Per-answer lookup for the reward stage (indexed by exerciseId)
-  const perAnswerMap = new Map(reward?.perAnswer.map((a) => [a.exerciseId, a.correct]) ?? []);
 
   return (
     <div className="kid-player" dir="rtl">
@@ -162,22 +267,38 @@ export default function KidLessonPage() {
           <>
             {lesson.videoUrl ? (
               <div className="kid-video-wrap">
-                {lesson.videoType === 'youtube' && (
+                {lesson.videoType === 'youtube' && toYoutubeEmbed(lesson.videoUrl) && (
                   <iframe
-                    src={toYoutubeEmbed(lesson.videoUrl)}
+                    src={toYoutubeEmbed(lesson.videoUrl)!}
+                    title={`فيديو: ${lesson.titleAr}`}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
                 )}
-                {lesson.videoType === 'vimeo' && (
+                {lesson.videoType === 'vimeo' && toVimeoEmbed(lesson.videoUrl) && (
                   <iframe
-                    src={toVimeoEmbed(lesson.videoUrl)}
+                    src={toVimeoEmbed(lesson.videoUrl)!}
+                    title={`فيديو: ${lesson.titleAr}`}
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
                   />
                 )}
-                {lesson.videoType === 'mp4' && (
-                  <video src={lesson.videoUrl} controls />
+                {lesson.videoType === 'mp4' && safeHttpUrl(lesson.videoUrl) && (
+                  <video src={safeHttpUrl(lesson.videoUrl)!} controls>
+                    متصفحك لا يدعم تشغيل الفيديو.
+                  </video>
+                )}
+                {((lesson.videoType === 'youtube' && !toYoutubeEmbed(lesson.videoUrl)) ||
+                  (lesson.videoType === 'vimeo' && !toVimeoEmbed(lesson.videoUrl)) ||
+                  (lesson.videoType === 'mp4' && !safeHttpUrl(lesson.videoUrl))) && (
+                  <div className="kid-video-fallback">
+                    <p>تعذر عرض رابط الفيديو بأمان.</p>
+                    {safeHttpUrl(lesson.videoUrl) && (
+                      <a className="btn" href={safeHttpUrl(lesson.videoUrl)!} target="_blank" rel="noopener noreferrer">
+                        فتح الفيديو في نافذة جديدة
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             ) : (
@@ -195,6 +316,14 @@ export default function KidLessonPage() {
             >
               {lesson.exercises.length > 0 ? 'ابدأ التمارين 📝' : 'إنهاء الدرس ✓'}
             </button>
+            {error && (
+              <div className="kid-submit-error" role="alert" aria-live="assertive">
+                {error}
+                <button className="btn small" onClick={() => submitLesson([])} disabled={submitting}>
+                  إعادة المحاولة
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -207,13 +336,20 @@ export default function KidLessonPage() {
             <div className="kid-exercise-progress">
               <div
                 className="kid-exercise-progress-fill"
-                style={{ width: `${(exIdx / lesson.exercises.length) * 100}%` }}
+                style={{ width: `${((exIdx + 1) / lesson.exercises.length) * 100}%` }}
+                role="progressbar"
+                aria-label="تقدم التمارين"
+                aria-valuemin={0}
+                aria-valuemax={lesson.exercises.length}
+                aria-valuenow={exIdx + 1}
               />
             </div>
             <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>
               السؤال {exIdx + 1} من {lesson.exercises.length}
             </div>
-            <p className="kid-exercise-prompt">{lesson.exercises[exIdx].promptAr}</p>
+            <p className="kid-exercise-prompt" ref={questionRef} tabIndex={-1}>
+              {lesson.exercises[exIdx].promptAr}
+            </p>
             <div className="kid-options">
               {lesson.exercises[exIdx].options.map((opt) => {
                 // Only show "selected" state while waiting — no correctAnswer comparison
@@ -224,27 +360,45 @@ export default function KidLessonPage() {
                     key={opt}
                     className={cls}
                     onClick={() => handleOption(opt)}
-                    disabled={advancing}
+                    disabled={submitting}
+                    aria-pressed={isSelected}
                   >
                     {opt}
                   </button>
                 );
               })}
             </div>
+            <button
+              className="btn y kid-confirm-answer"
+              onClick={confirmAnswer}
+              disabled={selected === null || submitting}
+            >
+              {exIdx + 1 === lesson.exercises.length ? 'تأكيد وإنهاء' : 'تأكيد والتالي'}
+            </button>
+            <div className="kid-selection-status" aria-live="polite">
+              {selected === null ? 'اختر إجابة ثم أكدها' : `تم اختيار: ${selected}. يمكنك تغييره قبل التأكيد.`}
+            </div>
             {submitting && (
-              <div style={{ textAlign: 'center', marginTop: 12, color: '#888', fontSize: 13 }}>
+              <div style={{ textAlign: 'center', marginTop: 12, color: '#888', fontSize: 13 }} role="status" aria-live="polite">
                 جاري الحفظ...
+              </div>
+            )}
+            {error && (
+              <div className="kid-submit-error" role="alert" aria-live="assertive">
+                <span>{error}</span>
+                <button className="btn small" onClick={() => submitLesson(answers)} disabled={submitting}>
+                  إعادة المحاولة
+                </button>
               </div>
             )}
           </div>
         )}
 
         {/* ── REWARD STAGE ── */}
-        {stage === 'reward' && (
+        {stage === 'reward' && reward && (
           <div className="kid-reward">
             <div className="kid-reward-icon">🏆</div>
             <div className="kid-reward-title">رائع! أنهيت الدرس!</div>
-            {reward && (
               <>
                 <div className="kid-reward-score">{reward.score}%</div>
                 <div className="kid-reward-xp">+{reward.xpEarned} XP · مجموع: {reward.totalXp}</div>
@@ -272,7 +426,6 @@ export default function KidLessonPage() {
                   </div>
                 )}
               </>
-            )}
             <div className="kid-reward-actions">
               <Link className="btn y" href={backHref}>← عودة للمادة</Link>
               <Link className="btn" href={`/learn/${childId}`}>الرئيسية 🏠</Link>

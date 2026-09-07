@@ -30,6 +30,17 @@ import { FAMILY_COOKIE, familyToken } from '@/lib/family-auth';
 import { KID_COOKIE, kidToken, hashPin } from '@/lib/kid-auth';
 import { GET as lessonGET } from '@/app/(ar)/svc/learn/lessons/[id]/route';
 import { POST as completePOST } from '@/app/(ar)/svc/learn/lessons/[id]/complete/route';
+import { previousRiyadhDateKey, riyadhDateKey, riyadhDayStart } from '@/lib/riyadh-time';
+
+describe('Asia/Riyadh learning day boundaries', () => {
+  it('rolls the learning date over at Riyadh midnight, not UTC midnight', () => {
+    expect(riyadhDateKey(new Date('2026-01-01T20:59:59.999Z'))).toBe('2026-01-01');
+    expect(riyadhDateKey(new Date('2026-01-01T21:00:00.000Z'))).toBe('2026-01-02');
+    expect(riyadhDayStart(new Date('2026-01-01T22:00:00.000Z')).toISOString())
+      .toBe('2026-01-01T21:00:00.000Z');
+    expect(previousRiyadhDateKey(new Date('2026-01-01T21:00:00.000Z'))).toBe('2026-01-01');
+  });
+});
 
 // ── test-scoped unique suffix ──────────────────────────────────────────────
 const RUN = `lrn-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -547,6 +558,16 @@ describe('daily time limit — server-side enforcement', () => {
     const denyPOST = await completePOST(completeReq(limitedLessonBId), params(limitedLessonBId));
     expect(denyPOST.status).toBe(403);
     expect((await denyPOST.json()).error).toBe('daily_limit_reached');
+
+    // Retrying/replaying the already completed lesson remains idempotent:
+    // it succeeds as a repeat and does not consume a second daily-use slot.
+    const repeat = await completePOST(completeReq(limitedLessonAId), params(limitedLessonAId));
+    expect(repeat.status).toBe(200);
+    expect((await repeat.json()).repeated).toBe(true);
+    const dailyClaims = await prisma.lrnFirstCompletion.count({
+      where: { childId: limitedChildId, lessonId: limitedLessonAId },
+    });
+    expect(dailyClaims).toBe(1);
   });
 
   it('concurrent completions cannot together exceed the daily limit', async () => {
@@ -850,6 +871,45 @@ describe('POST /svc/learn/lessons/:id/complete — server-side grading and perAn
   afterAll(async () => {
     await prisma.lrnFirstCompletion.deleteMany({ where: { childId, lessonId: gradeLessonId } });
     await prisma.lrnCompletion.deleteMany({ where: { childId, lessonId: gradeLessonId } });
+  });
+
+  async function submitAnswers(answers: Array<{ exerciseId: number; answer: string }>) {
+    return completePOST(
+      new NextRequest(`http://test.local/svc/learn/lessons/${gradeLessonId}/complete`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ answers, timeSpentSeconds: 10 }),
+      }),
+      params(gradeLessonId),
+    );
+  }
+
+  it('rejects missing exercise answers without recording completion', async () => {
+    clearAll();
+    asFamily(familyId);
+    asKid(familyId, childId);
+    const before = await prisma.lrnCompletion.count({ where: { childId, lessonId: gradeLessonId } });
+    const res = await submitAnswers([]);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('missing_exercise_answer');
+    expect(await prisma.lrnCompletion.count({ where: { childId, lessonId: gradeLessonId } })).toBe(before);
+  });
+
+  it('rejects unknown and duplicate exercise IDs', async () => {
+    clearAll();
+    asFamily(familyId);
+    asKid(familyId, childId);
+
+    const unknown = await submitAnswers([{ exerciseId: gradeExerciseId + 999_999, answer: CORRECT_ANSWER }]);
+    expect(unknown.status).toBe(400);
+    expect((await unknown.json()).error).toBe('unknown_exercise_answer');
+
+    const duplicate = await submitAnswers([
+      { exerciseId: gradeExerciseId, answer: CORRECT_ANSWER },
+      { exerciseId: gradeExerciseId, answer: WRONG_ANSWER },
+    ]);
+    expect(duplicate.status).toBe(400);
+    expect((await duplicate.json()).error).toBe('duplicate_exercise_answer');
   });
 
   it('returns perAnswer with correct=true when child answers correctly', async () => {

@@ -16,15 +16,16 @@
  *      Uses LrnFirstCompletion (durable reward claims), NOT LrnCompletion,
  *      so repeat/zero-score attempts do not count as progression.
  *   7. Child's daily time limit has not been exceeded. Time is computed
- *      server-side as the sum of lesson.durationMinutes for every
- *      LrnCompletion this child has today — never trusting client-supplied
- *      elapsed time — otherwise 403 daily_limit_reached.
+ *      server-side as the sum of lesson.durationMinutes for first completions
+ *      claimed during the current Asia/Riyadh day. Replays do not consume the
+ *      allowance again.
  */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
 import { getKidSession, familyHasActiveEnrollment } from '@/lib/kid-auth';
 import type { LrnChild, LrnLesson, LrnExercise, LrnUnit, LrnSubject } from '@prisma/client';
+import { riyadhDayStart } from '@/lib/riyadh-time';
 
 export type LessonWithDetails = LrnLesson & {
   unit: LrnUnit & { subject: LrnSubject };
@@ -114,14 +115,15 @@ export async function requireLessonAccess(lessonId: number): Promise<GuardResult
     }
   }
 
-  // 7. Daily time limit — computed server-side from lesson durations, NOT
-  //    from client-supplied timeSpentSeconds (which cannot be trusted).
+  // 7. Daily limit uses first-completion claims and the Riyadh day boundary.
   if (child.dailyLimitMinutes !== null) {
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
-
-    const todayCompletions = await prisma.lrnCompletion.findMany({
-      where: { childId: child.id, createdAt: { gte: todayStart } },
+    const todayStart = riyadhDayStart();
+    const alreadyCompleted = await prisma.lrnFirstCompletion.findUnique({
+      where: { childId_lessonId: { childId: child.id, lessonId } },
+      select: { id: true },
+    });
+    const todayCompletions = await prisma.lrnFirstCompletion.findMany({
+      where: { childId: child.id, claimedAt: { gte: todayStart } },
       include: { lesson: { select: { durationMinutes: true } } },
     });
     const consumedMinutes = todayCompletions.reduce(
@@ -131,7 +133,7 @@ export async function requireLessonAccess(lessonId: number): Promise<GuardResult
 
     // Deny when adding this lesson's duration would exceed (strictly) the limit.
     // Equality is allowed: a child with a 5-minute limit may complete one 5-minute lesson.
-    if (consumedMinutes + lesson.durationMinutes > child.dailyLimitMinutes) {
+    if (!alreadyCompleted && consumedMinutes + lesson.durationMinutes > child.dailyLimitMinutes) {
       return {
         ok: false,
         response: NextResponse.json({ error: 'daily_limit_reached' }, { status: 403 }),

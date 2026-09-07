@@ -1,5 +1,6 @@
 export const revalidate = 300;
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
+import { safeQuery } from '@/lib/safe-query';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
@@ -43,11 +44,20 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
   const programParam = typeof sp.program === 'string' ? sp.program : undefined;
   const ageRaw = typeof sp.age === 'string' ? Number(sp.age) : NaN;
   const ageParam = Number.isInteger(ageRaw) && ageRaw >= 4 && ageRaw <= 18 ? ageRaw : undefined;
-  const programs = await prisma.program.findMany({ orderBy: { position: 'asc' } });
-  const slots = await prisma.scheduleSlot.findMany({
-    where: { active: true },
-    orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
-  });
+  const availability = await safeQuery(
+    () => withDbRetry(
+      () => Promise.all([
+        prisma.program.findMany({ orderBy: { position: 'asc' } }),
+        prisma.scheduleSlot.findMany({
+          where: { active: true },
+          orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
+        }),
+      ]),
+      { operation: 'book-ar:availability', kind: 'read' },
+    ),
+    null,
+    'book-ar:availability',
+  );
 
   const d = bookDict.ar;
 
@@ -65,13 +75,21 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
             <p className="sub" style={{ margin: '8px auto 0' }}>{d.desc}</p>
           </div>
 
-          <BookingFlow 
-            programs={programs} 
-            slots={slots} 
-            lang="ar" 
-            preselectProgramSlug={programParam} 
-            preselectAge={ageParam}
-          />
+          {availability ? (
+            <BookingFlow
+              programs={availability[0]}
+              slots={availability[1]}
+              lang="ar"
+              preselectProgramSlug={programParam}
+              preselectAge={ageParam}
+            />
+          ) : (
+            <div className="w-box" role="alert">
+              <p style={{ textAlign: 'center', color: 'var(--mut)', padding: '32px 16px' }}>
+                خدمة الحجز غير متاحة مؤقتاً. يرجى إعادة المحاولة بعد قليل.
+              </p>
+            </div>
+          )}
         </div>
       </main>
 

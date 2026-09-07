@@ -350,6 +350,11 @@
 .kid-video-wrap video {
   width: 100%; height: 100%; border: none; display: block;
 }
+.kid-video-fallback {
+  width: 100%; height: 100%; background: #eef2ff; color: #101A38;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 20px; box-sizing: border-box; text-align: center;
+}
 
 /* Exercise */
 .kid-exercise-card {
@@ -387,8 +392,18 @@
 }
 .kid-option-btn:hover:not(:disabled) { border-color: #1C54CB; background: #eef2ff; }
 .kid-option-btn.selected { border-color: #1C54CB; background: #eef2ff; }
+.kid-option-btn:disabled { cursor: not-allowed; opacity: .65; }
+.kid-option-btn:focus-visible,
+.kid-confirm-answer:focus-visible { outline: 3px solid #22DAFF; outline-offset: 2px; }
 .kid-option-btn.correct { border-color: #27ae60; background: #edfbf3; color: #1a7a4a; }
 .kid-option-btn.wrong { border-color: #e74c3c; background: #fdf2f0; color: #a93226; }
+.kid-confirm-answer { width: 100%; margin-top: 18px; padding: 13px 16px; }
+.kid-selection-status { min-height: 20px; margin-top: 8px; color: #666; font-size: 13px; text-align: center; }
+.kid-submit-error {
+  margin-top: 14px; padding: 12px; border-radius: 10px;
+  background: #fdf2f0; color: #a93226; display: flex; align-items: center;
+  justify-content: space-between; gap: 10px;
+}
 
 /* Reward */
 .kid-reward {
@@ -406,6 +421,21 @@
 .kid-reward-xp { font-size: 16px; color: #27ae60; font-weight: 700; margin: 4px 0; }
 .kid-reward-badges { font-size: 28px; margin: 12px 0; letter-spacing: 4px; }
 .kid-reward-actions { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+
+@media (max-width: 480px) {
+  .kid-player-header { align-items: flex-start; padding: 10px 12px; }
+  .kid-player-back { flex-shrink: 0; }
+  .kid-player-title { font-size: 14px; overflow-wrap: anywhere; }
+  .kid-player-body { padding: 12px 10px; }
+  .kid-video-wrap { border-radius: 10px; margin-bottom: 16px; }
+  .kid-exercise-card { padding: 16px 12px; border-radius: 12px; }
+  .kid-exercise-prompt { font-size: 17px; margin-bottom: 16px; }
+  .kid-option-btn { min-height: 48px; padding: 12px; font-size: 16px; }
+  .kid-submit-error { align-items: stretch; flex-direction: column; }
+  .kid-reward { margin: 12px auto; padding: 28px 14px; }
+  .kid-reward-actions { flex-direction: column; }
+  .kid-reward-actions .btn { width: 100%; box-sizing: border-box; }
+}
 
 /* Parent gate */
 .kid-parent-gate {

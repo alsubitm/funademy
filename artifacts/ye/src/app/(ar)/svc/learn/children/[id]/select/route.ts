@@ -31,7 +31,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }); }
   const { pin } = body as { pin?: string };
-  if (!pin || typeof pin !== 'string') return NextResponse.json({ error: 'pin_required' }, { status: 400 });
+  if (typeof pin !== 'string' || !/^\d{4,}$/.test(pin.trim()))
+    return NextResponse.json({ error: 'invalid_pin' }, { status: 400 });
 
   const allowed = await allowRate(`kid-pin:${familyId}:${childId}`, 10, 15 * 60_000);
   if (!allowed) return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 });

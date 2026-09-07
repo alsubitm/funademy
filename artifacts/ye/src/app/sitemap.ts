@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
 import { siteUrl } from '@/lib/site-url';
+import { safeQuery } from '@/lib/safe-query';
 
 // Evaluate at request time (with the production env + database), never at
 // build time: the publish build runs in the workspace env, which would bake
@@ -51,13 +52,26 @@ function priority(p: string): number {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
 
-  const blogPosts = await prisma.blogPost
-    .findMany({ where: { published: true }, select: { slug: true, updatedAt: true } })
-    .catch(() => [] as { slug: string; updatedAt: Date }[]);
+  const blogPosts = await safeQuery(
+    () => withDbRetry(
+      () => prisma.blogPost.findMany({
+        where: { published: true },
+        select: { slug: true, updatedAt: true },
+      }),
+      { operation: 'sitemap:blog-posts', kind: 'read' },
+    ),
+    [] as { slug: string; updatedAt: Date }[],
+    'sitemap:blog-posts',
+  );
 
-  const programs = await prisma.program
-    .findMany({ select: { slug: true }, orderBy: { position: 'asc' } })
-    .catch(() => PROGRAM_SLUGS_FALLBACK.map((slug) => ({ slug })));
+  const programs = await safeQuery(
+    () => withDbRetry(
+      () => prisma.program.findMany({ select: { slug: true }, orderBy: { position: 'asc' } }),
+      { operation: 'sitemap:programs', kind: 'read' },
+    ),
+    PROGRAM_SLUGS_FALLBACK.map((slug) => ({ slug })),
+    'sitemap:programs',
+  );
 
   const staticEntries: MetadataRoute.Sitemap = Object.entries(STATIC_DATES).map(
     ([p, lastModified]) => ({

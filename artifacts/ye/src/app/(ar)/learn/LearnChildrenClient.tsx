@@ -39,7 +39,7 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
   const [err, setErr] = useState('');
 
   async function createChild() {
-    if (!form.name.trim() || form.pin.length < 4) {
+    if (!form.name.trim() || !/^\d{4,}$/.test(form.pin)) {
       setErr('أدخل اسم الطفل ورقم PIN (4 أرقام على الأقل)');
       return;
     }
@@ -58,7 +58,7 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         setErr(
-          j.error === 'pin_too_short'
+          j.error === 'invalid_pin'
             ? 'PIN يجب أن يكون 4 أرقام على الأقل'
             : j.error === 'invalid_national_id'
               ? 'رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2'
@@ -138,9 +138,10 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
               className="learn-input"
               type="password"
               inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="4 أرقام على الأقل"
               value={form.pin}
-              onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value.replace(/\D/g, '') }))}
             />
 
             <label className="learn-label">
@@ -186,7 +187,7 @@ function ChildCard({
   const [err, setErr] = useState('');
 
   async function enterKidMode() {
-    if (!pin) { setErr('أدخل رمز PIN'); return; }
+    if (!/^\d{4,}$/.test(pin)) { setErr('أدخل رمز PIN رقمي (4 أرقام على الأقل)'); return; }
     setLoading(true);
     setErr('');
     try {
@@ -230,9 +231,10 @@ function ChildCard({
             className="learn-input learn-pin-input"
             type="password"
             inputMode="numeric"
+            pattern="[0-9]*"
             placeholder="رمز PIN"
             value={pin}
-            onChange={(e) => setPin(e.target.value)}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
             onKeyDown={(e) => { if (e.key === 'Enter') enterKidMode(); }}
             autoFocus
           />

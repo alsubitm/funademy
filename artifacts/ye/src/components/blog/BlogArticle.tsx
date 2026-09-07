@@ -151,3 +151,25 @@ export function BlogArticle({
     </>
   );
 }
+
+export function BlogArticleUnavailable({ lang }: { lang: 'ar' | 'en' }) {
+  const ar = lang === 'ar';
+  return (
+    <>
+      <SiteHeader lang={lang} />
+      <SandStripe />
+      <main id="main-content" className="blog-pg">
+        <div className="b-article wrap">
+          <p className="b-empty" role="alert">
+            {ar
+              ? 'المقال غير متاح مؤقتاً. يرجى إعادة المحاولة بعد قليل.'
+              : 'This article is temporarily unavailable. Please try again shortly.'}
+          </p>
+        </div>
+      </main>
+      <SandStripe />
+      <SiteFooter lang={lang} />
+      <WhatsAppFloat lang={lang} />
+    </>
+  );
+}

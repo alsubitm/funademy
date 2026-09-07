@@ -1,13 +1,21 @@
 export const revalidate = 300;
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { prisma } from '@/lib/db';
-import { BlogArticle } from '@/components/blog/BlogArticle';
+import { prisma, withDbRetry } from '@/lib/db';
+import { safeQuery } from '@/lib/safe-query';
+import { BlogArticle, BlogArticleUnavailable } from '@/components/blog/BlogArticle';
 import { siteUrl, ogImageUrl } from '@/lib/site-url';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
-  const post = await prisma.blogPost.findUnique({ where: { slug } });
+  const post = await safeQuery(
+    () => withDbRetry(
+      () => prisma.blogPost.findUnique({ where: { slug } }),
+      { operation: 'blog-ar:metadata', kind: 'read' },
+    ),
+    null,
+    'blog-ar:metadata',
+  );
   if (!post || !post.published) return {};
   const base = siteUrl();
   const ogImage = ogImageUrl(post.coverImageUrl);
@@ -43,23 +51,32 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 
 export default async function BlogPostPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
-  const [post, relatedPosts] = await Promise.all([
-    prisma.blogPost.findUnique({ where: { slug } }),
-    prisma.blogPost.findMany({
-      where: { published: true, slug: { not: slug } },
-      orderBy: { publishedAt: 'desc' },
-      take: 3,
-      select: {
-        slug: true,
-        titleAr: true,
-        titleEn: true,
-        excerptAr: true,
-        excerptEn: true,
-        coverEmoji: true,
-        publishedAt: true,
-      },
-    }),
-  ]);
+  const article = await safeQuery(
+    () => withDbRetry(
+      () => Promise.all([
+        prisma.blogPost.findUnique({ where: { slug } }),
+        prisma.blogPost.findMany({
+          where: { published: true, slug: { not: slug } },
+          orderBy: { publishedAt: 'desc' },
+          take: 3,
+          select: {
+            slug: true,
+            titleAr: true,
+            titleEn: true,
+            excerptAr: true,
+            excerptEn: true,
+            coverEmoji: true,
+            publishedAt: true,
+          },
+        }),
+      ]),
+      { operation: 'blog-ar:article', kind: 'read' },
+    ),
+    null,
+    'blog-ar:article',
+  );
+  if (!article) return <BlogArticleUnavailable lang="ar" />;
+  const [post, relatedPosts] = article;
   if (!post || !post.published) notFound();
 
   const base = siteUrl();

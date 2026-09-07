@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireLessonAccess } from '@/lib/lesson-guard';
 import { computeReward, gradeAnswers, XP_PER_LESSON } from '@/lib/learning';
 import { enqueueCompletionEvents, flushOutboxServer } from '@/lib/xapiOutbox';
+import { riyadhDateKey, riyadhDayStart } from '@/lib/riyadh-time';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +23,32 @@ export async function POST(
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }); }
 
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
+  }
   const b = body as { answers?: Array<{ exerciseId: number; answer: string }>; timeSpentSeconds?: number };
-  const answers = Array.isArray(b.answers) ? b.answers : [];
+  if (!Array.isArray(b.answers)) {
+    return NextResponse.json({ error: 'answers_required' }, { status: 400 });
+  }
+  const answers = b.answers;
+  const expectedIds = new Set(lesson.exercises.map((e) => e.id));
+  const seenIds = new Set<number>();
+  for (const answer of answers) {
+    if (
+      !answer || !Number.isInteger(answer.exerciseId) ||
+      typeof answer.answer !== 'string' || answer.answer.trim().length === 0 ||
+      !expectedIds.has(answer.exerciseId)
+    ) {
+      return NextResponse.json({ error: 'unknown_exercise_answer' }, { status: 400 });
+    }
+    if (seenIds.has(answer.exerciseId)) {
+      return NextResponse.json({ error: 'duplicate_exercise_answer' }, { status: 400 });
+    }
+    seenIds.add(answer.exerciseId);
+  }
+  if (seenIds.size !== expectedIds.size) {
+    return NextResponse.json({ error: 'missing_exercise_answer' }, { status: 400 });
+  }
   // Client-reported and therefore untrusted: clamp to a bounded non-negative
   // integer (0..4h). It feeds daily-limit accounting and the NELC-reported
   // duration — raw client input must not be able to distort either.
@@ -34,7 +59,8 @@ export async function POST(
 
   // Server-authoritative grading (correctAnswer never leaves the server)
   const { score, perAnswer } = gradeAnswers(lesson.exercises, answers);
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = riyadhDateKey(now);
 
   // Fully-atomic completion: lock the child row, check daily limit, claim
   // first-completion, and update rewards — all in one transaction.
@@ -61,12 +87,13 @@ export async function POST(
     //    This re-evaluation inside the transaction is what prevents concurrent
     //    requests from all observing pre-lock usage below the limit and each
     //    inserting a completion that pushes total over the limit.
-    if (lockedChild.dailyLimitMinutes !== null) {
-      const todayStart = new Date();
-      todayStart.setUTCHours(0, 0, 0, 0);
-
-      const todayCompletions = await tx.lrnCompletion.findMany({
-        where: { childId: lockedChild.id, createdAt: { gte: todayStart } },
+    const priorClaim = await tx.lrnFirstCompletion.findUnique({
+      where: { childId_lessonId: { childId: child.id, lessonId } },
+      select: { id: true },
+    });
+    if (!priorClaim && lockedChild.dailyLimitMinutes !== null) {
+      const todayCompletions = await tx.lrnFirstCompletion.findMany({
+        where: { childId: lockedChild.id, claimedAt: { gte: riyadhDayStart(now) } },
         include: { lesson: { select: { durationMinutes: true } } },
       });
       const consumedMinutes = todayCompletions.reduce(
@@ -104,7 +131,7 @@ export async function POST(
     });
 
     // 5. Compute rewards from the LOCKED (fresh) child state.
-    const { streak, totalXp, newBadges } = computeReward(lockedChild, totalDistinct, score);
+    const { streak, totalXp, newBadges } = computeReward(lockedChild, totalDistinct, score, now);
 
     // 6. Persist the updated state.
     const updated = await tx.lrnChild.update({

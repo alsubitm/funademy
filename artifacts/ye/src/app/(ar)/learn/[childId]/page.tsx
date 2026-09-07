@@ -58,16 +58,31 @@ export default function KidHomePage() {
       .then((r) => {
         if (r.status === 401) { window.location.href = '/learn'; return null; }
         if (r.status === 403) { setErr('لا يوجد تسجيل نشط'); return null; }
-        return r.ok ? r.json() : null;
+        if (!r.ok) throw new Error(`home request failed (${r.status})`);
+        return r.json();
       })
-      .then((d) => { if (d) setData(d); })
+      .then((d) => {
+        if (d && String(d.child?.id) !== childId) {
+          window.location.href = '/learn';
+          return;
+        }
+        if (d) setData(d);
+      })
       .catch(() => setErr('حدث خطأ في التحميل'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [childId]);
 
   if (loading) return <div className="kid-content" style={{ padding: 40, textAlign: 'center' }}>جاري التحميل...</div>;
-  if (err) return <div className="kid-content" style={{ padding: 40, textAlign: 'center', color: '#c0392b' }}>{err}</div>;
-  if (!data) return null;
+  if (err) return (
+    <div className="kid-content" style={{ padding: 40, textAlign: 'center', color: '#c0392b' }}>
+      {err} <button type="button" className="btn" onClick={() => window.location.reload()}>إعادة المحاولة</button>
+    </div>
+  );
+  if (!data) return (
+    <div className="kid-content" role="alert" style={{ padding: 40, textAlign: 'center', color: '#c0392b' }}>
+      تعذر تحميل بيانات الطفل. <button type="button" className="btn" onClick={() => window.location.reload()}>إعادة المحاولة</button>
+    </div>
+  );
 
   const { child, continueLesson, subjects, todayMinutes, dailyLimitReached } = data;
 

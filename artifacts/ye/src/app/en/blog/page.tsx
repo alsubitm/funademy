@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic';
 
 import { Metadata } from 'next';
 import { siteUrl } from '@/lib/site-url';
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
+import { safeQuery } from '@/lib/safe-query';
 import { BlogList } from '@/components/blog/BlogList';
 
 export function generateMetadata(): Metadata {
@@ -37,9 +38,16 @@ export function generateMetadata(): Metadata {
 }
 
 export default async function BlogPageEn() {
-  const posts = await prisma.blogPost.findMany({
-    where: { published: true },
-    orderBy: { publishedAt: 'desc' },
-  });
-  return <BlogList posts={posts} lang="en" />;
+  const posts = await safeQuery(
+    () => withDbRetry(
+      () => prisma.blogPost.findMany({
+        where: { published: true },
+        orderBy: { publishedAt: 'desc' },
+      }),
+      { operation: 'blog-en:index', kind: 'read' },
+    ),
+    null,
+    'blog-en:index',
+  );
+  return <BlogList posts={posts ?? []} lang="en" unavailable={posts === null} />;
 }

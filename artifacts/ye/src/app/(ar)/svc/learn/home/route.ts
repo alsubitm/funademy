@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
 import { getKidSession, familyHasActiveEnrollment } from '@/lib/kid-auth';
 import { serializeChild } from '@/lib/learning';
+import { riyadhDayStart } from '@/lib/riyadh-time';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,13 +72,11 @@ export async function GET() {
       };
     });
 
-  // Today's usage — computed from server-trusted lesson.durationMinutes, NOT
-  // from client-supplied timeSpentSeconds which cannot be verified.
-  // Uses the same UTC midnight boundary and duration logic as the access guard.
-  const todayStart = new Date();
-  todayStart.setUTCHours(0, 0, 0, 0);
-  const todayLessonCompletions = await prisma.lrnCompletion.findMany({
-    where: { childId: child.id, createdAt: { gte: todayStart } },
+  // Today's usage — first completions only, using the Riyadh day boundary.
+  // Replays never inflate the daily-use display.
+  const todayStart = riyadhDayStart();
+  const todayLessonCompletions = await prisma.lrnFirstCompletion.findMany({
+    where: { childId: child.id, claimedAt: { gte: todayStart } },
     include: { lesson: { select: { durationMinutes: true } } },
   });
   const todayMinutes = todayLessonCompletions.reduce(

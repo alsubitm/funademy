@@ -37,6 +37,8 @@ export default function KidLayout({
   const [results, setResults] = useState<SearchResult[]>([]);
   const [parentGate, setParentGate] = useState(false);
   const [childId, setChildId] = useState<string>('');
+  const [homeError, setHomeError] = useState('');
+  const [searchError, setSearchError] = useState('');
 
   useEffect(() => {
     params.then((p) => setChildId(p.childId));
@@ -44,16 +46,60 @@ export default function KidLayout({
 
   useEffect(() => {
     if (!childId) return;
+    let cancelled = false;
+    setHomeError('');
+    setChild(null);
     fetch('/svc/learn/home')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d?.child) setChild(d.child); })
-      .catch(() => {});
+      .then(async (r) => {
+        if (r.status === 401 || r.status === 404) {
+          router.replace('/learn');
+          return;
+        }
+        if (!r.ok) throw new Error(`home request failed (${r.status})`);
+        const data = await r.json();
+        // The URL is part of the selected-child boundary. Never place a
+        // session-selected child's shell around another child's route.
+        if (String(data?.child?.id) !== childId) {
+          router.replace('/learn');
+          return;
+        }
+        if (!cancelled) setChild(data.child);
+      })
+      .catch(() => {
+        if (!cancelled) setHomeError('تعذر تحميل بيانات الطفل. أعد المحاولة.');
+      });
+    return () => { cancelled = true; };
+  }, [childId, router]);
+
+  useEffect(() => {
+    function updateProgress(event: Event) {
+      const detail = (event as CustomEvent<{
+        childId?: number;
+        totalXp?: number;
+        streak?: number;
+      }>).detail;
+      if (!detail || String(detail.childId) !== childId) return;
+      setChild((current) => current ? {
+        ...current,
+        xp: typeof detail.totalXp === 'number' ? detail.totalXp : current.xp,
+        streak: typeof detail.streak === 'number' ? detail.streak : current.streak,
+      } : current);
+    }
+    window.addEventListener('funademy:child-progress', updateProgress);
+    return () => window.removeEventListener('funademy:child-progress', updateProgress);
   }, [childId]);
 
   const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) { setResults([]); return; }
-    const r = await fetch(`/svc/learn/search?q=${encodeURIComponent(q)}`).then((x) => x.ok ? x.json() : []).catch(() => []);
-    setResults(r);
+    if (!q.trim()) { setResults([]); setSearchError(''); return; }
+    try {
+      const response = await fetch(`/svc/learn/search?q=${encodeURIComponent(q)}`);
+      if (!response.ok) throw new Error(`search request failed (${response.status})`);
+      setResults(await response.json());
+      setSearchError('');
+    } catch {
+      setResults([]);
+      setSearchError('تعذر البحث الآن. حاول مرة أخرى.');
+    }
   }, []);
 
   useEffect(() => {
@@ -89,6 +135,12 @@ export default function KidLayout({
           🛡️
         </button>
       </div>
+      {homeError && (
+        <div className="kid-content" role="alert" style={{ padding: '12px 20px', textAlign: 'center', color: '#c0392b' }}>
+          {homeError}{' '}
+          <button className="btn" type="button" onClick={() => window.location.reload()}>إعادة المحاولة</button>
+        </div>
+      )}
 
       {/* Search overlay */}
       {searchOpen && (
@@ -102,6 +154,12 @@ export default function KidLayout({
               autoFocus
             />
             <div className="kid-search-results">
+                {searchError && (
+                  <div style={{ padding: '20px 16px', color: '#c0392b', textAlign: 'center' }}>
+                    {searchError}{' '}
+                    <button type="button" className="btn" onClick={() => doSearch(query)}>إعادة المحاولة</button>
+                  </div>
+                )}
               {results.map((r) => (
                 <Link
                   key={r.id}

@@ -33,7 +33,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (typeof b.avatar === 'string' && b.avatar) data.avatar = b.avatar;
   const validBands = ['explorers', 'builders', 'achievers', 'graduates'];
   if (typeof b.band === 'string' && validBands.includes(b.band)) data.band = b.band;
-  if (typeof b.pin === 'string' && b.pin.trim().length >= 4) data.pin = await hashPin(b.pin.trim());
+  if ('pin' in b) {
+    if (typeof b.pin !== 'string' || !/^\d{4,}$/.test(b.pin.trim())) {
+      return NextResponse.json({ error: 'invalid_pin' }, { status: 400 });
+    }
+    data.pin = await hashPin(b.pin.trim());
+  }
   if (typeof b.dailyLimitMinutes === 'number') data.dailyLimitMinutes = b.dailyLimitMinutes > 0 ? b.dailyLimitMinutes : null;
 
   // Child national ID (NELC learning-record identity): set / change / clear.

@@ -1,4 +1,5 @@
 import type { LrnChild } from '@prisma/client';
+import { previousRiyadhDateKey, riyadhDateKey } from '@/lib/riyadh-time';
 
 export const XP_PER_LESSON = 50;
 
@@ -37,9 +38,10 @@ export function computeReward(
   child: LrnChild,
   totalDistinctCompleted: number,
   score: number,
+  now: Date = new Date(),
 ): { streak: number; totalXp: number; newBadges: string[] } {
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const today = riyadhDateKey(now);
+  const yesterday = previousRiyadhDateKey(now);
 
   let streak = child.streak;
   if (child.lastActiveDate === today) {

@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
   const { name, avatar, band, pin, dailyLimitMinutes, nationalId } = body as Record<string, unknown>;
   if (!name || typeof name !== 'string' || name.trim().length === 0)
     return NextResponse.json({ error: 'name_required' }, { status: 400 });
-  if (!pin || typeof pin !== 'string' || pin.trim().length < 4)
-    return NextResponse.json({ error: 'pin_too_short' }, { status: 400 });
+  if (typeof pin !== 'string' || !/^\d{4,}$/.test(pin.trim()))
+    return NextResponse.json({ error: 'invalid_pin' }, { status: 400 });
   const validBands = ['explorers', 'builders', 'achievers', 'graduates'];
   const resolvedBand = typeof band === 'string' && validBands.includes(band) ? band : 'explorers';
 

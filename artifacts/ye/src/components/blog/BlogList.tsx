@@ -16,7 +16,7 @@ type Post = {
   publishedAt: Date;
 };
 
-export function BlogList({ posts, lang }: { posts: Post[]; lang: 'ar' | 'en' }) {
+export function BlogList({ posts, lang, unavailable = false }: { posts: Post[]; lang: 'ar' | 'en'; unavailable?: boolean }) {
   const ar = lang === 'ar';
   const base = ar ? '/blog' : '/en/blog';
 
@@ -35,7 +35,11 @@ export function BlogList({ posts, lang }: { posts: Post[]; lang: 'ar' | 'en' }) 
           </p>
         </div>
 
-        {posts.length === 0 ? (
+        {unavailable ? (
+          <p className="b-empty" role="alert">
+            {ar ? 'المدونة غير متاحة مؤقتاً. يرجى إعادة المحاولة بعد قليل.' : 'The blog is temporarily unavailable. Please try again shortly.'}
+          </p>
+        ) : posts.length === 0 ? (
           <p className="b-empty">{ar ? 'لا توجد مقالات منشورة بعد.' : 'No articles published yet.'}</p>
         ) : (
           <div className="b-grid wrap">
