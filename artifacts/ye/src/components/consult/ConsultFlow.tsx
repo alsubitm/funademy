@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { consultDict } from '@/app/(ar)/consult/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
-import { trackEvent } from '@/lib/analytics';
 
 const RIYADH_OFFSET_MS = 3 * 60 * 60 * 1000;
 
@@ -60,13 +59,6 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
       setError(d.valError);
       return;
     }
-    const slotParts = riyadhParts(startsAt);
-    trackEvent('consultation_started', {
-      lang,
-      weekday: slotParts.weekday,
-      period: slotParts.pm ? 'pm' : 'am',
-      email_provided: Boolean(email.trim()),
-    });
     startTransition(async () => {
       try {
         const res = await fetch('/svc/appointments', {
@@ -76,13 +68,6 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
         });
         if (res.status === 201) {
           const data = await res.json();
-          trackEvent('consultation_booked', {
-            lang,
-            weekday: slotParts.weekday,
-            period: slotParts.pm ? 'pm' : 'am',
-            email_invited: Boolean(data.emailInvited),
-            meet_link_created: Boolean(data.meetUrl),
-          });
           setConfirmed({ whenAr: data.whenAr, whenEn: data.whenEn, meetUrl: data.meetUrl, emailInvited: data.emailInvited });
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (res.status === 409) {

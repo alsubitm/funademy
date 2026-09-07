@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { accountDict } from '@/app/(ar)/account/dict';
 import { arabicDigits } from '@/lib/constants';
-import { trackEvent } from '@/lib/analytics';
 
 type Lang = 'ar' | 'en';
 type Student = { id: number; firstName: string; birthYear: number; nationalId: string | null };
@@ -89,10 +88,6 @@ export function AccountFlow({ lang }: { lang: Lang }) {
       }
       setCode('');
       await refresh();
-      trackEvent('parent_portal_login_success', {
-        lang,
-        new_family: isNew,
-      });
     } catch {
       setError('generic');
     } finally {

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { waLink } from '@/lib/constants';
-import { trackEvent } from '@/lib/analytics';
 import type { ChatAction, ChatMessage, ChatSession, ChatSource } from './types';
 
 type Lang = 'ar' | 'en';
@@ -344,7 +343,6 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   const acceptConsent = () => {
     if (!consentChecked) return;
     localStorage.setItem('funademy-chat-consent', 'yes');
-    trackEvent('ai_assistant_consented', { lang, mode });
     setConsented(true);
   };
 
@@ -357,22 +355,8 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
         body: JSON.stringify({ reason: 'human_requested' }),
       });
       setEscalated(true);
-      trackEvent('ai_assistant_escalated', {
-        lang,
-        mode,
-        channel: 'whatsapp',
-        reason: 'human_requested',
-      });
-      trackEvent('whatsapp_outbound_click', { lang, surface: 'assistant_escalation' });
       window.open(waLink(lang === 'ar' ? 'مرحباً، سجلت طلب متابعة عبر المساعد.' : 'Hello, I recorded a follow-up request through the assistant.'), '_blank', 'noopener,noreferrer');
     } catch { setError(t.error); } finally { setEscalating(false); }
-  };
-
-  const toggleOpen = () => {
-    setOpen((value) => {
-      if (!value) trackEvent('ai_assistant_opened', { lang, mode });
-      return !value;
-    });
   };
 
   const selectSession = async (id: string) => {
@@ -598,7 +582,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
         className="chat-ui__launcher"
         aria-label={t.open}
         aria-expanded={open}
-        onClick={toggleOpen}
+        onClick={() => setOpen((value) => !value)}
         data-testid="button-open-chat"
       >
         <span aria-hidden="true">✦</span>
