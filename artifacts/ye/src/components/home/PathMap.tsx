@@ -4,13 +4,13 @@ import Link from 'next/link';
 
 /** 7 stations in age order — finish flag at AlgoC (Master Spec). */
 const STATIONS = [
-  { slug: 'big-builders', nameAr: 'البنّاؤون الصغار', nameEn: 'Big Builders', ages: '4–6', icon: '🧱', fill: 'var(--yellow)', x: 60, y: 250 },
-  { slug: 'smartivo', nameAr: 'سمارتيفو', nameEn: 'Smartivo', ages: '4–6', icon: '🎮', fill: 'var(--cyan)', x: 250, y: 110 },
-  { slug: 'bricks-challenge', nameAr: 'تحدي المكعبات', nameEn: 'Bricks Challenge', ages: '6–10', icon: '⚙️', fill: '#E5AE4A', x: 440, y: 250 },
-  { slug: 'algoplay', nameAr: 'ألجوبلاي', nameEn: 'AlgoPlay', ages: '6–10', icon: '🤖', fill: 'var(--blue)', x: 630, y: 110 },
-  { slug: 'galileo-technic', nameAr: 'غاليليو تكنيك', nameEn: 'Galileo Technic', ages: '7–10', icon: '🔭', fill: 'var(--red)', x: 820, y: 250 },
-  { slug: 'robotoys', nameAr: 'روبوتويز', nameEn: 'RoboToys', ages: '9–12', icon: '🦾', fill: 'var(--blue-deep, #11388E)', x: 1010, y: 110 },
-  { slug: 'algoc', nameAr: 'ألجو سي', nameEn: 'AlgoC', ages: '13–18', icon: '💻', fill: 'var(--ink)', x: 1170, y: 210 },
+  { slug: 'big-builders', nameAr: 'البنّاؤون الصغار', nameEn: 'Big Builders', ages: '4–6', icon: 'E', fill: 'var(--yellow)', x: 60, y: 250 },
+  { slug: 'smartivo', nameAr: 'سمارتيفو', nameEn: 'Smartivo', ages: '4–6', icon: 'T', fill: 'var(--cyan)', x: 250, y: 110 },
+  { slug: 'bricks-challenge', nameAr: 'تحدي المكعبات', nameEn: 'Bricks Challenge', ages: '6–10', icon: 'E', fill: '#E5AE4A', x: 440, y: 250 },
+  { slug: 'algoplay', nameAr: 'ألجوبلاي', nameEn: 'AlgoPlay', ages: '6–10', icon: 'T', fill: 'var(--blue)', x: 630, y: 110 },
+  { slug: 'galileo-technic', nameAr: 'غاليليو تكنيك', nameEn: 'Galileo Technic', ages: '7–10', icon: 'S', fill: 'var(--red)', x: 820, y: 250 },
+  { slug: 'robotoys', nameAr: 'روبوتويز', nameEn: 'RoboToys', ages: '9–12', icon: 'T', fill: 'var(--blue-deep, #11388E)', x: 1010, y: 110 },
+  { slug: 'algoc', nameAr: 'ألجو سي', nameEn: 'AlgoC', ages: '13–18', icon: 'T', fill: 'var(--ink)', x: 1170, y: 210 },
 ];
 
 const ROAD =

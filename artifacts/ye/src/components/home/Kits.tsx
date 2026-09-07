@@ -39,14 +39,11 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
   };
 
   const getIcon = (slug: string) => {
-    if (slug.includes('builder')) return '🧱';
-    if (slug.includes('smart')) return '🎮';
-    if (slug.includes('challenge')) return '⚙️';
-    if (slug.includes('robo')) return '🦾';
-    if (slug.includes('play')) return '🤖';
-    if (slug.includes('algoc')) return '💻';
-    if (slug.includes('galileo')) return '🔭';
-    return '⚙️';
+    if (slug.includes('builder') || slug.includes('challenge')) return 'E';
+    if (slug.includes('smart') || slug.includes('play') || slug.includes('robo')) return 'T';
+    if (slug.includes('algoc')) return 'C';
+    if (slug.includes('galileo')) return 'S';
+    return 'M';
   };
 
   const fitsAge = (p: Program) => age === null || (age >= p.ageMin && age <= p.ageMax);

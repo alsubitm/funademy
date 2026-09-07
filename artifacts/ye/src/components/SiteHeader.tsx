@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Wordmark } from '@/components/brand/FunAdemyMark';
 import { FlipMark } from '@/components/brand/FlipMark';
-import { YELogo } from '@/components/brand/YELogo';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { LangSwitcher } from '@/components/LangSwitcher';
@@ -18,7 +17,7 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
         <div className="wrap">
           <span>{d.topBanner}</span>
           <span dir="ltr">
-            📞 <a href={`tel:+${WHATSAPP_NUMBER}`}>{PHONE_DISPLAY}</a> ·{' '}
+             <span aria-hidden="true" className="phone-mark">TEL</span> <a href={`tel:+${WHATSAPP_NUMBER}`}>{PHONE_DISPLAY}</a> ·{' '}
             <a href={`https://wa.me/${WHATSAPP_NUMBER}`}>{d.whatsapp}</a>
           </span>
         </div>
@@ -29,7 +28,6 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
           <Link href={lang === 'ar' ? '/' : '/en'} className="brand" aria-label={lang === 'ar' ? 'FunAdemy — الصفحة الرئيسية' : 'FunAdemy — Home'}>
             <FlipMark size={42} />
             <Wordmark lang={lang} style={{ fontSize: 26, lineHeight: 1 }} />
-            <YELogo height={28} className="opacity-70 hover:opacity-100 transition-opacity" />
           </Link>
           <div className="links">
             <a href="#path">{d.navPath}</a>
@@ -42,6 +40,25 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
             <Link className="btn y" href={lang === 'ar' ? '/book' : '/en/book'}>
               {d.navTrial}
             </Link>
+          </div>
+          <div className="mobile-nav-controls">
+            <LangSwitcher lang={lang} />
+            <details className="mobile-menu">
+              <summary aria-label={lang === 'ar' ? 'فتح القائمة' : 'Open menu'}>
+                <span />
+                <span />
+                <span />
+              </summary>
+              <div className="mobile-menu-panel">
+                <a href="#path">{d.navPath}</a>
+                <Link href={lang === 'ar' ? '/programs' : '/en/programs'}>{d.navPrograms}</Link>
+                <a href="#workshop">{d.navWorkshop}</a>
+                <a href="#pricing">{d.navPricing}</a>
+                <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
+                <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
+                <Link className="btn y" href={lang === 'ar' ? '/book' : '/en/book'}>{d.navTrial}</Link>
+              </div>
+            </details>
           </div>
         </div>
       </nav>

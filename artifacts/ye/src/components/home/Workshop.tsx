@@ -26,15 +26,15 @@ export function Workshop({ lang }: { lang: 'ar' | 'en' }) {
 
           <ul style={{ padding: 0 }}>
             <li>
-              <div className="fi" style={{ background: 'rgba(34, 218, 255, 0.1)', color: 'var(--cyan)', borderColor: 'rgba(34, 218, 255, 0.2)' }}>💡</div>
+               <div className="fi" style={{ background: 'rgba(34, 218, 255, 0.1)', color: 'var(--cyan)', borderColor: 'rgba(34, 218, 255, 0.2)' }}>01</div>
               {lang === 'ar' ? 'نتجاوز السحب والإفلات (Scratch) إلى البرمجة النصية الحقيقية.' : 'Moving past block-coding (Scratch) into real syntax.'}
             </li>
             <li>
-              <div className="fi" style={{ background: 'rgba(255, 202, 23, 0.1)', color: 'var(--yellow)', borderColor: 'rgba(255, 202, 23, 0.2)' }}>⌨️</div>
+               <div className="fi" style={{ background: 'rgba(255, 202, 23, 0.1)', color: 'var(--yellow)', borderColor: 'rgba(255, 202, 23, 0.2)' }}>02</div>
               {lang === 'ar' ? 'يتعلم الأطفال كتابة الأكواد بلغات تستخدم في العالم الحقيقي مثل C.' : 'Kids learn to write code in real-world languages like C.'}
             </li>
             <li>
-              <div className="fi" style={{ background: 'rgba(235, 182, 72, 0.1)', color: 'var(--green)', borderColor: 'rgba(235, 182, 72, 0.2)' }}>🤖</div>
+               <div className="fi" style={{ background: 'rgba(235, 182, 72, 0.1)', color: 'var(--green)', borderColor: 'rgba(235, 182, 72, 0.2)' }}>03</div>
               {lang === 'ar' ? 'أكوادهم تتحكم في روبوتات ملموسة قاموا ببنائها بأيديهم.' : 'Their code controls physical robots they built with their own hands.'}
             </li>
           </ul>
