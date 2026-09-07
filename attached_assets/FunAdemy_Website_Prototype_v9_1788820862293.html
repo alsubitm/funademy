@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FunAdemy — أكاديمية STEM للأطفال من 4 إلى 18 · الرياض</title>
+<meta name="description" content="FunAdemy: أكاديمية STEM مرخّصة في الرياض — علوم وتقنية وهندسة ورياضيات في حصص مباشرة للأطفال من 4 إلى 18 سنة. الحصة الأولى مجانية.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#091D52;--deep:#051036;--ink:#101A38;--blue:#1C54CB;--gold:#FFCA17;--gold2:#D9A600;--cyan:#22DAFF;--sandl:#F7E3B2;--sand:#F2CD7E;--amber:#E5AE4A;--paper:#F7EFDD;--green:#0E6B3A;
+ --S:#22DAFF;--T:#FFFFFF;--E:#FFCA17;--M:#F2CD7E;
+ --disp:'Baloo Bhaijaan 2','IBM Plex Sans Arabic',system-ui,sans-serif;--body:'IBM Plex Sans Arabic','Segoe UI',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;--max:1200px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--body);color:#fff;background:linear-gradient(180deg,#0B2263,#091D52 45%,#051036);line-height:1.7;overflow-x:hidden}
+html[lang=ar] .en{display:none}html[lang=en] .ar{display:none}
+h1,h2,h3,h4{font-family:var(--disp);font-weight:800;line-height:1.12;margin:0}p{margin:0 0 .8em}a{color:inherit;text-decoration:none}img,svg{display:block;max-width:100%}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 22px;position:relative}
+.mono{font-family:var(--mono);letter-spacing:.06em;font-size:.78rem}
+.note{color:#AEB9DD;font-size:.92rem}
+html[lang=ar] .ar-body,html[lang=ar] .lab .out,html[lang=ar] .seq,html[lang=ar] .card small,html[lang=ar] .cd span{font-family:var(--body);letter-spacing:0}
+/* pillar letters */
+.pill{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;font-family:var(--disp);font-weight:800;font-size:1rem;color:var(--ink);background:#AEB9DD;opacity:.35}
+.pill.on{opacity:1}
+.pill.S{background:var(--S)}.pill.T{background:var(--T)}.pill.E{background:var(--E)}.pill.M{background:var(--M)}
+.pills{display:inline-flex;gap:6px}
+/* header */
+header{position:sticky;top:0;z-index:50;background:rgba(5,16,54,.86);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;height:70px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:800;font-size:1.5rem}
+.logo .flip{width:32px;height:42px;position:relative;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.logo .flip svg{position:absolute;inset:0;width:100%;height:100%;backface-visibility:hidden}.logo .flip .cap{transform:rotateY(180deg)}
+.logo:hover .flip,.logo:focus-visible .flip{transform:rotateY(180deg)}.logo .a{color:var(--gold)}
+.menu{display:none;gap:22px;font-weight:600;font-size:.95rem}.menu a{opacity:.85}.menu a:hover{color:var(--gold);opacity:1}
+@media(min-width:960px){.menu{display:flex}}
+.lang{font-family:var(--mono);font-size:.8rem;letter-spacing:.1em;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:6px 10px;background:transparent;color:#fff;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-family:var(--disp);font-weight:800;font-size:1.05rem;padding:14px 26px;border-radius:14px;border:0;cursor:pointer;position:relative;transition:transform .12s,box-shadow .12s}
+.btn-gold{background:var(--gold);color:var(--ink);box-shadow:0 6px 0 var(--gold2)}.btn-gold:active{transform:translateY(5px);box-shadow:0 1px 0 var(--gold2)}
+.btn-line{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.5)}.btn-ink{background:var(--ink);color:#fff}
+.btn-sm{padding:8px 14px;font-size:.9rem;border-radius:10px}
+@media(max-width:959px){header .btn{display:none}}
+/* hero */
+.hero{padding:56px 0 40px;position:relative;overflow:hidden}
+.hero .wrap{display:grid;gap:30px;align-items:center}
+@media(min-width:1000px){.hero .wrap{grid-template-columns:1.02fr .98fr}}
+.kicker{font-family:var(--mono);color:var(--cyan);font-size:.78rem;letter-spacing:.14em;margin-bottom:12px}
+.hero h1{font-size:clamp(2rem,4.2vw,3.15rem)}
+.hero .lede{font-size:1.1rem;color:#D7DDF2;max-width:52ch;margin-top:14px}
+.stem{display:flex;gap:10px;margin:18px 0 4px;flex-wrap:wrap}
+.stem .k{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:6px 10px 6px 6px;font-weight:700;font-size:.92rem}
+.stem .k b{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;font-family:var(--disp);font-size:1.15rem;color:var(--ink)}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.facts{display:flex;gap:26px;flex-wrap:wrap;margin-top:24px}
+.fact{font-size:.8rem;color:#AEB9DD}.fact b{display:block;font-family:var(--disp);font-size:1.6rem;color:#fff;line-height:1.1}
+/* playground */
+.play{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lab{position:relative;border-radius:18px;padding:14px;min-height:225px;background:rgba(3,16,46,.8);border:1px solid rgba(255,255,255,.14);display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.lab .h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lab .h b{font-family:var(--disp);font-size:1.02rem}
+.lab .tagp{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;color:#AEB9DD}
+.lab .stage{flex:1;display:grid;place-items:center}
+.lab .out{font-family:var(--mono);font-size:.74rem;color:var(--cyan);min-height:1.2em}
+.lab input[type=range]{width:100%;accent-color:var(--gold)}
+.lab.S{border-color:rgba(34,218,255,.5)}.lab.T{border-color:rgba(255,255,255,.4)}.lab.E{border-color:rgba(255,202,23,.55)}.lab.M{border-color:rgba(242,205,126,.55)}
+.codebtns{display:flex;gap:6px;flex-wrap:wrap}
+.codebtns button{font-family:var(--mono);font-size:.72rem;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:#0B2263;color:#fff;padding:5px 8px;cursor:pointer}
+.codebtns button.run{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.seq{font-family:var(--mono);font-size:.72rem;color:var(--cyan);min-height:1.2em;direction:ltr;text-align:left}
+@media(max-width:520px){.play{grid-template-columns:1fr}}
+/* sections */
+section.blk{padding:84px 0;position:relative}
+.sec-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.sec-head .n{font-family:var(--mono);color:var(--cyan);letter-spacing:.14em;font-size:.76rem}
+.sec-head h2{font-size:clamp(1.6rem,3.4vw,2.4rem)}
+.sec-head .sub{color:var(--sand);font-weight:600;font-size:1rem}
+/* textures */
+.tex-T{background-image:radial-gradient(circle at 1px 1px,rgba(34,218,255,.28) 1px,transparent 1.5px);background-size:22px 22px}
+.tex-M{background-image:linear-gradient(rgba(242,205,126,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(242,205,126,.12) 1px,transparent 1px);background-size:32px 32px}
+.tex-S{background-image:radial-gradient(circle at 20% 30%,rgba(34,218,255,.12) 0 60px,transparent 61px),radial-gradient(circle at 80% 70%,rgba(34,218,255,.09) 0 90px,transparent 91px)}
+/* board */
+.board{background:#03102E;border:1px solid rgba(255,255,255,.14);border-radius:18px;overflow:hidden}
+.board .bhead,.board .row{display:grid;grid-template-columns:90px 1.3fr 150px 80px 110px;gap:10px;padding:11px 18px;font-family:var(--mono);align-items:center}
+.board .bhead{background:#0B2263;font-size:.68rem;letter-spacing:.14em;color:var(--cyan)}
+.board .row{border-top:1px solid rgba(255,255,255,.07);font-size:.95rem}
+.flap{display:inline-flex;gap:1px;direction:ltr;unicode-bidi:isolate}.flap span{display:inline-block;min-width:.66em;background:#0E1C46;border-radius:3px;padding:2px 1px;text-align:center;transition:transform .12s}.flap span.turn{transform:rotateX(90deg)}
+.st{font-size:.7rem;letter-spacing:.08em;padding:3px 8px;border-radius:6px;background:rgba(34,218,255,.12);color:var(--cyan);text-align:center}.st.full{background:rgba(255,255,255,.08);color:#AEB9DD}.st.last{background:rgba(255,202,23,.16);color:var(--gold)}
+html[lang=ar] .st{font-family:var(--body);letter-spacing:0}
+@media(max-width:700px){.board .bhead,.board .row{grid-template-columns:72px 1.3fr 70px 90px}.board .gate{display:none}.board .row{font-size:.8rem}}
+/* STEM map */
+.map{background:#03102E;border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:16px 16px 6px;overflow:hidden}
+.map svg{width:100%;height:auto;display:block}
+.map .ctl{display:flex;align-items:center;gap:14px;padding:10px 6px 12px;flex-wrap:wrap}
+.map .ctl .big{font-family:var(--disp);font-size:2.6rem;color:var(--gold);line-height:1;min-width:2ch;text-align:center}
+.map .ctl input{flex:1;min-width:200px;accent-color:var(--gold)}
+.cards{display:grid;gap:16px;margin-top:18px}
+@media(min-width:800px){.cards{grid-template-columns:1fr 1fr}}
+/* STEM card */
+.card{background:var(--paper);color:var(--ink);border-radius:18px;padding:18px 18px 14px;position:relative;box-shadow:0 20px 40px rgba(0,0,0,.35);display:grid;grid-template-columns:1fr 92px;gap:12px;transition:transform .2s}
+.card:hover{transform:translateY(-3px)}
+.card.sky{outline:3px solid var(--gold);outline-offset:-3px}
+.card .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .field{font-family:var(--body);font-weight:700;font-size:.72rem;background:var(--ink);color:var(--gold);border-radius:6px;padding:2px 8px}
+.card.sky .field{background:var(--cyan);color:var(--ink)}
+.card h3{font-size:1.4rem;margin:6px 0 4px}
+.card .desc{font-size:.9rem;color:#3A4160;margin:0 0 10px}
+.card .cells{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.card .cells b{display:block;font-family:var(--disp);font-size:1.1rem;line-height:1.1}
+.card .cells small{font-size:.66rem;color:#5C6E9E}
+.card .side{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:8px;border-inline-start:1px dashed rgba(16,26,56,.3);padding-inline-start:10px}
+.card .side .ico{width:64px;height:64px;border-radius:16px;background:var(--ink);display:grid;place-items:center;color:var(--gold)}
+.card .side .btn{width:100%;padding:8px 6px;font-size:.9rem;border-radius:10px}
+/* four labs */
+.four{display:grid;gap:14px}
+@media(min-width:900px){.four{grid-template-columns:repeat(4,1fr)}}
+.pillar{border-radius:18px;padding:20px;background:rgba(3,16,46,.7);border:1px solid rgba(255,255,255,.14);position:relative;overflow:hidden;min-height:330px}
+.pillar .L{font-family:var(--disp);font-size:4rem;line-height:1;position:absolute;inset-inline-end:14px;top:6px;opacity:.9}
+.pillar h3{font-size:1.4rem;margin-top:40px}
+.pillar .ar-name{color:#AEB9DD;font-weight:600;font-size:.95rem;margin-bottom:8px}
+.pillar ul{padding-inline-start:18px;margin:8px 0;color:#D7DDF2;font-size:.92rem}
+.pillar .progs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pillar .progs span{font-family:var(--mono);font-size:.68rem;border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:3px 7px}
+.pillar.S{border-color:rgba(34,218,255,.5)}.pillar.S .L{color:var(--S)}
+.pillar.T{border-color:rgba(255,255,255,.4)}.pillar.T .L{color:var(--T)}
+.pillar.E{border-color:rgba(255,202,23,.55)}.pillar.E .L{color:var(--E)}
+.pillar.M{border-color:rgba(242,205,126,.55)}.pillar.M .L{color:var(--M)}
+/* loop */
+.loop{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.loop div{background:rgba(3,16,46,.7);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:16px;text-align:center}
+.loop b{display:block;font-family:var(--disp);font-size:1.3rem}.loop span{font-size:.85rem;color:#AEB9DD}
+@media(max-width:700px){.loop{grid-template-columns:1fr 1fr}}
+/* ticket */
+.ticket{display:grid;grid-template-columns:minmax(0,1fr);background:var(--paper);color:var(--ink);border-radius:18px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.4)}
+@media(min-width:900px){.ticket{grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr)}}
+.ticket .left{padding:26px}.ticket .fare{font-family:var(--disp);font-size:clamp(3rem,8vw,4.2rem);line-height:1;margin:6px 0}.ticket .fare small{font-family:var(--body);font-size:1rem;font-weight:600;color:#5C6E9E}
+.ticket ul{padding-inline-start:18px;margin:12px 0;color:#3A4160}
+.ticket .right{background:var(--gold);padding:26px;border-inline-start:2px dashed rgba(16,26,56,.45);position:relative;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.ticket .right::before,.ticket .right::after{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:var(--deep);inset-inline-start:-14px}.ticket .right::before{top:-13px}.ticket .right::after{bottom:-13px}
+.ticket .right h3{font-size:1.6rem}.tear{font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;color:#5C6E9E}
+.ticket input,.ticket select{padding:12px;border-radius:10px;border:1.5px solid #B8930A;font:inherit;width:100%}
+/* countdown & route & tower */
+.cd{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}.cd div{background:#03102E;border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 16px;min-width:92px;text-align:center}.cd b{display:block;font-family:var(--mono);font-size:2.1rem;color:var(--gold);line-height:1.1}.cd span{font-size:.7rem;color:#AEB9DD}
+.route{background:rgba(3,16,46,.7);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:20px}
+.mw{margin-top:16px;border:1.5px solid var(--green);border-radius:16px;padding:16px;background:rgba(14,107,58,.12)}
+.tower{display:grid;gap:18px}@media(min-width:900px){.tower{grid-template-columns:1.1fr .9fr}}
+.paper{background:var(--paper);color:var(--ink);border-radius:16px;padding:22px}
+details{border-top:1px solid rgba(16,26,56,.15);padding:10px 0}summary{cursor:pointer;font-family:var(--disp);font-weight:800;font-size:1.02rem}details p{margin:8px 0 0;color:#3A4160;font-size:.95rem}
+footer{padding:50px 0 90px;color:#8FA0D0;font-size:.85rem;border-top:1px solid rgba(255,255,255,.1)}.credit{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;margin-top:10px}
+.mcta{position:fixed;bottom:0;inset-inline:0;z-index:60;display:flex;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(5,16,54,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,.12)}.mcta .btn{flex:1;padding:12px;font-size:1rem;border-radius:10px}@media(min-width:960px){.mcta{display:none}}
+.btn:focus-visible,a:focus-visible,input:focus-visible,button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.flap span,.card,.logo .flip{transition:none}}
+
+/* ===== v5 improvements ===== */
+.sec-head{display:block;margin-bottom:26px}
+.sec-head .n{display:block;margin-bottom:6px}
+.sec-head h2{margin:0}
+.sec-head .sub{display:block;margin-top:6px}
+.gstripe{height:6px;width:140px;border-radius:3px;background:linear-gradient(90deg,var(--navy),var(--purple) 60%,var(--gold));margin:12px 0 0}
+.hero{position:relative;overflow:hidden}
+.hero .mark{position:absolute;inset-inline-end:-80px;top:-60px;width:520px;opacity:.06;pointer-events:none}
+.trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.trust span{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:var(--navy);background:var(--snow);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.trust>span::before{content:"✓";color:var(--purple);font-weight:800}
+.playwrap{position:relative}
+.playhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;padding:0 4px}
+.playhead b{font-family:var(--disp);font-size:1.15rem;color:var(--navy)}
+.playhead .live{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;color:var(--purple);display:inline-flex;align-items:center;gap:6px}
+.playhead .live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 0 rgba(255,202,23,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{to{box-shadow:0 0 0 10px rgba(255,202,23,0)}}
+.lab{transition:transform .2s,box-shadow .2s}.lab:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(7,31,77,.35)}
+.lab .more{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;color:#DCE3FF;text-decoration:underline;margin-top:2px}
+/* map: legend + path + mobile */
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:0 6px 8px;font-size:.85rem;color:#DCE3FF}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-inline-end:6px}
+.map .svgwrap{overflow-x:auto}
+@media(max-width:640px){.map svg{min-width:760px}}
+/* pillars */
+.pillar .ic{position:absolute;inset-inline-start:16px;top:14px;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--snow);color:var(--navy)}
+.pillar .try{display:inline-block;margin-top:12px;font-weight:700;color:var(--purple);font-size:.9rem}
+.pillar .try::after{content:" ↗"}
+/* loop ring */
+.ring{display:grid;gap:22px;align-items:center}
+@media(min-width:900px){.ring{grid-template-columns:.9fr 1.1fr}}
+.ring svg{width:100%;max-width:420px;margin:0 auto;display:block}
+.steps{display:grid;gap:10px}
+.step{display:flex;gap:14px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.step .num{flex:0 0 40px;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:1.1rem;color:#fff;background:var(--navy)}
+.step:nth-child(2) .num{background:var(--purple)}.step:nth-child(3) .num{background:#1C54CB}.step:nth-child(4) .num{background:var(--gold);color:var(--ink)}
+.step b{display:block;font-family:var(--disp);font-size:1.1rem;color:var(--navy)}.step span{font-size:.9rem;color:var(--muted)}
+/* kits */
+.kits{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 4px 14px;scrollbar-width:thin}
+.kit{flex:0 0 min(78vw,300px);scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 16px 34px rgba(11,61,145,.1)}
+.kit img{width:100%;aspect-ratio:10/9;object-fit:cover;display:block}
+.kit .kb{padding:14px 16px}
+.kit .kb b{font-family:var(--disp);font-size:1.15rem;color:var(--navy);display:block}
+.kit .kb span{font-size:.85rem;color:var(--muted)}
+.kit .alt{font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;color:var(--purple)}
+/* footer */
+footer .fl{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px}
+footer .logo{color:#fff}footer .logo .a{color:var(--gold)}
+footer nav{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.9rem}
+.sec-head .sub{color:var(--purple)}
+@media(max-width:700px){.hero .mark{display:none}}
+
+
+/* ===== PALETTE v4 · white · purple · yellow · marine blue ===== */
+:root{--navy:#0B3D91;--deep:#071F4D;--ink:#0F1F4B;--blue:#1C54CB;--purple:#6D28D9;--purpleL:#A78BFA;--lav:#EDE9FE;--snow:#F5F7FF;--line:#E1E6F5;--muted:#5C6B99;--body2:#3A4A7A;--cyan:#1C54CB;
+ --S:#1C54CB;--T:#6D28D9;--E:#FFCA17;--M:#FFFFFF}
+body{background:#fff;color:var(--ink)}
+header{background:rgba(255,255,255,.9);border-bottom:1px solid var(--line)}
+.logo{color:var(--navy)}.logo .a{color:var(--purple)}
+.menu a{color:var(--ink)}.menu a:hover{color:var(--purple)}
+.lang{border-color:#C9D2EE;color:var(--ink)}
+.btn-line{color:var(--navy);border-color:var(--navy)}
+.btn-ink{background:var(--purple);color:#fff;box-shadow:0 5px 0 #4C1D95}.btn-ink:active{transform:translateY(4px);box-shadow:0 1px 0 #4C1D95}
+.kicker{color:var(--purple)}
+.hero{background:radial-gradient(60% 50% at 85% 20%,var(--lav) 0,transparent 70%),radial-gradient(40% 40% at 10% 90%,#E3EBFF 0,transparent 70%),#fff}
+.hero h1{color:var(--navy)}.hero h1 .hl{color:var(--purple)}
+.hero .lede{color:var(--body2)}
+.stem .k{border-color:var(--line);background:#fff;color:var(--ink);box-shadow:0 4px 14px rgba(11,61,145,.06)}
+.stem .k b{border:2px solid transparent}.stem .k b.S,.stem .k b.T{color:#fff}.stem .k b.M{border-color:var(--navy);color:var(--navy)}
+.fact{color:var(--muted)}.fact b{color:var(--navy)}
+.play{background:linear-gradient(135deg,var(--navy) 0%,#3F2A9E 60%,var(--purple) 100%);padding:14px;border-radius:26px;box-shadow:0 30px 60px rgba(11,61,145,.25)}
+.lab{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}
+.lab .tagp{color:#DCE3FF}.lab .out{color:#FFE58A}.lab.S{border-color:#7FB3FF}.lab.T{border-color:#C4B5FD}.lab.E{border-color:var(--gold)}.lab.M{border-color:#fff}
+.codebtns button{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35)}.seq{color:#DCE3FF}
+section.blk{background:#fff}#board,#labs,#fare,#route{background:var(--snow)}
+.sec-head h2{color:var(--navy)}.sec-head .n{color:var(--purple)}.sec-head .sub{color:var(--purple)}
+.note{color:var(--muted)}
+.tex-T{background-image:radial-gradient(circle at 1px 1px,rgba(109,40,217,.18) 1px,transparent 1.5px)}
+.tex-M{background-image:linear-gradient(rgba(28,84,203,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(28,84,203,.08) 1px,transparent 1px)}
+.tex-S{background-image:radial-gradient(circle at 20% 30%,rgba(167,139,250,.18) 0 70px,transparent 71px),radial-gradient(circle at 80% 70%,rgba(28,84,203,.10) 0 100px,transparent 101px)}
+.board{background:linear-gradient(135deg,var(--deep),#3B1E8F);border:0;box-shadow:0 30px 60px rgba(11,61,145,.2)}
+.board .bhead{background:rgba(255,255,255,.08);color:#DCE3FF}.board .row{color:#fff;border-top-color:rgba(255,255,255,.1)}
+.flap span{background:rgba(255,255,255,.1)}
+.st{background:rgba(255,255,255,.14);color:#fff}.st.last{background:var(--gold);color:var(--ink)}.st.full{background:rgba(255,255,255,.08);color:#C9D2EE}
+.map{background:linear-gradient(135deg,var(--navy),var(--purple));border:0;color:#fff;box-shadow:0 30px 60px rgba(11,61,145,.2)}
+.map .note{color:#DCE3FF}.map .ctl .big{color:var(--gold)}
+.card{border:1px solid var(--line);box-shadow:0 20px 40px rgba(11,61,145,.12);background:#fff}
+.card .field{background:var(--navy);color:#fff}.card.sky{outline:3px solid var(--purple)}.card.sky .field{background:var(--purple)}
+.card .desc{color:var(--body2)}.card .cells small{color:var(--muted)}.card .side{border-color:var(--line)}.card .side .ico{background:var(--navy);color:var(--gold)}
+.pill{background:#E6EAF6;color:#9AA6C9;opacity:1}.pill.on.S{background:var(--S);color:#fff}.pill.on.T{background:var(--T);color:#fff}.pill.on.E{background:var(--E);color:var(--ink)}.pill.on.M{background:#fff;color:var(--navy);border:2px solid var(--navy)}
+.pillar{background:#fff;border:1px solid var(--line);color:var(--ink);box-shadow:0 14px 30px rgba(11,61,145,.08)}
+.pillar.S{border-top:6px solid var(--S)}.pillar.T{border-top:6px solid var(--T)}.pillar.E{border-top:6px solid var(--E)}.pillar.M{border-top:6px solid var(--navy)}
+.pillar.S .L{color:var(--S)}.pillar.T .L{color:var(--T)}.pillar.E .L{color:var(--E)}.pillar.M .L{color:#fff;-webkit-text-stroke:2px var(--navy)}
+.pillar .ar-name{color:var(--muted)}.pillar ul{color:var(--body2)}.pillar .progs span{border-color:#C9D2EE;color:var(--navy)}
+.dark{background:linear-gradient(135deg,var(--navy),var(--purple));color:#fff;border:0}.dark .note{color:#DCE3FF}
+.loop div{background:#fff;border-color:var(--line);color:var(--ink)}.loop b{color:var(--navy)}.loop span{color:var(--muted)}
+.ticket{border:1px solid var(--line);box-shadow:0 30px 60px rgba(11,61,145,.15)}.ticket .fare{color:var(--navy)}.ticket .fare small{color:var(--muted)}.ticket ul{color:var(--body2)}.tear{color:var(--muted)}
+.cd div{background:linear-gradient(135deg,var(--navy),var(--purple));border:0;color:#fff}.cd b{color:var(--gold)}.cd span{color:#DCE3FF}
+.route{background:#fff;border-color:var(--line);color:var(--ink)}.mw{background:#F1FAF4}
+.paper{border:1px solid var(--line)}details{border-top-color:var(--line)}details p{color:var(--body2)}
+footer{background:var(--navy);color:#C9D2EE;border:0}.credit{color:#9FB0E0}
+.mcta{background:rgba(255,255,255,.96);border-top:1px solid var(--line)}
+.btn:focus-visible,a:focus-visible,input:focus-visible,button:focus-visible{outline-color:var(--purple)}
+
+/* ===== v5 improvements ===== */
+.sec-head{display:block;margin-bottom:26px}
+.sec-head .n{display:block;margin-bottom:6px}
+.sec-head h2{margin:0}
+.sec-head .sub{display:block;margin-top:6px}
+.gstripe{height:6px;width:140px;border-radius:3px;background:linear-gradient(90deg,var(--navy),var(--purple) 60%,var(--gold));margin:12px 0 0}
+.hero{position:relative;overflow:hidden}
+.hero .mark{position:absolute;inset-inline-end:-80px;top:-60px;width:520px;opacity:.06;pointer-events:none}
+.trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.trust span{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:var(--navy);background:var(--snow);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.trust span::before{content:"✓";color:var(--purple);font-weight:800}
+.playwrap{position:relative}
+.playhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;padding:0 4px}
+.playhead b{font-family:var(--disp);font-size:1.15rem;color:var(--navy)}
+.playhead .live{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;color:var(--purple);display:inline-flex;align-items:center;gap:6px}
+.playhead .live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 0 rgba(255,202,23,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{to{box-shadow:0 0 0 10px rgba(255,202,23,0)}}
+.lab{transition:transform .2s,box-shadow .2s}.lab:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(7,31,77,.35)}
+.lab .more{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;color:#DCE3FF;text-decoration:underline;margin-top:2px}
+/* map: legend + path + mobile */
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:0 6px 8px;font-size:.85rem;color:#DCE3FF}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-inline-end:6px}
+.map .svgwrap{overflow-x:auto}
+@media(max-width:640px){.map svg{min-width:760px}}
+/* pillars */
+.pillar .ic{position:absolute;inset-inline-start:16px;top:14px;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--snow);color:var(--navy)}
+.pillar .try{display:inline-block;margin-top:12px;font-weight:700;color:var(--purple);font-size:.9rem}
+.pillar .try::after{content:" ↗"}
+/* loop ring */
+.ring{display:grid;gap:22px;align-items:center}
+@media(min-width:900px){.ring{grid-template-columns:.9fr 1.1fr}}
+.ring svg{width:100%;max-width:420px;margin:0 auto;display:block}
+.steps{display:grid;gap:10px}
+.step{display:flex;gap:14px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.step .num{flex:0 0 40px;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:1.1rem;color:#fff;background:var(--navy)}
+.step:nth-child(2) .num{background:var(--purple)}.step:nth-child(3) .num{background:#1C54CB}.step:nth-child(4) .num{background:var(--gold);color:var(--ink)}
+.step b{display:block;font-family:var(--disp);font-size:1.1rem;color:var(--navy)}.step span{font-size:.9rem;color:var(--muted)}
+/* kits */
+.kits{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 4px 14px;scrollbar-width:thin}
+.kit{flex:0 0 min(78vw,300px);scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 16px 34px rgba(11,61,145,.1)}
+.kit img{width:100%;aspect-ratio:10/9;object-fit:cover;display:block}
+.kit .kb{padding:14px 16px}
+.kit .kb b{font-family:var(--disp);font-size:1.15rem;color:var(--navy);display:block}
+.kit .kb span{font-size:.85rem;color:var(--muted)}
+.kit .alt{font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;color:var(--purple)}
+/* footer */
+footer .fl{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px}
+footer .logo{color:#fff}footer .logo .a{color:var(--gold)}
+footer nav{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.9rem}
+.sec-head .sub{color:var(--purple)}
+@media(max-width:700px){.hero .mark{display:none}}
+
+/* kite flight */
+.flyer{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.flyer svg.trail{position:absolute;inset:0;width:100%;height:100%}
+.flyer .kf{position:absolute;left:0;top:0;offset-position:0 0;width:92px;height:118px;offset-path:path('M -120 130 C 220 40, 480 180, 760 100 S 1200 40, 1480 140');offset-rotate:0deg;animation:fly 22s cubic-bezier(.45,.05,.55,.95) infinite alternate;pointer-events:auto;transform-style:preserve-3d;transition:transform .7s}
+.flyer .kf svg{position:absolute;inset:0;width:100%;height:100%;backface-visibility:hidden;animation:sway 3.6s ease-in-out infinite}
+.flyer .kf svg.cap{transform:rotateY(180deg)}
+.flyer .kf:hover{transform:rotateY(180deg)}
+@keyframes fly{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes sway{0%,100%{rotate:-7deg}50%{rotate:7deg}}
+@keyframes dash{to{stroke-dashoffset:-400}}
+.flyer .trail path{stroke:var(--gold);stroke-width:2;stroke-dasharray:6 10;fill:none;opacity:.35;animation:dash 24s linear infinite}
+.hero .wrap{position:relative;z-index:1}
+@media(max-width:900px){.hero{padding-top:110px}.flyer .kf{width:70px;height:90px;offset-path:path('M -80 70 C 120 10, 260 120, 460 60')}}
+@media(prefers-reduced-motion:reduce){.flyer .kf,.flyer .kf svg,.flyer .trail path{animation:none}}
+/* photo band */
+.photos{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:900px){.photos{grid-template-columns:repeat(4,1fr)}}
+.photo{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);aspect-ratio:4/3;background:var(--panel)}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo .cap{position:absolute;inset-inline:0;bottom:0;padding:12px 14px;background:linear-gradient(180deg,transparent,rgba(5,16,54,.94));font-weight:700}
+.photo .cap small{display:block;font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;color:var(--gold);font-weight:600}
+html[lang=ar] .photo .cap small{font-family:var(--body);letter-spacing:0}
+
+
+/* ===== v9 · v5 colours on the current structure ===== */
+.flyer .trail path{stroke:var(--purpleL);opacity:.6}
+.hero .copy{background:transparent;padding:0;box-shadow:none}
+.photos .photo{border-color:var(--line);box-shadow:0 16px 34px rgba(11,61,145,.14)}
+section.blk{background:#fff}#board,#labs,#fare,#route,#tower{background:var(--snow)}#photos,#map,#loop,#countdown{background:#fff}
+.pillar.dark{background:linear-gradient(135deg,var(--navy),var(--purple));color:#fff;border:0}
+.hero{padding-top:170px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="kite" viewBox="0 0 340 440"><path d="M170 316 Q 214 356 200 392 Q 190 416 226 414" fill="none" stroke="#E5AE4A" stroke-width="7" stroke-linecap="round"/><rect x="196" y="338" width="22" height="22" rx="5" fill="#22DAFF" stroke="currentColor" stroke-width="5" transform="rotate(45 207 349)"/><rect x="186" y="378" width="20" height="20" rx="5" fill="#F2CD7E" stroke="currentColor" stroke-width="5" transform="rotate(45 196 388)"/><path d="M240 402 l7 15 15 7 -15 7 -7 15 -7 -15 -15 -7 15 -7z" fill="#FFCA17" stroke="currentColor" stroke-width="5"/><g stroke="currentColor" stroke-linejoin="round"><polygon points="170,36 306,176 170,316 34,176" fill="#FFCA17" stroke-width="10"/><line x1="170" y1="36" x2="170" y2="316" stroke-width="6"/><line x1="34" y1="176" x2="306" y2="176" stroke-width="6"/><polygon points="170,36 306,176 170,176" fill="#FFE066" opacity=".5" stroke="none"/><circle cx="170" cy="176" r="16" fill="#1C54CB" stroke-width="7"/></g></symbol>
+  <symbol id="cap" viewBox="0 0 260 240"><g stroke="currentColor" stroke-linejoin="round"><polygon points="130,44 246,104 130,164 14,104" fill="#FFCA17" stroke-width="9"/><path d="M76 142 L76 188 Q130 216 184 188 L184 142" fill="#FFCA17" stroke-width="9"/><circle cx="130" cy="104" r="12" fill="#1C54CB" stroke-width="6"/><path d="M130 104 Q 198 118 202 168" fill="none" stroke="#E5AE4A" stroke-width="6" stroke-linecap="round"/><path d="M202 168 l5.5 12 12 5.5 -12 5.5 -5.5 12 -5.5 -12 -12 -5.5 12 -5.5z" fill="#FFCA17" stroke-width="4.5"/></g></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.5-2.4 1a7.7 7.7 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.7 7.7 0 0 0-1.7 1l-2.4-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7.7 7.7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.7 7.7 0 0 0 1.7-1l2.4 1 2-3.5L19.4 13zM13 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 9V3"/><path fill="currentColor" d="M7.5 16h9l2 3.5H5.5z" opacity=".8"/></symbol>
+  <symbol id="i-graph" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3 20h18M4 17c3-1 5-8 8-8s4 5 8 3"/><circle cx="12" cy="9" r="1.8" fill="currentColor"/></symbol>
+</svg>
+
+<header><div class="wrap nav">
+  <a class="logo" href="#top"><span class="flip"><svg style="color:#0F1F4B"><use href="#kite"/></svg><svg class="cap" style="color:#0F1F4B"><use href="#cap"/></svg></span><span>Fun<span class="a">Ademy</span></span></a>
+  <nav class="menu"><a href="#map"><span class="ar">البرامج</span><span class="en">Programs</span></a><a href="#labs">STEM</a><a href="#fare"><span class="ar">الأسعار</span><span class="en">Pricing</span></a><a href="#route"><span class="ar">الحملة الوطنية</span><span class="en">Campaign</span></a><a href="#tower"><span class="ar">تواصل</span><span class="en">Contact</span></a></nav>
+  <div style="display:flex;gap:10px;align-items:center"><button class="lang" id="lang">EN</button><a class="btn btn-gold btn-sm" href="#fare"><span class="ar">احجز حصة مجانية</span><span class="en">Book a free class</span></a></div>
+</div></header>
+
+<!-- HERO -->
+<section class="hero" id="top"><div class="flyer" aria-hidden="true"><svg class="trail" viewBox="0 0 1400 800" preserveAspectRatio="none"><path d="M -120 190 C 220 100, 480 240, 760 160 S 1200 100, 1500 200"/></svg><div class="kf" title="FunAdemy"><svg style="color:#0F1F4B"><use href="#kite"/></svg><svg class="cap" style="color:#0F1F4B"><use href="#cap"/></svg></div></div><div class="wrap">
+  <div class="copy">
+    <div class="kicker">FUNADEMY · STEM ACADEMY · RIYADH · <span class="ar ar-body">من 4 إلى 18</span><span class="en">AGES 4–18</span></div>
+    <h1><span class="ar">لا نعلّم أطفالنا عن الهندسة&nbsp;—<br><span class="hl">بل نصنع منهم مهندسين.</span></span><span class="en">We don't teach kids about engineering&nbsp;—<br><span class="hl">we make them engineers.</span></span></h1>
+    <p class="lede"><span class="ar">أكاديمية STEM كاملة: هندسة وبرمجة حضوريًا في الرياض، ورياضيات وعلوم مباشرة أونلاين — من أول مكعّب إلى أول سطر برمجة، ومن أول تجربة إلى أول معادلة.</span><span class="en">A complete STEM academy: engineering and coding in person in Riyadh, math and science live online — from the first brick to the first line of code, from the first experiment to the first equation.</span></p>
+    <div class="stem">
+      <span class="k"><b class="S" style="background:var(--S)">S</b><span class="ar">العلوم</span><span class="en">Science</span></span>
+      <span class="k"><b class="T" style="background:var(--T)">T</b><span class="ar">التقنية</span><span class="en">Technology</span></span>
+      <span class="k"><b class="E" style="background:var(--E)">E</b><span class="ar">الهندسة</span><span class="en">Engineering</span></span>
+      <span class="k"><b class="M" style="background:var(--M)">M</b><span class="ar">الرياضيات</span><span class="en">Math</span></span>
+    </div>
+    <div class="ctas"><a class="btn btn-gold" href="#fare"><span class="ar">احجز الحصة التجريبية المجانية</span><span class="en">Book the free trial class</span></a><a class="btn btn-line" href="#map"><span class="ar">خريطة STEM حسب العمر</span><span class="en">STEM map by age</span></a></div>
+    <div class="trust"><span><span class="ar">أكاديمية مرخّصة</span><span class="en">Licensed academy</span></span><span><span class="ar">شهادة لكل مستوى</span><span class="en">A certificate per level</span></span><span><span class="ar">مجموعات 8–16</span><span class="en">Groups of 8–16</span></span><span><span class="ar">تقرير للأهل بعد كل حصة</span><span class="en">Parent report after every class</span></span></div>
+    <div class="facts"><div class="fact"><b>12</b><span class="ar">برنامجًا ومستوى</span><span class="en">programs & levels</span></div><div class="fact"><b>8–16</b><span class="ar">طالبًا في المجموعة</span><span class="en">per group</span></div><div class="fact"><b>1,380</b><span class="ar">ريال شهريًا · الأولى مجانية</span><span class="en">SAR / month · first free</span></div></div>
+  </div>
+  <!-- STEM playground: four live micro-labs -->
+  <div class="playwrap"><div class="playhead"><b><span class="ar">جرّب STEM الآن — أربع تجارب حيّة</span><span class="en">Try STEM now — four live experiments</span></b><span class="live">LIVE DEMO</span></div><div class="play" aria-label="STEM playground">
+    <div class="lab S">
+      <div class="h"><b><span class="ar">يغرق أم يطفو؟</span><span class="en">Sink or float?</span></b><span class="tagp">S · SKYLAB · GLIDE</span></div>
+      <div class="stage"><svg viewBox="0 0 200 120" width="100%" style="max-width:220px"><rect x="55" y="12" width="90" height="100" rx="10" fill="rgba(255,255,255,.08)" stroke="#7FB3FF" stroke-width="2"/><rect x="58" y="40" width="84" height="69" rx="8" fill="rgba(127,179,255,.35)" id="water"/><ellipse id="egg" cx="100" cy="92" rx="14" ry="18" fill="#F7EFDD" stroke="#101A38" stroke-width="2"/><g id="salt" fill="#fff"></g></svg></div>
+      <input type="range" min="0" max="100" value="0" id="saltR" aria-label="salt"><div class="out" id="saltOut"></div><a class="more" href="#map">SKYLAB GLIDE · <span class="ar ar-body">الكثافة</span><span class="en">DENSITY</span></a>
+    </div>
+    <div class="lab T">
+      <div class="h"><b><span class="ar">برمج الطيارة</span><span class="en">Code the kite</span></b><span class="tagp">T · ALGOPLAY</span></div>
+      <div class="stage"><svg viewBox="0 0 160 120" width="100%" style="max-width:200px" id="grid"></svg></div>
+      <div class="seq" id="seq">▸</div>
+      <div class="codebtns"><button data-c="F">forward ↑</button><button data-c="R">turn ↻</button><button data-c="L">turn ↺</button><button class="run" id="run">RUN ▶</button><button id="clr">clear</button></div>
+    </div>
+    <div class="lab E">
+      <div class="h"><b><span class="ar">نسبة التروس</span><span class="en">Gear ratio</span></b><span class="tagp">E · BRICKS CHALLENGE</span></div>
+      <div class="stage"><svg viewBox="0 0 220 120" width="100%" style="max-width:230px"><g id="g1" transform="translate(70 60)"></g><g id="g2" transform="translate(160 60)"></g></svg></div>
+      <input type="range" min="0" max="360" value="0" id="gearR" aria-label="turn the big gear"><div class="out" id="gearOut"></div><a class="more" href="#map">BRICKS CHALLENGE · <span class="ar ar-body">التروس</span><span class="en">GEARS</span></a>
+    </div>
+    <div class="lab M">
+      <div class="h"><b><span class="ar">ساعة الظل</span><span class="en">Shadow clock</span></b><span class="tagp">M · SKYLAB · LIFT-OFF</span></div>
+      <div class="stage"><svg viewBox="0 0 220 120" width="100%" style="max-width:230px"><line x1="10" y1="100" x2="210" y2="100" stroke="#F2CD7E" stroke-width="2"/><line id="shadow" x1="120" y1="100" x2="60" y2="100" stroke="#0B2263" stroke-width="8" stroke-linecap="round"/><line x1="120" y1="100" x2="120" y2="50" stroke="#FFCA17" stroke-width="5" stroke-linecap="round"/><circle id="sun" cx="180" cy="40" r="10" fill="#FFCA17"/><line id="ray" x1="180" y1="40" x2="120" y2="50" stroke="#FFCA17" stroke-width="1.5" stroke-dasharray="4 4"/></svg></div>
+      <input type="range" min="15" max="75" value="45" id="sunR" aria-label="sun angle"><div class="out" id="sunOut"></div><a class="more" href="#map">SKYLAB LIFT-OFF · <span class="ar ar-body">ساعة الظل</span><span class="en">SHADOW CLOCK</span></a>
+    </div>
+  </div></div>
+</div></section>
+
+<!-- LIVE LABS -->
+<section class="blk tex-T" id="board"><div class="wrap">
+  <div class="sec-head"><span class="n">01 · LIVE LABS</span><h2><span class="ar">حصص هذا الأسبوع — حضورية في الرياض، وSkyLab أونلاين</span><span class="en">This week's labs — in person in Riyadh, SkyLab online</span></h2><div class="gstripe"></div></div>
+  <div class="board"><div class="bhead"><span>TIME</span><span>LAB · <span class="ar ar-body">البرنامج</span><span class="en">PROGRAM</span></span><span class="gate">STEM · WHERE</span><span>SEATS</span><span>STATUS</span></div><div id="rows"></div></div>
+</div></section>
+
+<!-- STEM MAP -->
+<section class="blk tex-M" id="map"><div class="wrap">
+  <div class="sec-head"><span class="n">02 · STEM MAP</span><h2><span class="ar">خريطة STEM حسب عمر طفلك</span><span class="en">The STEM map by your child's age</span></h2><span class="sub"><span class="ar">أربعة خطوط، محطاتها البرامج — حرّك المؤشر</span><span class="en">Four lines, the programs are the stations — move the cursor</span></span><div class="gstripe"></div></div>
+  <div class="map">
+    <div class="ctl"><span class="mono" style="color:#AEB9DD">AGE</span><span class="big" id="ageOut">08</span><input type="range" min="4" max="18" value="8" id="ageR" aria-label="age"><span class="note"><span class="ar">اسحب لتغيير العمر</span><span class="en">drag to change the age</span></span></div>
+    <div class="legend"><span><i style="background:#7FB3FF"></i>S <span class="ar">العلوم</span><span class="en">Science</span></span><span><i style="background:#C4B5FD"></i>T <span class="ar">التقنية</span><span class="en">Technology</span></span><span><i style="background:#FFCA17"></i>E <span class="ar">الهندسة</span><span class="en">Engineering</span></span><span><i style="background:#fff"></i>M <span class="ar">الرياضيات</span><span class="en">Math</span></span><span><i style="background:transparent;border:2px dashed #FFCA17"></i><span class="ar">مسار طفلك حتى 18</span><span class="en">Your child's path to 18</span></span></div><div class="svgwrap"><svg id="stemmap" viewBox="0 0 1200 400" aria-hidden="true"></svg></div>
+  </div>
+  <div class="cards" id="cards"></div>
+</div></section>
+
+<!-- PHOTOS -->
+<section class="blk" id="photos"><div class="wrap">
+  <div class="sec-head"><span class="n">IN THE CLASSROOM</span><h2><span class="ar">أطفال يبنون، يبرمجون، يجرّبون، ويقيسون</span><span class="en">Children building, coding, experimenting, measuring</span></h2><span class="sub"><span class="ar">مشاهد من حصص FunAdemy — صور حقيقية من الفصول تُنشر بموافقة الأهالي</span><span class="en">Scenes from FunAdemy classes — real class photos published with parents' consent</span></span><div class="gstripe"></div></div>
+  <div class="photos">
+    <div class="photo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNjAwIiB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIxMjAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwQjIyNjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNTEwMzYiLz48L2xpbmVhckdyYWRpZW50Pgo8cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNNDAgMEgwVjQwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsLjA2KSIvPjwvcGF0dGVybj48L2RlZnM+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2cpIi8+PHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjZ3JpZCkiLz48cmVjdCB4PSIxODAiIHk9IjQyMCIgd2lkdGg9IjQ0MCIgaGVpZ2h0PSIyNCIgcng9IjEyIiBmaWxsPSIjRjJDRDdFIiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNyIvPjxyZWN0IHg9IjIyMCIgeT0iNDQ0IiB3aWR0aD0iMjAiIGhlaWdodD0iMTMwIiBmaWxsPSIjMTAxQTM4Ii8+PHJlY3QgeD0iNTYwIiB5PSI0NDQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxMzAiIGZpbGw9IiMxMDFBMzgiLz48cGF0aCBkPSJNMzY1LjIgMzgwLjAgTDM3MS44IDM5My42IEwzNTguNSA0MDAuNyBMMzU1LjkgNDE1LjYgTDM0MC45IDQxMy41IEwzMzAuMCA0MjQuMCBMMzE5LjEgNDEzLjUgTDMwNC4xIDQxNS42IEwzMDEuNSA0MDAuNyBMMjg4LjIgMzkzLjYgTDI5NC44IDM4MC4wIEwyODguMiAzNjYuNCBMMzAxLjUgMzU5LjMgTDMwNC4xIDM0NC40IEwzMTkuMSAzNDYuNSBMMzMwLjAgMzM2LjAgTDM0MC45IDM0Ni41IEwzNTUuOSAzNDQuNCBMMzU4LjUgMzU5LjMgTDM3MS44IDM2Ni40IEwzNjUuMiAzODAuMCBaIiBmaWxsPSIjRkZDQTE3IiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjMzMCIgY3k9IjM4MCIgcj0iMTAiIGZpbGw9IiMxQzU0Q0IiIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI2Ii8+PHBhdGggZD0iTTQ1OC4wIDM1MC4wIEw0NjguMCAzNjUuNSBMNDUxLjYgMzc0LjAgTDQ1Mi40IDM5Mi40IEw0MzQuMCAzOTEuNiBMNDI1LjUgNDA4LjAgTDQxMC4wIDM5OC4wIEwzOTQuNSA0MDguMCBMMzg2LjAgMzkxLjYgTDM2Ny42IDM5Mi40IEwzNjguNCAzNzQuMCBMMzUyLjAgMzY1LjUgTDM2Mi4wIDM1MC4wIEwzNTIuMCAzMzQuNSBMMzY4LjQgMzI2LjAgTDM2Ny42IDMwNy42IEwzODYuMCAzMDguNCBMMzk0LjUgMjkyLjAgTDQxMC4wIDMwMi4wIEw0MjUuNSAyOTIuMCBMNDM0LjAgMzA4LjQgTDQ1Mi40IDMwNy42IEw0NTEuNiAzMjYuMCBMNDY4LjAgMzM0LjUgTDQ1OC4wIDM1MC4wIFoiIGZpbGw9IiNGMkNEN0UiIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PGNpcmNsZSBjeD0iNDEwIiBjeT0iMzUwIiByPSIxMyIgZmlsbD0iIzFDNTRDQiIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjYiLz48cGF0aCBkPSJNNTI4LjggMzkwLjAgTDUzMy4zIDQwMy44IEw1MjAuNCA0MTAuNCBMNTEzLjggNDIzLjMgTDUwMC4wIDQxOC44IEw0ODYuMiA0MjMuMyBMNDc5LjYgNDEwLjQgTDQ2Ni43IDQwMy44IEw0NzEuMiAzOTAuMCBMNDY2LjcgMzc2LjIgTDQ3OS42IDM2OS42IEw0ODYuMiAzNTYuNyBMNTAwLjAgMzYxLjIgTDUxMy44IDM1Ni43IEw1MjAuNCAzNjkuNiBMNTMzLjMgMzc2LjIgTDUyOC44IDM5MC4wIFoiIGZpbGw9IiMyMkRBRkYiIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PGNpcmNsZSBjeD0iNTAwIiBjeT0iMzkwIiByPSI4IiBmaWxsPSIjMUM1NENCIiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNiIvPjxyZWN0IHg9IjMwMCIgeT0iMzAwIiB3aWR0aD0iMjAiIGhlaWdodD0iNjAiIHJ4PSIxMCIgZmlsbD0iI0ZGQ0ExNyIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjYiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNTAgNTYwKSBzY2FsZSgxIDEpIiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNyIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj48cmVjdCB4PSItNDQiIHk9Ii0xMjAiIHdpZHRoPSI4OCIgaGVpZ2h0PSIxMjAiIHJ4PSIzMCIgZmlsbD0iI0ZGQ0ExNyIvPjxyZWN0IHg9Ii00MCIgeT0iLTIwIiB3aWR0aD0iMzQiIGhlaWdodD0iMjAiIHJ4PSIxMCIgZmlsbD0iIzEwMUEzOCIvPjxyZWN0IHg9IjYiIHk9Ii0yMCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjIwIiByeD0iMTAiIGZpbGw9IiMxMDFBMzgiLz48cGF0aCBkPSJNLTQ0IC0xMDAgcS0yMCAyMCAtNzAgMTAiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNDQgLTEwMCBxMjAgMjAgNzAgMTAiIGZpbGw9Im5vbmUiLz48Y2lyY2xlIGN4PSIwIiBjeT0iLTE2NSIgcj0iNDYiIGZpbGw9IiNFOEI5OEYiLz48cGF0aCBkPSJNLTQ2IC0xNzUgcTEwIC01MCA0NiAtNTAgcTM2IDAgNDYgNTAgcS0xMCAtMjAgLTQ2IC0yMiBxLTM2IDIgLTQ2IDIyeiIgZmlsbD0iIzEwMUEzOCIgc3Ryb2tlPSJub25lIi8+PGNpcmNsZSBjeD0iLTE0IiBjeT0iLTE2NiIgcj0iNCIgZmlsbD0iIzEwMUEzOCIgc3Ryb2tlPSJub25lIi8+PGNpcmNsZSBjeD0iMTQiIGN5PSItMTY2IiByPSI0IiBmaWxsPSIjMTAxQTM4IiBzdHJva2U9Im5vbmUiLz48cGF0aCBkPSJNLTEyIC0xNDggcTEyIDEwIDI0IDAiIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iNSIvPjwvZz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg2NTAgNTYwKSBzY2FsZSgtMSAxKSIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjciIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PHJlY3QgeD0iLTQ0IiB5PSItMTIwIiB3aWR0aD0iODgiIGhlaWdodD0iMTIwIiByeD0iMzAiIGZpbGw9IiMyMkRBRkYiLz48cmVjdCB4PSItNDAiIHk9Ii0yMCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjIwIiByeD0iMTAiIGZpbGw9IiMxMDFBMzgiLz48cmVjdCB4PSI2IiB5PSItMjAiIHdpZHRoPSIzNCIgaGVpZ2h0PSIyMCIgcng9IjEwIiBmaWxsPSIjMTAxQTM4Ii8+PHBhdGggZD0iTS00NCAtMTAwIHEtMjAgMjAgLTcwIDEwIiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQ0IC0xMDAgcTIwIDIwIDcwIDEwIiBmaWxsPSJub25lIi8+PGNpcmNsZSBjeD0iMCIgY3k9Ii0xNjUiIHI9IjQ2IiBmaWxsPSIjRThCOThGIi8+PHBhdGggZD0iTS00NiAtMTc1IHExMCAtNTAgNDYgLTUwIHEzNiAwIDQ2IDUwIHEtMTAgLTIwIC00NiAtMjIgcS0zNiAyIC00NiAyMnoiIGZpbGw9IiMxMDFBMzgiIHN0cm9rZT0ibm9uZSIvPjxjaXJjbGUgY3g9Ii0xNCIgY3k9Ii0xNjYiIHI9IjQiIGZpbGw9IiMxMDFBMzgiIHN0cm9rZT0ibm9uZSIvPjxjaXJjbGUgY3g9IjE0IiBjeT0iLTE2NiIgcj0iNCIgZmlsbD0iIzEwMUEzOCIgc3Ryb2tlPSJub25lIi8+PHBhdGggZD0iTS0xMiAtMTQ4IHExMiAxMCAyNCAwIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjUiLz48L2c+PC9zdmc+" alt=""><div class="cap"><small>E · BRICKS CHALLENGE · <span class="ar">الرياض</span><span class="en">RIYADH</span></small><span class="ar">يبني نموذجًا بمحرك حقيقي</span><span class="en">Building a model with a real motor</span></div></div>
+    <div class="photo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNjAwIiB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIxMjAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwQjIyNjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNTEwMzYiLz48L2xpbmVhckdyYWRpZW50Pgo8cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNNDAgMEgwVjQwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsLjA2KSIvPjwvcGF0dGVybj48L2RlZnM+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2cpIi8+PHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjZ3JpZCkiLz48cmVjdCB4PSIxNTAiIHk9IjQ0MCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSIyMiIgcng9IjExIiBmaWxsPSIjRjJDRDdFIiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNyIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwMCAzMzApIj48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgcng9IjEyIiBmaWxsPSIjMTAxQTM4Ii8+PHJlY3QgeD0iMTIiIHk9IjEyIiB3aWR0aD0iMTc2IiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0iIzBCMjI2MyIvPjxyZWN0IHg9IjI0IiB5PSIzMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjEwIiByeD0iNSIgZmlsbD0iIzIyREFGRiIvPjxyZWN0IHg9IjI0IiB5PSI1MiIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIxMCIgcng9IjUiIGZpbGw9IiNGRkNBMTciLz48cmVjdCB4PSIyNCIgeT0iNzQiIHdpZHRoPSI3MCIgaGVpZ2h0PSIxMCIgcng9IjUiIGZpbGw9IiNGMkNEN0UiLz48cmVjdCB4PSItMTAiIHk9IjEyMCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiMxMDFBMzgiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTYwIDMwMCkiPjxyZWN0IHg9IjAiIHk9IjQwIiB3aWR0aD0iOTAiIGhlaWdodD0iMTAwIiByeD0iMTgiIGZpbGw9IiNGRkNBMTciIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI3Ii8+PHJlY3QgeD0iMTAiIHk9IjYwIiB3aWR0aD0iNzAiIGhlaWdodD0iMzYiIHJ4PSIxMCIgZmlsbD0iIzBCMjI2MyIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjUiLz48Y2lyY2xlIGN4PSIzMCIgY3k9Ijc4IiByPSI2IiBmaWxsPSIjMjJEQUZGIi8+PGNpcmNsZSBjeD0iNjAiIGN5PSI3OCIgcj0iNiIgZmlsbD0iIzIyREFGRiIvPjxsaW5lIHgxPSI0NSIgeTE9IjQwIiB4Mj0iNDUiIHkyPSIxMCIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjciLz48Y2lyY2xlIGN4PSI0NSIgY3k9IjYiIHI9IjkiIGZpbGw9IiMyMkRBRkYiIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI2Ii8+PHJlY3QgeD0iLTE2IiB5PSI3MCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0iI0YyQ0Q3RSIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjYiLz48cmVjdCB4PSI5MCIgeT0iNzAiIHdpZHRoPSIxNiIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9IiNGMkNEN0UiIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI2Ii8+PC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIxMCA1OTApIHNjYWxlKDEgMSkiIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiPjxyZWN0IHg9Ii00NCIgeT0iLTEyMCIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjEyMCIgcng9IjMwIiBmaWxsPSIjMjJEQUZGIi8+PHJlY3QgeD0iLTQwIiB5PSItMjAiIHdpZHRoPSIzNCIgaGVpZ2h0PSIyMCIgcng9IjEwIiBmaWxsPSIjMTAxQTM4Ii8+PHJlY3QgeD0iNiIgeT0iLTIwIiB3aWR0aD0iMzQiIGhlaWdodD0iMjAiIHJ4PSIxMCIgZmlsbD0iIzEwMUEzOCIvPjxwYXRoIGQ9Ik0tNDQgLTEwMCBxLTIwIDIwIC03MCAxMCIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik00NCAtMTAwIHEyMCAyMCA3MCAxMCIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjAiIGN5PSItMTY1IiByPSI0NiIgZmlsbD0iI0U4Qjk4RiIvPjxwYXRoIGQ9Ik0tNDYgLTE3NSBxMTAgLTUwIDQ2IC01MCBxMzYgMCA0NiA1MCBxLTEwIC0yMCAtNDYgLTIyIHEtMzYgMiAtNDYgMjJ6IiBmaWxsPSIjMTAxQTM4IiBzdHJva2U9Im5vbmUiLz48Y2lyY2xlIGN4PSItMTQiIGN5PSItMTY2IiByPSI0IiBmaWxsPSIjMTAxQTM4IiBzdHJva2U9Im5vbmUiLz48Y2lyY2xlIGN4PSIxNCIgY3k9Ii0xNjYiIHI9IjQiIGZpbGw9IiMxMDFBMzgiIHN0cm9rZT0ibm9uZSIvPjxwYXRoIGQ9Ik0tMTIgLTE0OCBxMTIgMTAgMjQgMCIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSI1Ii8+PC9nPjwvc3ZnPg==" alt=""><div class="cap"><small>T · ALGOPLAY · <span class="ar">الرياض</span><span class="en">RIYADH</span></small><span class="ar">يبرمج روبوته الأول</span><span class="en">Coding a first robot</span></div></div>
+    <div class="photo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNjAwIiB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIxMjAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwQjIyNjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNTEwMzYiLz48L2xpbmVhckdyYWRpZW50Pgo8cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNNDAgMEgwVjQwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsLjA2KSIvPjwvcGF0dGVybj48L2RlZnM+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2cpIi8+PHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjZ3JpZCkiLz48cmVjdCB4PSIxNTAiIHk9IjQ3MCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSIyMiIgcng9IjExIiBmaWxsPSIjRjJDRDdFIiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNyIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQ3MCAyNTApIj48cGF0aCBkPSJNMzAgMCBoNjAgdjkwIGw2MCAxMjAgYTIwIDIwIDAgMCAxIC0xOCAzMCBoLTE0NCBhMjAgMjAgMCAwIDEgLTE4IC0zMCBsNjAgLTEyMHoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsLjEyKSIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjciIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTQgMjEwIGw0NiAtOTIgaDYwIGw0NiA5MnoiIGZpbGw9IiMyMkRBRkYiIG9wYWNpdHk9Ii44NSIvPjxjaXJjbGUgY3g9IjYwIiBjeT0iMTcwIiByPSI4IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuOSIvPjxjaXJjbGUgY3g9IjkwIiBjeT0iMTUwIiByPSI2IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuOSIvPjxjaXJjbGUgY3g9Ijc2IiBjeT0iMTk2IiByPSI1IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuOSIvPjxjaXJjbGUgY3g9IjYwIiBjeT0iNjAiIHI9IjgiIGZpbGw9IiMyMkRBRkYiLz48Y2lyY2xlIGN4PSI3NiIgY3k9IjI2IiByPSI2IiBmaWxsPSIjMjJEQUZGIi8+PGNpcmNsZSBjeD0iNTIiIGN5PSItNiIgcj0iNSIgZmlsbD0iIzIyREFGRiIvPjwvZz48cmVjdCB4PSIyMDAiIHk9IjM4MCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiNGRkNBMTciIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI2Ii8+PHJlY3QgeD0iMjkwIiB5PSI0MTAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcng9IjEwIiBmaWxsPSIjRjJDRDdFIiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNiIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMzMCA2MDApIHNjYWxlKDEgMSkiIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiPjxyZWN0IHg9Ii00NCIgeT0iLTEyMCIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjEyMCIgcng9IjMwIiBmaWxsPSIjRkZDQTE3Ii8+PHJlY3QgeD0iLTQwIiB5PSItMjAiIHdpZHRoPSIzNCIgaGVpZ2h0PSIyMCIgcng9IjEwIiBmaWxsPSIjMTAxQTM4Ii8+PHJlY3QgeD0iNiIgeT0iLTIwIiB3aWR0aD0iMzQiIGhlaWdodD0iMjAiIHJ4PSIxMCIgZmlsbD0iIzEwMUEzOCIvPjxwYXRoIGQ9Ik0tNDQgLTEwMCBxLTQwIC0xMCAtNTAgLTYwIiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQ0IC0xMDAgcTQwIC0xMCA1MCAtNjAiIGZpbGw9Im5vbmUiLz48Y2lyY2xlIGN4PSIwIiBjeT0iLTE2NSIgcj0iNDYiIGZpbGw9IiNFOEI5OEYiLz48cGF0aCBkPSJNLTQ2IC0xNzUgcTEwIC01MCA0NiAtNTAgcTM2IDAgNDYgNTAgcS0xMCAtMjAgLTQ2IC0yMiBxLTM2IDIgLTQ2IDIyeiIgZmlsbD0iIzEwMUEzOCIgc3Ryb2tlPSJub25lIi8+PGNpcmNsZSBjeD0iLTE0IiBjeT0iLTE2NiIgcj0iNCIgZmlsbD0iIzEwMUEzOCIgc3Ryb2tlPSJub25lIi8+PGNpcmNsZSBjeD0iMTQiIGN5PSItMTY2IiByPSI0IiBmaWxsPSIjMTAxQTM4IiBzdHJva2U9Im5vbmUiLz48cGF0aCBkPSJNLTEyIC0xNDggcTEyIDEwIDI0IDAiIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iNSIvPjwvZz48L3N2Zz4=" alt=""><div class="cap"><small>S · SKYLAB · <span class="ar">من البيت</span><span class="en">FROM HOME</span></small><span class="ar">تجربة من حقيبة SkyLab على الكاميرا</span><span class="en">A SkyLab kit experiment on camera</span></div></div>
+    <div class="photo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNjAwIiB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIxMjAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwQjIyNjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNTEwMzYiLz48L2xpbmVhckdyYWRpZW50Pgo8cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNNDAgMEgwVjQwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsLjA2KSIvPjwvcGF0dGVybj48L2RlZnM+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2cpIi8+PHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjZ3JpZCkiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0MjAgMTgwKSI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIyMjAiIHJ4PSIxNCIgZmlsbD0iI0Y3RUZERCIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjciLz48cG9seWxpbmUgcG9pbnRzPSIzMCwxODAgOTAsMTIwIDE1MCwxNTAgMjEwLDcwIDI3MCw5MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMUM1NENCIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjIxMCIgY3k9IjcwIiByPSIxMCIgZmlsbD0iI0ZGQ0ExNyIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjUiLz48bGluZSB4MT0iMzAiIHkxPSIxOTAiIHgyPSIyNzAiIHkyPSIxOTAiIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI0Ii8+PGxpbmUgeDE9IjMwIiB5MT0iNDAiIHgyPSIzMCIgeTI9IjE5MCIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjQiLz48cmVjdCB4PSIxMzAiIHk9IjIyMCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzEwMUEzOCIvPjwvZz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNTAgNDcwKSI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIzNCIgcng9IjgiIGZpbGw9IiNGRkNBMTciIHN0cm9rZT0iIzEwMUEzOCIgc3Ryb2tlLXdpZHRoPSI2Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMCIgeDI9IjE2IiB5Mj0iOCIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjQiLz48bGluZSB4MT0iNDAiIHkxPSIwIiB4Mj0iNDAiIHkyPSIxNCIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjQiLz48bGluZSB4MT0iNjQiIHkxPSIwIiB4Mj0iNjQiIHkyPSI4IiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNCIvPjxsaW5lIHgxPSI4OCIgeTE9IjAiIHgyPSI4OCIgeTI9IjE0IiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNCIvPjxsaW5lIHgxPSIxMTIiIHkxPSIwIiB4Mj0iMTEyIiB5Mj0iOCIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjQiLz48bGluZSB4MT0iMTM2IiB5MT0iMCIgeDI9IjEzNiIgeTI9IjE0IiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNCIvPjxsaW5lIHgxPSIxNjAiIHkxPSIwIiB4Mj0iMTYwIiB5Mj0iOCIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjQiLz48bGluZSB4MT0iMTg0IiB5MT0iMCIgeDI9IjE4NCIgeTI9IjE0IiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNCIvPjxsaW5lIHgxPSIyMDgiIHkxPSIwIiB4Mj0iMjA4IiB5Mj0iOCIgc3Ryb2tlPSIjMTAxQTM4IiBzdHJva2Utd2lkdGg9IjQiLz48bGluZSB4MT0iMjMyIiB5MT0iMCIgeDI9IjIzMiIgeTI9IjE0IiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNCIvPjwvZz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMDAgNjAwKSBzY2FsZSgxIDEpIiBzdHJva2U9IiMxMDFBMzgiIHN0cm9rZS13aWR0aD0iNyIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj48cmVjdCB4PSItNDQiIHk9Ii0xMjAiIHdpZHRoPSI4OCIgaGVpZ2h0PSIxMjAiIHJ4PSIzMCIgZmlsbD0iI0YyQ0Q3RSIvPjxyZWN0IHg9Ii00MCIgeT0iLTIwIiB3aWR0aD0iMzQiIGhlaWdodD0iMjAiIHJ4PSIxMCIgZmlsbD0iIzEwMUEzOCIvPjxyZWN0IHg9IjYiIHk9Ii0yMCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjIwIiByeD0iMTAiIGZpbGw9IiMxMDFBMzgiLz48cGF0aCBkPSJNLTQ0IC0xMDAgcS0yMCAyMCAtNzAgMTAiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNDQgLTEwMCBxMjAgMjAgNzAgMTAiIGZpbGw9Im5vbmUiLz48Y2lyY2xlIGN4PSIwIiBjeT0iLTE2NSIgcj0iNDYiIGZpbGw9IiNFOEI5OEYiLz48cGF0aCBkPSJNLTQ2IC0xNzUgcTEwIC01MCA0NiAtNTAgcTM2IDAgNDYgNTAgcS0xMCAtMjAgLTQ2IC0yMiBxLTM2IDIgLTQ2IDIyeiIgZmlsbD0iIzEwMUEzOCIgc3Ryb2tlPSJub25lIi8+PGNpcmNsZSBjeD0iLTE0IiBjeT0iLTE2NiIgcj0iNCIgZmlsbD0iIzEwMUEzOCIgc3Ryb2tlPSJub25lIi8+PGNpcmNsZSBjeD0iMTQiIGN5PSItMTY2IiByPSI0IiBmaWxsPSIjMTAxQTM4IiBzdHJva2U9Im5vbmUiLz48cGF0aCBkPSJNLTEyIC0xNDggcTEyIDEwIDI0IDAiIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iNSIvPjwvZz48L3N2Zz4=" alt=""><div class="cap"><small>M · SKYLAB · <span class="ar">يوم الإطلاق</span><span class="en">LAUNCH DAY</span></small><span class="ar">يعرض بياناته أمام الأهل</span><span class="en">Presenting the data to the family</span></div></div>
+  </div>
+</div></section>
+
+<!-- FOUR LABS -->
+<section class="blk tex-S" id="labs"><div class="wrap">
+  <div class="sec-head"><span class="n">03 · S · T · E · M</span><h2><span class="ar">أربعة أركان، أكاديمية واحدة</span><span class="en">Four pillars, one academy</span></h2><div class="gstripe"></div></div>
+  <div class="four">
+    <div class="pillar S"><div class="ic"><svg width="26" height="26"><use href="#i-flask"/></svg></div><div class="L">S</div><h3><span class="ar">العلوم</span><span class="en">Science</span></h3><div class="ar-name">SkyLab · Big Builders</div>
+      <ul><li><span class="ar">تجارب حقيقية من حقيبة البيت، مباشرة على الكاميرا</span><span class="en">Real experiments from the home kit, live on camera</span></li><li><span class="ar">مهمة سعودية كل شهر: الظل، الماء، الصقر، الطاقة</span><span class="en">A Saudi mission every month: shadow, water, falcon, energy</span></li><li><span class="ar">من «يغرق أم يطفو» إلى ورقة بحثية تُناقَش</span><span class="en">From "sink or float" to a defended research paper</span></li></ul>
+      <div class="progs"><span>SkyLab 4–18</span><span>Big Builders 4–6</span></div><a class="try" href="#top"><span class="ar">جرّب تجربة الكثافة</span><span class="en">Try the density lab</span></a></div>
+    <div class="pillar T"><div class="ic"><svg width="26" height="26"><use href="#i-code"/></svg></div><div class="L">T</div><h3><span class="ar">التقنية</span><span class="en">Technology</span></h3><div class="ar-name">Smartivo · AlgoPlay · RoboToys · AlgoC</div>
+      <ul><li><span class="ar">برمجة من الأوامر الملموسة إلى الكود النصي</span><span class="en">Coding from tangible commands to text code</span></li><li><span class="ar">روبوتات بحساسات تقرأ وتقرر</span><span class="en">Robots with sensors that read and decide</span></li><li><span class="ar">حضوري في قاعة FunAdemy في الرياض</span><span class="en">In person in the FunAdemy classroom in Riyadh</span></li></ul>
+      <div class="progs"><span>Smartivo 4–6</span><span>AlgoPlay 6–10</span><span>RoboToys 9–12</span><span>AlgoC 13–18</span></div><a class="try" href="#top"><span class="ar">برمج الطيارة</span><span class="en">Code the kite</span></a></div>
+    <div class="pillar E"><div class="ic"><svg width="26" height="26"><use href="#i-gear"/></svg></div><div class="L">E</div><h3><span class="ar">الهندسة</span><span class="en">Engineering</span></h3><div class="ar-name">Big Builders · Bricks Challenge · Galileo Technic</div>
+      <ul><li><span class="ar">تروس وروافع وبكرات — نماذج تتحرك بمحركات حقيقية</span><span class="en">Gears, levers and pulleys — models that move with real motors</span></li><li><span class="ar">يبني الطفل، يشغّل، ويشرح لماذا يعمل</span><span class="en">The child builds, runs it, and explains why it works</span></li><li><span class="ar">حضوري في الرياض</span><span class="en">In person in Riyadh</span></li></ul>
+      <div class="progs"><span>Big Builders 4–6</span><span>Bricks Challenge 6–10</span><span>Galileo Technic 7–10</span></div><a class="try" href="#top"><span class="ar">أدر التروس</span><span class="en">Turn the gears</span></a></div>
+    <div class="pillar M"><div class="ic"><svg width="26" height="26"><use href="#i-graph"/></svg></div><div class="L">M</div><h3><span class="ar">الرياضيات</span><span class="en">Math</span></h3><div class="ar-name">SkyLab</div>
+      <ul><li><span class="ar">الرياضيات تفسّر بيانات التجربة — لا تُحفظ</span><span class="en">Math explains the experiment's data — not memorised</span></li><li><span class="ar">من العدّ إلى الكسور والنسب والجبر والتفاضل</span><span class="en">From counting to fractions, ratios, algebra and calculus</span></li><li><span class="ar">لا درجات: سجل طيران وشارات ويوم إطلاق</span><span class="en">No grades: a Flight Log, badges and a Launch Day</span></li></ul>
+      <div class="progs"><span>Ground Crew 4–6</span><span>Lift-Off 7–9</span><span>Glide 10–12</span><span>Soar 13–15</span><span>Orbit 16–18</span></div><a class="try" href="#top"><span class="ar">حرّك الشمس</span><span class="en">Move the sun</span></a></div>
+  </div>
+</div></section>
+
+<!-- LOOP -->
+<section class="blk" id="loop"><div class="wrap">
+  <div class="sec-head"><span class="n">04 · THE FUNADEMY LOOP</span><h2><span class="ar">كل حصة: يبني، يختبر، يحسّن، يعرض</span><span class="en">Every session: build, test, improve, present</span></h2><div class="gstripe"></div></div>
+  <div class="ring">
+    <svg viewBox="0 0 420 420" aria-hidden="true">
+      <defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#1C54CB"/><stop offset="1" stop-color="#FFCA17"/></linearGradient></defs>
+      <circle cx="210" cy="210" r="150" fill="none" stroke="url(#rg)" stroke-width="10" stroke-dasharray="8 10" stroke-linecap="round"/>
+      <circle cx="210" cy="210" r="92" fill="#101A38"/><g transform="translate(150 150) scale(.35)"><use href="#kite" style="color:#F5F7FF"/></g>
+      <g font-family="Baloo Bhaijaan 2, IBM Plex Sans Arabic, sans-serif" font-weight="800" font-size="22" text-anchor="middle">
+        <circle cx="210" cy="60" r="34" fill="#0B3D91"/><text x="210" y="68" fill="#fff">1</text>
+        <circle cx="360" cy="210" r="34" fill="#6D28D9"/><text x="360" y="218" fill="#fff">2</text>
+        <circle cx="210" cy="360" r="34" fill="#1C54CB"/><text x="210" y="368" fill="#fff">3</text>
+        <circle cx="60" cy="210" r="34" fill="#FFCA17"/><text x="60" y="218" fill="#0F1F4B">4</text>
+      </g>
+    </svg>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><div><b><span class="ar">يبني</span><span class="en">Build</span></b><span><span class="ar">نموذج أو تجربة أو برنامج — بيديه</span><span class="en">A model, an experiment or a program — with their own hands</span></span></div></div>
+      <div class="step"><div class="num">2</div><div><b><span class="ar">يختبر</span><span class="en">Test</span></b><span><span class="ar">يقيس ويسجّل النتيجة رقمًا</span><span class="en">Measures and records the result as a number</span></span></div></div>
+      <div class="step"><div class="num">3</div><div><b><span class="ar">يحسّن</span><span class="en">Improve</span></b><span><span class="ar">يغيّر شيئًا واحدًا ويعيد التجربة</span><span class="en">Changes one thing and runs it again</span></span></div></div>
+      <div class="step"><div class="num">4</div><div><b><span class="ar">يعرض</span><span class="en">Present</span></b><span><span class="ar">يشرح للمجموعة — وللأهل في يوم الإطلاق</span><span class="en">Explains to the group — and to the family on Launch Day</span></span></div></div>
+    </div>
+  </div></div></section>
+
+<!-- FARE -->
+<section class="blk" id="fare"><div class="wrap">
+  <div class="sec-head"><span class="n">05 · ONE PRICE</span><h2><span class="ar">سعر واحد، وحصة أولى مجانية</span><span class="en">One price, and a free first class</span></h2><div class="gstripe"></div></div>
+  <div class="ticket">
+    <div class="left"><div class="tear">FUNADEMY · MONTHLY · <span class="ar ar-body">الاشتراك الشهري</span></div><div class="fare">1,380 <small><span class="ar">ريال / طفل / برنامج</span><span class="en">SAR / child / program</span></small></div>
+      <ul><li><span class="ar">4–6 حصص مباشرة شهريًا · 45 / 75 / 90 دقيقة حسب العمر</span><span class="en">4–6 live sessions a month · 45 / 75 / 90 minutes by age</span></li><li><span class="ar">مجموعات صغيرة 8–16 · تقرير للأهل بعد كل حصة · شهادة لكل مستوى</span><span class="en">Small groups 8–16 · a parent report after every class · a certificate per level</span></li><li><span class="ar">حقيبة SkyLab المنزلية مشمولة مع التزام 3 أشهر · خصم 10٪ للطفل الثاني</span><span class="en">Home SkyLab Kit included with a 3-month commitment · 10% off the second child</span></li><li><span class="ar">مدى · بطاقات · STC Pay · تمارا — فاتورة إلكترونية · أوقف نهاية أي شهر</span><span class="en">Mada · cards · STC Pay · Tamara — e-invoice · pause at the end of any month</span></li></ul></div>
+    <div class="right"><div class="tear">✂ <span class="ar ar-body">الحصة الأولى</span><span class="en">FIRST CLASS</span></div><h3><span class="ar">الحصة الأولى مجانية</span><span class="en">The first class is free</span></h3><p style="margin:0;color:#3A2E00"><span class="ar">حصة كاملة مع المعلم والمجموعة. بلا بطاقة، بلا التزام.</span><span class="en">A full class with the teacher and the group. No card, no commitment.</span></p>
+      <form id="bk" onsubmit="return book(event)" style="display:grid;gap:8px"><input required placeholder="اسم ولي الأمر · Parent name"><input required type="tel" placeholder="05X XXX XXXX" style="direction:ltr"><select id="bkProg"></select><button class="btn btn-ink" type="submit"><span class="ar">احجز حصتي المجانية</span><span class="en">Book my free class</span></button></form>
+      <div id="bkok" style="display:none;font-weight:700;color:#3A2E00"><span class="ar">تم — نتصل بك خلال 24 ساعة.</span><span class="en">Done — we call within 24 hours.</span></div>
+      <a href="https://wa.me/966505558387" class="tear" style="text-decoration:underline">WHATSAPP · <span class="ar ar-body">أو عبر واتساب</span><span class="en">OR VIA WHATSAPP</span></a></div>
+  </div>
+</div></section>
+
+<!-- COUNTDOWN -->
+<section class="blk" id="countdown"><div class="wrap">
+  <div class="sec-head"><span class="n">06 · SKYLAB MISSION 1</span><h2><span class="ar">مهمة SkyLab الأولى تنطلق خلال</span><span class="en">SkyLab Mission 1 launches in</span></h2><div class="gstripe"></div></div>
+  <p class="note"><span class="ar">مجموعتا Lift-Off (7–9) وGlide (10–12) تبدآن في أكتوبر 2026 — المقاعد محدودة. كل المستويات من يناير 2027.</span><span class="en">Lift-Off (7–9) and Glide (10–12) start in October 2026 — seats are limited. All levels from January 2027.</span></p>
+  <div class="cd" id="cd"><div><b>--</b><span class="ar">يومًا</span><span class="en">DAYS</span></div><div><b>--</b><span class="ar">ساعة</span><span class="en">HOURS</span></div><div><b>--</b><span class="ar">دقيقة</span><span class="en">MIN</span></div><div><b>--</b><span class="ar">ثانية</span><span class="en">SEC</span></div></div>
+  <a class="btn btn-gold" href="#fare"><span class="ar">احجز مقعد طفلك في المهمة الأولى</span><span class="en">Reserve your child's seat in Mission 1</span></a>
+</div></section>
+
+<!-- ROUTE -->
+<section class="blk" id="route"><div class="wrap">
+  <div class="sec-head"><span class="n">07 · NATIONAL CAMPAIGN</span><h2><span class="ar">أطفالنا يبنون وطننا</span><span class="en">Our children build our nation</span></h2><div class="gstripe"></div></div>
+  <div class="route"><svg viewBox="0 0 1200 250" aria-hidden="true"><path d="M80 190 Q 300 40 460 150 T 820 120 T 1120 70" fill="none" stroke="#A78BFA" stroke-width="3" stroke-dasharray="4 12" stroke-linecap="round"/><g font-family="Baloo Bhaijaan 2, IBM Plex Sans Arabic, sans-serif" font-size="22" font-weight="800" text-anchor="middle"><circle cx="80" cy="190" r="22" fill="#1C54CB"/><text x="80" y="238" fill="#1C54CB">بيتي</text><circle cx="460" cy="150" r="22" fill="#6D28D9"/><text x="460" y="198" fill="#6D28D9">حيّي</text><circle cx="820" cy="120" r="22" fill="#FFCA17"/><text x="820" y="168" fill="#B8930A">مدينتي</text><circle cx="1120" cy="70" r="26" fill="#0E6B3A" stroke="#fff" stroke-width="3"/><text x="1120" y="122" fill="#0E6B3A">وطننا</text></g></svg>
+    <p class="note"><span class="ar">حملة عام كامل بأربع مراحل تتبع الفصول الدراسية: في كل فصل يبني الأطفال ما حولهم بأيديهم وأرقامهم — من البيت إلى الوطن.</span><span class="en">A year-long campaign in four school-term phases: each term, children build what surrounds them with their hands and their numbers — from home to nation.</span></p>
+    <div class="mw"><div class="mono" style="color:#0E6B3A">MINI WATAN · 23 SEPTEMBER 2027</div><h3 style="font-size:1.35rem;margin:6px 0"><span class="ar">بطولة هندسية بين المدارس في اليوم الوطني</span><span class="en">An inter-school engineering championship on National Day</span></h3><p class="note" style="margin:0"><span class="ar">فرق من طلاب FunAdemy والمدارس الشريكة تبني نموذجًا لمعلم وطني وتعرضه أمام لجنة وجمهور. الجائزة: المكعّب الذهبي.</span><span class="en">Teams from FunAdemy and partner schools build a model of a national landmark and present it to a panel. The prize: the Golden Brick.</span></p></div></div>
+</div></section>
+
+<!-- TOWER -->
+<section class="blk" id="tower"><div class="wrap">
+  <div class="sec-head"><span class="n">08 · QUESTIONS & CONTACT</span><h2><span class="ar">أسئلة يسألها الأهالي — وتواصل</span><span class="en">Questions parents ask — and contact</span></h2><div class="gstripe"></div></div>
+  <div class="tower">
+    <div class="paper">
+      <details open><summary><span class="ar">هل الحصص أونلاين أم حضورية؟</span><span class="en">Online or in person?</span></summary><p><span class="ar">برامج الهندسة والبرمجة والروبوتات كلها حضورية في قاعة FunAdemy في الرياض. برنامج SkyLab للرياضيات والعلوم مباشر أونلاين لأي مكان.</span><span class="en">All engineering, coding and robotics programs are in person in the FunAdemy classroom in Riyadh. SkyLab, the math and science program, is live online from anywhere.</span></p></details>
+      <details><summary><span class="ar">ما الذي أحتاجه في البيت؟</span><span class="en">What do we need at home?</span></summary><p><span class="ar">جهاز بكاميرا وإنترنت مستقر وطاولة فاضية. حقيبة SkyLab تصل قبل الحصة الأولى.</span><span class="en">A device with a camera, stable internet and a clear table. The SkyLab kit arrives before the first class.</span></p></details>
+      <details><summary><span class="ar">هل توجد شهادات؟</span><span class="en">Certificates?</span></summary><p><span class="ar">شهادة رسمية عند إتمام كل مستوى، وشارات شهرية في SkyLab.</span><span class="en">An official certificate per level, and monthly badges in SkyLab.</span></p></details>
+      <details><summary><span class="ar">هل يمكن الانضمام في منتصف السنة؟</span><span class="en">Join mid-year?</span></summary><p><span class="ar">نعم — كل مهمة في SkyLab مستقلة، وفي الهندسة نضع الطفل في المجموعة المناسبة لمستواه.</span><span class="en">Yes — every SkyLab mission is self-contained; in engineering we place the child in the right group.</span></p></details>
+    </div>
+    <div class="pillar dark" style="min-height:0"><div class="mono" style="color:#DCE3FF">CONTACT · <span class="ar ar-body">الهندسة والبرمجة حضوريًا في الرياض — وSkyLab أونلاين للجميع</span><span class="en">ENGINEERING & CODING IN PERSON IN RIYADH — SKYLAB ONLINE</span></div><h3 style="margin:8px 0"><span class="ar">تواصل معنا</span><span class="en">Contact us</span></h3><p><a href="https://wa.me/966505558387" class="btn btn-gold" style="width:100%;margin-bottom:8px"><span class="ar">واتساب</span><span class="en">WhatsApp</span></a><a href="mailto:admin@funademy.io" class="btn btn-line" style="width:100%">admin@funademy.io</a></p><p class="note" style="margin:0">Instagram · YouTube · LinkedIn: @funademy</p></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="fl"><a class="logo" href="#top"><span class="flip"><svg style="color:#0F1F4B"><use href="#kite"/></svg><svg class="cap" style="color:#0F1F4B"><use href="#cap"/></svg></span><span>Fun<span class="a">Ademy</span></span></a>
+  <nav><a href="#map"><span class="ar">البرامج</span><span class="en">Programs</span></a><a href="#labs">STEM</a><a href="#fare"><span class="ar">الأسعار</span><span class="en">Pricing</span></a><a href="#route"><span class="ar">الحملة الوطنية</span><span class="en">Campaign</span></a><a href="#tower"><span class="ar">تواصل</span><span class="en">Contact</span></a><a href="https://wa.me/966505558387">WhatsApp</a></nav></div>
+  <div><span class="ar">حيث تلتقي المتعة بالأكاديمية · أكاديمية STEM مرخّصة في الرياض — هندسة وبرمجة حضوريًا، وSkyLab أونلاين</span><span class="en">Where fun meets academy · a licensed STEM academy in Riyadh — engineering and coding in person, SkyLab online</span></div>
+  <div class="credit">FUNADEMY · e² YOUNG ENGINEERS · FALCON EYE LTD — LICENSE 4030388340</div>
+  <div class="credit"><span class="ar ar-body">SkyLab برنامج أصلي من FunAdemy · © 2026 FALCON EYE LTD · الرياض · FUNADEMY.IO</span><span class="en">SKYLAB IS AN ORIGINAL FUNADEMY PROGRAM · © 2026 FALCON EYE LTD · RIYADH · FUNADEMY.IO</span></div>
+</div></footer>
+<div class="mcta"><a class="btn btn-gold" href="#fare"><span class="ar">احجز حصة مجانية</span><span class="en">Book a free class</span></a><a class="btn btn-line" href="https://wa.me/966505558387"><span class="ar">واتساب</span><span class="en">WhatsApp</span></a></div>
+
+<script>
+/* ---- data ---- */
+const P=[
+ {n:'Big Builders',s:['S','E'],a:[4,6],len:45,cap:12,fmt:['حضوري · الرياض','in person · Riyadh'],f:['العالم من حولنا','The world around us'],ar:'يبني الصغار العالم من حولهم — أول مفاهيم العلوم بالمكعّبات والقصص',en:'Little builders build the world around them — first science with bricks and stories',ico:'i-gear'},
+ {n:'Smartivo',s:['T'],a:[4,6],len:45,cap:12,fmt:['حضوري · الرياض','in person · Riyadh'],f:['البرمجة والروبوتات','Coding & robotics'],ar:'جميع أساسيات البرمجة للصغار — ملموسة أو على الشاشة',en:'All the coding basics for little ones — tangible or on screen',ico:'i-code'},
+ {n:'Bricks Challenge',s:['E','S'],a:[6,10],len:75,cap:16,fmt:['حضوري · الرياض','in person · Riyadh'],f:['الهندسة الميكانيكية','Mechanical engineering'],ar:'تروس وروافع ونماذج تتحرك بمحركات حقيقية',en:'Gears, levers and models that move with real motors',ico:'i-gear'},
+ {n:'AlgoPlay',ip:1,s:['T','E'],a:[6,10],len:75,cap:16,fmt:['حضوري · الرياض','in person · Riyadh'],f:['البرمجة والروبوتات','Coding & robotics'],ar:'أساسيات الروبوتات: تركيب وبرمجة على الشاشة',en:'Robotics basics: building and coding on screen',ico:'i-code'},
+ {n:'Galileo Technic',s:['E','M'],a:[7,10],len:75,cap:16,fmt:['حضوري · الرياض','in person · Riyadh'],f:['الهندسة الميكانيكية','Mechanical engineering'],ar:'الميكانيكا المتقدمة لبنّائين جاهزين للتحدي الأكبر',en:'Advanced mechanics for builders ready for the bigger challenge',ico:'i-gear'},
+ {n:'RoboToys',ip:1,s:['T','E'],a:[9,12],len:90,cap:16,fmt:['حضوري · الرياض','in person · Riyadh'],f:['البرمجة والروبوتات','Coding & robotics'],ar:'الروبوتات المتقدمة — مشاريع أعمق ومنطق أذكى',en:'Advanced robotics — deeper projects, smarter logic',ico:'i-code'},
+ {n:'AlgoC',ip:1,s:['T','M'],a:[13,18],len:90,cap:8,fmt:['حضوري · الرياض','in person · Riyadh'],f:['البرمجة والروبوتات','Coding & robotics'],ar:'هندسة البرمجة والروبوتات للمراهقين — الطريق إلى التطوير الحقيقي',en:'Coding and robotics engineering for teens — the road to real development',ico:'i-code'},
+ {n:'SkyLab Ground Crew',sky:1,s:['S','M'],a:[4,6],len:35,cap:8,fmt:['أونلاين مباشر','live online'],f:['الرياضيات والعلوم','Math & science'],ar:'مع ولي الأمر: أشكال وعدّ وحيوانات وماء وحرارة — بالأيدي قبل الأرقام',en:'Parent beside: shapes, counting, animals, water and heat — hands before numbers',ico:'i-flask'},
+ {n:'SkyLab Lift-Off',sky:1,s:['S','M'],a:[7,9],len:45,cap:10,fmt:['أونلاين مباشر','live online'],f:['الرياضيات والعلوم','Math & science'],ar:'العمليات والكسور والقياس؛ المادة والقوى والطقس والمغناطيس',en:'Operations, fractions and measurement; matter, forces, weather and magnets',ico:'i-flask'},
+ {n:'SkyLab Glide',sky:1,s:['S','M'],a:[10,12],len:60,cap:12,fmt:['أونلاين مباشر','live online'],f:['الرياضيات والعلوم','Math & science'],ar:'النسب والكثافة والزوايا والبيانات؛ الطاقة والكيمياء ودورة الماء',en:'Ratios, density, angles and data; energy, chemistry and the water cycle',ico:'i-graph'},
+ {n:'SkyLab Soar',sky:1,s:['M','S'],a:[13,15],len:75,cap:12,fmt:['أونلاين مباشر','live online'],f:['الرياضيات والعلوم','Math & science'],ar:'الجبر والدوال والإحصاء؛ الخلايا والعناصر والموجات والوراثة',en:'Algebra, functions and statistics; cells, elements, waves and genetics',ico:'i-graph'},
+ {n:'SkyLab Orbit',sky:1,s:['M','S'],a:[16,18],len:90,cap:10,fmt:['أونلاين مباشر','live online'],f:['الرياضيات والعلوم','Math & science'],ar:'التفاضل والنمذجة وعلم البيانات؛ مشروع بحثي يُناقَش أمام لجنة',en:'Calculus, modelling and data science; a research project defended before a panel',ico:'i-graph'}];
+const SLOTS=[['SUN 17:00','Smartivo','T · RYD',3],['SUN 20:00','AlgoC','T·M · RYD',1],['MON 18:00','AlgoPlay','T·E · RYD',5],['TUE 19:30','RoboToys','T·E · RYD',2],['WED 17:00','SkyLab Lift-Off','S·M · ONL',4],['THU 18:30','SkyLab Glide','S·M · ONL',3],['SAT 09:00','Big Builders','S·E · RYD',4],['SAT 10:00','Bricks Challenge','E·S · RYD',6],['SAT 11:30','Galileo Technic','E·M · RYD',0]];
+let lang='ar';const L=p=>Array.isArray(p)?(lang==='ar'?p[0]:p[1]):p;
+
+/* ---- S: sink or float ---- */
+const saltR=document.getElementById('saltR'),egg=document.getElementById('egg'),saltG=document.getElementById('salt'),saltOut=document.getElementById('saltOut');
+function saltLab(){const g=+saltR.value;const rho=(1+g*0.0007).toFixed(3);const floats=rho>=1.03;egg.setAttribute('cy',floats?52-(rho-1.03)*400:92);saltG.innerHTML=Array.from({length:Math.round(g/6)},(_,i)=>`<circle cx="${62+(i*13)%80}" cy="${45+(i*29)%60}" r="1.4" opacity=".8"/>`).join('');saltOut.textContent=(lang==='ar'?'ملح ':'salt ')+g+' g · ρ = '+rho+' g/mL · '+(floats?(lang==='ar'?'يطفو ↑':'floats ↑'):(lang==='ar'?'يغرق ↓':'sinks ↓'));}
+saltR.addEventListener('input',saltLab);saltLab();
+
+/* ---- T: code the kite ---- */
+const grid=document.getElementById('grid');let seq=[];let pos={x:0,y:3,d:0};const goal={x:3,y:1};
+function drawGrid(){let h='';for(let y=0;y<4;y++)for(let x=0;x<4;x++)h+=`<rect x="${x*40+2}" y="${y*30+2}" width="36" height="26" rx="4" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)"/>`;h+=`<path d="M${goal.x*40+20} ${goal.y*30+5} l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#FFCA17"/>`;const cx=pos.x*40+20,cy=pos.y*30+15;h+=`<g transform="translate(${cx} ${cy}) rotate(${pos.d*90})"><polygon points="0,-11 9,0 0,11 -9,0" fill="#FFCA17" stroke="#F5F7FF" stroke-width="2"/><circle r="2.5" fill="#1C54CB"/></g>`;grid.innerHTML=h;}
+function showSeq(){document.getElementById('seq').textContent='▸ '+(seq.map(c=>({F:'forward',R:'turn ↻',L:'turn ↺'})[c]).join(' → ')||'…');}
+document.querySelectorAll('.codebtns [data-c]').forEach(b=>b.onclick=()=>{if(seq.length<8){seq.push(b.dataset.c);showSeq();}});
+document.getElementById('clr').onclick=()=>{seq=[];pos={x:0,y:3,d:0};showSeq();drawGrid();};
+document.getElementById('run').onclick=()=>{pos={x:0,y:3,d:0};drawGrid();let i=0;const step=()=>{if(i>=seq.length){const ok=pos.x===goal.x&&pos.y===goal.y;document.getElementById('seq').textContent=ok?(lang==='ar'?'✓ وصلت الطيارة إلى النجمة!':'✓ The kite reached the star!'):(lang==='ar'?'✗ لم تصل — جرّب ترتيبًا آخر':'✗ Not there yet — try another order');return;}const c=seq[i++];if(c==='R')pos.d=(pos.d+1)%4;else if(c==='L')pos.d=(pos.d+3)%4;else{const dx=[0,1,0,-1][pos.d],dy=[-1,0,1,0][pos.d];pos.x=Math.max(0,Math.min(3,pos.x+dx));pos.y=Math.max(0,Math.min(3,pos.y+dy));}drawGrid();setTimeout(step,380);};step();};
+drawGrid();showSeq();
+
+/* ---- E: gears ---- */
+function gearPath(r,teeth){let d='';const n=teeth*2;for(let i=0;i<=n;i++){const ang=i/n*Math.PI*2;const rr=(i%2?r:r*.8);d+=(i?'L':'M')+(Math.cos(ang)*rr).toFixed(1)+' '+(Math.sin(ang)*rr).toFixed(1)+' ';}return d+'Z';}
+const g1=document.getElementById('g1'),g2=document.getElementById('g2');
+g1.innerHTML=`<path d="${gearPath(46,16)}" fill="#FFCA17" stroke="#101A38" stroke-width="2"/><circle r="8" fill="#1C54CB" stroke="#101A38" stroke-width="2"/><line x1="0" y1="-30" x2="0" y2="-8" stroke="#101A38" stroke-width="3"/>`;
+g2.innerHTML=`<path d="${gearPath(24,8)}" fill="#F2CD7E" stroke="#101A38" stroke-width="2"/><circle r="6" fill="#1C54CB" stroke="#101A38" stroke-width="2"/><line x1="0" y1="-16" x2="0" y2="-6" stroke="#101A38" stroke-width="3"/>`;
+const gearR=document.getElementById('gearR'),gearOut=document.getElementById('gearOut');
+function gearLab(){const a=+gearR.value;g1.setAttribute('transform',`translate(70 60) rotate(${a})`);g2.setAttribute('transform',`translate(150 60) rotate(${-a*2+11})`);gearOut.textContent='16 : 8 · '+(lang==='ar'?'الصغير يدور ×2 وبالعكس':'small gear turns ×2, opposite way')+' · '+a+'° → '+(a*2)+'°';}
+gearR.addEventListener('input',gearLab);gearLab();
+
+/* ---- M: shadow ---- */
+const sunR=document.getElementById('sunR'),sunOut=document.getElementById('sunOut');
+function sunLab(){const ang=+sunR.value;const h=50;const sh=Math.min(105,h/Math.tan(ang*Math.PI/180));document.getElementById('shadow').setAttribute('x2',120-sh);const sx=120+Math.cos(ang*Math.PI/180)*80,sy=100-Math.sin(ang*Math.PI/180)*80;document.getElementById('sun').setAttribute('cx',sx);document.getElementById('sun').setAttribute('cy',sy);document.getElementById('ray').setAttribute('x1',sx);document.getElementById('ray').setAttribute('y1',sy);sunOut.textContent=(lang==='ar'?'زاوية الشمس ':'sun ')+ang+'° · '+(lang==='ar'?'الظل':'shadow')+' = 50 ÷ tan('+ang+'°) = '+(50/Math.tan(ang*Math.PI/180)).toFixed(0)+' cm';}
+sunR.addEventListener('input',sunLab);sunLab();
+
+/* ---- live labs board ---- */
+const CH='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 :-·';
+function flap(el,text,delay){el.innerHTML='';[...text].forEach((c,i)=>{const s=document.createElement('span');s.textContent=' ';el.appendChild(s);let n=0;const tick=()=>{n++;if(n<6+i){s.classList.add('turn');setTimeout(()=>{s.textContent=CH[Math.floor(Math.random()*CH.length)];s.classList.remove('turn')},60);setTimeout(tick,70)}else{s.classList.add('turn');setTimeout(()=>{s.textContent=c;s.classList.remove('turn')},60)}};setTimeout(tick,delay+i*20)});}
+function board(){const rows=document.getElementById('rows');rows.innerHTML='';SLOTS.forEach((s,i)=>{const r=document.createElement('div');r.className='row';const st=s[3]===0?'full':(s[3]<=2?'last':'');const txt=s[3]===0?(lang==='ar'?'قائمة انتظار':'WAITLIST'):(s[3]<=2?(lang==='ar'?'آخر المقاعد':'LAST SEATS'):(lang==='ar'?'مفتوح':'OPEN'));r.innerHTML=`<span class="flap t"></span><span class="flap f"></span><span class="flap g gate"></span><span class="flap s"></span><span class="st ${st}">${txt}</span>`;rows.appendChild(r);flap(r.querySelector('.t'),s[0],i*110);flap(r.querySelector('.f'),s[1].toUpperCase(),i*110+80);flap(r.querySelector('.g'),s[2],i*110+160);flap(r.querySelector('.s'),String(s[3]).padStart(2,'0'),i*110+220);});}
+board();
+
+/* ---- STEM map ---- */
+const svg=document.getElementById('stemmap'),ageR=document.getElementById('ageR'),ageOut=document.getElementById('ageOut'),cards=document.getElementById('cards');
+const LINES=[['S',55,'#7FB3FF'],['T',155,'#C4B5FD'],['E',255,'#FFCA17'],['M',355,'#FFFFFF']];
+const X=a=>60+(a-4)/14*1080;
+function drawMap(){const age=+ageR.value;let h='';h+=`<g font-family="IBM Plex Mono, monospace" font-size="12" fill="#DCE3FF">`;for(let a=4;a<=18;a++)h+=`<text x="${X(a)}" y="392" text-anchor="middle">${a}</text><line x1="${X(a)}" y1="20" x2="${X(a)}" y2="375" stroke="rgba(255,255,255,.07)"/>`;h+=`</g>`;
+LINES.forEach(([k,y,c])=>{h+=`<line x1="40" y1="${y}" x2="1160" y2="${y}" stroke="${c}" stroke-width="3" opacity=".35"/><text x="18" y="${y+5}" font-family="Baloo Bhaijaan 2, sans-serif" font-size="20" font-weight="800" fill="${c}" text-anchor="middle">${k}</text>`;});
+const lanes={};LINES.forEach(l=>lanes[l[0]]=[]);
+P.forEach(p=>{p.s.forEach(k=>{const [,y,c]=LINES.find(l=>l[0]===k);const x1=X(p.a[0])-18,x2=X(p.a[1])+18;const on=age>=p.a[0]&&age<=p.a[1];
+ let li=0;while(lanes[k][li]!==undefined&&lanes[k][li]>x1-6)li++;lanes[k][li]=x2;const yy=y+([-16,16,-38,38][li]||0);
+ const label=p.n.replace('SkyLab ','');h+=`<g opacity="${on?1:.5}"><rect x="${x1}" y="${yy-10}" width="${x2-x1}" height="20" rx="10" fill="${on?c:'rgba(7,31,77,.55)'}" stroke="${c}" stroke-width="${on?0:1.5}"/><text x="${(x1+x2)/2}" y="${yy+4}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="${on?'#101A38':'#fff'}">${label.toUpperCase()}</text></g>`;});});
+const path=(track)=>{const st=P.filter(p=>(track==='sky'?p.sky:!p.sky)&&p.a[1]>=age).sort((a,b)=>a.a[0]-b.a[0]);let pts=[];st.forEach(p=>{const [,y]=LINES.find(l=>l[0]===p.s[0]);pts.push([Math.max(X(age),X(p.a[0])),y]);pts.push([X(p.a[1]),y]);});return pts.length?`<polyline points="${pts.map(q=>q.join(',')).join(' ')}" fill="none" stroke="#FFCA17" stroke-width="2.5" stroke-dasharray="6 6" opacity=".9"/>`:'';};
+h+=path('eng')+path('sky');
+h+=`<line x1="${X(age)}" y1="14" x2="${X(age)}" y2="378" stroke="#FFCA17" stroke-width="3"/><circle cx="${X(age)}" cy="14" r="6" fill="#FFCA17"/>`;svg.innerHTML=h;ageOut.textContent=String(age).padStart(2,'0');
+cards.innerHTML=P.filter(p=>age>=p.a[0]&&age<=p.a[1]).map(card).join('');}
+function card(p){const ar=lang==='ar';const pills=['S','T','E','M'].map(k=>`<span class="pill ${k} ${p.s.includes(k)?'on':''}">${k}</span>`).join('');return `<div class="card ${p.sky?'sky':''}"><div><div class="top"><span class="field">${L(p.f)}</span><span class="pills">${pills}</span></div><h3>${p.n}</h3><p class="desc">${ar?p.ar:p.en}</p><div class="cells"><div><b>${p.a[0]}–${p.a[1]}</b><small>${ar?'الأعمار':'AGES'}</small></div><div><b>${p.len}</b><small>${ar?'دقيقة':'MIN'}</small></div><div><b>${p.cap}</b><small>${ar?'مقعدًا':'SEATS'}</small></div><div><b style="font-size:.9rem">${L(p.fmt).split(' /')[0]}</b><small>${ar?'الصيغة':'FORMAT'}</small></div></div></div><div class="side"><div class="ico"><svg width="34" height="34"><use href="#${p.ico}"/></svg></div><a class="btn btn-ink" href="#fare">${ar?'احجز':'Book'}</a></div></div>`;}
+ageR.addEventListener('input',drawMap);drawMap();
+
+/* ---- countdown / book / lang ---- */
+const T0=new Date('2026-10-04T17:00:00+03:00').getTime();function cd(){let d=Math.max(0,T0-Date.now());const b=document.querySelectorAll('#cd b');const D=Math.floor(d/864e5);d-=D*864e5;const H=Math.floor(d/36e5);d-=H*36e5;const M=Math.floor(d/6e4);d-=M*6e4;const S=Math.floor(d/1e3);[D,H,M,S].forEach((v,i)=>b[i].textContent=String(v).padStart(2,'0'));}cd();setInterval(cd,1000);
+document.getElementById('bkProg').innerHTML=P.map(p=>`<option>${p.n} (${p.a[0]}–${p.a[1]})</option>`).join('');
+function book(e){e.preventDefault();document.getElementById('bk').style.display='none';document.getElementById('bkok').style.display='block';return false;}
+document.getElementById('lang').onclick=()=>{lang=lang==='ar'?'en':'ar';document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.getElementById('lang').textContent=lang==='ar'?'EN':'عربي';board();drawMap();saltLab();gearLab();sunLab();showSeq();};
+</script>
+</body>
+</html>
