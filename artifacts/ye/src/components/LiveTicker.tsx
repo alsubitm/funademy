@@ -1,5 +1,5 @@
 'use client';
-import { WEEKDAYS_SHORT_EN, arabicDigits } from '@/lib/constants';
+import { WEEKDAYS_SHORT_EN } from '@/lib/constants';
 
 interface TickerSlot {
   id: number;
@@ -18,9 +18,6 @@ interface TickerSlot {
 export function LiveTicker({ slots, lang }: { slots: TickerSlot[]; lang: 'ar' | 'en' }) {
   if (slots.length === 0) return null;
 
-  // We loop the slots multiple times to create a seamless marquee
-  const loopedSlots = [...slots, ...slots, ...slots, ...slots];
-
   const getDay = (w: number) => {
     if (lang === 'ar') {
       const arDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -29,37 +26,39 @@ export function LiveTicker({ slots, lang }: { slots: TickerSlot[]; lang: 'ar' | 
     return WEEKDAYS_SHORT_EN[w];
   };
 
-  const formatSeats = (left: number, isWaitlist: boolean) => {
-    if (isWaitlist) return lang === 'ar' ? '[ممتلئ — قائمة انتظار]' : '[full — waitlist]';
-    if (lang === 'ar') {
-      return `[${arabicDigits(left)} مقاعد متبقية]`;
-    }
-    return `[${left} seats left]`;
-  };
-
   return (
-    <div className="live">
+    <section className="sec live-board-section" id="schedule">
       <div className="wrap">
-        <div className="tag">
-          <span className="dot"></span>
-          {lang === 'ar' ? 'مباشر هذا الأسبوع' : 'LIVE THIS WEEK'}
+        <div className="sec-head" style={{ textAlign: 'center' }}>
+          <span className="kick">LIVE LABS · 01</span>
+          <h2>{lang === 'ar' ? 'حصص هذا الأسبوع — حضور في الرياض، وSkyLab أونلاين' : 'This week — Riyadh classrooms and SkyLab online'}</h2>
+          <p className="sub" style={{ marginInline: 'auto' }}>
+            {lang === 'ar' ? 'المقاعد تتغير مباشرة. اختر المختبر المناسب واحجز تجربتك.' : 'Seats update live. Find the right lab and reserve a trial.'}
+          </p>
         </div>
-        <div className="mq" dir="ltr">
-          <div className="mq-in">
-            {loopedSlots.map((s, i) => {
-              const isWaitlist = s.seatsLeft <= 0;
-              const seatsText = formatSeats(s.seatsLeft, isWaitlist);
-              const loc = s.program.format === 'in_person' && s.location ? ` @ ${s.location}` : '';
-              
-              return (
-                <span key={`${s.id}-${i}`}>
-                  {getDay(s.weekday)} {s.time} — <b>{lang === 'ar' ? s.program.nameAr : s.program.nameEn}</b> {loc} {seatsText}
-                </span>
-              );
-            })}
+        <div className="board" role="table" aria-label={lang === 'ar' ? 'جدول المختبرات' : 'Live labs schedule'}>
+          <div className="bhead" role="row">
+            <span>{lang === 'ar' ? 'الحالة' : 'STATUS'}</span>
+            <span>{lang === 'ar' ? 'المقاعد' : 'SEATS'}</span>
+            <span>{lang === 'ar' ? 'المختبر' : 'LAB'}</span>
+            <span>{lang === 'ar' ? 'الوقت' : 'TIME'}</span>
+            <span className="gate">{lang === 'ar' ? 'المكان' : 'STEM · WHERE'}</span>
           </div>
+          {slots.map((s) => {
+            const wait = s.seatsLeft <= 0;
+            const loc = s.program.format === 'in_person' && s.location ? s.location : 'ONLINE';
+            return (
+              <div className="row" role="row" key={s.id}>
+                <span className={`st ${wait ? 'last' : ''}`}>{wait ? (lang === 'ar' ? 'آخر المقاعد' : 'LAST SEATS') : (lang === 'ar' ? 'مفتوح' : 'OPEN')}</span>
+                <span className="flap" dir="ltr">{String(Math.max(0, s.seatsLeft)).padStart(2, '0').split('').map((n, i) => <span key={i}>{n}</span>)}</span>
+                <span>{lang === 'ar' ? s.program.nameAr : s.program.nameEn}</span>
+                <span dir="ltr">{getDay(s.weekday)} {s.time}</span>
+                <span className="gate">{loc}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

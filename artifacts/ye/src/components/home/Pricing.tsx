@@ -8,7 +8,7 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
   return (
     <section className="sec price" id="pricing">
       <div style={{ position: 'absolute', inset: 0, opacity: 0.15, mixBlendMode: 'overlay', pointerEvents: 'none' }}>
-        <Image src="/pattern-bricks.jpg" alt="" fill style={{ objectFit: 'cover' }} />
+        <Image src="/pattern-bricks.jpg" alt="" fill sizes="100vw" style={{ objectFit: 'cover' }} />
       </div>
       <div className="wrap" style={{ position: 'relative', zIndex: 2 }}>
         <ScrollReveal style={{ textAlign: 'center' }}>

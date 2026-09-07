@@ -39,21 +39,21 @@ export function Testimonials({ lang, testimonials }: { lang: 'ar' | 'en'; testim
           <div className="pola po1">
             <div className="tape"></div>
             <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
-              <Image src="/hero-kids.jpg" alt="Children building LEGO mechanics in a FunAdemy engineering class" fill style={{ objectFit: 'cover' }} />
+              <Image src="/hero-kids.jpg" alt="Children building LEGO mechanics in a FunAdemy engineering class" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
             </div>
             <div className="cap2">Bricks Challenge</div>
           </div>
           <div className="pola po2">
             <div className="tape"></div>
             <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
-              <Image src="/workshop-coding.jpg" alt="Student coding in AlgoPlay Code workshop — FunAdemy online class" fill style={{ objectFit: 'cover' }} />
+              <Image src="/workshop-coding.jpg" alt="Student coding in AlgoPlay Code workshop — FunAdemy online class" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
             </div>
             <div className="cap2">AlgoPlay Code</div>
           </div>
           <div className="pola po3">
             <div className="tape"></div>
             <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
-              <Image src="/group-class.jpg" alt="Group of kids attending e² Young Engineers online class 2024" fill style={{ objectFit: 'cover' }} />
+              <Image src="/group-class.jpg" alt="Group of kids attending e² Young Engineers online class 2024" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
             </div>
             <div className="cap2">Class of 2024</div>
           </div>

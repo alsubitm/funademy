@@ -608,6 +608,128 @@ body{background:linear-gradient(180deg,var(--v6-navy) 0%,#091d52 42%,var(--v6-de
 .plat-card:hover .plat-arrow{opacity:1;transform:translateX(-3px)}
 [dir='ltr'] .plat-card:hover .plat-arrow{transform:translateX(3px)}
 
+/* ============================================================
+   v9 recovery surface
+   Bright engineering-lab system: blueprint navy, laboratory violet,
+   instrument yellow, paper white. Kept scoped to public components.
+   ============================================================ */
+:root{
+  --v9-navy:#123b82;
+  --v9-ink:#17284b;
+  --v9-violet:#7028d8;
+  --v9-yellow:#ffc719;
+  --v9-paper:#f5f7ff;
+  --v9-line:#dce4f4;
+  --v9-muted:#617098;
+}
+body{background:#fff;color:var(--v9-ink)}
+.top{display:none}
+.site-nav{--wm-fun:var(--v9-navy);--wm-ademy:#1f5bb4;background:rgba(255,255,255,.92);border-bottom:1px solid var(--v9-line);box-shadow:0 8px 26px rgba(18,59,130,.06)}
+.nav-in{height:66px}
+.brand .ter{color:var(--v9-muted)}
+.links{gap:24px}
+.links a{color:var(--v9-ink);font-size:14px}
+.links .btn.y{border-color:var(--v9-yellow);color:var(--v9-ink);border-radius:10px}
+.wrap{max-width:1120px}
+.hero{min-height:690px;padding:112px 0 74px;background:
+  radial-gradient(55% 55% at 17% 52%,#ece9ff 0,rgba(236,233,255,0) 72%),
+  radial-gradient(50% 42% at 85% 17%,#f2efff 0,rgba(242,239,255,0) 70%),#fff}
+.hero::before{opacity:.75;background-image:radial-gradient(ellipse at center,transparent 58%,rgba(112,40,216,.05) 59%,transparent 60%);background-size:100% 240px}
+.hero-in{grid-template-columns:1fr 1.03fr;gap:70px}
+[dir=rtl] .hero-in{direction:rtl}
+.hero h1{color:var(--v9-navy);font-size:clamp(39px,5.3vw,67px);line-height:1.05}
+.hero h1 .y{color:var(--v9-violet);text-shadow:none}
+.hero h1 .u::after{background:var(--v9-yellow);box-shadow:none;height:6px;bottom:0}
+.hero .ar{color:var(--v9-violet)!important}
+.hero p.lead{color:#556486;font-size:17px;max-width:560px}
+.lic{color:var(--v9-violet);background:transparent;border:0;padding:0;font-size:11px;margin-bottom:17px}
+.lic::before{background:var(--v9-yellow);box-shadow:none}
+.hcta{margin-top:26px;gap:12px}
+.btn{border-radius:11px}
+.btn.y{background:var(--v9-yellow);color:var(--v9-ink);box-shadow:0 5px 0 #d6a500}
+.btn.ghost{background:#fff;color:var(--v9-navy);border:2px solid var(--v9-navy);box-shadow:none}
+.hticks{margin-top:22px;color:#7886a7;font-size:12px;gap:13px}
+.hticks span::before{color:var(--v9-violet);background:#f0eaff}
+.playwrap{direction:rtl}
+.playhead{color:var(--v9-navy);margin-bottom:12px}
+.playhead b{font-size:17px}
+.playhead .live{color:var(--v9-violet)}
+.play{background:linear-gradient(140deg,#173b86,#4c2aa6 74%,#7028d8);border-radius:23px;padding:11px;box-shadow:0 24px 54px rgba(44,42,142,.24)}
+.lab{min-height:240px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);border-radius:16px}
+.lab .h b{font-size:16px}
+.lab .tagp{font-size:8px;color:#dce5ff}
+.lab .more{color:#ebdcff}
+.stats{padding:34px 0;background:#fff}
+.stats .n{font-size:38px;color:var(--v9-navy);text-shadow:none}
+.stats .l{color:var(--v9-muted);font-size:11px}
+.live{background:var(--v9-ink)}
+.live .tag{background:var(--v9-violet)}
+.live .mq b{color:var(--v9-yellow)}
+.sec{padding:86px 0}
+.kick{color:var(--v9-violet);background:#f5f0ff;border-color:#d9c8ff}
+.sec h2{color:var(--v9-navy)}
+.sub{color:var(--v9-muted)}
+.path-sec,.platforms,.proof,.faq{background:var(--v9-paper)}
+.pathmap{margin-top:34px}
+.pathmap svg{filter:drop-shadow(0 12px 16px rgba(18,59,130,.08))}
+.legend{color:var(--v9-muted)}
+.kits{margin-top:38px}
+.kit{border-radius:18px;border-color:var(--v9-line);box-shadow:0 12px 30px rgba(18,59,130,.08)}
+.kit .kh{border-radius:18px 18px 0 0}
+.shop{background:linear-gradient(145deg,#101d4f,#2b186e)}
+.shop h2{color:#fff}
+.shop .arsub{color:#c6d5ff}
+.bg-sand-1{background:#f5f7ff}
+.terr .nb{border-radius:10px}
+.price{background:var(--v9-paper);color:var(--v9-ink)}
+.price h2{color:var(--v9-navy)}
+.price .arsub{color:var(--v9-violet)}
+.plans{max-width:960px}
+.plan{background:#fff;color:var(--v9-ink);border:1px solid var(--v9-line);box-shadow:0 20px 45px rgba(18,59,130,.12)}
+.plan.hot{background:#fff;border-color:#eadbff;box-shadow:0 25px 55px rgba(18,59,130,.15);transform:none}
+.plan .inner{border:0;background:transparent}
+.plan h3,.plan .pr{color:var(--v9-navy)}
+.plan li{color:#566583;border-bottom-color:var(--v9-line)}
+.plan li::before{color:var(--v9-violet);background:#f0eaff}
+.plan .t{background:var(--v9-yellow);box-shadow:none}
+.pnote{color:var(--v9-muted)}
+.pnote a{color:var(--v9-violet)!important}
+.proof{background:#fff}
+.proof .q{border-color:var(--v9-line)}
+.site-footer{background:var(--v9-navy)}
+.mcta{background:rgba(255,255,255,.97);border-top-color:var(--v9-line)}
+.mobile-menu summary{border-color:#c9d4e8;background:#fff}
+.mobile-menu summary span{background:var(--v9-navy)}
+.mobile-menu-panel{background:#fff;border-color:var(--v9-line);box-shadow:0 20px 45px rgba(18,59,130,.18)}
+.mobile-menu-panel a{color:var(--v9-navy)}
+.mobile-menu-panel a:hover{background:#f2f5fc;color:var(--v9-violet)}
+@media(max-width:920px){
+  .hero{padding-top:95px;min-height:0}
+  .hero-in{grid-template-columns:1fr;gap:35px}
+  .hero-in>div:first-child{text-align:center}
+  .hero p.lead{margin-inline:auto}
+  .hcta,.hticks{justify-content:center}
+  .playwrap{max-width:620px;margin-inline:auto;width:100%}
+}
+@media(max-width:640px){
+  .hero{padding:84px 0 48px}
+  .hero h1{font-size:39px}
+  .hero .ar{font-size:15px}
+  .hero p.lead{font-size:16px}
+  .hcta{flex-direction:column;align-items:stretch}
+  .hcta .btn{width:100%}
+  .play{padding:8px;border-radius:18px}
+  .lab{min-height:205px;padding:11px}
+  .playhead{align-items:flex-start;flex-direction:column}
+  .sec{padding:62px 0}
+  .sec h2{font-size:31px}
+  .stats .wrap{grid-template-columns:repeat(2,1fr);gap:24px}
+  .stats .n{font-size:32px}
+  .pathmap{overflow-x:auto;padding-bottom:6px}
+  .pathmap svg{min-width:770px}
+  .price .plans{margin-top:38px}
+}
+
 /* legal / compliance pages */
 .legal{max-width:860px;margin:0 auto;padding:56px 20px 72px}
 .legal h1{margin:8px 0 10px;font-size:clamp(28px,4vw,38px)}
