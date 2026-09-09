@@ -574,7 +574,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   if (mode === 'page') return <div className="chat-ui chat-ui--page">{panel}</div>;
 
   return (
-    <div className="chat-ui chat-ui--widget">
+    <div className={`chat-ui chat-ui--widget ${open ? 'is-open' : ''}`}>
       {open ? panel : null}
       <button
         ref={launcherRef}

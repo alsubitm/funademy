@@ -41,9 +41,22 @@ export function AccountFlow({ lang }: { lang: Lang }) {
   const errMsg = (key: string | null) => (key ? d.errors[key] ?? d.errors.generic : null);
 
   async function refresh() {
-    const res = await fetch('/svc/account/me', { cache: 'no-store' });
-    setMe(res.ok ? await res.json() : null);
-    setLoading(false);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/svc/account/me', { cache: 'no-store' });
+      if (res.status === 401) {
+        setMe(null);
+      } else if (!res.ok) {
+        throw new Error(`account_refresh_${res.status}`);
+      } else {
+        setMe(await res.json());
+      }
+    } catch {
+      setError('generic');
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => {
     refresh();
@@ -96,10 +109,19 @@ export function AccountFlow({ lang }: { lang: Lang }) {
   }
 
   async function logout() {
-    await fetch('/svc/account/logout', { method: 'POST' });
-    setMe(null);
-    setStep('phone');
-    setPhone('');
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/svc/account/logout', { method: 'POST' });
+      if (!res.ok) throw new Error(`logout_${res.status}`);
+      setMe(null);
+      setStep('phone');
+      setPhone('');
+    } catch {
+      setError('generic');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function saveKid() {
@@ -129,16 +151,33 @@ export function AccountFlow({ lang }: { lang: Lang }) {
 
   async function removeKid(id: number) {
     if (!window.confirm(d.confirmRemove)) return;
+    setBusy(true);
     setError(null);
-    const res = await fetch(`/svc/account/children/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return setError(data.error ?? 'generic');
+    try {
+      const res = await fetch(`/svc/account/children/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return setError(data.error ?? 'generic');
+      }
+      await refresh();
+    } catch {
+      setError('generic');
+    } finally {
+      setBusy(false);
     }
-    await refresh();
   }
 
   if (loading) return <div className="acct-box" aria-busy="true" />;
+  if (error && !me) {
+    return (
+      <div className="acct-box">
+        <div className="acct-err" role="alert">{errMsg(error)}</div>
+        <button className="acct-btn primary" type="button" onClick={() => void refresh()}>
+          {lang === 'ar' ? 'إعادة المحاولة' : 'Try again'}
+        </button>
+      </div>
+    );
+  }
 
   // ——— Logged in: children management ———
   if (me) {
@@ -152,7 +191,7 @@ export function AccountFlow({ lang }: { lang: Lang }) {
             </h2>
             <span className="a-phone">{me.phone}</span>
           </div>
-          <button className="acct-btn ghost" onClick={logout}>
+          <button className="acct-btn ghost" onClick={logout} disabled={busy}>
             {d.logout}
           </button>
         </div>

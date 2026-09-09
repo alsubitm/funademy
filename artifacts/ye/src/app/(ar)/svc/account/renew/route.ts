@@ -4,6 +4,7 @@ import { getFamilyId } from '@/lib/family-auth';
 import { createPayment, PAYMENT_PROVIDERS, type PaymentProvider } from '@/lib/payments';
 import { addOneMonth, effectiveMonthlySar } from '@/lib/billing';
 import { originFromRequest } from '@/lib/request-origin';
+import { createPaymentReturnState } from '@/lib/payment-return-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,12 +95,13 @@ export async function POST(req: NextRequest) {
   const record = claim.record!;
 
   const origin = originFromRequest(req);
+  const returnState = createPaymentReturnState(record.id, familyId);
   const payment = await createPayment(
     provider,
     totalSar,
     `FunAdemy renewal — enrollment ${enrollment.id}`,
     {
-      callbackUrl: `${origin}/svc/pay/return?paymentId=${record.id}&lang=${lang}`,
+      callbackUrl: `${origin}/svc/pay/return?state=${encodeURIComponent(returnState)}&lang=${lang}`,
       orderRef: String(record.id),
       consumer: {
         name: enrollment.student.family.parentName,

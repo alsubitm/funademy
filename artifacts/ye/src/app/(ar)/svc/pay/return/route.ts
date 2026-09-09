@@ -3,6 +3,7 @@ import { prisma, withDbRetry } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
 import { finalizePayment } from '@/lib/pay-core';
 import { CART_COOKIE } from '@/lib/cart';
+import { verifyPaymentReturnState } from '@/lib/payment-return-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,26 +13,26 @@ export const dynamic = 'force-dynamic';
  * against the provider API (pay-core.ts) before anything activates.
  */
 export async function GET(req: NextRequest) {
-  const paymentId = Number(req.nextUrl.searchParams.get('paymentId'));
   const lang = req.nextUrl.searchParams.get('lang') === 'en' ? 'en' : 'ar';
   const base = lang === 'en' ? '/en' : '';
+  const state = verifyPaymentReturnState(req.nextUrl.searchParams.get('state'));
 
-  if (!Number.isInteger(paymentId)) {
-    return NextResponse.redirect(new URL(`${base}/portal`, req.nextUrl));
+  if (!state) {
+    return NextResponse.redirect(new URL(`${base}/account`, req.nextUrl));
   }
 
   const payment = await withDbRetry(
-    () => prisma.payment.findUnique({ where: { id: paymentId } }),
+    () => prisma.payment.findFirst({ where: { id: state.paymentId, familyId: state.familyId } }),
     { operation: 'payment-return-read' },
   );
-  if (!payment) return NextResponse.redirect(new URL(`${base}/portal`, req.nextUrl));
+  if (!payment) return NextResponse.redirect(new URL(`${base}/account`, req.nextUrl));
 
-  const outcome = await finalizePayment(paymentId);
+  const outcome = await finalizePayment(payment.id);
 
   if (payment.kind === 'enrollment') {
     const url = new URL(`${base}/enroll`, req.nextUrl);
-    if (outcome === 'paid') url.searchParams.set('paid', String(paymentId));
-    else if (outcome === 'pending') url.searchParams.set('paypending', String(paymentId));
+    if (outcome === 'paid') url.searchParams.set('paid', String(payment.id));
+    else if (outcome === 'pending') url.searchParams.set('paypending', String(payment.id));
     else url.searchParams.set('payfail', '1');
     const res = NextResponse.redirect(url);
     // Clear the cart only when the payment actually went through — and only

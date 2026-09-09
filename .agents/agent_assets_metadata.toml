@@ -4,6 +4,8 @@ generated = []
 [[outputs]]
 id = "Oh9bxphhenCFOEZVsoo6O"
 uri = "file://attached_assets/Funademy_Design_Updates_2026-08.html"
-type = "unspecified"
+type = "text"
 title = "Funademy — التحديثات والإضافات الجديدة"
 description = "ملف HTML مستقل يعرض لوحة الألوان الجديدة، الصور، عناصر التصميم المحسّنة، وآخر تحديثات المحتوى."
+logical_id = "7d004c9b-2058-4489-9f2f-8fb0b588b6b5"
+content_type = "text/html"

@@ -124,12 +124,12 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
           }),
         });
 
+        const data = await res.json().catch(() => null);
         if (res.status === 201) {
-          const data = await res.json().catch(() => null);
           setAppointment(data?.appointment ?? null);
           setStep(4);
           window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (res.status === 409 || res.status === 404) {
+        } else if (data?.error === 'slot_full' || data?.error === 'slot_not_found') {
           setError(d.slotFullError);
           setSlotId(null);
           setStep(2);
@@ -269,7 +269,10 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
           <div className="slot-list">
             {filteredSlots.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--mut)' }}>
-                No slots available right now.
+                <p>{d.noSlots}</p>
+                <button type="button" className="btn" style={{ marginTop: 14 }} onClick={() => window.location.reload()}>
+                  {d.refreshSlots}
+                </button>
               </div>
             ) : null}
             {filteredSlots.map((s) => {
@@ -302,7 +305,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
                       rel="noopener noreferrer"
                       className="btn"
                     >
-                      WhatsApp
+                      {d.askAvailability}
                     </a>
                   </div>
                 );

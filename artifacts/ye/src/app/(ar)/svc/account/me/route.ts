@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { isTransientDatabaseError, prisma, withDbRetry } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
 
 export const dynamic = 'force-dynamic';
@@ -8,10 +8,19 @@ export async function GET() {
   const familyId = await getFamilyId();
   if (!familyId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const family = await prisma.family.findUnique({
-    where: { id: familyId },
-    include: { students: { orderBy: { birthYear: 'desc' } } },
-  });
+  let family;
+  try {
+    family = await withDbRetry(
+      () => prisma.family.findUnique({
+        where: { id: familyId },
+        include: { students: { orderBy: { birthYear: 'desc' } } },
+      }),
+      { operation: 'account-me', kind: 'read' },
+    );
+  } catch (error) {
+    if (!isTransientDatabaseError(error)) throw error;
+    return NextResponse.json({ error: 'temporarily_unavailable' }, { status: 503 });
+  }
   if (!family) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   return NextResponse.json({

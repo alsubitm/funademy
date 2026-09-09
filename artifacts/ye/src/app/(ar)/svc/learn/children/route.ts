@@ -13,6 +13,9 @@ export async function GET() {
   const familyId = await getFamilyId();
   if (!familyId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
+  const enrolled = await familyHasActiveEnrollment(familyId);
+  if (!enrolled) return NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 });
+
   const children = await prisma.lrnChild.findMany({
     where: { familyId },
     orderBy: { createdAt: 'asc' },

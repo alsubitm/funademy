@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { prisma } from '@/lib/db';
+import { isTransientDatabaseError, prisma } from '@/lib/db';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { portalDict } from '@/app/(ar)/portal/dict';
 import { MakeupButton } from './MakeupButton';
@@ -25,8 +25,38 @@ function riyadhDay(d: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
 const fmt = (lang: Lang, v: number | string) => (lang === 'ar' ? arabicDigits(v) : String(v));
+const safeExternalUrl = (value: string | null): string | null => {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+};
 
-export async function PortalView({ lang, familyId, selectedChild, payNotice }: { lang: Lang; familyId: number; selectedChild?: number; payNotice?: 'paid' | 'pending' | 'fail' }) {
+export async function PortalView(props: { lang: Lang; familyId: number; selectedChild?: number; payNotice?: 'paid' | 'pending' | 'fail' }) {
+  try {
+    return await PortalViewContent(props);
+  } catch (error) {
+    if (!isTransientDatabaseError(error)) throw error;
+    console.error('[portal] database temporarily unavailable', error);
+    return (
+      <div className="ptl-card" role="alert" style={{ textAlign: 'center' }}>
+        <p style={{ marginBottom: 14, color: 'var(--mut)' }}>
+          {props.lang === 'ar'
+            ? 'تعذّر تحميل بوابة العائلة مؤقتاً. بياناتك محفوظة، يرجى المحاولة مرة أخرى.'
+            : 'The family portal is temporarily unavailable. Your data is safe; please try again.'}
+        </p>
+        <Link className="btn b" style={{ padding: '12px 26px', fontSize: 15 }} href={props.lang === 'ar' ? '/portal' : '/en/portal'}>
+          {props.lang === 'ar' ? 'إعادة المحاولة' : 'Try again'}
+        </Link>
+      </div>
+    );
+  }
+}
+
+async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: { lang: Lang; familyId: number; selectedChild?: number; payNotice?: 'paid' | 'pending' | 'fail' }) {
   const d = portalDict[lang];
   const weekdays = lang === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN;
   const base = lang === 'ar' ? '' : '/en';
@@ -45,7 +75,20 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
     );
   }
 
-  const child = students.find((s) => s.id === selectedChild) ?? students[0];
+  const selected = selectedChild === undefined ? students[0] : students.find((s) => s.id === selectedChild);
+  if (!selected) {
+    return (
+      <div className="ptl-card" role="alert" style={{ textAlign: 'center' }}>
+        <p style={{ marginBottom: 14, color: 'var(--mut)' }}>
+          {lang === 'ar' ? 'تعذّر العثور على الطفل المحدد في حساب عائلتك.' : 'The selected child was not found in your family account.'}
+        </p>
+        <Link className="btn b" style={{ padding: '12px 26px', fontSize: 15 }} href={`${base}/portal`}>
+          {lang === 'ar' ? 'عرض أطفال العائلة' : 'View family children'}
+        </Link>
+      </div>
+    );
+  }
+  const child = selected;
   const now = new Date();
 
   const [enrollments, attendance, studentSkills, makeupRequests, studentBadges] = await Promise.all([
@@ -154,10 +197,12 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
       >
         <span style={{ fontSize: 36 }}>🎓</span>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>منصة التعلّم</div>
-          <div style={{ fontSize: 13, opacity: .85, marginTop: 2 }}>دروس، تمارين، XP وشارات — ابدأ الآن!</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>{lang === 'ar' ? 'منصة التعلّم' : 'Learning platform'}</div>
+          <div style={{ fontSize: 13, opacity: .85, marginTop: 2 }}>
+            {lang === 'ar' ? 'دروس، تمارين، XP وشارات — ابدأ الآن!' : 'Lessons, activities, XP and badges — currently available in Arabic'}
+          </div>
         </div>
-        <span style={{ marginInlineStart: 'auto', fontSize: 20 }}>←</span>
+        <span style={{ marginInlineStart: 'auto', fontSize: 20 }}>{lang === 'ar' ? '←' : '→'}</span>
       </Link>
 
       {/* next session hero */}
@@ -283,18 +328,22 @@ export async function PortalView({ lang, familyId, selectedChild, payNotice }: {
       </div>
 
       {/* recorded classes */}
-      {recorded.length > 0 && (
+      {recorded.some((session) => safeExternalUrl(session.recordingUrl)) && (
         <div className="ptl-card">
           <h3><span className="ico">🎬</span>{d.recordings}</h3>
-          {recorded.map((s) => (
-            <div key={s.id} className="ptl-sess">
-              <span className="d">{fmtDate(lang, s.date)}</span>
-              <span className="p">{progName(s.courseRun.program)}</span>
-              <a className="ptl-rec" href={s.recordingUrl!} target="_blank" rel="noopener noreferrer">
-                ▶️ {d.watchRecording}
-              </a>
-            </div>
-          ))}
+          {recorded.map((s) => {
+            const recordingUrl = safeExternalUrl(s.recordingUrl);
+            if (!recordingUrl) return null;
+            return (
+              <div key={s.id} className="ptl-sess">
+                <span className="d">{fmtDate(lang, s.date)}</span>
+                <span className="p">{progName(s.courseRun.program)}</span>
+                <a className="ptl-rec" href={recordingUrl} target="_blank" rel="noopener noreferrer">
+                  ▶️ {d.watchRecording}
+                </a>
+              </div>
+            );
+          })}
         </div>
       )}
 

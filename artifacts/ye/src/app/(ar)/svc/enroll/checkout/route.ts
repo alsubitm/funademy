@@ -6,6 +6,7 @@ import { createPayment, PAYMENT_PROVIDERS, type PaymentProvider } from '@/lib/pa
 import { sweepStalePayments } from '@/lib/pay-core';
 import { addOneMonth } from '@/lib/billing';
 import { originFromRequest } from '@/lib/request-origin';
+import { createPaymentReturnState } from '@/lib/payment-return-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,12 +148,13 @@ export async function POST(req: NextRequest) {
 
   const { enrollmentIds, paymentId } = outcome;
   const origin = originFromRequest(req);
+  const returnState = createPaymentReturnState(paymentId, familyId);
   const payment = await createPayment(
     provider,
     cart.totalSar,
     `FunAdemy enrollment — ${cart.items.length} child(ren)`,
     {
-      callbackUrl: `${origin}/svc/pay/return?paymentId=${paymentId}&lang=${lang}`,
+      callbackUrl: `${origin}/svc/pay/return?state=${encodeURIComponent(returnState)}&lang=${lang}`,
       orderRef: String(paymentId),
       consumer: { name: family.parentName, phone: family.phone, email: family.email },
       lines: cart.items.map((i) => ({

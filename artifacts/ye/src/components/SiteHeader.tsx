@@ -7,6 +7,7 @@ import { LangSwitcher } from '@/components/LangSwitcher';
 
 export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
+  const home = lang === 'ar' ? '/' : '/en';
 
   return (
     <>
@@ -30,10 +31,10 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
             <Wordmark lang={lang} style={{ fontSize: 26, lineHeight: 1 }} />
           </Link>
           <div className="links">
-            <a href="#path">{d.navPath}</a>
+            <a href={`${home}#path`}>{d.navPath}</a>
             <Link href={lang === 'ar' ? '/programs' : '/en/programs'}>{d.navPrograms}</Link>
-            <a href="#workshop">{d.navWorkshop}</a>
-            <a href="#pricing">{d.navPricing}</a>
+            <a href={`${home}#workshop`}>{d.navWorkshop}</a>
+            <a href={`${home}#pricing`}>{d.navPricing}</a>
             <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
             <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
             <LangSwitcher lang={lang} />
@@ -50,10 +51,10 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
                 <span />
               </summary>
               <div className="mobile-menu-panel">
-                <a href="#path">{d.navPath}</a>
+                <a href={`${home}#path`}>{d.navPath}</a>
                 <Link href={lang === 'ar' ? '/programs' : '/en/programs'}>{d.navPrograms}</Link>
-                <a href="#workshop">{d.navWorkshop}</a>
-                <a href="#pricing">{d.navPricing}</a>
+                <a href={`${home}#workshop`}>{d.navWorkshop}</a>
+                <a href={`${home}#pricing`}>{d.navPricing}</a>
                 <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
                 <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
                 <Link className="btn y" href={lang === 'ar' ? '/book' : '/en/book'}>{d.navTrial}</Link>

@@ -1,7 +1,7 @@
 export const revalidate = 300;
 import type { Metadata } from 'next';
 import { siteUrl } from '@/lib/site-url';
-import { prisma } from '@/lib/db';
+import { prisma, withDbRetry } from '@/lib/db';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
@@ -41,23 +41,23 @@ import { Certificate } from '@/components/home/Certificate';
 
 export default async function EnglishHomePage() {
   const [slots, programs, faqs, testimonials] = await Promise.all([
-    safeQuery(() => prisma.scheduleSlot.findMany({
+    safeQuery(() => withDbRetry(() => prisma.scheduleSlot.findMany({
       where: { active: true },
       include: { program: true },
       orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
       take: 10,
-    }), [], 'home-en:slots'),
-    safeQuery(() => prisma.program.findMany({
+    }), { operation: 'home-en:slots', kind: 'read' }), [], 'home-en:slots'),
+    safeQuery(() => withDbRetry(() => prisma.program.findMany({
       orderBy: { position: 'asc' },
-    }), [], 'home-en:programs'),
-    safeQuery(() => prisma.faqEntry.findMany({
+    }), { operation: 'home-en:programs', kind: 'read' }), [], 'home-en:programs'),
+    safeQuery(() => withDbRetry(() => prisma.faqEntry.findMany({
       where: { published: true },
       orderBy: { position: 'asc' },
-    }), [], 'home-en:faqs'),
-    safeQuery(() => prisma.testimonial.findMany({
+    }), { operation: 'home-en:faqs', kind: 'read' }), [], 'home-en:faqs'),
+    safeQuery(() => withDbRetry(() => prisma.testimonial.findMany({
       where: { published: true },
       orderBy: { position: 'asc' },
-    }), [], 'home-en:testimonials'),
+    }), { operation: 'home-en:testimonials', kind: 'read' }), [], 'home-en:testimonials'),
   ]);
 
   return (

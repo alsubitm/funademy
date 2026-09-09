@@ -65,7 +65,8 @@ export async function POST(req: NextRequest) {
     if (['slot_full', 'already_booked', 'program_not_eligible'].includes(code)) {
       return NextResponse.json({ error: code }, { status: 409 });
     }
-    throw e;
+    console.error('[booking] trial booking failed', e);
+    return NextResponse.json({ error: 'temporarily_unavailable' }, { status: 503 });
   }
   const appointment = outcome.appointment
     ? {

@@ -30,7 +30,7 @@ PORT = "25793"
 NODE_ENV = "production"
 
 [services.production.health.startup]
-path = "/"
+path = "/healthz"
 
 [services.env]
 PORT = "25793"

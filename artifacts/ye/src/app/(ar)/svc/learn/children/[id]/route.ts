@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
-import { hashPin } from '@/lib/kid-auth';
+import { familyHasActiveEnrollment, hashPin } from '@/lib/kid-auth';
 import { NATIONAL_ID_RE, serializeChild } from '@/lib/learning';
 import { enqueueIdSetSnapshot, flushOutboxServer } from '@/lib/xapiOutbox';
 
@@ -16,6 +16,9 @@ async function getOwnedChild(familyId: number, childId: number) {
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const familyId = await getFamilyId();
   if (!familyId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  if (!(await familyHasActiveEnrollment(familyId))) {
+    return NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 });
+  }
 
   const { id } = await params;
   const childId = Number(id);
@@ -88,6 +91,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const familyId = await getFamilyId();
   if (!familyId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  if (!(await familyHasActiveEnrollment(familyId))) {
+    return NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 });
+  }
 
   const { id } = await params;
   const childId = Number(id);

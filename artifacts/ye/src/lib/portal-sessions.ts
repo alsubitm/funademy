@@ -1,4 +1,4 @@
-import { prisma } from './db';
+import { prisma, withDbRetry } from './db';
 
 /** Live-class link for a session: per-session override, else run-level, online runs only. */
 export function joinUrlFor(s: {
@@ -15,21 +15,24 @@ export function joinUrlFor(s: {
  * Recorded sessions are enrollment-based (independent of attendance rows).
  */
 export async function portalSessions(childId: number, now = new Date()) {
-  const enrollments = await prisma.enrollment.findMany({
-    where: { studentId: childId, status: { in: ['active', 'pending'] } },
-    select: { courseRunId: true },
-  });
+  const enrollments = await withDbRetry(
+    () => prisma.enrollment.findMany({
+      where: { studentId: childId, status: { in: ['active', 'pending'] } },
+      select: { courseRunId: true },
+    }),
+    { operation: 'portal-session-enrollments', kind: 'read' },
+  );
   const runIds = enrollments.map((e) => e.courseRunId);
   if (runIds.length === 0) return { upcoming: [], recorded: [] };
 
   const [upcoming, recorded] = await Promise.all([
-    prisma.classSession.findMany({
+    withDbRetry(() => prisma.classSession.findMany({
       where: { courseRunId: { in: runIds }, date: { gte: now }, status: 'scheduled' },
       include: { courseRun: { include: { program: true } } },
       orderBy: { date: 'asc' },
       take: 6,
-    }),
-    prisma.classSession.findMany({
+    }), { operation: 'portal-upcoming-sessions', kind: 'read' }),
+    withDbRetry(() => prisma.classSession.findMany({
       where: {
         courseRunId: { in: runIds },
         status: { not: 'cancelled' },
@@ -39,7 +42,7 @@ export async function portalSessions(childId: number, now = new Date()) {
       include: { courseRun: { include: { program: true } } },
       orderBy: { date: 'desc' },
       take: 12,
-    }),
+    }), { operation: 'portal-recorded-sessions', kind: 'read' }),
   ]);
   return { upcoming, recorded };
 }

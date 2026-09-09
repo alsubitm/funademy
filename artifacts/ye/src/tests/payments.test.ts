@@ -28,6 +28,7 @@ vi.mock('next/headers', () => ({
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { FAMILY_COOKIE, familyToken } from '@/lib/family-auth';
+import { createPaymentReturnState, verifyPaymentReturnState } from '@/lib/payment-return-state';
 import { CART_COOKIE, encodeCart } from '@/lib/cart';
 import { addOneMonth, effectiveMonthlySar } from '@/lib/billing';
 import { POST as checkoutPOST } from '@/app/(ar)/svc/enroll/checkout/route';
@@ -1374,6 +1375,20 @@ describe('Tamara payment-types gating', () => {
     });
     expect(res.status).toBe('indeterminate');
     if (res.status === 'indeterminate') expect(res.reference).toBe('tmr_without_redirect');
+  });
+});
+
+describe('payment return state', () => {
+  it('verifies an untampered state without a browser session', () => {
+    const state = createPaymentReturnState(123, 456, 1_000);
+    expect(verifyPaymentReturnState(state, 2_000)).toEqual({ paymentId: 123, familyId: 456 });
+  });
+
+  it('rejects tampered, malformed and expired states', () => {
+    const state = createPaymentReturnState(123, 456, 1_000);
+    expect(verifyPaymentReturnState(state.replace('.123.', '.124.'), 2_000)).toBeNull();
+    expect(verifyPaymentReturnState('not-a-state', 2_000)).toBeNull();
+    expect(verifyPaymentReturnState(state, 1_000 + 24 * 60 * 60_000)).toBeNull();
   });
 });
 
