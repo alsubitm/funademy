@@ -81,8 +81,40 @@ describe.each(['promptAr', 'promptEn', 'correctAnswer'])('invalid %s field', (fi
 });
 
 it('still imports valid exercises', async () => {
+  const before = await saved();
   const response = await send({ replace: true, exercises: [exercise, exercise] });
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ imported: 2, skipped: 0, errors: [] });
   expect(await saved()).toHaveLength(2);
+  expect((await saved()).some(row => before.some(old => old.id === row.id))).toBe(false);
+});
+
+it('rolls back replacement deletion when insertion fails in PostgreSQL', async () => {
+  const before = await saved();
+  expect(before.length).toBeGreaterThan(0);
+
+  // Passes request validation, but PostgreSQL text cannot store a null byte.
+  await expect(send({
+    replace: true,
+    exercises: [exercise, { ...exercise, promptEn: 'Invalid\u0000text' }],
+  })).rejects.toThrow();
+
+  expect(await saved()).toEqual(before);
+});
+
+it('keeps existing exercises when appending', async () => {
+  const before = await saved();
+  const response = await send({ exercises: [exercise] });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ imported: 1, skipped: 0, errors: [] });
+  const after = await saved();
+  expect(after).toHaveLength(before.length + 1);
+  expect(after).toEqual(expect.arrayContaining(before));
+});
+
+it('allows an empty replacement to clear exercises', async () => {
+  const response = await send({ replace: true, exercises: [] });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ imported: 0, skipped: 0, errors: [] });
+  expect(await saved()).toEqual([]);
 });

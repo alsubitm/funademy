@@ -85,13 +85,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (invalidShape || (b.replace && errors.length)) {
     return NextResponse.json({ error: 'invalid_exercises', imported: 0, skipped, errors }, { status: 400 });
   }
-  if (b.replace) {
-    await prisma.lrnExercise.deleteMany({ where: { lessonId } });
-  }
+  await prisma.$transaction(async (tx) => {
+    if (b.replace) {
+      await tx.lrnExercise.deleteMany({ where: { lessonId } });
+    }
 
-  if (toCreate.length > 0) {
-    await prisma.lrnExercise.createMany({ data: toCreate });
-  }
+    if (toCreate.length > 0) {
+      await tx.lrnExercise.createMany({ data: toCreate });
+    }
+  });
 
   return NextResponse.json({ imported, skipped, errors });
 }
