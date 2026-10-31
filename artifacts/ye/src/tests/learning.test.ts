@@ -957,14 +957,30 @@ describe('prerequisite gate uses LrnFirstCompletion, not repeat LrnCompletion', 
 
     // Manually insert a LrnCompletion WITHOUT a LrnFirstCompletion — simulates
     // a repeat attempt where first-completion was never actually awarded.
-    await prisma.lrnCompletion.create({
-      data: { childId: freshChildId, lessonId: freshUnit1LessonId, score: 0, timeSpentSeconds: 0 },
+    await prisma.lrnCompletion.createMany({
+      data: [0, 100, 0].map((score) => ({
+        childId: freshChildId, lessonId: freshUnit1LessonId, score, timeSpentSeconds: 0,
+      })),
     });
+
+    const listing = await unitsGET(jsonReq(`/svc/learn/subjects/prereq-${RUN}/units`),
+      { params: Promise.resolve({ slug: `prereq-${RUN}` }) });
+    expect(listing.status).toBe(200);
+    const body = await listing.json();
+    expect(body.units[0].locked).toBe(false);
+    expect(body.units[0].lessons[0].completed).toBe(false);
+    expect(body.units[1].locked).toBe(true);
 
     // Unit2 must still be locked because there is no LrnFirstCompletion for U1 L1
     const res = await lessonGET(jsonReq(`/svc/learn/lessons/${freshUnit2LessonId}`), params(freshUnit2LessonId));
     expect(res.status).toBe(403);
     expect((await res.json()).error).toBe('unit_locked');
+    const completion = await completePOST(
+      jsonReq(`/svc/learn/lessons/${freshUnit2LessonId}/complete`, 'POST', { answers: [], timeSpentSeconds: 0 }),
+      params(freshUnit2LessonId),
+    );
+    expect(completion.status).toBe(403);
+    expect((await completion.json()).error).toBe('unit_locked');
   });
 
   it('unit2 unlocks once unit1 lesson has a LrnFirstCompletion', async () => {
@@ -976,9 +992,40 @@ describe('prerequisite gate uses LrnFirstCompletion, not repeat LrnCompletion', 
     await prisma.lrnFirstCompletion.create({
       data: { childId: freshChildId, lessonId: freshUnit1LessonId },
     });
+    // Claims remain authoritative even when attempt history is absent.
+    await prisma.lrnCompletion.deleteMany({ where: { childId: freshChildId } });
+
+    const listing = await unitsGET(jsonReq(`/svc/learn/subjects/prereq-${RUN}/units`),
+      { params: Promise.resolve({ slug: `prereq-${RUN}` }) });
+    expect(listing.status).toBe(200);
+    const body = await listing.json();
+    expect(body.units[0].lessons[0].completed).toBe(true);
+    expect(body.units[1].locked).toBe(false);
 
     const res = await lessonGET(jsonReq(`/svc/learn/lessons/${freshUnit2LessonId}`), params(freshUnit2LessonId));
     expect(res.status).toBe(200);
+  });
+
+  it('equal-position units are not prerequisites in either API', async () => {
+    clearAll();
+    asFamily(familyId);
+    asKid(familyId, freshChildId);
+    await prisma.lrnFirstCompletion.deleteMany({ where: { childId: freshChildId } });
+    await prisma.lrnUnit.update({ where: { id: freshUnit1Id }, data: { position: 1 } });
+    try {
+      const listing = await unitsGET(jsonReq(`/svc/learn/subjects/prereq-${RUN}/units`),
+        { params: Promise.resolve({ slug: `prereq-${RUN}` }) });
+      expect(listing.status).toBe(200);
+      const body = await listing.json();
+      expect(body.units).toHaveLength(2);
+      expect(body.units.every((u: { locked: boolean }) => !u.locked)).toBe(true);
+      for (const lessonId of [freshUnit1LessonId, freshUnit2LessonId]) {
+        const res = await lessonGET(jsonReq(`/svc/learn/lessons/${lessonId}`), params(lessonId));
+        expect(res.status).toBe(200);
+      }
+    } finally {
+      await prisma.lrnUnit.update({ where: { id: freshUnit1Id }, data: { position: 0 } });
+    }
   });
 });
 

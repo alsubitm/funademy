@@ -26,7 +26,8 @@ export async function GET(
   const subject = await prisma.lrnSubject.findUnique({ where: { slug } });
   if (!subject) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  const completions = await prisma.lrnCompletion.findMany({
+  // Match lesson-guard: attempts are not durable progression claims.
+  const completions = await prisma.lrnFirstCompletion.findMany({
     where: { childId: child.id },
     select: { lessonId: true },
   });
@@ -44,11 +45,11 @@ export async function GET(
     },
   });
 
-  const unitsData = units.map((u, unitIdx) => {
-    const prevUnitsComplete = units.slice(0, unitIdx).every((pu) =>
+  const unitsData = units.map((u) => {
+    const prevUnitsComplete = units.filter((pu) => pu.position < u.position).every((pu) =>
       pu.lessons.every((l) => completedIds.has(l.id)),
     );
-    const locked = unitIdx > 0 && !prevUnitsComplete;
+    const locked = !prevUnitsComplete;
 
     return {
       id: u.id,
