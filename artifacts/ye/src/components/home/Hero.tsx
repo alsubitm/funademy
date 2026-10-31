@@ -12,49 +12,46 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
   const [sequence, setSequence] = useState<string[]>([]);
 
   return (
-    <section className="sec hero" aria-label={lang === 'ar' ? 'الصفحة الرئيسية' : 'Hero'}>
-      <div className="bpgrid"></div>
+    <section className="sec hero v9-hero" id="top" aria-label={lang === 'ar' ? 'الصفحة الرئيسية' : 'Hero'}>
+      <div className="flyer" aria-hidden="true">
+        <svg className="trail" viewBox="0 0 1400 800" preserveAspectRatio="none"><path d="M -120 190 C 220 100, 480 240, 760 160 S 1200 100, 1500 200" /></svg>
+        <div className="kf">
+          <svg className="kiteF" viewBox="0 0 340 440"><path d="M170 316 Q 214 356 200 392 Q 190 416 226 414" fill="none" stroke="#E5AE4A" strokeWidth="7" strokeLinecap="round"/><g stroke="#0F1F4B" strokeLinejoin="round"><polygon points="170,36 306,176 170,316 34,176" fill="#FFCA17" strokeWidth="10"/><line x1="170" y1="36" x2="170" y2="316" strokeWidth="6"/><line x1="34" y1="176" x2="306" y2="176" strokeWidth="6"/><polygon points="170,36 306,176 170,176" fill="#FFE066" opacity=".5" stroke="none"/><circle cx="170" cy="176" r="16" fill="#1C54CB" strokeWidth="7"/></g></svg>
+          <svg className="capF" viewBox="0 0 260 240"><g stroke="#0F1F4B" strokeLinejoin="round"><polygon points="130,44 246,104 130,164 14,104" fill="#FFCA17" strokeWidth="9"/><path d="M76 142 L76 188 Q130 216 184 188 L184 142" fill="#FFCA17" strokeWidth="9"/><circle cx="130" cy="104" r="12" fill="#1C54CB" strokeWidth="6"/><path d="M130 104 Q 198 118 202 168" fill="none" stroke="#E5AE4A" strokeWidth="6" strokeLinecap="round"/></g></svg>
+        </div>
+      </div>
       <div className="wrap hero-in">
-        <div style={{ zIndex: 5 }}>
-          <div className="lic">LICENSE № {LICENSE_NO} · e² YOUNG ENGINEERS</div>
+        <div className="copy">
+          <div className="kicker">FUNADEMY · STEM ACADEMY · RIYADH · {lang === 'ar' ? <span className="ar-body">من 4 إلى 18</span> : 'AGES 4–18'}</div>
           {lang === 'ar' ? (
-            <>
-              <h1 className="ar" style={{ color: '#fff', marginTop: 0 }}>
-                لا نعلّم أطفالنا عن الهندسة —<br />
-                <span className="y">بل نصنع منهم</span> <span className="u">مهندسين.</span>
-              </h1>
-              <p className="lead">
-                ميكانيكا، روبوتات، وبرمجة حقيقية مبنية على LEGO® للأعمار ٤-١٨ — حصص مباشرة بالعربية، أونلاين من منزلك أينما كنت.
-              </p>
-              <div className="ar" style={{ fontFamily: 'var(--font-mono)' }}>
-                We don't teach kids about engineering. We make them engineers.
-              </div>
-            </>
+            <h1>لا نعلّم أطفالنا عن الهندسة&nbsp;—<br /><span className="hl">بل نصنع منهم مهندسين.</span></h1>
           ) : (
-            <>
-              <h1>
-                We don't teach kids about engineering.<br />
-                <span className="y">We make them</span> <span className="u">engineers.</span>
-              </h1>
-              <p className="lead">
-                LEGO®-based mechanics, robotics and real coding for ages 4–18 — live online classes in Arabic, from the comfort of your home.
-              </p>
-              <div className="ar" style={{ fontFamily: 'var(--font-mono)' }}>نصنع مهندسين صغار — أونلاين</div>
-            </>
+            <h1>We don&apos;t teach kids about engineering&nbsp;—<br /><span className="hl">we make them engineers.</span></h1>
           )}
-
-          <div className="hcta">
-            <a className="btn y" href="#pricing">
-              {d.navTrial}
-            </a>
-            <a className="btn ghost" href="#path">
-              {d.navPath}
-            </a>
+          <p className="lede">
+            {lang === 'ar'
+              ? 'ميكانيكا، روبوتات، وبرمجة حقيقية مبنية على LEGO® للأعمار ٤-١٨ — حصص مباشرة بالعربية، حضورياً في الرياض وأونلاين من منزلك أينما كنت.'
+              : 'LEGO®-based mechanics, robotics and real coding for ages 4–18 — live classes in Arabic, in person in Riyadh and online from the comfort of your home.'}
+          </p>
+          <div className="stem">
+            {([['S', 'العلوم', 'Science'], ['T', 'التقنية', 'Technology'], ['E', 'الهندسة', 'Engineering'], ['M', 'الرياضيات', 'Math']] as const).map(([k, ar, en]) => (
+              <span className="k" key={k}><b className={k}>{k}</b>{lang === 'ar' ? ar : en}</span>
+            ))}
           </div>
-          <div className="hticks">
-            <span>{lang === 'ar' ? 'حصص مباشرة دائماً' : 'Always live classes'}</span>
+          <div className="ctas hcta">
+            <a className="btn btn-gold" href="#pricing" data-testid="link-hero-trial">{d.navTrial}</a>
+            <a className="btn btn-line" href="#path" data-testid="link-hero-path">{d.navPath}</a>
+          </div>
+          <div className="trust">
+            <span>{lang === 'ar' ? `أكاديمية مرخّصة · ${LICENSE_NO}` : `Licensed academy · ${LICENSE_NO}`}</span>
+            <span>{lang === 'ar' ? 'شهادة لكل مستوى' : 'A certificate per level'}</span>
+            <span>{lang === 'ar' ? 'مجموعات 8–16' : 'Groups of 8–16'}</span>
             <span>{lang === 'ar' ? 'مدربون معتمدون' : 'Certified instructors'}</span>
-            <span>{lang === 'ar' ? 'الأعمار ٤-١٨' : 'Ages 4–18'}</span>
+          </div>
+          <div className="facts">
+            <div className="fact"><b>7</b>{lang === 'ar' ? 'برامج معتمدة' : 'official programs'}</div>
+            <div className="fact"><b>4–18</b>{lang === 'ar' ? 'سنوات العمر' : 'ages covered'}</div>
+            <div className="fact"><b>1<small>st</small></b>{lang === 'ar' ? 'الحصة الأولى مجانية' : 'first class free'}</div>
           </div>
         </div>
 

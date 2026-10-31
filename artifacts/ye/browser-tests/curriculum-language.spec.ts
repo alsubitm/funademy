@@ -234,3 +234,81 @@ for (const failure of ['rejected replacement', 'malformed JSON'] as const) {
     expect(posts).toHaveLength(failure === 'malformed JSON' ? 0 : 1);
   });
 }
+
+for (const language of ['en', 'bilingual'] as const) {
+  test(`MP4 alternate and ${language} original survive reopening and clearing`, async ({ page, context }) => {
+    const mp4Alternate = 'https://media.example.test/english-alternate.mp4';
+    await context.addCookies([
+      { name: 'ye_admin', value: token('admin'), url: 'http://127.0.0.1:3107' },
+      { name: 'ye_family', value: token(`family.${familyId}`), url: 'http://127.0.0.1:3107' },
+      { name: 'ye_kid', value: token(`kid.${familyId}.${childId}`), url: 'http://127.0.0.1:3107' },
+    ]);
+    const row = page.locator('.curr-lesson-row').filter({ hasText: 'درس اختبار' });
+    const modal = page.locator('.learn-modal');
+    const openEditor = async () => {
+      await page.goto('/admin');
+      await page.getByRole('button', { name: 'المناهج', exact: true }).click();
+      await page.locator('.curr-subject-header').filter({ hasText: run }).click();
+      await row.getByRole('button', { name: 'تعديل', exact: true }).click();
+    };
+    await openEditor();
+    await field(modal, 'لغة الفيديو الأصلي').selectOption(language);
+    await field(modal, 'رابط الفيديو الأصلي').fill(original);
+    await field(modal, 'نوع الفيديو').selectOption('youtube');
+    await field(modal, 'فيديو إنجليزي بديل \\(اختياري\\)').fill(mp4Alternate);
+    await field(modal, 'نوع الفيديو الإنجليزي').selectOption('mp4');
+    await save(page);
+    await expect(row).toContainText('إنجليزي حسب المؤلف (التشغيل غير مفحوص)');
+
+    // Reload the admin page before reopening: assertions must read saved metadata.
+    await openEditor();
+    await expect(field(modal, 'لغة الفيديو الأصلي')).toHaveValue(language);
+    await expect(field(modal, 'رابط الفيديو الأصلي')).toHaveValue(original);
+    await expect(field(modal, 'نوع الفيديو')).toHaveValue('youtube');
+    await expect(field(modal, 'فيديو إنجليزي بديل \\(اختياري\\)')).toHaveValue(mp4Alternate);
+    await expect(field(modal, 'نوع الفيديو الإنجليزي')).toHaveValue('mp4');
+    await modal.getByRole('button', { name: 'إلغاء' }).click();
+
+    const learner = await context.newPage();
+    // Only external media is stubbed; this tests selection, not MP4 decoding.
+    await learner.route(mp4Alternate, route => route.fulfill({ status: 200, contentType: 'video/mp4', body: '' }));
+    await learner.route('https://www.youtube-nocookie.com/**', route => route.fulfill({
+      body: '<html>Test player</html>', contentType: 'text/html',
+    }));
+    const englishPath = `/en/learn/${childId}/lessons/${lessonId}`;
+    const arabicPath = `/learn/${childId}/lessons/${lessonId}`;
+    const expectOriginal = async () => {
+      await expect(learner.locator('.kid-video-wrap iframe')).toHaveAttribute(
+        'src', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0',
+      );
+      await expect(learner.locator('.kid-video-wrap video')).toHaveCount(0);
+      await expect(learner.getByText('original video is Arabic-only', { exact: false })).toHaveCount(0);
+    };
+    await learner.goto(englishPath);
+    await expect(learner.locator('.kid-video-wrap video')).toBeVisible();
+    await expect(learner.locator('.kid-video-wrap video')).toHaveAttribute('src', mp4Alternate);
+    await expect(learner.locator('.kid-video-wrap video')).toHaveAttribute('controls', '');
+    await expect(learner.locator('.kid-video-wrap iframe')).toHaveCount(0);
+    await learner.goto(arabicPath);
+    await expectOriginal();
+
+    await row.getByRole('button', { name: 'تعديل', exact: true }).click();
+    await field(modal, 'فيديو إنجليزي بديل \\(اختياري\\)').fill('');
+    await save(page);
+    await expect(row).toContainText('إنجليزي حسب المؤلف (التشغيل غير مفحوص)');
+    await openEditor();
+    await expect(field(modal, 'فيديو إنجليزي بديل \\(اختياري\\)')).toHaveValue('');
+    await expect(field(modal, 'لغة الفيديو الأصلي')).toHaveValue(language);
+    await expect(field(modal, 'رابط الفيديو الأصلي')).toHaveValue(original);
+    await expect(field(modal, 'نوع الفيديو')).toHaveValue('youtube');
+    await modal.getByRole('button', { name: 'إلغاء' }).click();
+
+    await learner.goto(englishPath);
+    await expectOriginal();
+    await learner.reload();
+    await expectOriginal();
+    await learner.goto(arabicPath);
+    await expectOriginal();
+    await learner.close();
+  });
+}

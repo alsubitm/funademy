@@ -33,10 +33,11 @@
     "**/*.tsx",
     ".next-build-test/types/**/*.ts",
     ".next-manual-review/types/**/*.ts",
+    ".next-rehearsal/types/**/*.ts",
     ".next-seo-guard-test/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-rehearsal/types/**/*.ts"
+    ".next-browser-test/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

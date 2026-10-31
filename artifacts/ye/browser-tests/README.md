@@ -17,7 +17,10 @@ Coverage: language metadata and independent Vimeo/YouTube player types survive
 save/reload/reopen; clearing the alternate persists; English hides an Arabic-only
 original while Arabic still renders it; importing an untranslated exercise and
 deleting it refresh English readiness when the exercises dialog closes.
+English and bilingual originals also cover MP4 English alternates (native video,
+source URL, and controls), independent Arabic playback, and persisted fallback to
+the eligible original after the alternate is cleared and the editor reopened.
 
-External iframe documents are stubbed so the suite asserts application player
+External iframe documents and MP4 responses are stubbed so the suite asserts application player
 selection and embed URLs, not third-party video delivery or decoding.
 Failure traces go to ignored `generated-artifacts/browser-tests`.

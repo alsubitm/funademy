@@ -96,7 +96,7 @@ export default async function HomePage() {
         />
       )}
       <SiteHeader lang="ar" />
-      <main id="main-content">
+      <main id="main-content" className="v9">
         <Hero lang="ar" />
         <LiveTicker slots={slots} lang="ar" />
         <SandStripe />
