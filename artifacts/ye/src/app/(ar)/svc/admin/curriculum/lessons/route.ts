@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { isAdminRequest } from '@/lib/auth';
+import { parseLessonMedia } from '@/lib/learning-readiness';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,9 @@ export async function POST(req: NextRequest) {
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }); }
   const b = body as Record<string, unknown>;
+  if (!b || Array.isArray(b) || typeof b !== 'object') return NextResponse.json({ error: 'invalid body' }, { status: 400 });
+  let media;
+  try { media = parseLessonMedia(b); } catch (e) { return NextResponse.json({ error: (e as Error).message }, { status: 400 }); }
   if (!b.unitId || !b.titleAr || !b.titleEn)
     return NextResponse.json({ error: 'unitId, titleAr, titleEn required' }, { status: 400 });
 
@@ -20,6 +24,7 @@ export async function POST(req: NextRequest) {
 
   const lesson = await prisma.lrnLesson.create({
     data: {
+      ...media,
       unitId: Number(b.unitId),
       titleAr: String(b.titleAr),
       titleEn: String(b.titleEn),

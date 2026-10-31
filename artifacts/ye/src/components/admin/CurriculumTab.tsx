@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { englishReadiness } from '@/lib/learning-readiness';
 
 interface Subject {
   id: number;
@@ -32,6 +33,14 @@ interface Lesson {
   status: string;
   position: number;
   isFreeSample: boolean;
+  descAr: string | null;
+  descEn: string | null;
+  videoUrl: string | null;
+  videoType: string;
+  videoLanguage: string;
+  videoUrlEn: string | null;
+  videoTypeEn: string;
+  exercises: { promptEn: string; options: string[]; optionsEn: string[] }[];
 }
 
 const BAND_LABELS: Record<string, string> = {
@@ -49,6 +58,7 @@ export default function CurriculumTab() {
   const [showAddUnit, setShowAddUnit] = useState<number | null>(null);
   const [showAddLesson, setShowAddLesson] = useState<number | null>(null); // unitId
   const [showExercises, setShowExercises] = useState<number | null>(null); // lessonId
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [toast, setToast] = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
@@ -177,6 +187,12 @@ export default function CurriculumTab() {
                       <div key={l.id} className="curr-lesson-row">
                         <span className="curr-lesson-title">{l.titleAr}</span>
                         <span className="curr-lesson-meta">{l.durationMinutes}د</span>
+                        <span style={{ fontSize: 11 }}>
+                          النص الإنجليزي: {englishReadiness(l).text ? 'جاهز' : 'ناقص'} · الفيديو: {{
+                            ready: 'جاهز بالإنجليزية', arabic: 'عربي فقط', unknown: 'اللغة غير محددة', none: 'بدون فيديو',
+                          }[englishReadiness(l).video]}
+                        </span>
+                        <button className="curr-icon-btn" onClick={() => setEditingLesson(l)}>تعديل</button>
                         {l.isFreeSample && <span style={{ fontSize: 11, background: '#fff3cd', color: '#856404', padding: '2px 6px', borderRadius: 6 }}>مجاني</span>}
                         <span
                           style={{ fontSize: 11, color: l.status === 'published' ? '#27ae60' : '#e67e22', cursor: 'pointer', textDecoration: 'underline' }}
@@ -230,10 +246,17 @@ export default function CurriculumTab() {
       )}
 
       {/* ── Exercises Modal ── */}
+      {editingLesson && (
+        <AddLessonModal
+          unitId={0} subjectId={expanded!} lesson={editingLesson}
+          onClose={() => setEditingLesson(null)}
+          onDone={() => { loadUnits(expanded!); setEditingLesson(null); showToast('تم حفظ الدرس'); }}
+        />
+      )}
       {showExercises !== null && (
         <ExercisesModal
           lessonId={showExercises}
-          onClose={() => setShowExercises(null)}
+          onClose={() => { setShowExercises(null); if (expanded) loadUnits(expanded); }}
           showToast={showToast}
         />
       )}
@@ -323,26 +346,55 @@ function AddUnitModal({ subjectId, onClose, onDone }: { subjectId: number; onClo
   );
 }
 
-function AddLessonModal({ unitId, subjectId: _s, onClose, onDone }: { unitId: number; subjectId: number; onClose: () => void; onDone: () => void }) {
-  const [f, setF] = useState({ titleAr: '', titleEn: '', videoUrl: '', videoType: 'youtube', durationMinutes: 8, status: 'published', isFreeSample: false });
+function AddLessonModal({ unitId, subjectId: _s, lesson, onClose, onDone }: { unitId: number; subjectId: number; lesson?: Lesson; onClose: () => void; onDone: () => void }) {
+  const [f, setF] = useState({
+    titleAr: lesson?.titleAr ?? '', titleEn: lesson?.titleEn ?? '',
+    descAr: lesson?.descAr ?? '', descEn: lesson?.descEn ?? '',
+    videoUrl: lesson?.videoUrl ?? '', videoType: lesson?.videoType ?? 'youtube',
+    videoLanguage: lesson?.videoLanguage ?? 'unknown', videoUrlEn: lesson?.videoUrlEn ?? '',
+    videoTypeEn: lesson?.videoTypeEn ?? 'youtube',
+    durationMinutes: lesson?.durationMinutes ?? 8, status: lesson?.status ?? 'published', isFreeSample: lesson?.isFreeSample ?? false,
+  });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   async function save() {
     setSaving(true);
-    const r = await fetch('/svc/admin/curriculum/lessons', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, unitId }),
-    });
-    setSaving(false);
-    if (r.ok) onDone();
+    setError('');
+    try {
+      const r = await fetch(`/svc/admin/curriculum/lessons${lesson ? `/${lesson.id}` : ''}`, {
+        method: lesson ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, unitId }),
+      });
+      if (r.ok) onDone();
+      else setError('تعذر حفظ الدرس. تحقق من الحقول وروابط الفيديو.');
+    } catch { setError('تعذر الاتصال. حاول مرة أخرى.'); }
+    finally { setSaving(false); }
   }
 
   return (
-    <ModalWrap title="إضافة درس" onClose={onClose}>
+    <ModalWrap title={lesson ? 'تعديل الدرس' : 'إضافة درس'} onClose={onClose}>
+      {error && <p role="alert">{error}</p>}
       <label className="learn-label">عنوان الدرس بالعربية</label>
       <input className="learn-input" value={f.titleAr} onChange={(e) => setF((x) => ({ ...x, titleAr: e.target.value }))} />
       <label className="learn-label">عنوان الدرس بالإنجليزية</label>
       <input className="learn-input" value={f.titleEn} onChange={(e) => setF((x) => ({ ...x, titleEn: e.target.value }))} />
-      <label className="learn-label">رابط الفيديو</label>
+      <label className="learn-label">الوصف بالعربية</label>
+      <textarea className="learn-input" value={f.descAr} onChange={e => setF(x => ({ ...x, descAr: e.target.value }))} />
+      <label className="learn-label">الوصف بالإنجليزية</label>
+      <textarea className="learn-input" value={f.descEn} onChange={e => setF(x => ({ ...x, descEn: e.target.value }))} />
+      <label className="learn-label">لغة الفيديو الأصلي</label>
+      <select className="learn-input" value={f.videoLanguage} onChange={e => setF(x => ({ ...x, videoLanguage: e.target.value }))}>
+        <option value="unknown">غير محددة</option><option value="ar">عربي</option>
+        <option value="en">إنجليزي</option><option value="bilingual">عربي وإنجليزي</option>
+      </select>
+      <label className="learn-label">فيديو إنجليزي بديل (اختياري)</label>
+      <input className="learn-input" value={f.videoUrlEn} onChange={e => setF(x => ({ ...x, videoUrlEn: e.target.value }))} placeholder="https://..." />
+      <label className="learn-label">نوع الفيديو الإنجليزي</label>
+      <select className="learn-input" value={f.videoTypeEn} onChange={e => setF(x => ({ ...x, videoTypeEn: e.target.value }))}>
+        <option value="youtube">YouTube</option><option value="vimeo">Vimeo</option><option value="mp4">MP4</option>
+      </select>
+      <p style={{ fontSize: 12 }}>لا يظهر الفيديو العربي أو غير محدد اللغة في الدرس الإنجليزي. يُفضّل الفيديو الإنجليزي البديل عند توفره.</p>
+      <label className="learn-label">رابط الفيديو الأصلي</label>
       <input className="learn-input" value={f.videoUrl} onChange={(e) => setF((x) => ({ ...x, videoUrl: e.target.value }))} placeholder="https://youtu.be/..." />
       <label className="learn-label">نوع الفيديو</label>
       <select className="learn-input" value={f.videoType} onChange={(e) => setF((x) => ({ ...x, videoType: e.target.value }))}>

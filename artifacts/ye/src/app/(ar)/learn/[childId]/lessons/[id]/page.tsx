@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useLearningLocale } from '@/components/learning/locale';
 import { hasEnglishOptions, optionLabel } from '@/lib/learning-options';
+import { englishReadiness, lessonVideo } from '@/lib/learning-readiness';
 
 // correctAnswer is intentionally absent — the server never sends it.
 // Grading is server-side only; perAnswer results are returned after submission.
@@ -25,6 +26,9 @@ interface LessonData {
   descEn: string | null;
   videoUrl: string | null;
   videoType: 'youtube' | 'vimeo' | 'mp4';
+  videoLanguage: string;
+  videoUrlEn: string | null;
+  videoTypeEn: 'youtube' | 'vimeo' | 'mp4';
   durationMinutes: number;
   subjectNameAr: string;
   subjectNameEn: string;
@@ -119,7 +123,7 @@ export default function KidLessonPage() {
       .then((d) => {
         if (d) {
           setLesson(d);
-          const defaultStage = d.videoUrl ? 'video' : d.exercises.length > 0 ? 'exercises' : 'video';
+          const defaultStage = (d.videoUrl || d.videoUrlEn) ? 'video' : d.exercises.length > 0 ? 'exercises' : 'video';
           try {
             const saved = sessionStorage.getItem(storageKey);
             if (saved) {
@@ -259,6 +263,8 @@ export default function KidLessonPage() {
   );
 
   const backHref = path(`/learn/${childId}/subjects/${lesson.subjectSlug}`);
+  const readiness = englishReadiness(lesson);
+  const video = lessonVideo(lesson, en);
   const missingTranslation = en && (!lesson.titleEn?.trim() ||
     (lesson.descAr && !lesson.descEn?.trim()) ||
     lesson.exercises.some(ex => !ex.promptEn?.trim() || !hasEnglishOptions(ex.options, ex.optionsEn ?? [])));
@@ -276,40 +282,48 @@ export default function KidLessonPage() {
       </div>
 
       <div className="kid-player-body">
+        <p role="status">
+          {t('النص الإنجليزي: ', 'English text: ')}{readiness.text ? t('جاهز', 'ready') : t('ناقص', 'incomplete')}
+          {' · '}{t('الفيديو الإنجليزي: ', 'English video: ')}
+          {readiness.video === 'ready' ? t('متوفر', 'available') :
+            readiness.video === 'none' ? t('بدون فيديو', 'no video') :
+            readiness.video === 'arabic' ? t('الفيديو الأصلي عربي فقط', 'original video is Arabic-only') :
+            t('لغة الفيديو الأصلي غير محددة', 'original video language is unconfirmed')}
+        </p>
 
         {/* ── VIDEO STAGE ── */}
         {stage === 'video' && (
           <>
-            {lesson.videoUrl ? (
+            {video.url ? (
               <div className="kid-video-wrap">
-                {lesson.videoType === 'youtube' && toYoutubeEmbed(lesson.videoUrl) && (
+                {video.type === 'youtube' && toYoutubeEmbed(video.url) && (
                   <iframe
-                    src={toYoutubeEmbed(lesson.videoUrl)!}
+                    src={toYoutubeEmbed(video.url)!}
                     title={`${t('فيديو', 'Video')}: ${content(lesson.titleAr, lesson.titleEn)}`}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
                 )}
-                {lesson.videoType === 'vimeo' && toVimeoEmbed(lesson.videoUrl) && (
+                {video.type === 'vimeo' && toVimeoEmbed(video.url) && (
                   <iframe
-                    src={toVimeoEmbed(lesson.videoUrl)!}
+                    src={toVimeoEmbed(video.url)!}
                     title={`${t('فيديو', 'Video')}: ${content(lesson.titleAr, lesson.titleEn)}`}
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
                   />
                 )}
-                {lesson.videoType === 'mp4' && safeHttpUrl(lesson.videoUrl) && (
-                  <video src={safeHttpUrl(lesson.videoUrl)!} controls>
+                {video.type === 'mp4' && safeHttpUrl(video.url) && (
+                  <video src={safeHttpUrl(video.url)!} controls>
                     {t('متصفحك لا يدعم تشغيل الفيديو.', 'Your browser does not support video playback.')}
                   </video>
                 )}
-                {((lesson.videoType === 'youtube' && !toYoutubeEmbed(lesson.videoUrl)) ||
-                  (lesson.videoType === 'vimeo' && !toVimeoEmbed(lesson.videoUrl)) ||
-                  (lesson.videoType === 'mp4' && !safeHttpUrl(lesson.videoUrl))) && (
+                {((video.type === 'youtube' && !toYoutubeEmbed(video.url)) ||
+                  (video.type === 'vimeo' && !toVimeoEmbed(video.url)) ||
+                  (video.type === 'mp4' && !safeHttpUrl(video.url))) && (
                   <div className="kid-video-fallback">
                     <p>{t('تعذر عرض رابط الفيديو بأمان.', 'This video link cannot be displayed safely.')}</p>
-                    {safeHttpUrl(lesson.videoUrl) && (
-                      <a className="btn" href={safeHttpUrl(lesson.videoUrl)!} target="_blank" rel="noopener noreferrer">
+                    {safeHttpUrl(video.url) && (
+                      <a className="btn" href={safeHttpUrl(video.url)!} target="_blank" rel="noopener noreferrer">
                         {t('فتح الفيديو في نافذة جديدة', 'Open video in a new window')}
                       </a>
                     )}
@@ -318,7 +332,7 @@ export default function KidLessonPage() {
               </div>
             ) : (
               <div style={{ background: '#eef2ff', borderRadius: 14, padding: 40, textAlign: 'center', color: '#1C54CB', marginBottom: 24 }}>
-                📚 {t('درس نصي', 'Reading lesson')}
+                {en && lesson.videoUrl ? 'English video unavailable. You can use the English text and exercises below, or switch to Arabic to watch the original video.' : t('درس نصي', 'Reading lesson')}
               </div>
             )}
             {(lesson.descAr || lesson.descEn) && (

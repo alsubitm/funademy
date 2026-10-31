@@ -822,6 +822,9 @@ model LrnLesson {
   descEn           String?
   videoUrl         String?
   videoType        LrnVideoType         @default(youtube)
+  videoLanguage    String               @default("unknown")
+  videoUrlEn       String?
+  videoTypeEn      LrnVideoType         @default(youtube)
   durationMinutes  Int                  @default(8)
   position         Int                  @default(0)
   status           LrnStatus            @default(published)

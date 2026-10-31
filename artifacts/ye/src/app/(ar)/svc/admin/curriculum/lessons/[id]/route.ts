@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { isAdminRequest } from '@/lib/auth';
+import { parseLessonMedia } from '@/lib/learning-readiness';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }); }
   const b = body as Record<string, unknown>;
-  const data: Record<string, unknown> = {};
+  if (!b || Array.isArray(b) || typeof b !== 'object') return NextResponse.json({ error: 'invalid body' }, { status: 400 });
+  let data: Record<string, unknown>;
+  try { data = parseLessonMedia(b); } catch (e) { return NextResponse.json({ error: (e as Error).message }, { status: 400 }); }
   if (typeof b.titleAr === 'string') data.titleAr = b.titleAr;
   if (typeof b.titleEn === 'string') data.titleEn = b.titleEn;
   if (typeof b.descAr === 'string') data.descAr = b.descAr;

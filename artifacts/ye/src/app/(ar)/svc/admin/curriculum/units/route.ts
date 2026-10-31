@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     include: {
       lessons: {
         orderBy: { position: 'asc' },
-        select: { id: true, titleAr: true, titleEn: true, durationMinutes: true, status: true, position: true, isFreeSample: true },
+        include: { exercises: { select: { promptEn: true, options: true, optionsEn: true } } },
       },
     },
   });
