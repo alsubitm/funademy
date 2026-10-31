@@ -29,6 +29,8 @@ import { prisma } from '@/lib/db';
 import { FAMILY_COOKIE, familyToken } from '@/lib/family-auth';
 import { KID_COOKIE, kidToken, hashPin } from '@/lib/kid-auth';
 import { GET as lessonGET } from '@/app/(ar)/svc/learn/lessons/[id]/route';
+import { GET as searchGET } from '@/app/(ar)/svc/learn/search/route';
+import { GET as unitsGET } from '@/app/(ar)/svc/learn/subjects/[slug]/units/route';
 import { POST as completePOST } from '@/app/(ar)/svc/learn/lessons/[id]/complete/route';
 import { previousRiyadhDateKey, riyadhDateKey, riyadhDayStart } from '@/lib/riyadh-time';
 import { explorerExercises, builderExercises } from '@/lib/seeded-learning-exercises';
@@ -266,6 +268,110 @@ afterAll(async () => {
   await prisma.enrollment.deleteMany({ where: { id: enrollmentId } });
   await prisma.family.deleteMany({ where: { id: familyId } });
   await prisma.program.deleteMany({ where: { slug: `lrn-prog-${RUN}` } });
+});
+
+describe('Learning discovery requires an owned selected child', () => {
+  const endpoints = [
+    ['search', () => searchGET(jsonReq('/svc/learn/search?q=Lesson'))],
+    ['empty search', () => searchGET(jsonReq('/svc/learn/search?q=%20'))],
+    ['subject units', () => unitsGET(jsonReq(`/svc/learn/subjects/math-${RUN}/units`),
+      { params: Promise.resolve({ slug: `math-${RUN}` }) })],
+  ] as const;
+
+  describe.each(endpoints)('%s', (_name, request) => {
+    it('rejects an absent family session', async () => {
+      clearAll();
+      asKid(familyId, childId);
+      const response = await request();
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ error: 'unauthorized' });
+    });
+
+    it.each(['absent', 'expired', 'deleted', 'cross-family', 'foreign-child'] as const)(
+      'rejects a %s child session', async (scenario) => {
+        clearAll();
+        asFamily(familyId);
+        if (scenario === 'expired') {
+          const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.now() - 25 * 60 * 60 * 1000);
+          try { asKid(familyId, childId); } finally { clock.mockRestore(); }
+        } else if (scenario === 'deleted') {
+          const child = await prisma.lrnChild.create({
+            data: { familyId, name: 'Deleted', pin: 'unused', band: 'builders' },
+          });
+          asKid(familyId, child.id);
+          await prisma.lrnChild.delete({ where: { id: child.id } });
+        } else if (scenario === 'cross-family' || scenario === 'foreign-child') {
+          const other = await prisma.family.create({ data: { phone: `${RUN}-${scenario}`, parentName: 'Other parent' } });
+          try {
+            if (scenario === 'cross-family') {
+              asKid(other.id, childId);
+            } else {
+              const child = await prisma.lrnChild.create({
+                data: { familyId: other.id, name: 'Other', pin: 'unused', band: 'builders' },
+              });
+              asKid(familyId, child.id);
+            }
+            const response = await request();
+            expect(response.status).toBe(401);
+            expect(await response.json()).toEqual({ error: 'no_kid_selected' });
+          } finally {
+            await prisma.family.delete({ where: { id: other.id } });
+          }
+          return;
+        }
+        const response = await request();
+        expect(response.status).toBe(401);
+        expect(await response.json()).toEqual({ error: 'no_kid_selected' });
+      },
+    );
+  });
+
+  it.each(['explorers', 'builders', 'achievers', 'graduates'] as const)(
+    'uses the selected %s child’s band for search and units', async (band) => {
+      const child = await prisma.lrnChild.create({
+        data: { familyId, name: 'Selected', pin: 'unused', band },
+      });
+      const marker = `Discovery-${RUN}`;
+      const units = await Promise.all(
+        (['explorers', 'builders', 'achievers', 'graduates'] as const).map((unitBand) =>
+          prisma.lrnUnit.create({
+            data: {
+              subjectId, band: unitBand, titleAr: marker, titleEn: marker, position: 10, status: 'published',
+              lessons: { create: [
+                { titleAr: marker, titleEn: marker, status: 'published' },
+                { titleAr: marker, titleEn: marker, status: 'draft' },
+              ] },
+            },
+            include: { lessons: true },
+          }),
+        ),
+      );
+      try {
+        clearAll();
+        asFamily(familyId);
+        asKid(familyId, child.id);
+        const ownUnit = units.find(u => u.band === band)!;
+        const ownLesson = ownUnit.lessons.find(l => l.status === 'published')!;
+        const search = await searchGET(jsonReq(`/svc/learn/search?q=${marker}&band=builders`));
+        expect(search.status).toBe(200);
+        expect((await search.json()).map((l: { id: number }) => l.id)).toEqual([ownLesson.id]);
+        const response = await unitsGET(jsonReq('/svc/learn/subjects/ignored/units?band=builders'),
+          { params: Promise.resolve({ slug: `math-${RUN}` }) });
+        expect(response.status).toBe(200);
+        const body = await response.json();
+        const expected = await prisma.lrnUnit.findMany({ where: { subjectId, band, status: 'published' } });
+        expect(body.units.map((u: { id: number }) => u.id).sort()).toEqual(expected.map(u => u.id).sort());
+        expect(body.units.find((u: { id: number }) => u.id === ownUnit.id).lessons.map((l: { id: number }) => l.id))
+          .toEqual([ownLesson.id]);
+        const empty = await searchGET(jsonReq('/svc/learn/search'));
+        expect(empty.status).toBe(200);
+        expect(await empty.json()).toEqual([]);
+      } finally {
+        await prisma.lrnUnit.deleteMany({ where: { id: { in: units.map(u => u.id) } } });
+        await prisma.lrnChild.delete({ where: { id: child.id } });
+      }
+    },
+  );
 });
 
 // ── Lesson GET auth / access tests ─────────────────────────────────────────

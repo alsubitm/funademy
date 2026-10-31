@@ -16,29 +16,24 @@ export async function GET(
   if (!enrolled) return NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 });
 
   const kidSession = await getKidSession();
-  const childId = kidSession?.familyId === familyId ? kidSession.childId : null;
+  if (!kidSession || kidSession.familyId !== familyId)
+    return NextResponse.json({ error: 'no_kid_selected' }, { status: 401 });
+
+  const child = await prisma.lrnChild.findFirst({ where: { id: kidSession.childId, familyId } });
+  if (!child) return NextResponse.json({ error: 'no_kid_selected' }, { status: 401 });
 
   const { slug } = await params;
   const subject = await prisma.lrnSubject.findUnique({ where: { slug } });
   if (!subject) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  let completedIds = new Set<number>();
-  let band: 'explorers' | 'builders' | 'achievers' | 'graduates' = 'explorers';
-
-  if (childId) {
-    const child = await prisma.lrnChild.findFirst({ where: { id: childId, familyId } });
-    if (child) {
-      band = child.band;
-      const completions = await prisma.lrnCompletion.findMany({
-        where: { childId: child.id },
-        select: { lessonId: true, score: true },
-      });
-      completedIds = new Set(completions.map((c) => c.lessonId));
-    }
-  }
+  const completions = await prisma.lrnCompletion.findMany({
+    where: { childId: child.id },
+    select: { lessonId: true },
+  });
+  const completedIds = new Set(completions.map((c) => c.lessonId));
 
   const units = await prisma.lrnUnit.findMany({
-    where: { subjectId: subject.id, band, status: 'published' },
+    where: { subjectId: subject.id, band: child.band, status: 'published' },
     orderBy: { position: 'asc' },
     include: {
       lessons: {

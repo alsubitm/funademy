@@ -12,31 +12,26 @@ export async function GET(req: NextRequest) {
   const enrolled = await familyHasActiveEnrollment(familyId);
   if (!enrolled) return NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 });
 
+  const kidSession = await getKidSession();
+  if (!kidSession || kidSession.familyId !== familyId)
+    return NextResponse.json({ error: 'no_kid_selected' }, { status: 401 });
+
+  const child = await prisma.lrnChild.findFirst({ where: { id: kidSession.childId, familyId } });
+  if (!child) return NextResponse.json({ error: 'no_kid_selected' }, { status: 401 });
+
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? '';
   if (!q) return NextResponse.json([]);
 
-  const kidSession = await getKidSession();
-  const childId = kidSession?.familyId === familyId ? kidSession.childId : null;
-
-  let completedIds = new Set<number>();
-  let band: 'explorers' | 'builders' | 'achievers' | 'graduates' | undefined;
-
-  if (childId) {
-    const child = await prisma.lrnChild.findFirst({ where: { id: childId, familyId } });
-    if (child) {
-      band = child.band;
-      const completions = await prisma.lrnCompletion.findMany({
-        where: { childId: child.id },
-        select: { lessonId: true },
-      });
-      completedIds = new Set(completions.map((c) => c.lessonId));
-    }
-  }
+  const completions = await prisma.lrnCompletion.findMany({
+    where: { childId: child.id },
+    select: { lessonId: true },
+  });
+  const completedIds = new Set(completions.map((c) => c.lessonId));
 
   const lessons = await prisma.lrnLesson.findMany({
     where: {
       status: 'published',
-      unit: { status: 'published', ...(band ? { band } : {}) },
+      unit: { status: 'published', band: child.band },
       OR: [
         { titleAr: { contains: q, mode: 'insensitive' } },
         { titleEn: { contains: q, mode: 'insensitive' } },
