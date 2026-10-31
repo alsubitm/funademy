@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { englishReadiness } from '@/lib/learning-readiness';
+import LessonVideoPreview from './LessonVideoPreview';
 
 interface Subject {
   id: number;
@@ -189,7 +190,7 @@ export default function CurriculumTab() {
                         <span className="curr-lesson-meta">{l.durationMinutes}د</span>
                         <span style={{ fontSize: 11 }}>
                           النص الإنجليزي: {englishReadiness(l).text ? 'جاهز' : 'ناقص'} · الفيديو: {{
-                            ready: 'جاهز بالإنجليزية', arabic: 'عربي فقط', unknown: 'اللغة غير محددة', none: 'بدون فيديو',
+                            ready: 'إنجليزي حسب المؤلف (التشغيل غير مفحوص)', arabic: 'عربي فقط', unknown: 'اللغة غير محددة', none: 'بدون فيديو',
                           }[englishReadiness(l).video]}
                         </span>
                         <button className="curr-icon-btn" onClick={() => setEditingLesson(l)}>تعديل</button>
@@ -394,6 +395,7 @@ function AddLessonModal({ unitId, subjectId: _s, lesson, onClose, onDone }: { un
         <option value="youtube">YouTube</option><option value="vimeo">Vimeo</option><option value="mp4">MP4</option>
       </select>
       <p style={{ fontSize: 12 }}>لا يظهر الفيديو العربي أو غير محدد اللغة في الدرس الإنجليزي. يُفضّل الفيديو الإنجليزي البديل عند توفره.</p>
+      <LessonVideoPreview key={`en:${f.videoTypeEn}:${f.videoUrlEn}`} url={f.videoUrlEn} type={f.videoTypeEn} label="الفيديو الإنجليزي البديل" />
       <label className="learn-label">رابط الفيديو الأصلي</label>
       <input className="learn-input" value={f.videoUrl} onChange={(e) => setF((x) => ({ ...x, videoUrl: e.target.value }))} placeholder="https://youtu.be/..." />
       <label className="learn-label">نوع الفيديو</label>
@@ -402,6 +404,7 @@ function AddLessonModal({ unitId, subjectId: _s, lesson, onClose, onDone }: { un
         <option value="vimeo">Vimeo</option>
         <option value="mp4">MP4</option>
       </select>
+      <LessonVideoPreview key={`original:${f.videoType}:${f.videoUrl}`} url={f.videoUrl} type={f.videoType} label="الفيديو الأصلي" />
       <label className="learn-label">مدة الدرس (دقائق)</label>
       <input className="learn-input" type="number" min={1} value={f.durationMinutes} onChange={(e) => setF((x) => ({ ...x, durationMinutes: Number(e.target.value) }))} />
       <label className="learn-label">الحالة</label>

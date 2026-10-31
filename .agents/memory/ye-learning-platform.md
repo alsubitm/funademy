@@ -36,3 +36,10 @@ Do not silently substitute Arabic curriculum for missing English translations or
 **Why:** An English interface must not send families into an unintelligible exercise, and machine-translated answer values could change grading or invalidate saved answers when switching language.
 
 **How to apply:** Keep display translations separate from canonical answers and retain the same child session, draft identity, and grading service across locales. Treat video language and teaching-content quality as editorial work, not a claim that translating controls translates the media.
+
+## Author video verification boundary
+Keep playback availability separate from declared teaching language. For third-party embedded previews, require the author to press Play; never interpret iframe load as proof that media exists or permits playback.
+
+**Why:** Providers can load an error screen inside a successful iframe response, and temporary provider failures must not turn translated lessons into “missing translation.”
+
+**How to apply:** Give actionable playback guidance without changing language readiness or persisting an unverified availability claim.
