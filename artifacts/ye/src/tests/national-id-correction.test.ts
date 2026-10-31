@@ -27,6 +27,12 @@ vi.mock('next/headers', () => ({
 vi.mock('@/app/(ar)/svc/admin/guard', () => ({
   requireAdmin: vi.fn(async () => null),
 }));
+// These cases exercise identity locking, not enrollment eligibility. Allow
+// the parent request to reach that check; this fixture has no course booking.
+vi.mock('@/lib/kid-auth', async (importOriginal) => {
+  const m = await importOriginal<typeof import('@/lib/kid-auth')>();
+  return { ...m, familyHasActiveEnrollment: vi.fn(async () => true) };
+});
 // Real outbox module, but with the tx-scoped snapshot wrapped so one test
 // can force it to fail and prove the whole correction rolls back.
 vi.mock('@/lib/xapiOutbox', async (importOriginal) => {

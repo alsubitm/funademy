@@ -18,7 +18,7 @@
   "dependencies": {
     "@prisma/client": "^6.5.0",
     "@replit/connectors-sdk": "^0.4.1",
-    "next": "^15.3.0",
+    "next": "^15.5.28",
     "openai": "^6.27.0",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -35,6 +35,6 @@
     "tailwindcss": "catalog:",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   }
 }
