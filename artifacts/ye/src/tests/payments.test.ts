@@ -33,6 +33,8 @@ import { CART_COOKIE, encodeCart } from '@/lib/cart';
 import { addOneMonth, effectiveMonthlySar } from '@/lib/billing';
 import { POST as checkoutPOST } from '@/app/(ar)/svc/enroll/checkout/route';
 import { POST as renewPOST } from '@/app/(ar)/svc/account/renew/route';
+import { GET as paymentReturnGET } from '@/app/(ar)/svc/pay/return/route';
+import * as payCore from '@/lib/pay-core';
 import { GET as paymentsGET } from '@/app/(ar)/svc/account/payments/route';
 import { GET as receiptGET } from '@/app/(ar)/svc/account/payments/[id]/receipt/route';
 import { finalizePayment, releasePayment, sweepStalePayments } from '@/lib/pay-core';
@@ -1264,9 +1266,11 @@ describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
 
   it('live Moyasar checkout still works in production (redirect)', async () => {
     vi.stubEnv('MOYASAR_SECRET_KEY', 'sk_test_fake');
-    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+    let hostedBody: Record<string, string> = {};
+    vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
       const url = String(typeof input === 'string' ? input : (input as Request).url);
       if (url.includes('/v1/invoices')) {
+        hostedBody = JSON.parse(String(init?.body));
         return new Response(JSON.stringify({ id: 'inv_prod_1', url: 'https://moyasar.example/pay' }), { status: 201 });
       }
       return new Response('{}', { status: 404 });
@@ -1278,6 +1282,13 @@ describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.redirectUrl).toBe('https://moyasar.example/pay');
+    const callback = new URL(hostedBody.callback_url);
+    expect(callback.pathname).toBe('/svc/pay/return');
+    expect(callback.searchParams.get('lang')).toBe('ar');
+    expect(verifyPaymentReturnState(callback.searchParams.get('state')))
+      .toEqual({ paymentId: json.paymentId, familyId: familyB.id });
+    expect(hostedBody.success_url).toBe(callback.href);
+    expect(hostedBody.back_url).toBe(callback.href);
 
     // Cleanup: roll back the initiated payment + pending enrollment + seat.
     const p = await prisma.payment.findFirst({ where: { reference: 'inv_prod_1' }, include: { items: true } });
@@ -1285,6 +1296,30 @@ describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
     await prisma.enrollment.deleteMany({ where: { studentId: studentB1.id, courseRunId: prodRunId, status: 'pending' } });
     await prisma.courseRun.update({ where: { id: prodRunId }, data: { seatsLeft: 5 } });
     cookieJar.delete(CART_COOKIE);
+  });
+
+  it('live renewal supplies a signed English return URL bound to its payment and family', async () => {
+    vi.stubEnv('MOYASAR_SECRET_KEY', 'sk_test_fake');
+    let hostedBody: Record<string, string> = {};
+    vi.spyOn(global, 'fetch').mockImplementation(async (_input, init) => {
+      hostedBody = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ id: 'inv_return_renewal', url: 'https://moyasar.example/pay' }), { status: 201 });
+    });
+    asFamily(familyA.id);
+    const res = await renewPOST(jsonReq('/svc/account/renew', 'POST', {
+      enrollmentId: enrollmentA1, provider: 'moyasar_mada', lang: 'en',
+    }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.redirectUrl).toBe('https://moyasar.example/pay');
+    const callback = new URL(hostedBody.callback_url);
+    expect(callback.pathname).toBe('/svc/pay/return');
+    expect(callback.searchParams.get('lang')).toBe('en');
+    expect(verifyPaymentReturnState(callback.searchParams.get('state')))
+      .toEqual({ paymentId: json.paymentId, familyId: familyA.id });
+    expect(hostedBody.success_url).toBe(callback.href);
+    expect(hostedBody.back_url).toBe(callback.href);
+    await prisma.payment.delete({ where: { id: json.paymentId } });
   });
 
   it('payment availability hides everything when nothing is live in production', async () => {
@@ -1389,6 +1424,116 @@ describe('payment return state', () => {
     expect(verifyPaymentReturnState(state.replace('.123.', '.124.'), 2_000)).toBeNull();
     expect(verifyPaymentReturnState('not-a-state', 2_000)).toBeNull();
     expect(verifyPaymentReturnState(state, 1_000 + 24 * 60 * 60_000)).toBeNull();
+  });
+});
+
+describe('hosted payment return route', () => {
+  let paymentId: number;
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let settlementSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(async () => {
+    cookieJar.clear();
+    vi.stubEnv('MOYASAR_SECRET_KEY', 'sk_test_fake');
+    fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ status: 'paid' }), { status: 200 }),
+    );
+    // Call through: exercise real provider verification and database settlement.
+    settlementSpy = vi.spyOn(payCore, 'finalizePayment');
+    const payment = await prisma.payment.create({
+      data: {
+        familyId: familyA.id, kind: 'enrollment', provider: 'moyasar_mada',
+        reference: `inv_return_${RUN}`, status: 'initiated',
+        subtotalSar: BASE_SAR, discountSar: 0, totalSar: BASE_SAR, simulated: false,
+      },
+    });
+    paymentId = payment.id;
+    cookieJar.set(CART_COOKIE, encodeCart(familyA.id, [
+      { studentId: studentA1.id, courseRunId: runId },
+    ]));
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    cookieJar.clear();
+    await prisma.payment.delete({ where: { id: paymentId } });
+  });
+
+  function returnRequest(state: string | null, lang = 'ar') {
+    const url = new URL('http://test.local/svc/pay/return');
+    if (state !== null) url.searchParams.set('state', state);
+    url.searchParams.set('lang', lang);
+    // Provider/browser hints must never override the signed subject or verdict.
+    url.searchParams.set('paymentId', String(checkoutPaymentId));
+    url.searchParams.set('status', 'paid');
+    return new NextRequest(url);
+  }
+
+  const cases = (['enrollment', 'renewal'] as const).flatMap(kind =>
+    (['paid', 'pending', 'failed'] as const).flatMap(outcome =>
+      (['owner', 'absent', 'other'] as const).flatMap(session =>
+        (['ar', 'en'] as const).map(lang => ({ kind, outcome, session, lang })),
+      ),
+    ),
+  );
+
+  it.each(cases)('$kind / $outcome / $session cookie / $lang', async ({ kind, outcome, session, lang }) => {
+    await prisma.payment.update({ where: { id: paymentId }, data: { kind } });
+    asFamily(session === 'owner' ? familyA.id : session === 'other' ? familyB.id : null);
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ status: outcome }), { status: 200 }));
+    const res = await paymentReturnGET(returnRequest(createPaymentReturnState(paymentId, familyA.id), lang));
+    const flag = outcome === 'paid' ? 'paid' : outcome === 'pending' ? 'paypending' : 'payfail';
+    const value = kind === 'enrollment' && outcome !== 'failed' ? paymentId : 1;
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe(
+      `http://test.local${lang === 'en' ? '/en' : ''}/${kind === 'enrollment' ? 'enroll' : 'portal'}?${flag}=${value}`,
+    );
+    expect(settlementSpy).toHaveBeenCalledExactlyOnceWith(paymentId);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(String(fetchSpy.mock.calls[0][0])).toContain(`/v1/invoices/inv_return_${RUN}`);
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } })).status)
+      .toBe(outcome === 'pending' ? 'initiated' : outcome);
+    const cleared = res.cookies.get(CART_COOKIE);
+    if (kind === 'enrollment' && outcome === 'paid' && session === 'owner') {
+      expect(cleared).toMatchObject({ value: '', path: '/', maxAge: 0 });
+    } else {
+      expect(cleared).toBeUndefined();
+      expect(res.headers.get('set-cookie')).toBeNull();
+    }
+  });
+
+  it.each([
+    'missing', 'malformed', 'oversized', 'tampered-payment', 'tampered-family',
+    'tampered-signature', 'expired', 'wrong-family', 'missing-payment',
+  ])('rejects %s state before settlement, even with an owner cookie', async invalid => {
+    asFamily(familyA.id);
+    let state: string | null = createPaymentReturnState(paymentId, familyA.id);
+    if (invalid === 'missing') state = null;
+    if (invalid === 'malformed') state = 'v1.not-a-number.1.NaN.signature';
+    if (invalid === 'oversized') state = 'x'.repeat(257);
+    if (invalid === 'tampered-payment') state = state!.replace(`.${paymentId}.`, `.${paymentId + 1}.`);
+    if (invalid === 'tampered-family') {
+      const parts = state!.split('.');
+      parts[2] = String(familyB.id);
+      state = parts.join('.');
+    }
+    if (invalid === 'tampered-signature') {
+      state = state!.slice(0, -1) + (state!.endsWith('a') ? 'b' : 'a');
+    }
+    if (invalid === 'expired') state = createPaymentReturnState(paymentId, familyA.id, Date.now() - 86_400_000);
+    if (invalid === 'wrong-family') state = createPaymentReturnState(paymentId, familyB.id);
+    if (invalid === 'missing-payment') state = createPaymentReturnState(2_147_483_647, familyA.id);
+
+    for (const lang of ['ar', 'en']) {
+      const res = await paymentReturnGET(returnRequest(state, lang));
+      expect(res.status).toBe(307);
+      expect(res.headers.get('location')).toBe(`http://test.local${lang === 'en' ? '/en' : ''}/account`);
+      expect(res.headers.get('set-cookie')).toBeNull();
+    }
+    expect(settlementSpy).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } })).status).toBe('initiated');
   });
 });
 
