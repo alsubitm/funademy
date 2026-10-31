@@ -9,6 +9,11 @@ description: How the ye vitest suite isolates its database, and a pitfall when r
 - Gotcha: registering a validation command can rewrite the `.replit` run-button `Project` workflow to run only the validation. Check `.replit` afterward and remove any injected `Project` wrapper so the run button keeps launching the app.
 - **Id-recycling trap:** a suite that setvals a serial sequence DOWN makes later runs recycle ids; FK-less referrer rows (missed by TRUNCATE CASCADE) then match recycled ids in time-window lookups, causing phantom cross-run behavior. Suites lowering sequences must wipe FK-less referrers in afterAll and park the sequence high.
 
+## Browser regression boundary
+Use isolated test-only signed sessions for curriculum browser regressions, not live admin credentials or SMS sign-in.
+**Why:** these regressions target saved editor state and learner rendering, not authentication delivery; real credentials introduce unnecessary exposure and provider side effects.
+**How to apply:** keep actual authorization guards and first-party API/database requests intact. Stub only external player documents and describe the assertion as player selection, not proof that a provider streams the video.
+
 ## Provider secrets must be stripped in setup-env (incident 2026-08-12)
 With the live-by-presence pattern, adding a provider key to the workspace made
 OLD suites hit the real provider: family-account tests delivered real SMS to
