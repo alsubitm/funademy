@@ -20,6 +20,7 @@ export default function LearningSearchPage() {
   const { childId } = useParams<{ childId: string }>();
   const search = useSearchParams();
   const { t, path, content } = useLearningLocale();
+  const childSelectionPath = path('/learn');
   const [query, setQuery] = useState(search.get('q') ?? '');
   const [results, setResults] = useState<Result[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -33,6 +34,12 @@ export default function LearningSearchPage() {
     const timer = setTimeout(async () => {
       try {
         const response = await fetch(`/svc/learn/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        if (response.status === 401) {
+          setResults([]);
+          window.location.href = childSelectionPath;
+          return;
+        }
         if (!response.ok) throw new Error('search_failed');
         const data = await response.json();
         if (!controller.signal.aborted) { setResults(data); setStatus('idle'); }
@@ -41,7 +48,7 @@ export default function LearningSearchPage() {
       }
     }, 300);
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [query, retry]);
+  }, [query, retry, childSelectionPath]);
 
   return <div className="kid-content">
     <Link href={path(`/learn/${childId}`)}>{t('← الرئيسية', '← Home')}</Link>
