@@ -1575,6 +1575,68 @@ describe('hosted payment return route', () => {
     }
   });
 
+  it.each(['ar', 'en'])('extends a renewal only once when the signed %s return is reopened', async lang => {
+    const originalPaidThrough = addOneMonth(new Date());
+    const expectedPaidThrough = addOneMonth(originalPaidThrough);
+    const student = await prisma.student.create({
+      data: { familyId: familyA.id, firstName: `Replay ${RUN}`, birthYear: 2016 },
+    });
+    try {
+      const enrollment = await prisma.enrollment.create({
+        data: {
+          studentId: student.id, courseRunId: runId, status: 'active',
+          monthlyPriceSar: BASE_SAR, startedAt: new Date(), paidThrough: originalPaidThrough,
+        },
+      });
+      await prisma.payment.update({
+        where: { id: paymentId },
+        data: {
+          kind: 'renewal',
+          items: {
+            create: {
+              enrollmentId: enrollment.id, studentName: student.firstName,
+              programAr: 'برنامج اختبار', programEn: 'Test Program',
+              periodStart: originalPaidThrough, periodEnd: expectedPaidThrough,
+              baseSar: BASE_SAR, discountPct: 0, totalSar: BASE_SAR,
+            },
+          },
+        },
+      });
+      const state = createPaymentReturnState(paymentId, familyA.id);
+      expect((await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } })).status)
+        .toBe('initiated');
+
+      // No login cookie: the same signed return must work on the first visit
+      // and both reopens, with real settlement but no live provider requests.
+      for (let visit = 1; visit <= 3; visit++) {
+        const res = await paymentReturnGET(returnRequest(state, lang));
+        expect(res.status).toBe(307);
+        expect(res.headers.get('location'))
+          .toBe(`http://test.local${lang === 'en' ? '/en' : ''}/portal?paid=1`);
+        const renewed = await prisma.enrollment.findUniqueOrThrow({ where: { id: enrollment.id } });
+        expect(renewed.paidThrough).toEqual(expectedPaidThrough);
+        expect(renewed.status).toBe('active');
+        const settled = await prisma.payment.findUniqueOrThrow({
+          where: { id: paymentId }, include: { items: true },
+        });
+        expect(settled.status).toBe('paid');
+        expect(settled.items).toHaveLength(1);
+        expect(settled.items[0]).toMatchObject({
+          enrollmentId: enrollment.id,
+          periodStart: originalPaidThrough,
+          periodEnd: expectedPaidThrough,
+        });
+        expect(settlementSpy).toHaveBeenCalledTimes(visit);
+        expect(settlementSpy).toHaveBeenLastCalledWith(paymentId);
+        // Already-paid returns must not verify or settle the charge again.
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+      }
+      expect(String(fetchSpy.mock.calls[0][0])).toContain(`/v1/invoices/inv_return_${RUN}`);
+    } finally {
+      await prisma.student.delete({ where: { id: student.id } });
+    }
+  });
+
   it.each([
     'missing', 'malformed', 'oversized', 'tampered-payment', 'tampered-family',
     'tampered-signature', 'expired', 'wrong-family', 'missing-payment',
