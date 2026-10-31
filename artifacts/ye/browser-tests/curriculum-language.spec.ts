@@ -82,7 +82,7 @@ test('language metadata, independent players, clearing, and exercise readiness p
   await field(modal, 'فيديو إنجليزي بديل \\(اختياري\\)').fill(alternate);
   await field(modal, 'نوع الفيديو الإنجليزي').selectOption('vimeo');
   await save(page);
-  await expect(row).toContainText('جاهز بالإنجليزية');
+  await expect(row).toContainText('إنجليزي حسب المؤلف (التشغيل غير مفحوص)');
   // Full reload proves this is persisted server state, not just modal state.
   await page.reload();
   await page.getByRole('button', { name: 'المناهج', exact: true }).click();
@@ -140,3 +140,97 @@ test('language metadata, independent players, clearing, and exercise readiness p
   await expect(row).toContainText('النص الإنجليزي: جاهز');
   await learner.close();
 });
+
+for (const failure of ['rejected replacement', 'malformed JSON'] as const) {
+  test(`${failure} preserves saved exercises and readiness after reopening`, async ({ page, context }) => {
+    // A separate lesson per case avoids depending on the successful-import test.
+    const source = await db.lrnLesson.findUniqueOrThrow({ where: { id: lessonId } });
+    const lesson = await db.lrnLesson.create({ data: {
+      unitId: source.unitId, titleAr: `اختبار ${failure}`, titleEn: failure,
+      descAr: 'وصف', descEn: 'Description', status: 'published', position: 1,
+    } });
+    const endpoint = `/svc/admin/curriculum/lessons/${lesson.id}/exercises`;
+    await context.addCookies([
+      { name: 'ye_admin', value: token('admin'), url: 'http://127.0.0.1:3107' },
+    ]);
+    const exercises = [
+      { type: 'multiple_choice', promptAr: 'اختر اللون', promptEn: 'Choose a color',
+        options: ['أحمر', 'أزرق'], optionsEn: ['Red', 'Blue'], correctAnswer: 'أحمر' },
+      { type: 'multiple_choice', promptAr: 'اختر الشكل', promptEn: 'Choose a shape',
+        options: ['دائرة', 'مربع'], optionsEn: [], correctAnswer: 'دائرة' },
+    ];
+    const seeded = await context.request.post(endpoint, { data: { exercises, replace: true } });
+    expect(seeded.ok()).toBeTruthy();
+    expect(await seeded.json()).toMatchObject({ imported: 2, skipped: 0 });
+    const readSaved = async () => {
+      const response = await context.request.get(endpoint);
+      expect(response.ok()).toBeTruthy();
+      return response.json();
+    };
+    const saved = await readSaved();
+    expect(saved).toHaveLength(2);
+
+    await page.goto('/admin');
+    const openCurriculum = async () => {
+      await page.getByRole('button', { name: 'المناهج', exact: true }).click();
+      await page.locator('.curr-subject-header').filter({ hasText: run }).click();
+    };
+    await openCurriculum();
+    const row = page.locator('.curr-lesson-row').filter({ hasText: lesson.titleAr });
+    const modal = page.locator('.learn-modal');
+    const expectExercises = async () => {
+      await expect(modal.getByRole('button', { name: '🗑', exact: true })).toHaveCount(2);
+      for (const exercise of exercises) {
+        await expect(modal.getByText(exercise.promptAr, { exact: true })).toBeVisible();
+        await expect(modal.getByText(exercise.correctAnswer, { exact: true })).toBeVisible();
+      }
+    };
+    // Missing option translations deliberately make deletion detectable: an empty
+    // exercise list would incorrectly switch the row's English text to ready.
+    await expect(row).toContainText('النص الإنجليزي: ناقص');
+    await row.getByTitle('تمارين').click();
+    await expectExercises();
+    await modal.getByRole('checkbox', { name: 'استبدال التمارين الحالية' }).check();
+    const input = failure === 'malformed JSON' ? '[{"promptAr":'
+      : JSON.stringify([
+        { ...exercises[0], promptAr: 'بديل يجب ألا يحفظ' },
+        { ...exercises[1], optionsEn: ['Circle'] },
+      ]);
+    await modal.getByPlaceholder('الصق JSON هنا...').fill(input);
+    const posts: string[] = [];
+    page.on('request', request => {
+      if (request.url().endsWith(endpoint) && request.method() === 'POST') posts.push(request.url());
+    });
+    const rejected = failure === 'rejected replacement'
+      ? page.waitForResponse(r => r.url().endsWith(endpoint) && r.request().method() === 'POST')
+      : undefined;
+    await modal.getByRole('button', { name: 'استيراد', exact: true }).click();
+    if (rejected) {
+      const response = await rejected;
+      expect(response.request().postDataJSON()).toEqual({ exercises: JSON.parse(input), replace: true });
+      expect(response.status()).toBe(400);
+      expect(await response.json()).toMatchObject({ error: 'invalid_exercises', imported: 0, skipped: 1 });
+    }
+    await expect(page.getByText(
+      failure === 'malformed JSON' ? 'JSON غير صحيح' : 'حدث خطأ في الاستيراد',
+      { exact: true },
+    )).toBeVisible();
+    await expectExercises();
+    await expect(modal.getByPlaceholder('الصق JSON هنا...')).toHaveValue(input);
+    expect(await readSaved()).toEqual(saved);
+    await modal.getByRole('button', { name: 'إغلاق' }).click();
+    await expect(modal).toHaveCount(0);
+    await expect(row).toContainText('النص الإنجليزي: ناقص');
+    await row.getByTitle('تمارين').click();
+    await expectExercises();
+    await modal.getByRole('button', { name: 'إغلاق' }).click();
+    // Reload also rules out a preserved client cache hiding deleted DB rows.
+    await page.reload();
+    await openCurriculum();
+    await expect(row).toContainText('النص الإنجليزي: ناقص');
+    await row.getByTitle('تمارين').click();
+    await expectExercises();
+    expect(await readSaved()).toEqual(saved);
+    expect(posts).toHaveLength(failure === 'malformed JSON' ? 0 : 1);
+  });
+}
