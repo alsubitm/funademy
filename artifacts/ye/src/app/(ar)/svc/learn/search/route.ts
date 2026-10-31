@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
       titleEn: l.titleEn,
       unitTitleAr: l.unit.titleAr,
       subjectNameAr: l.unit.subject.nameAr,
+      subjectNameEn: l.unit.subject.nameEn,
       subjectColor: l.unit.subject.color,
       subjectIcon: l.unit.subject.icon,
       durationMinutes: l.durationMinutes,

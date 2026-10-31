@@ -97,6 +97,7 @@ export async function GET() {
           titleAr: nextLesson.titleAr,
           titleEn: nextLesson.titleEn,
           subjectNameAr: nextLesson.unit.subject.nameAr,
+          subjectNameEn: nextLesson.unit.subject.nameEn,
           subjectColor: nextLesson.unit.subject.color,
           subjectIcon: nextLesson.unit.subject.icon,
         }

@@ -31,6 +31,9 @@ import { KID_COOKIE, kidToken, hashPin } from '@/lib/kid-auth';
 import { GET as lessonGET } from '@/app/(ar)/svc/learn/lessons/[id]/route';
 import { POST as completePOST } from '@/app/(ar)/svc/learn/lessons/[id]/complete/route';
 import { previousRiyadhDateKey, riyadhDateKey, riyadhDayStart } from '@/lib/riyadh-time';
+import { explorerExercises, builderExercises } from '@/lib/seeded-learning-exercises';
+import { hasEnglishOptions, optionLabel } from '@/lib/learning-options';
+import { backfillEnglishLearningOptions } from '@/lib/backfill-learning-options';
 
 describe('Asia/Riyadh learning day boundaries', () => {
   it('rolls the learning date over at Riyadh midnight, not UTC midnight', () => {
@@ -267,6 +270,71 @@ afterAll(async () => {
 
 // ── Lesson GET auth / access tests ─────────────────────────────────────────
 describe('GET /svc/learn/lessons/:id — authorization', () => {
+  it.each([
+    ['new explorer', () => explorerExercises(0), false],
+    ['existing explorer', () => explorerExercises(0), true],
+    ['new builder', builderExercises, false],
+    ['existing builder', builderExercises, true],
+  ] as const)('opens and completes %s starter exercises in English', async (_name, factory, legacy) => {
+    const seeded = factory();
+    const child = await prisma.lrnChild.create({
+      data: { familyId, name: 'English learner', pin: await hashPin('1234'), band: 'explorers' },
+    });
+    const lesson = await prisma.lrnLesson.create({
+      data: { unitId: unit1Id, titleAr: 'درس أولي', titleEn: 'Starter lesson',
+        durationMinutes: 1, position: 99,
+        exercises: { create: seeded.map(e => ({ ...e, optionsEn: legacy ? [] : e.optionsEn ?? [] })) } },
+    });
+    try {
+      clearAll(); asFamily(familyId); asKid(familyId, child.id);
+      const response = await lessonGET(jsonReq(`/svc/learn/lessons/${lesson.id}`), params(lesson.id));
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      const answers = body.exercises.map((exercise: { id: number; options: string[]; optionsEn: string[]; promptEn: string }, index: number) => {
+        expect(exercise.promptEn.trim()).not.toBe('');
+        expect(hasEnglishOptions(exercise.options, exercise.optionsEn)).toBe(true);
+        const correctIndex = exercise.options.indexOf(seeded[index].correctAnswer);
+        const displayedLabel = optionLabel(exercise.options, exercise.optionsEn, correctIndex, true);
+        expect(displayedLabel).not.toMatch(/[\u0600-\u06ff]/);
+        return { exerciseId: exercise.id, answer: exercise.options[correctIndex] };
+      });
+      // The translated word exercise remains keyed by its canonical Arabic answer.
+      expect(body.exercises[3].optionsEn).toEqual(seeded[3].optionsEn);
+      expect(await backfillEnglishLearningOptions(prisma, lesson.id)).toBe(0);
+      const completed = await completePOST(jsonReq(`/svc/learn/lessons/${lesson.id}/complete`, 'POST', { answers, timeSpentSeconds: 60 }), params(lesson.id));
+      expect(completed.status).toBe(200);
+      const reward = await completed.json();
+      expect(reward.score).toBe(100);
+      expect(reward.xpEarned).toBeGreaterThan(0);
+      const repeat = await completePOST(jsonReq(`/svc/learn/lessons/${lesson.id}/complete`, 'POST', { answers, timeSpentSeconds: 60 }), params(lesson.id));
+      expect((await repeat.json()).xpEarned).toBe(0);
+      const stored = await prisma.lrnExercise.findMany({ where: { lessonId: lesson.id }, orderBy: { position: 'asc' } });
+      expect(stored.map(e => e.correctAnswer)).toEqual(seeded.map(e => e.correctAnswer));
+    } finally {
+      await prisma.lrnLesson.delete({ where: { id: lesson.id } });
+      await prisma.lrnChild.delete({ where: { id: child.id } });
+    }
+  });
+  it('returns bilingual display labels without exposing the answer key', async () => {
+    clearAll();
+    asFamily(familyId);
+    asKid(familyId, childId);
+    const exercise = await prisma.lrnExercise.create({
+      data: { lessonId: lesson1aId, promptAr: 'اختر الأزرق', promptEn: 'Choose blue',
+        options: ['أحمر', 'أزرق'], optionsEn: ['Red', 'Blue'], correctAnswer: 'أزرق' },
+    });
+    try {
+      const response = await lessonGET(jsonReq(`/svc/learn/lessons/${lesson1aId}`), params(lesson1aId));
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.titleEn).toBe('Lesson A');
+      expect(body.subjectNameEn).toBe('Math');
+      expect(body.exercises[0]).toMatchObject({ promptEn: 'Choose blue', optionsEn: ['Red', 'Blue'] });
+      expect(body.exercises[0]).not.toHaveProperty('correctAnswer');
+    } finally {
+      await prisma.lrnExercise.delete({ where: { id: exercise.id } });
+    }
+  });
   it('returns 401 when no session at all', async () => {
     clearAll();
     const res = await lessonGET(jsonReq(`/svc/learn/lessons/${lesson1aId}`), params(lesson1aId));

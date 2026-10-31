@@ -606,6 +606,7 @@ CREATE TABLE "ye_lrn_exercises" (
     "promptAr" TEXT NOT NULL,
     "promptEn" TEXT NOT NULL,
     "options" TEXT[],
+    "optionsEn" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "correctAnswer" TEXT NOT NULL,
     "position" INTEGER NOT NULL DEFAULT 0,
 

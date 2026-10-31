@@ -187,7 +187,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
 
       {/* Learning platform CTA */}
       <Link
-        href="/learn"
+        href={lang === 'ar' ? '/learn' : '/en/learn'}
         className="ptl-card"
         style={{
           display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
@@ -199,7 +199,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
         <div>
           <div style={{ fontWeight: 800, fontSize: 16 }}>{lang === 'ar' ? 'منصة التعلّم' : 'Learning platform'}</div>
           <div style={{ fontSize: 13, opacity: .85, marginTop: 2 }}>
-            {lang === 'ar' ? 'دروس، تمارين، XP وشارات — ابدأ الآن!' : 'Lessons, activities, XP and badges — currently available in Arabic'}
+            {lang === 'ar' ? 'دروس، تمارين، XP وشارات — ابدأ الآن!' : 'Lessons, activities, XP and badges — start learning!'}
           </div>
         </div>
         <span style={{ marginInlineStart: 'auto', fontSize: 20 }}>{lang === 'ar' ? '←' : '→'}</span>

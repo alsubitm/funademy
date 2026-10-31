@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLearningLocale } from '@/components/learning/locale';
 
 interface KidData {
   id: number;
@@ -13,16 +14,6 @@ interface KidData {
   band: string;
 }
 
-interface SearchResult {
-  id: number;
-  titleAr: string;
-  subjectNameAr: string;
-  subjectIcon: string;
-  subjectColor: string;
-  durationMinutes: number;
-  completed: boolean;
-}
-
 export default function KidLayout({
   children,
   params,
@@ -31,14 +22,11 @@ export default function KidLayout({
   params: Promise<{ childId: string }>;
 }) {
   const router = useRouter();
+  const { t, path, dir, lang } = useLearningLocale();
   const [child, setChild] = useState<KidData | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
   const [parentGate, setParentGate] = useState(false);
   const [childId, setChildId] = useState<string>('');
   const [homeError, setHomeError] = useState('');
-  const [searchError, setSearchError] = useState('');
 
   useEffect(() => {
     params.then((p) => setChildId(p.childId));
@@ -52,7 +40,7 @@ export default function KidLayout({
     fetch('/svc/learn/home')
       .then(async (r) => {
         if (r.status === 401 || r.status === 404) {
-          router.replace('/learn');
+          router.replace(path('/learn'));
           return;
         }
         if (!r.ok) throw new Error(`home request failed (${r.status})`);
@@ -60,13 +48,13 @@ export default function KidLayout({
         // The URL is part of the selected-child boundary. Never place a
         // session-selected child's shell around another child's route.
         if (String(data?.child?.id) !== childId) {
-          router.replace('/learn');
+          router.replace(path('/learn'));
           return;
         }
         if (!cancelled) setChild(data.child);
       })
       .catch(() => {
-        if (!cancelled) setHomeError('تعذر تحميل بيانات الطفل. أعد المحاولة.');
+        if (!cancelled) setHomeError(t('تعذر تحميل بيانات الطفل. أعد المحاولة.', 'Could not load the child’s profile. Please try again.'));
       });
     return () => { cancelled = true; };
   }, [childId, router]);
@@ -89,34 +77,22 @@ export default function KidLayout({
     return () => window.removeEventListener('funademy:child-progress', updateProgress);
   }, [childId]);
 
-  const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) { setResults([]); setSearchError(''); return; }
-    try {
-      const response = await fetch(`/svc/learn/search?q=${encodeURIComponent(q)}`);
-      if (!response.ok) throw new Error(`search request failed (${response.status})`);
-      setResults(await response.json());
-      setSearchError('');
-    } catch {
-      setResults([]);
-      setSearchError('تعذر البحث الآن. حاول مرة أخرى.');
-    }
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => doSearch(query), 300);
-    return () => clearTimeout(t);
-  }, [query, doSearch]);
-
   async function exitKidMode() {
-    await fetch('/svc/learn/children/deselect', { method: 'POST' });
-    router.push('/learn');
+    try {
+      const response = await fetch('/svc/learn/children/deselect', { method: 'POST' });
+      if (!response.ok) throw new Error('deselect_failed');
+      router.push(path('/learn'));
+    } catch {
+      setHomeError(t('تعذر الخروج. حاول مرة أخرى.', 'Could not exit child mode. Please try again.'));
+      setParentGate(false);
+    }
   }
 
   return (
-    <div className="kid-shell" dir="rtl" lang="ar">
+    <div className="kid-shell" dir={dir} lang={lang}>
       {/* Top bar */}
       <div className="kid-topbar">
-        <button className="kid-search-btn" onClick={() => setSearchOpen(true)}>🔍</button>
+        <Link className="kid-search-btn" href={path(`/learn/${childId}/search`)} aria-label={t('البحث عن درس', 'Search lessons')}>🔍</Link>
         <div style={{ flex: 1 }}>
           {child && (
             <>
@@ -129,7 +105,8 @@ export default function KidLayout({
         <button
           className="kid-search-btn"
           onClick={() => setParentGate(true)}
-          title="وضع الأهل"
+          title={t('وضع الأهل', 'Parent mode')}
+          aria-label={t('وضع الأهل', 'Parent mode')}
           style={{ fontSize: 20 }}
         >
           🛡️
@@ -138,48 +115,7 @@ export default function KidLayout({
       {homeError && (
         <div className="kid-content" role="alert" style={{ padding: '12px 20px', textAlign: 'center', color: '#c0392b' }}>
           {homeError}{' '}
-          <button className="btn" type="button" onClick={() => window.location.reload()}>إعادة المحاولة</button>
-        </div>
-      )}
-
-      {/* Search overlay */}
-      {searchOpen && (
-        <div className="kid-search-overlay" onClick={() => setSearchOpen(false)}>
-          <div className="kid-search-inner" onClick={(e) => e.stopPropagation()}>
-            <input
-              className="kid-search-input"
-              placeholder="ابحث عن درس..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoFocus
-            />
-            <div className="kid-search-results">
-                {searchError && (
-                  <div style={{ padding: '20px 16px', color: '#c0392b', textAlign: 'center' }}>
-                    {searchError}{' '}
-                    <button type="button" className="btn" onClick={() => doSearch(query)}>إعادة المحاولة</button>
-                  </div>
-                )}
-              {results.map((r) => (
-                <Link
-                  key={r.id}
-                  className="kid-search-result"
-                  href={`/learn/${childId}/lessons/${r.id}`}
-                  onClick={() => setSearchOpen(false)}
-                >
-                  <span className="kid-search-icon" style={{ color: r.subjectColor }}>{r.subjectIcon}</span>
-                  <div className="kid-search-info">
-                    <div className="kid-search-title">{r.titleAr}</div>
-                    <div className="kid-search-sub">{r.subjectNameAr} · {r.durationMinutes} دقيقة</div>
-                  </div>
-                  {r.completed && <span className="kid-search-check">✓</span>}
-                </Link>
-              ))}
-              {query && results.length === 0 && (
-                <div style={{ padding: '20px 16px', color: '#888', textAlign: 'center' }}>لا توجد نتائج</div>
-              )}
-            </div>
-          </div>
+          <button className="btn" type="button" onClick={() => window.location.reload()}>{t('إعادة المحاولة', 'Try again')}</button>
         </div>
       )}
 
@@ -191,23 +127,24 @@ export default function KidLayout({
         />
       )}
 
-      {children}
+      {child ? children : !homeError && <div role="status">{t('جاري التحميل...', 'Loading...')}</div>}
     </div>
   );
 }
 
 function ParentGate({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  const { t, dir } = useLearningLocale();
   return (
     <div className="kid-parent-gate">
-      <div className="kid-parent-gate-box" dir="rtl">
+      <div className="kid-parent-gate-box" dir={dir}>
         <div className="kid-parent-gate-icon">🛡️</div>
-        <div className="kid-parent-gate-title">هل تريد الخروج من وضع الطفل؟</div>
+        <div className="kid-parent-gate-title">{t('هل تريد الخروج من وضع الطفل؟', 'Exit child mode?')}</div>
         <p style={{ color: '#555', fontSize: 14, margin: 0 }}>
-          سيعود الجهاز إلى بوابة الأهالي.
+          {t('سيعود الجهاز إلى اختيار الطفل.', 'You will return to learner selection.')}
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8 }}>
-          <button className="btn y" onClick={onConfirm}>نعم، اخرج</button>
-          <button className="btn" onClick={onCancel}>إلغاء</button>
+          <button className="btn y" onClick={onConfirm}>{t('نعم، اخرج', 'Yes, exit')}</button>
+          <button className="btn" onClick={onCancel}>{t('إلغاء', 'Cancel')}</button>
         </div>
       </div>
     </div>

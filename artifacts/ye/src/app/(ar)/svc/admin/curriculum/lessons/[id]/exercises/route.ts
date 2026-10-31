@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { isAdminRequest } from '@/lib/auth';
+import { validEnglishOptions } from '@/lib/learning-options';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const toCreate: Array<{
     lessonId: number; type: 'multiple_choice' | 'matching' | 'fill_blank' | 'picture_select';
-    promptAr: string; promptEn: string; options: string[]; correctAnswer: string; position: number;
+    promptAr: string; promptEn: string; options: string[]; optionsEn: string[]; correctAnswer: string; position: number;
   }> = [];
 
   b.exercises.forEach((ex, i) => {
@@ -52,18 +53,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     const type = validTypes.includes(String(e.type)) ? String(e.type) : 'multiple_choice';
     const options = Array.isArray(e.options) ? e.options.map(String) : [];
+    const optionsEn = e.optionsEn ?? [];
+    if (!validEnglishOptions(optionsEn, options)) {
+      errors.push(`Row ${i + 1}: optionsEn must be empty or have one non-empty translation per option`);
+      skipped++;
+      return;
+    }
     toCreate.push({
       lessonId,
       type: type as 'multiple_choice' | 'matching' | 'fill_blank' | 'picture_select',
       promptAr: String(e.promptAr),
       promptEn: String(e.promptEn),
       options,
+      optionsEn,
       correctAnswer: String(e.correctAnswer),
       position: i,
     });
     imported++;
   });
 
+  if (b.replace && errors.length) {
+    return NextResponse.json({ error: 'invalid_exercises', imported: 0, skipped, errors }, { status: 400 });
+  }
   if (b.replace) {
     await prisma.lrnExercise.deleteMany({ where: { lessonId } });
   }

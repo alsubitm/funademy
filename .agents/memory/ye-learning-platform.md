@@ -29,3 +29,10 @@ Only `multiple_choice`, `fill_blank`, and `picture_select` are seeded. The `matc
 
 ## Content source for seeding
 `ye_lrn_*` content tables started EMPTY. The old Manara curriculum (4 subjects, 12 units, 48 lessons, 240 exercises) is preserved PII-free in `backups/manara-learning-content-2026-08-09.sql` (old `public.subjects/units/lessons/exercises` shape — needs mapping into the `ye_lrn_*` schema when importing). The orphan Manara/live-sessions tables themselves were dropped from the dev DB Aug 9, 2026; never re-create them.
+
+## English curriculum policy
+Do not silently substitute Arabic curriculum for missing English translations or automatically translate graded answer values. Missing English lesson text should be explicit; authors supply translations.
+
+**Why:** An English interface must not send families into an unintelligible exercise, and machine-translated answer values could change grading or invalidate saved answers when switching language.
+
+**How to apply:** Keep display translations separate from canonical answers and retain the same child session, draft identity, and grading service across locales. Treat video language and teaching-content quality as editorial work, not a claim that translating controls translates the media.

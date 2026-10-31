@@ -842,6 +842,7 @@ model LrnExercise {
   promptAr      String
   promptEn      String
   options       String[]
+  optionsEn     String[]        @default([])
   correctAnswer String
   position      Int             @default(0)
 

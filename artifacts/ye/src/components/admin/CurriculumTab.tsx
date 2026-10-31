@@ -441,7 +441,10 @@ function ExercisesModal({ lessonId, onClose, showToast }: { lessonId: number; on
                 استيراد تمارين (JSON Array)
               </label>
               <p style={{ fontSize: 12, color: '#888', margin: '0 0 6px' }}>
-                {`[{"type":"multiple_choice","promptAr":"...","promptEn":"...","options":["...","..."],"correctAnswer":"..."}]`}
+                {`[{"type":"multiple_choice","promptAr":"...","promptEn":"...","options":["...","..."],"optionsEn":["English option 1","English option 2"],"correctAnswer":"..."}]`}
+              </p>
+              <p style={{ fontSize: 12, color: '#666' }}>
+                ضع ترجمة كل خيار في optionsEn بنفس ترتيب options. تبقى correctAnswer قيمة الخيار الأصلي، وليس ترجمته.
               </p>
               <textarea
                 className="learn-input"

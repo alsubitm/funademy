@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useLearningLocale } from '@/components/learning/locale';
+import { hasEnglishOptions, optionLabel } from '@/lib/learning-options';
 
 // correctAnswer is intentionally absent — the server never sends it.
 // Grading is server-side only; perAnswer results are returned after submission.
@@ -12,16 +14,20 @@ interface Exercise {
   promptAr: string;
   promptEn: string;
   options: string[];
+  optionsEn: string[];
 }
 
 interface LessonData {
   id: number;
   titleAr: string;
+  titleEn: string;
   descAr: string | null;
+  descEn: string | null;
   videoUrl: string | null;
   videoType: 'youtube' | 'vimeo' | 'mp4';
   durationMinutes: number;
   subjectNameAr: string;
+  subjectNameEn: string;
   subjectColor: string;
   subjectSlug: string;
   completed: boolean;
@@ -85,6 +91,7 @@ type Draft = {
 };
 
 export default function KidLessonPage() {
+  const { t, path, dir, content, en } = useLearningLocale();
   const params = useParams<{ childId: string; id: string }>();
   const { childId, id } = params;
   const [lesson, setLesson] = useState<LessonData | null>(null);
@@ -105,7 +112,7 @@ export default function KidLessonPage() {
   useEffect(() => {
     fetch(`/svc/learn/lessons/${id}`)
       .then((r) => {
-        if (r.status === 401 || r.status === 403) { window.location.href = '/learn'; return null; }
+        if (r.status === 401 || r.status === 403) { window.location.href = path('/learn'); return null; }
         if (!r.ok) throw new Error(`lesson_load_${r.status}`);
         return r.json();
       })
@@ -138,7 +145,7 @@ export default function KidLessonPage() {
           draftLoaded.current = true;
         }
       })
-      .catch(() => setError(navigator.onLine ? 'تعذر تحميل الدرس. حاول مرة أخرى.' : 'أنت غير متصل بالإنترنت. اتصل ثم أعد المحاولة.'))
+      .catch(() => setError(navigator.onLine ? t('تعذر تحميل الدرس. حاول مرة أخرى.', 'Could not load the lesson. Please try again.') : t('أنت غير متصل بالإنترنت. اتصل ثم أعد المحاولة.', 'You are offline. Connect to the internet and try again.')))
       .finally(() => setLoading(false));
   }, [id, storageKey]);
 
@@ -197,16 +204,16 @@ export default function KidLessonPage() {
         const data = await r.json().catch(() => ({}));
         setError(
           data.error === 'daily_limit_reached'
-            ? 'تم بلوغ الحد اليومي. إجاباتك محفوظة ويمكنك المحاولة لاحقاً.'
+            ? t('تم بلوغ الحد اليومي. إجاباتك محفوظة ويمكنك المحاولة لاحقاً.', 'Daily limit reached. Your answers are saved; try again later.')
             : data.error === 'missing_exercise_answer'
-              ? 'بعض الإجابات ناقصة. راجع الأسئلة ثم حاول مجدداً.'
-              : 'لم يتم حفظ إكمال الدرس. إجاباتك محفوظة؛ حاول مرة أخرى.',
+              ? t('بعض الإجابات ناقصة. راجع الأسئلة ثم حاول مجدداً.', 'Some answers are missing. Review the questions and try again.')
+              : t('لم يتم حفظ إكمال الدرس. إجاباتك محفوظة؛ حاول مرة أخرى.', 'Lesson completion was not saved. Your answers are saved; please try again.'),
         );
       }
     } catch {
       setError(navigator.onLine
-        ? 'تعذر الاتصال بالخادم. إجاباتك محفوظة؛ حاول مرة أخرى.'
-        : 'أنت غير متصل بالإنترنت. إجاباتك محفوظة؛ اتصل ثم أعد المحاولة.');
+        ? t('تعذر الاتصال بالخادم. إجاباتك محفوظة؛ حاول مرة أخرى.', 'Could not reach the server. Your answers are saved; please try again.')
+        : t('أنت غير متصل بالإنترنت. إجاباتك محفوظة؛ اتصل ثم أعد المحاولة.', 'You are offline. Your answers are saved; reconnect and try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -243,21 +250,29 @@ export default function KidLessonPage() {
     }
   }
 
-  if (loading) return <div className="kid-content" style={{ padding: 40, textAlign: 'center' }} role="status">جاري التحميل...</div>;
+  if (loading) return <div className="kid-content" style={{ padding: 40, textAlign: 'center' }} role="status">{t('جاري التحميل...', 'Loading...')}</div>;
   if (!lesson) return (
     <div className="kid-content" style={{ padding: 40, textAlign: 'center' }} role="alert">
-      {error || 'تعذر تحميل الدرس.'}
-      <div><button className="btn y" onClick={() => window.location.reload()}>إعادة المحاولة</button></div>
+      {error || t('تعذر تحميل الدرس.', 'Could not load this lesson.')}
+      <div><button className="btn y" onClick={() => window.location.reload()}>{t('إعادة المحاولة', 'Try again')}</button></div>
     </div>
   );
 
-  const backHref = `/learn/${childId}/subjects/${lesson.subjectSlug}`;
+  const backHref = path(`/learn/${childId}/subjects/${lesson.subjectSlug}`);
+  const missingTranslation = en && (!lesson.titleEn?.trim() ||
+    (lesson.descAr && !lesson.descEn?.trim()) ||
+    lesson.exercises.some(ex => !ex.promptEn?.trim() || !hasEnglishOptions(ex.options, ex.optionsEn ?? [])));
+  if (missingTranslation) return <div className="kid-content" role="alert">
+    <h1>English translation unavailable</h1>
+    <p>This lesson is not fully translated yet. Choose another lesson or switch to Arabic using the language link above.</p>
+    <Link className="btn" href={backHref}>← Back to subject</Link>
+  </div>;
 
   return (
-    <div className="kid-player" dir="rtl">
+    <div className="kid-player" dir={dir}>
       <div className="kid-player-header" style={{ background: lesson.subjectColor }}>
-        <Link className="kid-player-back" href={backHref}>← {lesson.subjectNameAr}</Link>
-        <span className="kid-player-title">{lesson.titleAr}</span>
+        <Link className="kid-player-back" href={backHref}>← {content(lesson.subjectNameAr, lesson.subjectNameEn)}</Link>
+        <span className="kid-player-title">{content(lesson.titleAr, lesson.titleEn)}</span>
       </div>
 
       <div className="kid-player-body">
@@ -270,7 +285,7 @@ export default function KidLessonPage() {
                 {lesson.videoType === 'youtube' && toYoutubeEmbed(lesson.videoUrl) && (
                   <iframe
                     src={toYoutubeEmbed(lesson.videoUrl)!}
-                    title={`فيديو: ${lesson.titleAr}`}
+                    title={`${t('فيديو', 'Video')}: ${content(lesson.titleAr, lesson.titleEn)}`}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
@@ -278,24 +293,24 @@ export default function KidLessonPage() {
                 {lesson.videoType === 'vimeo' && toVimeoEmbed(lesson.videoUrl) && (
                   <iframe
                     src={toVimeoEmbed(lesson.videoUrl)!}
-                    title={`فيديو: ${lesson.titleAr}`}
+                    title={`${t('فيديو', 'Video')}: ${content(lesson.titleAr, lesson.titleEn)}`}
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
                   />
                 )}
                 {lesson.videoType === 'mp4' && safeHttpUrl(lesson.videoUrl) && (
                   <video src={safeHttpUrl(lesson.videoUrl)!} controls>
-                    متصفحك لا يدعم تشغيل الفيديو.
+                    {t('متصفحك لا يدعم تشغيل الفيديو.', 'Your browser does not support video playback.')}
                   </video>
                 )}
                 {((lesson.videoType === 'youtube' && !toYoutubeEmbed(lesson.videoUrl)) ||
                   (lesson.videoType === 'vimeo' && !toVimeoEmbed(lesson.videoUrl)) ||
                   (lesson.videoType === 'mp4' && !safeHttpUrl(lesson.videoUrl))) && (
                   <div className="kid-video-fallback">
-                    <p>تعذر عرض رابط الفيديو بأمان.</p>
+                    <p>{t('تعذر عرض رابط الفيديو بأمان.', 'This video link cannot be displayed safely.')}</p>
                     {safeHttpUrl(lesson.videoUrl) && (
                       <a className="btn" href={safeHttpUrl(lesson.videoUrl)!} target="_blank" rel="noopener noreferrer">
-                        فتح الفيديو في نافذة جديدة
+                        {t('فتح الفيديو في نافذة جديدة', 'Open video in a new window')}
                       </a>
                     )}
                   </div>
@@ -303,24 +318,24 @@ export default function KidLessonPage() {
               </div>
             ) : (
               <div style={{ background: '#eef2ff', borderRadius: 14, padding: 40, textAlign: 'center', color: '#1C54CB', marginBottom: 24 }}>
-                📚 درس نصي
+                📚 {t('درس نصي', 'Reading lesson')}
               </div>
             )}
-            {lesson.descAr && (
-              <p style={{ color: '#444', lineHeight: 1.7, marginBottom: 24 }}>{lesson.descAr}</p>
+            {(lesson.descAr || lesson.descEn) && (
+              <p style={{ color: '#444', lineHeight: 1.7, marginBottom: 24 }}>{content(lesson.descAr ?? '', lesson.descEn)}</p>
             )}
             <button
               className="btn y"
               style={{ width: '100%', padding: '16px', fontSize: 16 }}
               onClick={proceedToExercises}
             >
-              {lesson.exercises.length > 0 ? 'ابدأ التمارين 📝' : 'إنهاء الدرس ✓'}
+              {lesson.exercises.length > 0 ? t('ابدأ التمارين 📝', 'Start exercises 📝') : t('إنهاء الدرس ✓', 'Finish lesson ✓')}
             </button>
             {error && (
               <div className="kid-submit-error" role="alert" aria-live="assertive">
                 {error}
                 <button className="btn small" onClick={() => submitLesson([])} disabled={submitting}>
-                  إعادة المحاولة
+                  {t('إعادة المحاولة', 'Try again')}
                 </button>
               </div>
             )}
@@ -338,20 +353,20 @@ export default function KidLessonPage() {
                 className="kid-exercise-progress-fill"
                 style={{ width: `${((exIdx + 1) / lesson.exercises.length) * 100}%` }}
                 role="progressbar"
-                aria-label="تقدم التمارين"
+                aria-label={t('تقدم التمارين', 'Exercise progress')}
                 aria-valuemin={0}
                 aria-valuemax={lesson.exercises.length}
                 aria-valuenow={exIdx + 1}
               />
             </div>
             <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>
-              السؤال {exIdx + 1} من {lesson.exercises.length}
+              {t('السؤال', 'Question')} {exIdx + 1} {t('من', 'of')} {lesson.exercises.length}
             </div>
             <p className="kid-exercise-prompt" ref={questionRef} tabIndex={-1}>
-              {lesson.exercises[exIdx].promptAr}
+              {content(lesson.exercises[exIdx].promptAr, lesson.exercises[exIdx].promptEn)}
             </p>
             <div className="kid-options">
-              {lesson.exercises[exIdx].options.map((opt) => {
+              {lesson.exercises[exIdx].options.map((opt, index) => {
                 // Only show "selected" state while waiting — no correctAnswer comparison
                 const isSelected = opt === selected;
                 const cls = 'kid-option-btn' + (isSelected ? ' selected' : '');
@@ -363,7 +378,7 @@ export default function KidLessonPage() {
                     disabled={submitting}
                     aria-pressed={isSelected}
                   >
-                    {opt}
+                    {optionLabel(lesson.exercises[exIdx].options, lesson.exercises[exIdx].optionsEn ?? [], index, en)}
                   </button>
                 );
               })}
@@ -373,21 +388,21 @@ export default function KidLessonPage() {
               onClick={confirmAnswer}
               disabled={selected === null || submitting}
             >
-              {exIdx + 1 === lesson.exercises.length ? 'تأكيد وإنهاء' : 'تأكيد والتالي'}
+              {exIdx + 1 === lesson.exercises.length ? t('تأكيد وإنهاء', 'Confirm and finish') : t('تأكيد والتالي', 'Confirm and next')}
             </button>
             <div className="kid-selection-status" aria-live="polite">
-              {selected === null ? 'اختر إجابة ثم أكدها' : `تم اختيار: ${selected}. يمكنك تغييره قبل التأكيد.`}
+              {selected === null ? t('اختر إجابة ثم أكدها', 'Choose an answer, then confirm') : t('تم اختيار إجابة. يمكنك تغييرها قبل التأكيد.', 'Answer selected. You can change it before confirming.')}
             </div>
             {submitting && (
               <div style={{ textAlign: 'center', marginTop: 12, color: '#888', fontSize: 13 }} role="status" aria-live="polite">
-                جاري الحفظ...
+                {t('جاري الحفظ...', 'Saving...')}
               </div>
             )}
             {error && (
               <div className="kid-submit-error" role="alert" aria-live="assertive">
                 <span>{error}</span>
                 <button className="btn small" onClick={() => submitLesson(answers)} disabled={submitting}>
-                  إعادة المحاولة
+                  {t('إعادة المحاولة', 'Try again')}
                 </button>
               </div>
             )}
@@ -398,18 +413,18 @@ export default function KidLessonPage() {
         {stage === 'reward' && reward && (
           <div className="kid-reward">
             <div className="kid-reward-icon">🏆</div>
-            <div className="kid-reward-title">رائع! أنهيت الدرس!</div>
+            <div className="kid-reward-title">{t('رائع! أنهيت الدرس!', 'Great work! You finished the lesson!')}</div>
               <>
                 <div className="kid-reward-score">{reward.score}%</div>
-                <div className="kid-reward-xp">+{reward.xpEarned} XP · مجموع: {reward.totalXp}</div>
+                <div className="kid-reward-xp">+{reward.xpEarned} XP · {t('مجموع', 'Total')}: {reward.totalXp}</div>
                 {reward.newBadges.length > 0 && (
                   <div className="kid-reward-badges">
                     {reward.newBadges.map((b) => BADGE_ICONS[b] ?? '🏅')}
-                    <div style={{ fontSize: 14, color: '#888', marginTop: 4 }}>شارات جديدة!</div>
+                    <div style={{ fontSize: 14, color: '#888', marginTop: 4 }}>{t('شارات جديدة!', 'New badges!')}</div>
                   </div>
                 )}
                 <div style={{ fontSize: 14, color: '#555', marginTop: 4 }}>
-                  🔥 السلسلة: {reward.streak} يوم
+                  🔥 {t('السلسلة', 'Streak')}: {reward.streak} {t('يوم', 'days')}
                 </div>
                 {/* Per-exercise correctness feedback (server-validated) */}
                 {reward.perAnswer.length > 0 && (
@@ -418,8 +433,8 @@ export default function KidLessonPage() {
                       const ex = lesson.exercises.find((e) => e.id === a.exerciseId);
                       return (
                         <div key={a.exerciseId} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-                          <span>{a.correct ? '✅' : '❌'}</span>
-                          <span style={{ opacity: 0.8 }}>{ex ? ex.promptAr : `سؤال ${i + 1}`}</span>
+                          <span aria-label={a.correct ? t('صحيح', 'Correct') : t('غير صحيح', 'Incorrect')}>{a.correct ? '✅' : '❌'}</span>
+                          <span style={{ opacity: 0.8 }}>{ex ? content(ex.promptAr, ex.promptEn) : `${t('سؤال', 'Question')} ${i + 1}`}</span>
                         </div>
                       );
                     })}
@@ -427,8 +442,8 @@ export default function KidLessonPage() {
                 )}
               </>
             <div className="kid-reward-actions">
-              <Link className="btn y" href={backHref}>← عودة للمادة</Link>
-              <Link className="btn" href={`/learn/${childId}`}>الرئيسية 🏠</Link>
+              <Link className="btn y" href={backHref}>{t('← عودة للمادة', '← Back to subject')}</Link>
+              <Link className="btn" href={path(`/learn/${childId}`)}>{t('الرئيسية 🏠', 'Home 🏠')}</Link>
             </div>
           </div>
         )}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { LrnChild } from '@prisma/client';
+import { useLearningLocale } from '@/components/learning/locale';
 
 /** Saudi national ID / iqama: 10 digits starting with 1 or 2 (mirrors the server rule). */
 const NATIONAL_ID_RE = /^[12]\d{9}$/;
@@ -26,6 +27,7 @@ const BAND_LABELS_AR: Record<string, string> = {
 };
 
 export default function LearnChildrenClient({ initialChildren, badgeIcons }: Props) {
+  const { t, dir } = useLearningLocale();
   const [children, setChildren] = useState<ChildData[]>(initialChildren);
   const [showAdd, setShowAdd] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -40,11 +42,11 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
 
   async function createChild() {
     if (!form.name.trim() || !/^\d{4,}$/.test(form.pin)) {
-      setErr('أدخل اسم الطفل ورقم PIN (4 أرقام على الأقل)');
+      setErr(t('أدخل اسم الطفل ورقم PIN (4 أرقام على الأقل)', 'Enter the child’s name and a PIN of at least 4 digits'));
       return;
     }
     if (form.nationalId.trim() && !NATIONAL_ID_RE.test(form.nationalId.trim())) {
-      setErr('رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2 (أو اتركه فارغاً)');
+      setErr(t('رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2 (أو اتركه فارغاً)', 'National ID must contain 10 digits starting with 1 or 2, or be left blank'));
       return;
     }
     setAdding(true);
@@ -59,12 +61,12 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
         const j = await res.json().catch(() => ({}));
         setErr(
           j.error === 'invalid_pin'
-            ? 'PIN يجب أن يكون 4 أرقام على الأقل'
+            ? t('PIN يجب أن يكون 4 أرقام على الأقل', 'PIN must contain at least 4 digits')
             : j.error === 'invalid_national_id'
-              ? 'رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2'
+              ? t('رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2', 'National ID must contain 10 digits starting with 1 or 2')
               : j.error === 'national_id_taken'
-                ? 'رقم الهوية هذا مسجّل لطفل آخر'
-                : 'حدث خطأ',
+                ? t('رقم الهوية هذا مسجّل لطفل آخر', 'This national ID belongs to another child')
+                : t('حدث خطأ', 'Something went wrong. Please try again.'),
         );
         return;
       }
@@ -73,7 +75,7 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
       setShowAdd(false);
       setForm({ name: '', avatar: '⭐', band: 'explorers', pin: '', nationalId: '' });
     } catch {
-      setErr('حدث خطأ في الاتصال');
+      setErr(t('حدث خطأ في الاتصال', 'Connection failed. Please try again.'));
     } finally {
       setAdding(false);
     }
@@ -92,28 +94,31 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
         ))}
         <button className="learn-add-card" onClick={() => setShowAdd(true)}>
           <span className="learn-add-icon">+</span>
-          <span>إضافة طفل</span>
+          <span>{t('إضافة طفل', 'Add a child')}</span>
         </button>
       </div>
 
       {showAdd && (
         <div className="learn-modal-backdrop" onClick={() => setShowAdd(false)}>
-          <div className="learn-modal" onClick={(e) => e.stopPropagation()} dir="rtl">
-            <h2 className="learn-modal-title">إضافة ملف طفل</h2>
+          <div className="learn-modal" onClick={(e) => e.stopPropagation()} dir={dir}>
+            <h2 className="learn-modal-title">{t('إضافة ملف طفل', 'Add a child profile')}</h2>
 
-            <label className="learn-label">اسم الطفل</label>
+            <label className="learn-label" htmlFor="child-name">{t('اسم الطفل', 'Child’s name')}</label>
             <input
+              id="child-name"
               className="learn-input"
-              placeholder="مثال: محمد"
+              placeholder={t('مثال: محمد', 'Example: Mohammed')}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
 
-            <label className="learn-label">الصورة الرمزية</label>
+            <label className="learn-label">{t('الصورة الرمزية', 'Avatar')}</label>
             <div className="learn-avatar-grid">
               {AVATARS.map((a) => (
                 <button
                   key={a}
+                  aria-label={`${t('الصورة الرمزية', 'Avatar')} ${a}`}
+                  aria-pressed={form.avatar === a}
                   className={`learn-avatar-btn${form.avatar === a ? ' selected' : ''}`}
                   onClick={() => setForm((f) => ({ ...f, avatar: a }))}
                 >
@@ -122,32 +127,35 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
               ))}
             </div>
 
-            <label className="learn-label">المستوى</label>
+            <label className="learn-label" htmlFor="child-band">{t('المستوى', 'Level')}</label>
             <select
+              id="child-band"
               className="learn-input"
               value={form.band}
               onChange={(e) => setForm((f) => ({ ...f, band: e.target.value }))}
             >
               {BANDS.map((b) => (
-                <option key={b} value={b}>{BAND_LABELS_AR[b]}</option>
+                <option key={b} value={b}>{t(BAND_LABELS_AR[b], b[0].toUpperCase() + b.slice(1))}</option>
               ))}
             </select>
 
-            <label className="learn-label">رمز PIN (للدخول إلى وضع الطفل)</label>
+            <label className="learn-label" htmlFor="child-pin">{t('رمز PIN (للدخول إلى وضع الطفل)', 'PIN (to enter child mode)')}</label>
             <input
+              id="child-pin"
               className="learn-input"
               type="password"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="4 أرقام على الأقل"
+              placeholder={t('4 أرقام على الأقل', 'At least 4 digits')}
               value={form.pin}
               onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value.replace(/\D/g, '') }))}
             />
 
-            <label className="learn-label">
-              رقم هوية الطفل (اختياري — لتوثيق تعلّمه في المنصة الوطنية نيلك)
+            <label className="learn-label" htmlFor="child-national-id">
+              {t('رقم هوية الطفل (اختياري — لتوثيق تعلّمه في المنصة الوطنية نيلك)', 'Child’s national ID (optional — to record learning with NELC)')}
             </label>
             <input
+              id="child-national-id"
               className="learn-input"
               dir="ltr"
               inputMode="numeric"
@@ -161,9 +169,9 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
 
             <div className="learn-modal-actions">
               <button className="btn y" onClick={createChild} disabled={adding}>
-                {adding ? '...' : 'إنشاء'}
+                {adding ? t('جاري الإنشاء...', 'Creating...') : t('إنشاء', 'Create')}
               </button>
-              <button className="btn" onClick={() => setShowAdd(false)}>إلغاء</button>
+              <button className="btn" onClick={() => setShowAdd(false)}>{t('إلغاء', 'Cancel')}</button>
             </div>
           </div>
         </div>
@@ -181,13 +189,14 @@ function ChildCard({
   badgeIcons: Record<string, string>;
   onUpdate: (c: ChildData) => void;
 }) {
+  const { t, path } = useLearningLocale();
   const [pin, setPin] = useState('');
   const [entering, setEntering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
   async function enterKidMode() {
-    if (!/^\d{4,}$/.test(pin)) { setErr('أدخل رمز PIN رقمي (4 أرقام على الأقل)'); return; }
+    if (!/^\d{4,}$/.test(pin)) { setErr(t('أدخل رمز PIN رقمي (4 أرقام على الأقل)', 'Enter a PIN of at least 4 digits')); return; }
     setLoading(true);
     setErr('');
     try {
@@ -197,13 +206,13 @@ function ChildCard({
         body: JSON.stringify({ pin }),
       });
       if (!res.ok) {
-        setErr(res.status === 401 ? 'رمز PIN غير صحيح' : 'حدث خطأ');
+        setErr(res.status === 401 ? t('رمز PIN غير صحيح', 'Incorrect PIN') : t('حدث خطأ', 'Something went wrong. Please try again.'));
         setPin('');
         return;
       }
-      window.location.href = `/learn/${child.id}`;
+      window.location.href = path(`/learn/${child.id}`);
     } catch {
-      setErr('حدث خطأ في الاتصال');
+      setErr(t('حدث خطأ في الاتصال', 'Connection failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -213,12 +222,12 @@ function ChildCard({
     <div className="learn-child-card">
       <div className="learn-child-avatar">{child.avatar}</div>
       <div className="learn-child-name">{child.name}</div>
-      <div className="learn-child-band">{BAND_LABELS_AR[child.band]}</div>
+      <div className="learn-child-band">{t(BAND_LABELS_AR[child.band], child.band[0].toUpperCase() + child.band.slice(1))}</div>
       <div className="learn-child-xp">⭐ {child.xp} XP &nbsp;|&nbsp; 🔥 {child.streak}</div>
       {child.badges.length > 0 && (
         <div className="learn-child-badges">
           {child.badges.slice(0, 3).map((b) => (
-            <span key={b} title={b}>{badgeIcons[b] ?? '🏅'}</span>
+            <span key={b} title={t(({ first_lesson: 'الدرس الأول', five_lessons: 'خمسة دروس', ten_lessons: 'عشرة دروس', streak_3: 'ثلاثة أيام متتالية', streak_7: 'سبعة أيام متتالية', perfect_score: 'نتيجة كاملة' } as Record<string, string>)[b] ?? 'شارة', b.replaceAll('_', ' '))}>{badgeIcons[b] ?? '🏅'}</span>
           ))}
         </div>
       )}
@@ -232,7 +241,8 @@ function ChildCard({
             type="password"
             inputMode="numeric"
             pattern="[0-9]*"
-            placeholder="رمز PIN"
+            placeholder={t('رمز PIN', 'PIN')}
+            aria-label={t('رمز PIN', 'PIN')}
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
             onKeyDown={(e) => { if (e.key === 'Enter') enterKidMode(); }}
@@ -241,14 +251,14 @@ function ChildCard({
           {err && <p className="learn-err">{err}</p>}
           <div className="learn-pin-actions">
             <button className="btn y small" onClick={enterKidMode} disabled={loading}>
-              {loading ? '...' : 'دخول'}
+              {loading ? t('جاري الدخول...', 'Signing in...') : t('دخول', 'Enter')}
             </button>
-            <button className="btn small" onClick={() => { setEntering(false); setPin(''); setErr(''); }}>إلغاء</button>
+            <button className="btn small" onClick={() => { setEntering(false); setPin(''); setErr(''); }}>{t('إلغاء', 'Cancel')}</button>
           </div>
         </div>
       ) : (
         <button className="btn y learn-enter-btn" onClick={() => setEntering(true)}>
-          ابدأ التعلّم 🚀
+          {t('ابدأ التعلّم 🚀', 'Start learning 🚀')}
         </button>
       )}
     </div>
@@ -261,6 +271,7 @@ function ChildCard({
  * statements are queued for NELC (then the server locks it).
  */
 function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: ChildData) => void }) {
+  const { t } = useLearningLocale();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -269,7 +280,7 @@ function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: Ch
   async function save() {
     const v = value.trim();
     if (!NATIONAL_ID_RE.test(v)) {
-      setErr('رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2');
+      setErr(t('رقم الهوية: ١٠ أرقام ويبدأ بـ 1 أو 2', 'National ID must contain 10 digits starting with 1 or 2'));
       return;
     }
     setSaving(true);
@@ -284,19 +295,19 @@ function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: Ch
       if (!res.ok) {
         setErr(
           j.error === 'national_id_taken'
-            ? 'هذا الرقم مسجّل لطفل آخر'
+            ? t('هذا الرقم مسجّل لطفل آخر', 'This national ID belongs to another child')
             : j.error === 'national_id_locked'
-              ? 'لا يمكن تغيير الرقم بعد بدء إرسال بيانات التعلّم لنيلك'
+              ? t('لا يمكن تغيير الرقم بعد بدء إرسال بيانات التعلّم لنيلك', 'The ID cannot be changed after learning records have been sent to NELC')
               : j.error === 'invalid_national_id'
-                ? 'رقم الهوية غير صحيح'
-                : 'حدث خطأ',
+                ? t('رقم الهوية غير صحيح', 'Invalid national ID')
+                : t('حدث خطأ', 'Something went wrong. Please try again.'),
         );
         return;
       }
       onUpdate(j);
       setEditing(false);
     } catch {
-      setErr('حدث خطأ في الاتصال');
+      setErr(t('حدث خطأ في الاتصال', 'Connection failed. Please try again.'));
     } finally {
       setSaving(false);
     }
@@ -307,7 +318,7 @@ function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: Ch
       <div className="learn-child-nid">
         <button
           className="learn-nid-btn"
-          title="رقم هوية الطفل لتوثيق تعلّمه في المنصة الوطنية نيلك"
+          title={t('رقم هوية الطفل لتوثيق تعلّمه في المنصة الوطنية نيلك', 'Child’s national ID for NELC learning records')}
           onClick={() => {
             setValue(child.nationalId ?? '');
             setErr('');
@@ -317,7 +328,7 @@ function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: Ch
           {child.nationalId ? (
             <>🪪 <span className="nid-value">{child.nationalId}</span></>
           ) : (
-            <>🪪 إضافة رقم الهوية (لتوثيق التعلّم في نيلك)</>
+            <>🪪 {t('إضافة رقم الهوية (لتوثيق التعلّم في نيلك)', 'Add national ID (for NELC learning records)')}</>
           )}
         </button>
       </div>
@@ -332,6 +343,7 @@ function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: Ch
         inputMode="numeric"
         maxLength={10}
         placeholder="1xxxxxxxxx"
+        aria-label={t('رقم الهوية', 'National ID')}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') save(); }}
@@ -340,10 +352,10 @@ function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: Ch
       {err && <p className="learn-err">{err}</p>}
       <div className="learn-nid-actions">
         <button className="btn y small" onClick={save} disabled={saving}>
-          {saving ? '...' : 'حفظ'}
+          {saving ? t('جاري الحفظ...', 'Saving...') : t('حفظ', 'Save')}
         </button>
         <button className="btn small" onClick={() => { setEditing(false); setErr(''); }}>
-          إلغاء
+          {t('إلغاء', 'Cancel')}
         </button>
       </div>
     </div>

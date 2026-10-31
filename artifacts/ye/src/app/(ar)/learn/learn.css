@@ -16,13 +16,22 @@
 
 .learn-back {
   position: absolute;
-  right: 16px;
+  inset-inline-start: 16px;
   top: 20px;
   color: rgba(255,255,255,.8);
   font-size: 14px;
   text-decoration: none;
 }
 .learn-back:hover { color: #fff; }
+
+@media (max-width: 600px) {
+  .learn-header .learn-back {
+    position: static;
+    display: block;
+    text-align: start;
+    margin-bottom: 12px;
+  }
+}
 
 .learn-title {
   font-size: 26px;
@@ -128,7 +137,7 @@
   border-radius: 10px;
   font-size: 15px;
   font-family: inherit;
-  direction: rtl;
+  direction: inherit;
   box-sizing: border-box;
 }
 .learn-input:focus { border-color: #1C54CB; outline: none; }
@@ -186,7 +195,7 @@
 .kid-search-input {
   width: 100%; padding: 16px; border: none;
   font-size: 18px; font-family: inherit;
-  direction: rtl; box-sizing: border-box;
+  direction: inherit; box-sizing: border-box;
 }
 .kid-search-input:focus { outline: none; }
 .kid-search-results { max-height: 60vh; overflow-y: auto; }
@@ -385,7 +394,7 @@
   background: #fff;
   font-size: 15px;
   font-family: inherit;
-  text-align: right;
+  text-align: start;
   cursor: pointer;
   transition: border-color .15s, background .15s;
   color: #101A38;
