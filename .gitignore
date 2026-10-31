@@ -51,3 +51,5 @@ Thumbs.db
 .local/
 
 artifacts/ye/.next/
+artifacts/ye/.next-browser-test/
+/generated-artifacts/
