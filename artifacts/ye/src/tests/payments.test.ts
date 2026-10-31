@@ -1322,6 +1322,78 @@ describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
     await prisma.payment.delete({ where: { id: json.paymentId } });
   });
 
+  it.each([
+    { kind: 'enrollment', lang: 'ar' },
+    { kind: 'enrollment', lang: 'en' },
+    { kind: 'renewal', lang: 'ar' },
+    { kind: 'renewal', lang: 'en' },
+  ] as const)('Tamara $kind preserves signed state and $lang on every merchant return URL', async ({ kind, lang }) => {
+    vi.stubEnv('TAMARA_API_TOKEN', 'test-token');
+    vi.stubEnv('TAMARA_API_BASE', 'https://tamara.example');
+    const hostedBodies: Array<{
+      order_reference_id: string;
+      merchant_url: Record<'success' | 'failure' | 'cancel' | 'notification', string>;
+    }> = [];
+    vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url === 'https://tamara.example/checkout/payment-types?country=SA&currency=SAR') {
+        return new Response(JSON.stringify([{ name: 'PAY_BY_INSTALMENTS' }]), { status: 200 });
+      }
+      if (url === 'https://tamara.example/checkout' && init?.method === 'POST') {
+        hostedBodies.push(JSON.parse(String(init.body)));
+        return new Response(JSON.stringify({
+          order_id: `tmr_return_${kind}_${lang}`,
+          checkout_url: 'https://tamara.example/pay',
+        }), { status: 200 });
+      }
+      throw new Error(`Unexpected mocked provider request: ${url}`);
+    });
+
+    const familyId = kind === 'enrollment' ? familyB.id : familyA.id;
+    asFamily(familyId);
+    if (kind === 'enrollment') {
+      cookieJar.set(CART_COOKIE, encodeCart(familyId, [{ studentId: studentB1.id, courseRunId: prodRunId }]));
+    }
+    let paymentId: number | undefined;
+    try {
+      const res = kind === 'enrollment'
+        ? await checkoutPOST(jsonReq('/svc/enroll/checkout', 'POST', { provider: 'tamara', lang }))
+        : await renewPOST(jsonReq('/svc/account/renew', 'POST', {
+          enrollmentId: enrollmentA1, provider: 'tamara', lang,
+        }));
+      const json = await res.json();
+      paymentId = json.paymentId;
+      expect(res.status).toBe(200);
+      expect(json.redirectUrl).toBe('https://tamara.example/pay');
+      expect(hostedBodies).toHaveLength(1);
+      const hostedBody = hostedBodies[0];
+      expect(hostedBody.order_reference_id).toBe(String(paymentId));
+      const success = new URL(hostedBody.merchant_url.success);
+      const state = success.searchParams.get('state');
+      expect(state).toBeTruthy();
+      for (const outcome of ['success', 'failure', 'cancel'] as const) {
+        const callback = new URL(hostedBody.merchant_url[outcome]);
+        expect(callback.origin).toBe('https://test.local');
+        expect(callback.pathname).toBe('/svc/pay/return');
+        expect(callback.searchParams.getAll('lang')).toEqual([lang]);
+        expect(callback.searchParams.getAll('state')).toEqual([state]);
+        expect(verifyPaymentReturnState(callback.searchParams.get('state')))
+          .toEqual({ paymentId, familyId });
+        expect(callback.searchParams.get('pr')).toBe(outcome === 'success' ? null : outcome);
+      }
+      expect(hostedBody.merchant_url.notification).toBe('https://test.local/svc/pay/webhook/tamara');
+    } finally {
+      if (paymentId !== undefined) await prisma.payment.delete({ where: { id: paymentId } });
+      if (kind === 'enrollment') {
+        await prisma.enrollment.deleteMany({
+          where: { studentId: studentB1.id, courseRunId: prodRunId, status: 'pending' },
+        });
+        await prisma.courseRun.update({ where: { id: prodRunId }, data: { seatsLeft: 5 } });
+      }
+      cookieJar.delete(CART_COOKIE);
+    }
+  });
+
   it('payment availability hides everything when nothing is live in production', async () => {
     expect(await paymentAvailability()).toEqual({ moyasar: false, tamara: false });
   });
