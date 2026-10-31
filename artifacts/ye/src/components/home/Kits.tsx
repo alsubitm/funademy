@@ -148,7 +148,7 @@ export function Kits({ programs, lang }: { programs: Program[]; lang: 'ar' | 'en
                       <div className="code">{p.kitCode}</div>
                     </div>
                     <div className="kb">
-                      <h3>{lang === 'ar' ? p.nameAr : p.nameEn}</h3>
+                      <h3>{p.nameEn}</h3>
                       <div className="age">
                         {lang === 'ar' ? `الأعمار ${p.ageMin}–${p.ageMax}` : `AGES ${p.ageMin}–${p.ageMax}`}
                         {meta ? (lang === 'ar' ? ` · ${meta.lessonMin} دقيقة` : ` · ${meta.lessonMin} MIN`) : null}

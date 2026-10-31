@@ -22,7 +22,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'الجاهزية للمركز الوطني للتعليم الإلكتروني | FunAdemy',
     description: 'جاهزية منصة FunAdemy للترخيص والتكامل مع المركز الوطني للتعليم الإلكتروني (NELC).',
     images: [`${_nelcBase}/og-default.jpg`],

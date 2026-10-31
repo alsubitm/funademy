@@ -20,7 +20,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'Book a Consultation | FunAdemy',
     description: 'Book a free Google Meet consultation to help choose the right program for your child.',
     images: [`${_consultBase}/og-default.jpg`],

@@ -7,7 +7,7 @@ import { EXHIBITION_DATE_ISO } from '@/lib/constants';
 const _siteUrl = siteUrl();
 export const metadata: Metadata = {
   title: 'أطفالنا يبنون وطننا | FunAdemy',
-  description: 'شارك معنا في أضخم خريطة للمملكة مبنية بمكعبات ليغو®. مبادرة وطنية بمناسبة اليوم الوطني برعاية Young Engineers الرياض.',
+  description: 'شارك معنا في أضخم خريطة للمملكة مبنية بمكعبات ليغو®. مبادرة وطنية بمناسبة اليوم الوطني من FunAdemy.',
   alternates: {
     canonical: `${siteUrl()}/watanona`,
     languages: {
@@ -36,7 +36,7 @@ const campaignSchemaAr = {
   '@context': 'https://schema.org',
   '@type': 'EducationalEvent',
   name: 'أطفالنا يبنون وطننا',
-  description: 'شارك معنا في أضخم خريطة للمملكة مبنية بمكعبات ليغو®. مبادرة وطنية بمناسبة اليوم الوطني برعاية Young Engineers الرياض.',
+  description: 'شارك معنا في أضخم خريطة للمملكة مبنية بمكعبات ليغو®. مبادرة وطنية بمناسبة اليوم الوطني من FunAdemy.',
   url: `${_base}/watanona`,
   inLanguage: 'ar',
   organizer: { '@id': `${_base}/#organization` },

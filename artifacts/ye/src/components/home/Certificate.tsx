@@ -29,7 +29,7 @@ export function Certificate({ lang }: { lang: 'ar' | 'en' }) {
           <div className="ch">FunAdemy</div>
           <h3>CERTIFICATE OF ACHIEVEMENT</h3>
           <p>proudly awarded to</p>
-          <div className="nm">{lang === 'ar' ? 'اسم المهندس الصغير' : 'Young Engineer Name'}</div>
+          <div className="nm">{lang === 'ar' ? 'اسم المهندس' : 'Young Engineer Name'}</div>
           <p>for completing the term with excellence</p>
           <div className="foot2">
             <span>FUNADEMY · e² YOUNG ENGINEERS</span>

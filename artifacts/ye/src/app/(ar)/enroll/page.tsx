@@ -21,7 +21,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'التسجيل الشهري | FunAdemy',
     description: 'سجّل أطفالك في برامج FunAdemy الشهرية — خصم ١٠٪ تلقائي للأشقاء.',
     images: [`${_enrollBase}/og-default.jpg`],

@@ -12,7 +12,7 @@ export function generateMetadata(): Metadata {
   const ogImage = `${base}/og-default.jpg`;
   return {
     title: 'مدونة فناديمي | تعليم STEM وهندسة الأطفال بالرياض',
-    description: 'مقالات ونصائح للأهالي حول تعليم STEM وهندسة الأطفال بالليغو® في الرياض. أفكار وأنشطة لتنمية مهارات أطفالك مع e² Young Engineers.',
+    description: 'مقالات ونصائح للأهالي حول تعليم STEM وهندسة الأطفال بالليغو® في الرياض. أفكار وأنشطة لتنمية مهارات أطفالك مع FunAdemy.',
     alternates: {
       canonical: `${base}/blog`,
       languages: {

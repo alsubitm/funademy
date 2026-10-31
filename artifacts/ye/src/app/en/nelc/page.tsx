@@ -22,7 +22,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'NELC Readiness | FunAdemy',
     description: 'FunAdemy readiness for licensing and integration with the Saudi National eLearning Center (NELC).',
     images: [`${_nelcBase}/og-default.jpg`],

@@ -24,7 +24,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'Book a Trial | FunAdemy',
     description: 'Register your child for a free trial class to experience the Young Engineer journey.',
     images: [`${_bookBase}/og-default.jpg`],

@@ -59,7 +59,7 @@ export function PathMap({ lang }: { lang: 'ar' | 'en' }) {
                       <circle r="30" fill={s.fill} stroke="var(--ink)" strokeWidth="5" style={{ cursor: 'pointer' }} />
                       <text y="9" fontSize="26">{s.icon}</text>
                       <text y={above ? -44 : 56} fontSize="15" fill="var(--ink)">
-                        {lang === 'ar' ? s.nameAr : s.nameEn}
+                        {s.nameEn}
                       </text>
                       <text y={above ? -26 : 74} fontSize="11.5" fontFamily="var(--font-mono)" fontWeight="600" fill="var(--mut)">
                         AGES {s.ages}

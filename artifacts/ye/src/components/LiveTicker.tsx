@@ -51,7 +51,7 @@ export function LiveTicker({ slots, lang }: { slots: TickerSlot[]; lang: 'ar' | 
               <div className="row" role="row" key={s.id}>
                 <span className={`st ${wait ? 'last' : ''}`}>{wait ? (lang === 'ar' ? 'آخر المقاعد' : 'LAST SEATS') : (lang === 'ar' ? 'مفتوح' : 'OPEN')}</span>
                 <span className="flap" dir="ltr">{String(Math.max(0, s.seatsLeft)).padStart(2, '0').split('').map((n, i) => <span key={i}>{n}</span>)}</span>
-                <span>{lang === 'ar' ? s.program.nameAr : s.program.nameEn}</span>
+                <span>{s.program.nameEn}</span>
                 <span dir="ltr">{getDay(s.weekday)} {s.time}</span>
                 <span className="gate">{loc}</span>
               </div>

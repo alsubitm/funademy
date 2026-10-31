@@ -6,6 +6,7 @@ import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { ClientBricks } from './ClientBricks';
 import { WatanScrolly } from './WatanScrolly';
 import { Countdown } from './Countdown';
+import { computeLeft } from '@/lib/exhibition';
 import { watanonaDict } from './dictionary';
 import { waLink } from '@/lib/constants';
 import Link from 'next/link';
@@ -40,7 +41,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
           <p style={{ fontSize: '20px', maxWidth: '700px', margin: '0 auto', color: '#D6E0FF' }}>
             {d.heroLead}
           </p>
-          <Countdown lang={lang} />
+          <Countdown lang={lang} initial={computeLeft()} />
           <div style={{ marginTop: '40px' }}>
              <a href="#wall" className="btn y">{d.wallPlaceBtn}</a>
           </div>

@@ -20,7 +20,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'حجز موعد استشارة | FunAdemy',
     description: 'احجز موعد استشارة مجانية عبر Google Meet لمساعدتك في اختيار البرنامج الأنسب لطفلك.',
     images: [`${_consultBase}/og-default.jpg`],

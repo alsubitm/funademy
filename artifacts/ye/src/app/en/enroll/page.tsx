@@ -21,7 +21,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'Monthly Enrollment | FunAdemy',
     description: 'Enroll your children in FunAdemy monthly programs — automatic 10% sibling discount.',
     images: [`${_enrollBase}/og-default.jpg`],

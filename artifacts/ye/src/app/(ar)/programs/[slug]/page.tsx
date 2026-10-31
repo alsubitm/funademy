@@ -13,7 +13,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const base = siteUrl();
   const ogImage = ogImageUrl(program.coverImageUrl);
   return {
-    title: `${program.nameAr} - FunAdemy · e² Young Engineers`,
+    title: `${program.nameEn} | FunAdemy`,
     description: program.taglineAr,
     alternates: {
       canonical: `${base}/programs/${slug}`,
@@ -26,14 +26,14 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     openGraph: {
       type: 'website',
       locale: 'ar_SA',
-      title: `${program.nameAr} — FunAdemy`,
+      title: `${program.nameEn} — FunAdemy`,
       description: program.taglineAr ?? undefined,
-      images: [{ url: ogImage, width: 1200, height: 630, alt: program.nameAr }],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: program.nameEn }],
     },
     twitter: {
       card: 'summary_large_image',
-      site: '@YEYoungEngineers',
-      title: `${program.nameAr} — FunAdemy`,
+      site: '@funademy',
+      title: `${program.nameEn} — FunAdemy`,
       description: program.taglineAr ?? undefined,
       images: [ogImage],
     },
@@ -73,7 +73,7 @@ export default async function ProgramPage(props: { params: Promise<{ slug: strin
       {
         '@type': 'Course',
         '@id': `${base}/programs/${program.slug}`,
-        name: program.nameAr,
+        name: program.nameEn,
         description: program.descAr,
         url: `${base}/programs/${program.slug}`,
         inLanguage: 'ar',
@@ -124,7 +124,7 @@ export default async function ProgramPage(props: { params: Promise<{ slug: strin
         '@type': 'BreadcrumbList',
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: base },
-          { '@type': 'ListItem', position: 2, name: program.nameAr, item: `${base}/programs/${program.slug}` },
+          { '@type': 'ListItem', position: 2, name: program.nameEn, item: `${base}/programs/${program.slug}` },
         ],
       },
     ],

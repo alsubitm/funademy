@@ -16,7 +16,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'Terms & Conditions | FunAdemy',
     description: 'FunAdemy terms of use, payment, refund and support policies.',
     images: [`${_termsBase}/og-default.jpg`],

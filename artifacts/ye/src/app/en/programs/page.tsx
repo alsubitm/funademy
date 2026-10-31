@@ -8,7 +8,7 @@ import { ProgramsListing } from '@/components/ProgramsListing';
 export function generateMetadata(): Metadata {
   const base = siteUrl();
   return {
-    title: 'Our Programs | FunAdemy · e² Young Engineers',
+    title: 'Our Programs | FunAdemy',
     description:
       'Three educational fields, seven e² Young Engineers certified programs for ages 4–18. Engineering, coding, and robotics online in Riyadh.',
     alternates: {

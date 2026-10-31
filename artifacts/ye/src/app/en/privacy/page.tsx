@@ -16,7 +16,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'Privacy Policy | FunAdemy',
     description: 'How FunAdemy collects, protects and uses family and child data.',
     images: [`${_privacyBase}/og-default.jpg`],

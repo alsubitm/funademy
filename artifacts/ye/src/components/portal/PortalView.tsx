@@ -129,7 +129,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
   ]);
 
   const skillState = new Map(studentSkills.map((s) => [s.skillId, s.status]));
-  const progName = (p: { nameAr: string; nameEn: string }) => (lang === 'ar' ? p.nameAr : p.nameEn);
+  const progName = (p: { nameAr: string; nameEn: string }) => p.nameEn;
   const statusLabel: Record<string, string> = {
     active: d.statusActive, pending: d.statusPending, paused: d.statusPaused, cancelled: d.statusCancelled,
   };
@@ -467,7 +467,7 @@ async function RenewalAlert({ lang, familyId, d }: { lang: Lang; familyId: numbe
   if (flagged.length === 0) return null;
 
   const hasDue = flagged.some(({ st }) => st === 'due');
-  const progName = (p: { nameAr: string; nameEn: string }) => (lang === 'ar' ? p.nameAr : p.nameEn);
+  const progName = (p: { nameAr: string; nameEn: string }) => p.nameEn;
   const available = await paymentAvailability();
 
   return (
@@ -512,7 +512,7 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
   const stateLabel: Record<string, string> = {
     paid: d.subPaid, due_soon: d.subDueSoon, due: d.subDue, none: d.subNone,
   };
-  const progName = (p: { nameAr: string; nameEn: string }) => (lang === 'ar' ? p.nameAr : p.nameEn);
+  const progName = (p: { nameAr: string; nameEn: string }) => p.nameEn;
   const available = await paymentAvailability();
 
   return (

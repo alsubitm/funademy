@@ -143,7 +143,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   };
 
   const confirmWaLink = () => {
-    let msg = `${d.confirmMsg} (${childFirstName}) - ${selectedProgram?.nameAr || selectedProgram?.nameEn}`;
+    let msg = `${d.confirmMsg} (${childFirstName}) - ${selectedProgram?.nameEn}`;
     if (appointment) {
       msg += `\n${d.apptWhen}: ${lang === 'ar' ? appointment.whenAr : appointment.whenEn}`;
       if (appointment.meetUrl) msg += `\n${d.apptJoin}: ${appointment.meetUrl}`;
@@ -239,7 +239,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
                 >
                   <div className="check">✓</div>
                   <div className="p-code">{p.kitCode}</div>
-                  <h4>{lang === 'ar' ? p.nameAr : p.nameEn}</h4>
+                  <h4>{p.nameEn}</h4>
                   <div className="p-age">{d.ageRange} {p.ageMin}-{p.ageMax} {d.years}</div>
                 </button>
               );
@@ -300,7 +300,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
                   <div key={s.id} className="slot-item full">
                     {slotInfo}
                     <a
-                      href={waitlistWaLink(lang === 'ar' ? selectedProgram?.nameAr || '' : selectedProgram?.nameEn || '')}
+                      href={waitlistWaLink(selectedProgram?.nameEn || '')}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn"

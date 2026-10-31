@@ -1,7 +1,7 @@
 export const contactDict = {
   ar: {
     title: 'تواصل معنا',
-    desc: 'نحن هنا للإجابة على جميع استفساراتك حول برامج المهندس الصغير.',
+    desc: 'نحن هنا للإجابة على جميع استفساراتك حول برامج FunAdemy.',
     whatsappCta: 'تواصل عبر الواتساب',
     phoneLabel: 'رقم الهاتف',
     emailLabel: 'البريد الإلكتروني',
@@ -10,7 +10,7 @@ export const contactDict = {
     onlineTitle: 'برامج الأونلاين',
     onlineDesc: 'متاحة للجميع من أي مكان عبر منصة الفصول المباشرة.',
     licenseTitle: 'الاعتماد',
-    licenseDesc: 'وكيل حصري معتمد لبرامج المهندس الصغير العالمية.',
+    licenseDesc: 'وكيل حصري معتمد لبرامج e² Young Engineers العالمية.',
     licenseNo: 'رقم الترخيص:',
     contactWaDefault: 'مرحباً، لدي استفسار بخصوص برامجكم.'
   },

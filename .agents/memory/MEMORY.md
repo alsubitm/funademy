@@ -14,5 +14,5 @@
 - [YE SMS OTP delivery](ye-sms-otp-delivery.md) — Authentica carries OUR codes (custom-OTP send); live by key presence; persist-before-send (timeout ≠ undelivered); advisory-lock caps provider calls; OTP-only API.
 - [Database retry safety](database-retry-safety.md) — retry reads broadly, but replay transactions only after failures that prove PostgreSQL aborted or never began them.
 - [Replit AI setup availability](replit-ai-setup-availability.md) — AI setup callback may be absent despite skill docs; keep provider failure fail-closed and never invent gateway credentials.
-- [YE visual baseline](ye-visual-baseline.md) — FunAdemy v9 is the approved visual source; adapt the live app without replacing its backend, data, routes, or real behaviors.
+- [YE visual baseline](ye-visual-baseline.md) — Navy/gold blueprint supersedes bright v9; restricted purple accents; preserve pages, phone numbers, booking and all real behaviors.
 - [pnpm audit override safety](pnpm-audit-overrides.md) — auto-fix can replace root overrides with workspace settings; preserve existing security pins and constrain suggested upgrades.

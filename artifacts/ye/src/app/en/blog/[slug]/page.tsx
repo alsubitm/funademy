@@ -43,7 +43,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     },
     twitter: {
       card: 'summary_large_image',
-      site: '@YEYoungEngineers',
+      site: '@funademy',
       title,
       description: description ?? undefined,
       images: [ogImage],

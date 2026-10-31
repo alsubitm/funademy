@@ -13,7 +13,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const base = siteUrl();
   const ogImage = ogImageUrl(program.coverImageUrl);
   return {
-    title: `${program.nameEn} - FunAdemy · e² Young Engineers`,
+    title: `${program.nameEn} | FunAdemy`,
     description: program.taglineEn,
     alternates: {
       canonical: `${base}/en/programs/${slug}`,
@@ -32,7 +32,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     },
     twitter: {
       card: 'summary_large_image',
-      site: '@YEYoungEngineers',
+      site: '@funademy',
       title: `${program.nameEn} — FunAdemy`,
       description: program.taglineEn ?? undefined,
       images: [ogImage],

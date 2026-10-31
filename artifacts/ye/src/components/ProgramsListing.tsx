@@ -105,7 +105,7 @@ export function ProgramsListing({
                           <div className="code">{prog.kitCode}</div>
                         </div>
                         <div className="kb">
-                          <h3>{ar ? prog.nameAr : prog.nameEn}</h3>
+                          <h3>{prog.nameEn}</h3>
                           <div className="age">
                             {ar
                               ? `الأعمار ${prog.ageMin}–${prog.ageMax}`

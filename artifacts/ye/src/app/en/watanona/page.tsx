@@ -7,7 +7,7 @@ import { EXHIBITION_DATE_ISO } from '@/lib/constants';
 const _siteUrl = siteUrl();
 export const metadata: Metadata = {
   title: 'Our Children Build Our Homeland | FunAdemy',
-  description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day by FunAdemy · e² Young Engineers Riyadh.',
+  description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day by FunAdemy.',
   alternates: {
     canonical: `${siteUrl()}/en/watanona`,
     languages: {
@@ -36,7 +36,7 @@ const campaignSchemaEn = {
   '@context': 'https://schema.org',
   '@type': 'EducationalEvent',
   name: 'Our Children Build Our Homeland',
-  description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day by FunAdemy · e² Young Engineers Riyadh.',
+  description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day by FunAdemy.',
   url: `${_base}/en/watanona`,
   inLanguage: 'en',
   organizer: { '@id': `${_base}/#organization` },

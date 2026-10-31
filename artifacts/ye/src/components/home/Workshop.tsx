@@ -52,12 +52,13 @@ export function Workshop({ lang }: { lang: 'ar' | 'en' }) {
           </div>
           <div className="term" dir="ltr">
             <div className="bar">
-              <i style={{ background: '#FF5F56' }}></i>
-              <i style={{ background: '#FFBD2E' }}></i>
-              <i style={{ background: '#27C93F' }}></i>
+              <i style={{ background: '#FFCA17' }}></i>
+              <i style={{ background: '#FFCA17' }}></i>
+              <i style={{ background: '#FFCA17' }}></i>
             </div>
             <pre>
               <span className="c1">#include</span> &lt;stdio.h&gt;{'\n'}
+              <span className="c1">#include</span> &lt;stdbool.h&gt;{'\n'}
               <span className="c1">#include</span> &lt;robotics.h&gt;{'\n'}
               {'\n'}
               <span className="c1">int</span> <span className="c2">main</span>() {'{\n'}
@@ -66,9 +67,9 @@ export function Workshop({ lang }: { lang: 'ar' | 'en' }) {
               {'  '}Sensor eye = init_sensor(A);{'\n'}
               {'\n'}
               {'  '}<span className="c4">while</span> (true) {'{\n'}
-              {'    '}<span className="c4">if</span> (eye.read() &lt; <span className="c3">10</span>) {'{\n'}
+              {'    '}<span className="c4">if</span> (read_sensor(eye) &lt; <span className="c3">10</span>) {'{\n'}
               {'      '}turn_right(left, right);{'\n'}
-              {'    '}else {'{\n'}
+              {'    } '}else {'{\n'}
               {'      '}move_forward(left, right);{'\n'}
               {'    }'}{'\n'}
               {'  }'}{'\n'}

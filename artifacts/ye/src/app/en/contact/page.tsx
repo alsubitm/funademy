@@ -22,7 +22,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'Contact Us | FunAdemy',
     description: 'Reach the FunAdemy team via WhatsApp, phone or email.',
     images: [`${_contactBase}/og-default.jpg`],

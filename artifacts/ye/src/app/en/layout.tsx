@@ -8,19 +8,19 @@ import { PublicChatMount } from '@/components/chat/PublicChatMount';
 const baloo = Baloo_Bhaijaan_2({
   subsets: ['arabic', 'latin'],
   weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-display',
+  variable: '--font-baloo',
 });
 
 const plexArabic = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
   weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-body',
+  variable: '--font-plex-arabic',
 });
 
 const plexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-mono',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-plex-mono',
 });
 
 const SITE_URL = siteUrl();
@@ -34,7 +34,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'FunAdemy — e² Young Engineers',
+    default: 'FunAdemy — Where Fun Meets Academy',
     template: '%s | FunAdemy',
   },
   description:
@@ -44,15 +44,15 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: `${SITE_URL}/en`,
-    title: 'FunAdemy — e² Young Engineers',
+    title: 'FunAdemy — Where Fun Meets Academy',
     description:
       'STEM education through moving LEGO® models for children ages 4–18. Online and in-person classes in Riyadh.',
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'FunAdemy — e² Young Engineers Riyadh' }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'FunAdemy' }],
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
-    title: 'FunAdemy — e² Young Engineers',
+    site: '@funademy',
+    title: 'FunAdemy — Where Fun Meets Academy',
     description:
       'STEM education through moving LEGO® models for children ages 4–18.',
     images: [OG_IMAGE],
@@ -89,7 +89,7 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
         },
         sameAs: [
           'https://www.instagram.com/funademy_sa/',
-          'https://twitter.com/YEYoungEngineers',
+          'https://twitter.com/funademy',
           'https://www.facebook.com/funademy.sa/',
           'https://www.youtube.com/@funademy',
         ],

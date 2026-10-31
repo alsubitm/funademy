@@ -16,7 +16,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'سياسة الخصوصية | FunAdemy',
     description: 'كيف تجمع منصة FunAdemy بيانات العائلات والأطفال وتحميها وتستخدمها.',
     images: [`${_privacyBase}/og-default.jpg`],

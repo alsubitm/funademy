@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ScrollReveal } from '@/components/ScrollReveal';
 import { CountdownChip } from '@/components/home/CountdownChip';
+import { daysUntilExhibition } from '@/lib/exhibition';
 
 /** وطننا campaign teaser — Sand-Stripe framed banner (Master Spec §3.9). */
 export function WatanTeaser({ lang }: { lang: 'ar' | 'en' }) {
@@ -18,7 +19,7 @@ export function WatanTeaser({ lang }: { lang: 'ar' | 'en' }) {
                 : 'The FunAdemy national initiative — every child places a brick in the homeland wall, all the way to the Mini Watan exhibition.'}
             </p>
             <div className="wt-row">
-              <CountdownChip lang={lang} />
+              <CountdownChip lang={lang} initialDays={daysUntilExhibition()} />
               <Link href="/watanona" className="btn y">
                 {lang === 'ar' ? 'شارك بمكعّبك' : 'Place your brick'}
               </Link>

@@ -14,7 +14,7 @@ export function Stats({ lang }: { lang: 'ar' | 'en' }) {
         </div>
         <div>
           <div className="n">8–16</div>
-          <div className="l">{lang === 'ar' ? 'مجموعات صغيرة' : 'Small groups'}</div>
+          <div className="l">{lang === 'ar' ? 'مجموعات صغيرة · ٨–١٦ كحد أقصى' : 'Small groups · 8–16 max'}</div>
         </div>
         <div>
           <div className="n">1<small>st</small></div>

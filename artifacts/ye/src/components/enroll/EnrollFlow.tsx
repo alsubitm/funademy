@@ -257,7 +257,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
                   <div key={r.id} className="enr-run">
                     <div className="r-dot" style={{ background: r.program.color }} />
                     <div className="r-main">
-                      <div className="r-name">{lang === 'ar' ? r.program.nameAr : r.program.nameEn}</div>
+                      <div className="r-name">{r.program.nameEn}</div>
                       <div className="r-meta">
                         {(lang === 'ar' ? r.titleAr : r.titleEn) ?? ''} · {weekdays[r.weekday]} {r.time}
                         {r.location ? ` · 📍 ${r.location}` : ''}

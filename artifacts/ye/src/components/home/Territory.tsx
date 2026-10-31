@@ -33,7 +33,7 @@ export function Territory({ lang }: { lang: 'ar' | 'en' }) {
           <p>is the official licensed partner for</p>
           <h4 style={{ textAlign: 'center', marginTop: '4px', fontSize: '15px' }}>SAUDI ARABIA</h4>
           <div className="foot2">
-            <span>ISSUED: 2024</span>
+            <span>ISSUED: 2026</span>
             <span>LIC: 4030388340</span>
           </div>
           <svg className="seal" viewBox="0 0 100 100">

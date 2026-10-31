@@ -39,7 +39,7 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
               </div>
               <ul dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                 <li>{lang === 'ar' ? '٤-٦ حصص شهرياً' : '4–6 sessions per month'}</li>
-                <li>{lang === 'ar' ? 'عدد طلاب محدود (٤-٨)' : 'Small groups (4-8 kids)'}</li>
+                <li>{lang === 'ar' ? 'مجموعات صغيرة: Big Builders حتى ١٢ · AlgoC حتى ٨ · بقية البرامج حتى ١٦' : 'Small groups: Big Builders max 12 · AlgoC max 8 · others max 16'}</li>
                 <li>{lang === 'ar' ? 'العدة تُشحن للمنزل' : 'Kit shipped to home'}</li>
                 <li>{lang === 'ar' ? 'بيئة تفاعلية اجتماعية' : 'Interactive social environment'}</li>
                 <li>{lang === 'ar' ? 'متابعة وتواصل مستمر' : 'Continuous follow-up'}</li>

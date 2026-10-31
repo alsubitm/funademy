@@ -8,7 +8,7 @@ import { ProgramsListing } from '@/components/ProgramsListing';
 export function generateMetadata(): Metadata {
   const base = siteUrl();
   return {
-    title: 'برامجنا المعتمدة | FunAdemy · e² Young Engineers',
+    title: 'برامجنا المعتمدة | FunAdemy',
     description:
       'ثلاثة مجالات تعليمية وسبعة برامج معتمدة من e² Young Engineers للأعمار ٤–١٨. هندسة، برمجة، وروبوتات أونلاين في الرياض.',
     alternates: {

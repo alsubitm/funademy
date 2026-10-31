@@ -35,7 +35,7 @@ export function ProgramDetail({
     return '⚙️';
   };
 
-  const name = isAr ? program.nameAr : program.nameEn;
+  const name = program.nameEn;
   const tagline = isAr ? program.taglineAr : program.taglineEn;
   const desc = isAr ? program.descAr : program.descEn;
   const builds = isAr ? program.buildsAr : program.buildsEn;
@@ -63,7 +63,7 @@ export function ProgramDetail({
               <Link href={isAr ? '/programs' : '/en/programs'}>{isAr ? 'البرامج' : 'Programs'}</Link>
             </li>
             <li aria-hidden="true">›</li>
-            <li aria-current="page">{isAr ? program.nameAr : program.nameEn}</li>
+            <li aria-current="page">{program.nameEn}</li>
           </ol>
         </div>
       </nav>

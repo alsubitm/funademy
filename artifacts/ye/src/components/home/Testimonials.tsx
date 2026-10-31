@@ -27,7 +27,7 @@ export function Testimonials({ lang, testimonials }: { lang: 'ar' | 'en'; testim
               <div className="q" key={t.id}>
                 <p>{lang === 'ar' ? t.quoteAr : t.quoteEn}</p>
                 <div className="w">
-                  {lang === 'ar' ? t.nameAr : t.name} <span>— {lang === 'ar' ? t.programAr : t.programEn}</span>
+                  {lang === 'ar' ? t.nameAr : t.name} <span>— {t.programEn}</span>
                   <div className="stars">{'★'.repeat(t.stars)}</div>
                 </div>
               </div>
@@ -53,9 +53,9 @@ export function Testimonials({ lang, testimonials }: { lang: 'ar' | 'en'; testim
           <div className="pola po3">
             <div className="tape"></div>
             <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
-              <Image src="/group-class.jpg" alt="Group of kids attending e² Young Engineers online class 2024" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
+              <Image src="/group-class.jpg" alt="Group of kids attending e² Young Engineers online class 2026" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
             </div>
-            <div className="cap2">Class of 2024</div>
+            <div className="cap2">Class of 2026</div>
           </div>
         </ScrollReveal>
       </div>

@@ -12,7 +12,7 @@ const _contactBase = siteUrl();
 export const metadata = {
   title: 'تواصل معنا | FunAdemy',
   description:
-    'تواصل مع فريق فناديمي — المهندس الصغير الرياض — عبر واتساب أو الهاتف أو البريد الإلكتروني. نجيب على استفساراتك حول برامج STEM للأطفال من ٤ إلى ١٨ سنة في الرياض.',
+    'تواصل مع فريق FunAdemy عبر واتساب أو الهاتف أو البريد الإلكتروني. نجيب على استفساراتك حول برامج STEM للأطفال من ٤ إلى ١٨ سنة في الرياض.',
   openGraph: {
     type: 'website',
     locale: 'ar_SA',
@@ -22,7 +22,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@YEYoungEngineers',
+    site: '@funademy',
     title: 'تواصل معنا | FunAdemy',
     description: 'تواصل مع فريق فناديمي عبر واتساب أو الهاتف أو البريد الإلكتروني.',
     images: [`${_contactBase}/og-default.jpg`],

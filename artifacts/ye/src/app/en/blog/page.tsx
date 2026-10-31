@@ -12,7 +12,7 @@ export function generateMetadata(): Metadata {
   const ogImage = `${base}/og-default.jpg`;
   return {
     title: 'FunAdemy Blog | STEM & Engineering Tips for Kids in Riyadh',
-    description: "Articles and tips for parents on STEM education and LEGO® engineering for kids in Riyadh. Activities and ideas to build your child's skills with e² Young Engineers.",
+    description: "Articles and tips for parents on STEM education and LEGO® engineering for kids in Riyadh. Activities and ideas to build your child's skills with FunAdemy.",
     alternates: {
       canonical: `${base}/en/blog`,
       languages: {
