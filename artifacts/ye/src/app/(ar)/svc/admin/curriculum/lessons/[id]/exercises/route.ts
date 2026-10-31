@@ -31,6 +31,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }); }
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'exercises array required' }, { status: 400 });
+  }
   const b = body as { exercises?: unknown[]; replace?: boolean };
   if (!Array.isArray(b.exercises)) return NextResponse.json({ error: 'exercises array required' }, { status: 400 });
 
@@ -38,6 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let imported = 0;
   let skipped = 0;
   const errors: string[] = [];
+  let invalidShape = false;
 
   const toCreate: Array<{
     lessonId: number; type: 'multiple_choice' | 'matching' | 'fill_blank' | 'picture_select';
@@ -45,9 +49,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }> = [];
 
   b.exercises.forEach((ex, i) => {
+    if (ex === null || typeof ex !== 'object' || Array.isArray(ex)) {
+      errors.push(`Row ${i + 1}: exercise must be a non-null object`);
+      skipped++;
+      invalidShape = true;
+      return;
+    }
     const e = ex as Record<string, unknown>;
-    if (!e.promptAr || !e.promptEn || !e.correctAnswer) {
-      errors.push(`Row ${i + 1}: promptAr, promptEn, correctAnswer required`);
+    if (![e.promptAr, e.promptEn, e.correctAnswer].every(value => typeof value === 'string' && value.trim().length > 0)) {
+      errors.push(`Row ${i + 1}: promptAr, promptEn, correctAnswer must be non-empty strings`);
       skipped++;
       return;
     }
@@ -72,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     imported++;
   });
 
-  if (b.replace && errors.length) {
+  if (invalidShape || (b.replace && errors.length)) {
     return NextResponse.json({ error: 'invalid_exercises', imported: 0, skipped, errors }, { status: 400 });
   }
   if (b.replace) {
