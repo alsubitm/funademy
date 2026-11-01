@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { csvCell } from '@/lib/csv';
 import { requireAdmin } from '../guard';
 
 export const dynamic = 'force-dynamic';
@@ -71,27 +72,26 @@ export async function GET(req: NextRequest) {
 
   if (req.nextUrl.searchParams.get('format') === 'csv') {
     const header = 'id,created_at,parent_name,phone,email,contact_channel,contact_consent_at,child_first_name,child_birth_year,program,trial_starts_at,attendance,next_action,next_action_at,assigned_to,converted,status';
-    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const rows = rowsWithPipeline.map((b) =>
       [
         b.id,
         b.createdAt.toISOString(),
-        esc(b.parentName),
-        esc(b.phone),
-        esc(b.email),
+        b.parentName,
+        b.phone,
+        b.email,
         b.contactChannel,
         b.contactConsentAt?.toISOString() ?? '',
-        esc(b.childFirstName),
+        b.childFirstName,
         b.childBirthYear,
-        esc(b.program.nameEn),
+        b.program.nameEn,
         b.trialStartsAt?.toISOString() ?? '',
         b.trialAttendance,
-        esc(b.nextAction),
+        b.nextAction,
         b.nextActionAt?.toISOString() ?? '',
-        esc(b.assignedTo),
+        b.assignedTo,
         b.converted,
         b.status,
-      ].join(','),
+      ].map(csvCell).join(','),
     );
     return new NextResponse([header, ...rows].join('\n'), {
       headers: {
