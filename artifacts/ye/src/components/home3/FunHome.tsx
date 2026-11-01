@@ -9,6 +9,7 @@ import { IdeaMachine } from './IdeaMachine';
 import { Programs } from './Programs';
 import { CodingLab } from './CodingLab';
 import { FlipMark } from '@/components/brand/FlipMark';
+import { SocialLinks } from '@/components/SocialLinks';
 import './fa3.css';
 
 /**
@@ -237,6 +238,7 @@ export function FunHome({ lang }: { lang: Lang }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="curriculum-credit"><span>{t('curriculumCredit')}</span><img src="/v3/ye-credit.webp" loading="lazy" width={112} height={62} alt="Young Engineers" /></div>
         </div>
+        <SocialLinks lang={lang} />
         <div className="footer-bottom">
           <span>© {year} FunAdemy</span>
           <a href="https://funademy.io" target="_blank" rel="noopener">funademy.io ↗</a>

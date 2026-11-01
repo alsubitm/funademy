@@ -4,6 +4,7 @@ import { YELogo } from '@/components/brand/YELogo';
 import { dict } from '@/lib/i18n';
 import { PHONE_DISPLAY, WHATSAPP_NUMBER, EMAIL, NELC_LICENSE_NO } from '@/lib/constants';
 import { BRAND } from '@/lib/brand';
+import { SocialLinks } from '@/components/SocialLinks';
 
 export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
   const d = dict[lang];
@@ -67,6 +68,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
           </nav>
         </div>
         <div className="v3-footer-big" aria-hidden="true">Fun<span>Ademy</span><b>✳</b></div>
+        <SocialLinks lang={lang} />
         <div className="fbot">
           <span>{BRAND.creditLine}</span>
           {NELC_LICENSE_NO ? (
