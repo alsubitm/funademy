@@ -16,7 +16,7 @@ const toAscii = (raw: string) =>
     .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[\u06f0-\u06f9]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
 
-export function AccountFlow({ lang }: { lang: Lang }) {
+export function AccountFlow({ lang, onAuthenticated }: { lang: Lang; onAuthenticated?: (family: Me) => void }) {
   const d = accountDict[lang];
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
@@ -50,7 +50,9 @@ export function AccountFlow({ lang }: { lang: Lang }) {
       } else if (!res.ok) {
         throw new Error(`account_refresh_${res.status}`);
       } else {
-        setMe(await res.json());
+        const family: Me = await res.json();
+        setMe(family);
+        onAuthenticated?.(family);
       }
     } catch {
       setError('generic');

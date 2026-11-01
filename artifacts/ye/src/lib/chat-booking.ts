@@ -6,7 +6,7 @@ import { CATALOG } from '@/lib/catalog';
 
 type TrialInput = {
   programId: number; slotId: number; parentName: string; phone: string; email: string | null;
-  childFirstName: string; childBirthYear: number; familyId?: number;
+  childFirstName: string; childBirthYear: number; familyId: number;
   studentId?: number;
   neighborhood?: string;
   trialStartsAt?: Date;
@@ -15,10 +15,15 @@ type TrialInput = {
 /** Creates the durable trial request first. Calendar failure intentionally does
  * not undo it, matching the public route's manual-follow-up behaviour. */
 export async function createTrialBooking(input: TrialInput) {
+  // All callers must supply a server-authenticated family, never a body field.
+  if (!input.familyId) throw new Error('unauthorized');
+  const family = await prisma.family.findUnique({ where: { id: input.familyId } });
+  if (!family) throw new Error('unauthorized');
+  input = { ...input, phone: family.phone, parentName: family.parentName };
   const created = await withDbRetry(
     () =>
       prisma.$transaction(async (tx) => {
-        if (input.familyId) {
+        if (input.studentId !== undefined) {
           const child = await tx.student.findFirst({ where: { id: input.studentId, familyId: input.familyId, firstName: input.childFirstName, birthYear: input.childBirthYear } });
           if (!child) throw new Error('student_not_owned');
         }
@@ -37,6 +42,12 @@ export async function createTrialBooking(input: TrialInput) {
           select: { id: true },
         });
         if (duplicate) throw new Error('already_booked');
+        // Serialize across slots and child identities for this verified phone.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`trial-quota:${input.phone}`}))`;
+        const recent = await tx.booking.count({
+          where: { phone: input.phone, createdAt: { gte: new Date(Date.now() - 86400_000) } },
+        });
+        if (recent >= 5) throw new Error('trial_limit');
         const claimed = await tx.scheduleSlot.updateMany({
           where: { id: input.slotId, programId: input.programId, active: true, seatsLeft: { gt: 0 } },
           data: { seatsLeft: { decrement: 1 } },

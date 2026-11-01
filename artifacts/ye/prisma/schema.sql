@@ -893,6 +893,9 @@ CREATE INDEX "ye_watan_bricks_status_createdAt_idx" ON "ye_watan_bricks"("status
 CREATE INDEX "ye_brick_events_ipHash_day_idx" ON "ye_brick_events"("ipHash", "day");
 
 -- CreateIndex
+CREATE INDEX "ye_click_events_day_idx" ON "ye_click_events"("day");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_click_events_kind_page_day_key" ON "ye_click_events"("kind", "page", "day");
 
 -- CreateIndex
@@ -963,6 +966,9 @@ CREATE INDEX "ye_xapi_outbox_flush_runs_expiresAt_idx" ON "ye_xapi_outbox_flush_
 
 -- CreateIndex
 CREATE INDEX "ye_rate_limit_hits_key_at_idx" ON "ye_rate_limit_hits"("key", "at");
+
+-- CreateIndex
+CREATE INDEX "ye_rate_limit_hits_at_idx" ON "ye_rate_limit_hits"("at");
 
 -- CreateIndex
 CREATE INDEX "campaign_brick_events_key_created_at_idx" ON "campaign_brick_events"("key", "created_at");

@@ -66,6 +66,12 @@ export async function register() {
 
   const runSweep = async () => {
     try {
+      const { sweepAbuseRetention } = await import('@/lib/abuse-retention');
+      await sweepAbuseRetention();
+    } catch (e) {
+      console.error('[abuse-retention] periodic cleanup failed:', e);
+    }
+    try {
       const { sweepStalePayments } = await import('@/lib/pay-core');
       const { settled, expired, errors } = await sweepStalePayments();
       if (settled || expired || errors) {

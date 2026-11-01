@@ -688,6 +688,7 @@ model ClickEvent {
   count Int    @default(0)
 
   @@unique([kind, page, day])
+  @@index([day])
   @@map("ye_click_events")
 }
 
@@ -1044,6 +1045,7 @@ model RateLimitHit {
   at  DateTime @default(now())
 
   @@index([key, at])
+  @@index([at])
   @@map("ye_rate_limit_hits")
 }
 

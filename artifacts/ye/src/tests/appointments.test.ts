@@ -10,7 +10,10 @@
  * Runs against the isolated ye_test database (see global-setup / setup-env),
  * calling the Next.js route handlers directly.
  */
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
+const auth = vi.hoisted(() => ({ familyId: 0 }));
+vi.mock('@/lib/family-auth', () => ({ getFamilyId: async () => auth.familyId }));
 
 // ——— mock the Google Calendar layer: no real connector calls in tests ———
 vi.mock('@/lib/google-calendar', () => ({
@@ -29,6 +32,7 @@ import {
 } from '@/lib/appointments';
 import { POST as appointmentsPOST } from '@/app/(ar)/svc/appointments/route';
 import { POST as bookingsPOST } from '@/app/(ar)/svc/bookings/route';
+import { createTrialBooking } from '@/lib/chat-booking';
 
 const mockCreate = vi.mocked(createMeetEvent);
 const mockAddAttendee = vi.mocked(addAttendeeToEvent);
@@ -58,7 +62,16 @@ beforeAll(async () => {
   await prisma.rateLimitHit.deleteMany({});
 });
 
-beforeEach(() => {
+let verifiedPhone = '';
+const families: number[] = [];
+afterAll(async () => {
+  await prisma.family.deleteMany({ where: { id: { in: families } } });
+});
+beforeEach(async () => {
+  const family = await prisma.family.create({ data: { phone: freshPhone(), parentName: 'Verified parent' } });
+  auth.familyId = family.id;
+  verifiedPhone = family.phone;
+  families.push(family.id);
   mockCreate.mockReset();
   mockAddAttendee.mockReset();
   mockCreate.mockImplementation(async () => ({
@@ -257,13 +270,56 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     programId,
     slotId,
     parentName: `Parent ${RUN}`,
-    phone: freshPhone(),
-    childFirstName: 'Test',
+    phone: verifiedPhone,
+    childFirstName: `Test-${Math.random()}`,
     childBirthYear: new Date().getFullYear() - 8,
     neighborhood: 'Test',
     contactConsent: true,
     contactChannel: 'email',
     email: email ?? 'trial-reminders@example.com',
+  });
+
+  it('rejects anonymous and stale sessions without reserving seats or creating events', async () => {
+    const { program, slot } = await createProgramWithSlot();
+    auth.familyId = 0;
+    expect((await bookingsPOST(jsonReq('/svc/bookings', bookingBody(program.id, slot.id)))).status).toBe(401);
+    auth.familyId = 2147483647;
+    expect((await bookingsPOST(jsonReq('/svc/bookings', bookingBody(program.id, slot.id)))).status).toBe(401);
+    expect(await prisma.booking.count({ where: { slotId: slot.id } })).toBe(0);
+    expect((await prisma.scheduleSlot.findUniqueOrThrow({ where: { id: slot.id } })).seatsLeft).toBe(12);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('binds public bookings to the verified phone, ignoring invented contact identity', async () => {
+    const { program, slot } = await createProgramWithSlot();
+    const res = await bookingsPOST(jsonReq('/svc/bookings', {
+      ...bookingBody(program.id, slot.id), phone: '+966511111111', familyId: 2147483647,
+    }));
+    expect(res.status).toBe(201);
+    const booking = await prisma.booking.findUniqueOrThrow({ where: { id: (await res.json()).id } });
+    expect(booking.phone).toBe(verifiedPhone);
+    expect(booking.parentName).toBe('Verified parent');
+  });
+
+  it('atomically limits a verified phone across changing children, slots and submitted phones', async () => {
+    const { program, slot } = await createProgramWithSlot();
+    const other = await prisma.scheduleSlot.create({
+      data: { programId: program.id, weekday: 2, time: '18:00', format: 'in_person', capacity: 12, seatsLeft: 12 },
+    });
+    const outcomes = await Promise.allSettled(Array.from({ length: 8 }, (_, i) =>
+      createTrialBooking({
+        ...bookingBody(program.id, i % 2 ? slot.id : other.id),
+        familyId: auth.familyId, phone: freshPhone(), childFirstName: `child-${i}`,
+      }),
+    ));
+    expect(outcomes.filter((r) => r.status === 'fulfilled')).toHaveLength(5);
+    expect(outcomes.filter((r) => r.status === 'rejected').every((r) =>
+      r.status === 'rejected' && r.reason.message === 'trial_limit')).toBe(true);
+    expect(await prisma.booking.count({ where: { phone: verifiedPhone } })).toBe(5);
+    const remaining = await prisma.scheduleSlot.aggregate({
+      where: { id: { in: [slot.id, other.id] } }, _sum: { seatsLeft: true },
+    });
+    expect(remaining._sum.seatsLeft).toBe(19);
   });
 
   it('second booking into the same program/time reuses the event and adds the guest', async () => {

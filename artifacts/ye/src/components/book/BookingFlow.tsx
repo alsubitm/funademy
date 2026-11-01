@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { bookDict } from '@/app/(ar)/book/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { getSavedAge, saveAge } from '@/lib/savedAge';
+import { AccountFlow } from '@/components/account/AccountFlow';
+import '@/app/(ar)/account/page.css';
 
 type BookingFlowProps = {
   programs: any[];
@@ -61,6 +63,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   } | null>(null);
   
   const [error, setError] = useState('');
+  const [verified, setVerified] = useState(false);
 
   // Derived
   const programSlots = slots.filter((s) => s.programId === programId);
@@ -133,6 +136,10 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
           setError(d.slotFullError);
           setSlotId(null);
           setStep(2);
+        } else if (res.status === 401) {
+          setVerified(false);
+        } else if (data?.error === 'trial_limit' || data?.error === 'rate_limited') {
+          setError(lang === 'ar' ? 'تم بلوغ حد الحجز. يرجى المحاولة لاحقاً.' : 'Booking limit reached. Please try again later.');
         } else {
           setError(d.genericError);
         }
@@ -154,6 +161,17 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   const waitlistWaLink = (programName: string) => {
     return waLink(`${d.waitlistMsg} ${programName}`);
   };
+
+  if (!verified) {
+    return <div className="acct-pg">
+      <p>{lang === 'ar' ? 'يرجى تأكيد رقم الجوال لحجز مقعد تجريبي.' : 'Please verify your phone number to reserve a trial seat.'}</p>
+      <AccountFlow lang={lang} onAuthenticated={(family) => {
+        setPhone(family.phone);
+        setParentName(family.parentName);
+        setVerified(true);
+      }} />
+    </div>;
+  }
 
   if (step === 4) {
     return (
@@ -333,7 +351,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
             </div>
             <div className="f-group">
               <label htmlFor="book-mobile">{d.mobile}</label>
-              <input id="book-mobile" type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isPending} />
+              <input id="book-mobile" type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} readOnly disabled={isPending} />
             </div>
             <div className="f-group">
               <label htmlFor="book-child-name">{d.childName}</label>

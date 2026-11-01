@@ -34,13 +34,6 @@ export async function allowRate(key: string, max: number, windowMs: number): Pro
   } catch (e) {
     console.error('[rate-limit] check failed, rejecting request:', e);
     return false;
-  } finally {
-    // Opportunistic cleanup so the table cannot grow unbounded. Anything
-    // older than the largest window we use (24h) is dead weight.
-    const stale = new Date(now.getTime() - 24 * 60 * 60_000);
-    prisma.rateLimitHit
-      .deleteMany({ where: { at: { lt: stale } } })
-      .catch(() => {});
   }
 }
 

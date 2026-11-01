@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { allowRate, clientIp } from '@/lib/rate-limit';
 import { createTrialBooking } from '@/lib/chat-booking';
 import { formatRiyadh } from '@/lib/appointments';
+import { getFamilyId } from '@/lib/family-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const familyId = await getFamilyId();
+  if (!familyId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   let body: unknown;
   try {
     body = await req.json();
@@ -13,6 +16,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
   const b = body as Record<string, unknown>;
+  if (!b || typeof b !== 'object' || Array.isArray(b)) {
+    return NextResponse.json({ error: 'validation' }, { status: 400 });
+  }
 
   const programId = Number(b.programId);
   const slotId = Number(b.slotId);
@@ -50,6 +56,7 @@ export async function POST(req: NextRequest) {
   let outcome;
   try {
     outcome = await createTrialBooking({
+      familyId,
       programId,
       slotId,
       parentName,
@@ -61,6 +68,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     const code = e instanceof Error ? e.message : 'booking_failed';
+    if (code === 'unauthorized') return NextResponse.json({ error: code }, { status: 401 });
+    if (code === 'trial_limit') return NextResponse.json({ error: code }, { status: 429 });
     if (code === 'slot_not_found') return NextResponse.json({ error: code }, { status: 404 });
     if (['slot_full', 'already_booked', 'program_not_eligible'].includes(code)) {
       return NextResponse.json({ error: code }, { status: 409 });

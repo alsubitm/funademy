@@ -109,6 +109,11 @@ beforeAll(async () => {
     },
   });
   slotId = slot.id;
+  const family = await prisma.family.create({
+    data: { phone: BOOKED_PHONE, parentName: `ولي أمر ${RUN}`, email: 'trial@example.com' },
+  });
+  familyId = family.id;
+  cookieJar.set(FAMILY_COOKIE, familyToken(familyId));
 });
 
 afterAll(async () => {
@@ -182,14 +187,6 @@ describe('trial follow-up pipeline', () => {
     expect(updated.trialAttendance).toBe('present');
     expect(updated.attendedAt).toBeInstanceOf(Date);
 
-    const family = await prisma.family.create({
-      data: {
-        phone: BOOKED_PHONE,
-        parentName: `ولي أمر ${RUN}`,
-        email: 'trial@example.com',
-      },
-    });
-    familyId = family.id;
     const student = await prisma.student.create({
       data: { familyId, firstName: CHILD_NAME, birthYear: new Date().getFullYear() - 9 },
     });
