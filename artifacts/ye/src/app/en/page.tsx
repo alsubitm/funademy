@@ -79,7 +79,7 @@ export default async function EnglishHomePage() {
         />
       )}
       <SiteHeader lang="en" />
-      <main id="main-content" className="v9">
+      <main id="main-content" className="v3">
         <Hero lang="en" />
         <LiveTicker slots={slots} lang="en" />
         <SandStripe />

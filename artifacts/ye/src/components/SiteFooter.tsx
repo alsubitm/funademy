@@ -16,10 +16,10 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
         <div className="fgrid">
           <div>
             <div className="mb-4 flex items-center gap-3">
-              <KiteMark size={44} dark />
+              <KiteMark size={44} />
               <Wordmark
                 lang={lang}
-                style={{ fontSize: 26, color: '#fff', ['--wm-fun' as never]: '#FFCA17', ['--wm-ademy' as never]: '#fff' }}
+                style={{ fontSize: 26, color: '#101a38', ['--wm-fun' as never]: '#101a38', ['--wm-ademy' as never]: '#1c54cb' }}
               />
             </div>
             <p className="text-sm mt-2 opacity-80" style={{ maxWidth: '300px' }}>
@@ -27,7 +27,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
             </p>
             {/* Official e² YE partner logo */}
             <div className="mt-5">
-              <YELogo height={30} onDark />
+              <YELogo height={30} />
             </div>
           </div>
           <nav aria-labelledby="footer-platforms">
@@ -66,6 +66,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
             </ul>
           </nav>
         </div>
+        <div className="v3-footer-big" aria-hidden="true">Fun<span>Ademy</span><b>✳</b></div>
         <div className="fbot">
           <span>{BRAND.creditLine}</span>
           {NELC_LICENSE_NO ? (
