@@ -60,6 +60,14 @@ const FILE_EXCEPTIONS = new Set<string>([
   // hero's own layout and break its appearance. The <section> element is still
   // semantically correct; the opt-out is purely cosmetic.
   'components/home/Hero.tsx',
+  // The V3 homepage has its own .fa3-scoped design system (fa3.css):
+  // section-wrap, hero, programs, fidea, play-section and contact-section
+  // define their own responsive spacing/layout. Legacy .sec padding and
+  // descendant heading styles would override the approved V3 design.
+  // Keep these opt-outs file-specific so other public pages remain guarded.
+  'components/home3/FunHome.tsx',
+  'components/home3/Programs.tsx',
+  'components/home3/IdeaMachine.tsx',
 ]);
 
 function isExcluded(rel: string): boolean {

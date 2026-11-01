@@ -53,7 +53,13 @@ function childEnv(): NodeJS.ProcessEnv {
 }
 
 async function fetchText(pathname: string): Promise<string> {
-  const res = await fetch(`${BASE}${pathname}`, { redirect: 'follow' });
+  // Next.js streams metadata outside <head> for ordinary visitors. Request
+  // the HTML-limited crawler response so seoSurface checks the blocking
+  // <head> metadata that social crawlers actually receive.
+  const res = await fetch(`${BASE}${pathname}`, {
+    redirect: 'follow',
+    headers: { 'User-Agent': 'Twitterbot/1.0' },
+  });
   expect(res.ok, `${pathname} responded ${res.status}`).toBe(true);
   return res.text();
 }

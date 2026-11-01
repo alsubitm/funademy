@@ -28,8 +28,8 @@ catalogs:
       specifier: ^4.21.0
       version: 4.23.1
     zod:
-      specifier: ^3.25.76
-      version: 3.25.76
+      specifier: ^4.6.7
+      version: 4.6.7
 
 overrides:
   nanoid@<3.3.17: ^3.3.18
@@ -37,6 +37,8 @@ overrides:
   sharp@<0.35.5: ^0.35.5
   esbuild@<0.28.0: ^0.28.2
   deepmerge-ts@<8.0.0: ^8.0.2
+  vite@>=7.0.0 <7.3.7: ^7.3.7
+  source-map-js@<1.2.2: ^1.2.2
 
 importers:
 
@@ -66,7 +68,7 @@ importers:
         version: 15.5.28(@playwright/test@1.64.1)(@types/node@25.9.5)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       openai:
         specifier: ^6.27.0
-        version: 6.49.0(zod@3.25.76)
+        version: 6.49.0(zod@4.6.7)
       react:
         specifier: 'catalog:'
         version: 19.1.0
@@ -75,7 +77,7 @@ importers:
         version: 19.1.0(react@19.1.0)
       zod:
         specifier: 'catalog:'
-        version: 3.25.76
+        version: 4.6.7
     devDependencies:
       '@playwright/test':
         specifier: ^1.64.1
@@ -96,8 +98,8 @@ importers:
         specifier: ^8.5.26
         version: 8.5.26
       postcss-selector-parser:
-        specifier: ^7.1.5
-        version: 7.1.5
+        specifier: ^7.1.7
+        version: 7.1.7
       prisma:
         specifier: ^6.5.0
         version: 6.19.3(typescript@5.9.3)
@@ -822,7 +824,7 @@ packages:
     resolution: {integrity: sha512-fKShNpKZzupWZuY0z7egydvL0sqW4INEZBEExMBMAa6izlENEVHwoXgdaTCaBZ5fwlr4xf2o1wXC83n9RpO+NA==}
     peerDependencies:
       msw: ^2.4.9
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: ^7.3.7
     peerDependenciesMeta:
       msw:
         optional: true
@@ -1134,8 +1136,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  postcss-selector-parser@7.1.5:
-    resolution: {integrity: sha512-KvvtD7SrlBP7dlgkBghEE3r84CABm5SmV2aNcG4oCA+qDnJ/tvKonFVvwWAyyWUEwxuNawdfEAZKP9zM3oZ2Uw==}
+  postcss-selector-parser@7.1.7:
+    resolution: {integrity: sha512-wWBro/7hJ40ye6TPiXkUQoXKCw23xSsjriUvqd7Uls9Sso3oLiON1flc18cCdnjgCRXw4fBVqUJJeOdDTh3P3g==}
     engines: {node: '>=4'}
 
   postcss@8.5.26:
@@ -1201,8 +1203,8 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
-  source-map-js@1.2.1:
-    resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
+  source-map-js@1.2.2:
+    resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
 
   stackback@0.0.2:
@@ -1265,8 +1267,8 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  vite@7.3.6:
-    resolution: {integrity: sha512-4XP60spRGjSZFf1qYH+dJIkK2znL3zQfl9KkOV9MkkRR/3Dls0dxaBsQPTloEc5BLXWPL9vsOxopxyKoMmDueg==}
+  vite@7.3.7:
+    resolution: {integrity: sha512-AHEzTORMbi7/7aXp7w7KZ5+DCUdSeLsJz0grY8xHpc9DHdYb0vQu6DqJfm2tOw3gDExNgPgnJTXxM6syYFHaCA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -1350,8 +1352,8 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
 snapshots:
 
@@ -1721,7 +1723,7 @@ snapshots:
       jiti: 2.7.0
       lightningcss: 1.32.0
       magic-string: 0.30.21
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
       tailwindcss: 4.3.3
 
   '@tailwindcss/oxide-android-arm64@4.3.3':
@@ -1813,13 +1815,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.12(vite@7.3.6(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1))':
+  '@vitest/mocker@4.1.12(vite@7.3.7(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1))':
     dependencies:
       '@vitest/spy': 4.1.12
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.6(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)
+      vite: 7.3.7(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)
 
   '@vitest/pretty-format@4.1.12':
     dependencies:
@@ -2065,9 +2067,9 @@ snapshots:
 
   ohash@2.0.11: {}
 
-  openai@6.49.0(zod@3.25.76):
+  openai@6.49.0(zod@4.6.7):
     optionalDependencies:
-      zod: 3.25.76
+      zod: 4.6.7
 
   pathe@2.0.3: {}
 
@@ -2089,7 +2091,7 @@ snapshots:
     dependencies:
       playwright-core: 1.64.1
 
-  postcss-selector-parser@7.1.5:
+  postcss-selector-parser@7.1.7:
     dependencies:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
@@ -2098,7 +2100,7 @@ snapshots:
     dependencies:
       nanoid: 3.3.18
       picocolors: 1.1.1
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   prettier@3.9.6: {}
 
@@ -2199,7 +2201,7 @@ snapshots:
 
   siginfo@2.0.0: {}
 
-  source-map-js@1.2.1: {}
+  source-map-js@1.2.2: {}
 
   stackback@0.0.2: {}
 
@@ -2239,7 +2241,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite@7.3.6(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1):
+  vite@7.3.7(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1):
     dependencies:
       esbuild: 0.28.2
       fdir: 6.5.0(picomatch@4.0.5)
@@ -2257,7 +2259,7 @@ snapshots:
   vitest@4.1.12(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1):
     dependencies:
       '@vitest/expect': 4.1.12
-      '@vitest/mocker': 4.1.12(vite@7.3.6(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1))
+      '@vitest/mocker': 4.1.12(vite@7.3.7(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1))
       '@vitest/pretty-format': 4.1.12
       '@vitest/runner': 4.1.12
       '@vitest/snapshot': 4.1.12
@@ -2274,7 +2276,7 @@ snapshots:
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
-      vite: 7.3.6(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)
+      vite: 7.3.7(@types/node@25.9.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 25.9.5
@@ -2296,4 +2298,4 @@ snapshots:
       siginfo: 2.0.0
       stackback: 0.0.2
 
-  zod@3.25.76: {}
+  zod@4.6.7: {}
