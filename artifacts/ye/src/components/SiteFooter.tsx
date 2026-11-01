@@ -43,7 +43,7 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
             <h4 id="footer-quicklinks">{ar ? 'روابط سريعة' : 'Quick Links'}</h4>
             <ul>
               <li><Link href={p('/programs')}>{d.navPrograms}</Link></li>
-              <li><a href="#pricing">{d.navPricing}</a></li>
+              <li><Link href={ar ? '/#contact' : '/en#contact'}>{d.navPricing}</Link></li>
               <li><a href="#faq">FAQ</a></li>
               <li><Link href={p('/blog')}>{ar ? 'المدونة' : 'Blog'}</Link></li>
               <li><Link href={p('/watanona')}>{ar ? 'حملة وطنّونا' : 'Watanona Campaign'}</Link></li>

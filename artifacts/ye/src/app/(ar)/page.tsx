@@ -1,7 +1,6 @@
 export const revalidate = 300;
 import type { Metadata } from 'next';
 import { siteUrl } from '@/lib/site-url';
-import { prisma, withDbRetry } from '@/lib/db';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
@@ -37,83 +36,25 @@ export function generateMetadata(): Metadata {
   };
 }
 
-import { safeQuery } from '@/lib/safe-query';
-import { SiteHeader } from '@/components/SiteHeader';
-import { SiteFooter } from '@/components/SiteFooter';
-import { SandStripe } from '@/components/SandStripe';
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';
-import { LiveTicker } from '@/components/LiveTicker';
-import { Hero } from '@/components/home/Hero';
-import { Stats } from '@/components/home/Stats';
-import { Platforms } from '@/components/home/Platforms';
-import { PathMap } from '@/components/home/PathMap';
-import { Kits } from '@/components/home/Kits';
-import { Workshop } from '@/components/home/Workshop';
-import { Territory } from '@/components/home/Territory';
-import { Testimonials } from '@/components/home/Testimonials';
-import { Pricing } from '@/components/home/Pricing';
-import { FAQ } from '@/components/home/FAQ';
-import { WatanTeaser } from '@/components/home/WatanTeaser';
-import { Certificate } from '@/components/home/Certificate';
+import { FunHome } from '@/components/home3/FunHome';
+import { copy } from '@/components/home3/data';
 
-export default async function HomePage() {
-  const [slots, programs, faqs, testimonials] = await Promise.all([
-    safeQuery(() => withDbRetry(() => prisma.scheduleSlot.findMany({
-      where: { active: true },
-      include: { program: true },
-      orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
-      take: 10,
-    }), { operation: 'home:slots', kind: 'read' }), [], 'home:slots'),
-    safeQuery(() => withDbRetry(() => prisma.program.findMany({
-      orderBy: { position: 'asc' },
-    }), { operation: 'home:programs', kind: 'read' }), [], 'home:programs'),
-    safeQuery(() => withDbRetry(() => prisma.faqEntry.findMany({
-      where: { published: true },
-      orderBy: { position: 'asc' },
-    }), { operation: 'home:faqs', kind: 'read' }), [], 'home:faqs'),
-    safeQuery(() => withDbRetry(() => prisma.testimonial.findMany({
-      where: { published: true },
-      orderBy: { position: 'asc' },
-    }), { operation: 'home:testimonials', kind: 'read' }), [], 'home:testimonials'),
-  ]);
+const faqLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: ([1, 2, 3, 4] as const).map((n) => ({
+    '@type': 'Question',
+    name: copy.ar[`faqQ${n}`],
+    acceptedAnswer: { '@type': 'Answer', text: copy.ar[`faqA${n}`] },
+  })),
+};
 
+export default function HomePage() {
   return (
     <>
-      {faqs.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'FAQPage',
-              mainEntity: faqs.map(faq => ({
-                '@type': 'Question',
-                name: faq.questionAr,
-                acceptedAnswer: { '@type': 'Answer', text: faq.answerAr },
-              })),
-            }),
-          }}
-        />
-      )}
-      <SiteHeader lang="ar" />
-      <main id="main-content" className="v3">
-        <Hero lang="ar" />
-        <LiveTicker slots={slots} lang="ar" />
-        <SandStripe />
-        <Stats lang="ar" />
-        <Platforms lang="ar" />
-        <PathMap lang="ar" />
-        <Kits programs={programs} lang="ar" />
-        <Workshop lang="ar" />
-        <WatanTeaser lang="ar" />
-        <Territory lang="ar" />
-        <Testimonials lang="ar" testimonials={testimonials} />
-        <Pricing lang="ar" />
-        <Certificate lang="ar" />
-        <FAQ faqs={faqs} lang="ar" />
-        <SandStripe />
-      </main>
-      <SiteFooter lang="ar" />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
+      <FunHome lang="ar" />
       <WhatsAppFloat lang="ar" />
     </>
   );

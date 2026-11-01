@@ -31,10 +31,10 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
             <Wordmark lang={lang} style={{ fontSize: 26, lineHeight: 1 }} />
           </Link>
           <div className="links">
-            <a href={`${home}#path`}>{d.navPath}</a>
+            <a href={`${home}#our-way`}>{d.navPath}</a>
             <Link href={lang === 'ar' ? '/programs' : '/en/programs'}>{d.navPrograms}</Link>
-            <a href={`${home}#workshop`}>{d.navWorkshop}</a>
-            <a href={`${home}#pricing`}>{d.navPricing}</a>
+            <a href={`${home}#play`}>{d.navWorkshop}</a>
+            <a href={`${home}#contact`}>{d.navPricing}</a>
             <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
             <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
             <LangSwitcher lang={lang} />
@@ -51,10 +51,10 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
                 <span />
               </summary>
               <div className="mobile-menu-panel">
-                <a href={`${home}#path`}>{d.navPath}</a>
+                <a href={`${home}#our-way`}>{d.navPath}</a>
                 <Link href={lang === 'ar' ? '/programs' : '/en/programs'}>{d.navPrograms}</Link>
-                <a href={`${home}#workshop`}>{d.navWorkshop}</a>
-                <a href={`${home}#pricing`}>{d.navPricing}</a>
+                <a href={`${home}#play`}>{d.navWorkshop}</a>
+                <a href={`${home}#contact`}>{d.navPricing}</a>
                 <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
                 <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
                 <Link className="btn y" href={lang === 'ar' ? '/book' : '/en/book'}>{d.navTrial}</Link>
