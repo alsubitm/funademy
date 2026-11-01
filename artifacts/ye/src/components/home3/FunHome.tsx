@@ -130,7 +130,7 @@ export function FunHome({ lang }: { lang: Lang }) {
             <div className="photo-backplate" aria-hidden="true" />
             <figure className="hero-photo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/v3/saudi-hero.webp" fetchPriority="high" width={1024} height={1024} alt={t('heroAlt')} />
+              <img src="/v3/traditional-saudi-hero.webp" fetchPriority="high" width={1024} height={1024} alt={t('heroAlt')} />
               <figcaption><span className="photo-index">01 /</span> <span>{t('photoCaption')}</span><span aria-hidden="true">↗</span></figcaption>
             </figure>
             <div className="curiosity-seal" aria-hidden="true"><span>{t('sealTop')}</span><b>✳</b><span>{t('sealBottom')}</span></div>
@@ -181,7 +181,7 @@ export function FunHome({ lang }: { lang: Lang }) {
 
         <section className="schools section-wrap" id="schools">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="school-photo reveal"><img src="/v3/saudi-school.webp" alt={t('schoolAlt')} loading="lazy" width={1024} height={1024} /><div className="school-label"><span aria-hidden="true">✳</span><span>{t('schoolLabel')}</span></div></div>
+          <div className="school-photo reveal"><img src="/v3/traditional-saudi-school.webp" alt={t('schoolAlt')} loading="lazy" width={1024} height={1024} /><div className="school-label"><span aria-hidden="true">✳</span><span>{t('schoolLabel')}</span></div></div>
           <div className="school-copy reveal"><p className="eyebrow">{t('schoolsEyebrow')}</p><h2><span>{t('schoolTitle1')}</span><br /><span className="highlight">{t('schoolTitle2')}</span></h2><p>{t('schoolBody')}</p>
             <ul className="school-points">{(['schoolPoint1', 'schoolPoint2', 'schoolPoint3'] as const).map((k) => <li key={k}><span aria-hidden="true">↗</span><span>{t(k)}</span></li>)}</ul>
             <a className="button button-navy" href="#contact" data-testid="link-school-enquiry" onClick={() => { setEnqType('school'); setInterest('partnership'); }}><span>{t('schoolCta')}</span><span aria-hidden="true">↗</span></a>

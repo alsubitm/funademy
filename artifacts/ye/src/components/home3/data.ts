@@ -335,7 +335,7 @@ export const programs: Program[] = [
   "category": "building",
   "categoryKey": "catEarly",
   "age": "4–6",
-  "image": "/v3/saudi-hero.webp",
+  "image": "/v3/traditional-saudi-hero.webp",
   "photo": true,
   "short": {
    "en": "First discoveries, built one brick at a time.",
@@ -364,7 +364,7 @@ export const programs: Program[] = [
   "category": "coding",
   "categoryKey": "catEarly",
   "age": "4–6",
-  "image": "/v3/saudi-school.webp",
+  "image": "/v3/traditional-saudi-school.webp",
   "photo": true,
   "short": {
    "en": "Spot a pattern. Plan a sequence. Let clever thinking begin.",
@@ -422,7 +422,7 @@ export const programs: Program[] = [
   "category": "coding",
   "categoryKey": "catCode",
   "age": "6–10",
-  "image": "/v3/saudi-coding.webp",
+  "image": "/v3/traditional-saudi-coding.webp",
   "photo": true,
   "short": {
    "en": "Guide a virtual robot. Test a clever plan. Make logic click.",
