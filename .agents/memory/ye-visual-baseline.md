@@ -9,6 +9,12 @@ The user explicitly selected FunAdemy-V3-Arabic_1793492368686.html as the new re
 
 The user rejected the recolored adaptation with “no i need the same design”. Match the attachment's actual composition, section order, copy, imagery and proportions rather than restyling the old homepage sections.
 
+For people imagery, the user requested “make the humans look more saudis”.
+
+**Why:** The user wants Saudi representation in the site's visuals.
+
+**How to apply:** Use Saudi-localized classroom imagery without changing the approved layout; do not present generated people as actual students or staff.
+
 **Why:** A theme adaptation did not satisfy their explicit expectation of the same design.
 
 **How to apply:** Preserve existing feature routes and backend flows, but use the reference homepage composition. Do not interpret feature preservation as keeping the old homepage layout.
