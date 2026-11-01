@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     template: '%s | FunAdemy',
   },
   description:
-    'STEM education through moving LEGO® models for children ages 4–18 in Riyadh. Online and in-person classes. e² Young Engineers, Falcon Eye license.',
+    'STEM education through moving LEGO® models for children ages 4–18 in Riyadh. In-person classes. e² Young Engineers, Falcon Eye license.',
   openGraph: {
     siteName: 'FunAdemy',
     type: 'website',
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/en`,
     title: 'FunAdemy — Where Fun Meets Academy',
     description:
-      'STEM education through moving LEGO® models for children ages 4–18. Online and in-person classes in Riyadh.',
+      'STEM education through moving LEGO® models for children ages 4–18. In-person classes in Riyadh.',
     images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'FunAdemy' }],
   },
   twitter: {

@@ -12,14 +12,14 @@ export function Territory({ lang }: { lang: 'ar' | 'en' }) {
             <>
               <h2>بفخر نخدم أطفالنا أينما كانوا</h2>
               <p className="sub">
-                بصفتنا الوكيل المعتمد لبرامج e² Young Engineers، نحن ملتزمون بتقديم معاييرها العالمية لأطفالكم — أونلاين للجميع من أي مكان.
+                بصفتنا الوكيل المعتمد لبرامج e² Young Engineers، نحن ملتزمون بتقديم معاييرها العالمية لأطفالكم — حضورياً في الرياض.
               </p>
             </>
           ) : (
             <>
               <h2>Proudly serving families everywhere</h2>
               <p className="sub">
-                As an officially licensed e² Young Engineers partner, we are committed to bringing its global standard to your family — online for everyone, from anywhere.
+                As an officially licensed e² Young Engineers partner, we are committed to bringing its global standard to your family — in person in Riyadh.
               </p>
             </>
           )}

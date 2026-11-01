@@ -82,8 +82,8 @@ export function FunHome({ lang }: { lang: Lang }) {
   );
 
   const feature = lang === 'ar'
-    ? [['/book', 'احجز حصة تجريبية'], ['/enroll', 'التسجيل'], ['/programs', 'البرامج'], ['/portal', 'بوابة الأهالي'], ['/learn', 'منصة التعلّم'], ['/blog', 'المدونة'], ['/account', 'حسابي'], ['/contact', 'تواصل معنا']]
-    : [['/book', 'Book a trial'], ['/enroll', 'Enroll'], ['/programs', 'Programs'], ['/portal', 'Parent portal'], ['/learn', 'Learning platform'], ['/blog', 'Blog'], ['/account', 'My account'], ['/contact', 'Contact']];
+    ? [['/book', 'احجز حصة تجريبية'], ['/enroll', 'التسجيل'], ['/programs', 'البرامج'], ['/portal', 'بوابة الأهالي'], ['/learn', 'مكتبة الأنشطة'], ['/blog', 'المدونة'], ['/account', 'حسابي'], ['/contact', 'تواصل معنا']]
+    : [['/book', 'Book a trial'], ['/enroll', 'Enroll'], ['/programs', 'Programs'], ['/portal', 'Parent portal'], ['/learn', 'Resource library'], ['/blog', 'Blog'], ['/account', 'My account'], ['/contact', 'Contact']];
 
   return (
     <div className={`fa3${paused ? ' motion-paused' : ''}`} ref={rootRef}>

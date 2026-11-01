@@ -88,7 +88,7 @@ export function ProgramDetail({
                   ))}
                 </span>
               </span>
-              <span className="pm-badge"><i>{d.format}</i> {CATALOG[program.slug] ? (lang === 'ar' ? CATALOG[program.slug].formatAr : CATALOG[program.slug].formatEn) : (program.format === 'online' ? d.online : d.inPerson)}</span>
+              <span className="pm-badge"><i>{d.format}</i> {CATALOG[program.slug] ? (lang === 'ar' ? CATALOG[program.slug].formatAr : CATALOG[program.slug].formatEn) : d.inPerson}</span>
             </div>
 
             <div className="hcta">
@@ -169,8 +169,7 @@ export function ProgramDetail({
               <h4>{d.pricingTitle}</h4>
               <div className="prog-price mb-6">
                 <div className="amt">
-                  {program.format === 'online' ? d.pricingOnline : d.pricingInPerson}
-                  <small className="block" style={{marginTop: '-4px'}}>{isAr ? '/ شهرياً' : '/ mo'}</small>
+                  <span style={{ fontSize: '0.5em', display: 'block', lineHeight: 1.3 }}>{d.pricingContact}</span>
                 </div>
                 <div className="note">{d.pricingFamily}</div>
               </div>

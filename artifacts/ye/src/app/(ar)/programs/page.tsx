@@ -10,7 +10,7 @@ export function generateMetadata(): Metadata {
   return {
     title: 'برامجنا المعتمدة | FunAdemy',
     description:
-      'ثلاثة مجالات تعليمية وسبعة برامج معتمدة من e² Young Engineers للأعمار ٤–١٨. هندسة، برمجة، وروبوتات أونلاين في الرياض.',
+      'ثلاثة مجالات تعليمية وسبعة برامج معتمدة من e² Young Engineers للأعمار ٤–١٨. هندسة، برمجة، وروبوتات حضورياً في الرياض.',
     alternates: {
       canonical: `${base}/programs`,
       languages: {

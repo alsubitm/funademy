@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
 import { YELogo } from '@/components/brand/YELogo';
 import { dict } from '@/lib/i18n';
-import { PHONE_DISPLAY, WHATSAPP_NUMBER, EMAIL, NELC_LICENSE_NO } from '@/lib/constants';
+import { PHONE_DISPLAY, WHATSAPP_NUMBER, EMAIL } from '@/lib/constants';
 import { BRAND } from '@/lib/brand';
 import { SocialLinks } from '@/components/SocialLinks';
 
@@ -61,9 +61,6 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
             <ul aria-labelledby="footer-policies">
               <li><Link href={p('/privacy')}>{ar ? 'سياسة الخصوصية' : 'Privacy policy'}</Link></li>
               <li><Link href={p('/terms')}>{ar ? 'الشروط والأحكام' : 'Terms & conditions'}</Link></li>
-              <li><Link href={p('/nelc')}>
-                {ar ? 'الجاهزية للمركز الوطني للتعليم الإلكتروني' : 'NELC readiness'}
-              </Link></li>
             </ul>
           </nav>
         </div>
@@ -71,12 +68,6 @@ export function SiteFooter({ lang }: { lang: 'ar' | 'en' }) {
         <SocialLinks lang={lang} />
         <div className="fbot">
           <span>{BRAND.creditLine}</span>
-          {NELC_LICENSE_NO ? (
-            <span>
-              {ar ? 'ترخيص المركز الوطني للتعليم الإلكتروني رقم ' : 'NELC license no. '}
-              {NELC_LICENSE_NO}
-            </span>
-          ) : null}
           <span>{BRAND.copyright(new Date().getFullYear())}</span>
           <span>{BRAND.legoDisclaimer}</span>
         </div>

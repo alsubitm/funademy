@@ -58,7 +58,7 @@ export async function GET() {
         const spec = CATALOG[p.slug];
         const details = [
           `ages ${p.ageMin}-${p.ageMax}`,
-          spec ? `${spec.lessonMin}-minute live online classes` : 'live online classes',
+          spec ? `${spec.lessonMin}-minute in-person classes in Riyadh` : 'in-person classes in Riyadh',
           spec ? FIELDS[spec.field].en : null,
         ]
           .filter(Boolean)
@@ -77,13 +77,12 @@ export async function GET() {
 
   const md = `# FunAdemy — e² Young Engineers Riyadh (فناديمي)
 
-> FunAdemy is the official e² Young Engineers franchise in Riyadh, Saudi Arabia: LEGO®-based STEM enrichment for kids (${ageRange}) — live online engineering, coding and robotics classes taught in Arabic, with program enrollment, trial booking and parent consultations handled on this site.
+> FunAdemy is the official e² Young Engineers franchise in Riyadh, Saudi Arabia: LEGO®-based STEM enrichment for kids (${ageRange}) — in-person engineering, coding and robotics classes taught in Arabic, with program enrollment, trial booking and parent consultations handled on this site.
 
 Key facts:
 - Arabic is the site's primary language (right-to-left). Every public page has an English mirror under /en (for example ${base}/en/programs/...).
-- Programs are live online classes in three fields: The World Around Us (العالم من حولنا), Mechanical Engineering (الهندسة الميكانيكية), and Coding & Robotics (البرمجة والروبوتات).
+- Programs are in-person classes in Riyadh in three fields: The World Around Us (العالم من حولنا), Mechanical Engineering (الهندسة الميكانيكية), and Coding & Robotics (البرمجة والروبوتات).
 - Prices are in Saudi Riyal (SAR); enrollment and payment happen online at ${base}/enroll.
-- Licensing information for the Saudi National eLearning Center (NELC) is published at ${base}/nelc.
 - The parent portal, kids' learning area and admin dashboard require login and are private — they are excluded from crawling in robots.txt.
 
 ## Programs (البرامج)

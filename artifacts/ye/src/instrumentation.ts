@@ -107,60 +107,66 @@ export async function register() {
     }
   };
 
-  // One-time data reconciliation: the academy is online-only (Aug 2026).
-  // Converts any leftover in-person programs/slots/runs and stale FAQ copy —
-  // idempotent, so it is a no-op once production data is converted.
-  const reconcileOnlineOnly = async () => {
+  // The academy confirmed that all classes are delivered in person.
+  // Correct legacy delivery flags/copy without touching seats, prices or locations.
+  const reconcileInPerson = async () => {
     try {
       const { prisma } = await import('@/lib/db');
-      const p = await prisma.program.updateMany({ where: { format: 'in_person' }, data: { format: 'online' } });
-      const s = await prisma.scheduleSlot.updateMany({ where: { format: 'in_person' }, data: { format: 'online' } });
-      const r = await prisma.courseRun.updateMany({ where: { format: 'in_person' }, data: { format: 'online' } });
-      await prisma.scheduleSlot.updateMany({ where: { location: { contains: 'Riyadh' } }, data: { location: null } });
-      await prisma.courseRun.updateMany({ where: { location: { contains: 'Riyadh' } }, data: { location: null } });
+      const p = await prisma.program.updateMany({ where: { format: 'online' }, data: { format: 'in_person' } });
+      const s = await prisma.scheduleSlot.updateMany({ where: { format: 'online' }, data: { format: 'in_person' } });
+      const r = await prisma.courseRun.updateMany({ where: { format: 'online' }, data: { format: 'in_person' } });
       const f = await prisma.faqEntry.updateMany({
-        where: { questionAr: 'هل الحصص أونلاين أم حضورية؟' },
+        where: { questionAr: { in: ['هل الحصص أونلاين أم حضورية؟', 'كيف تُقدَّم الحصص؟'] } },
         data: {
           questionEn: 'How are classes delivered?',
           questionAr: 'كيف تُقدَّم الحصص؟',
-          answerEn: 'All programs run live online — a real teacher and a small group in every session, open to everyone from anywhere.',
-          answerAr: 'جميع البرامج أونلاين — معلّم حقيقي ومجموعة صغيرة في كل حصة، ومتاحة للجميع من أي مكان.',
+          answerEn: 'All programs are in-person classes in Riyadh. Contact us for current locations and schedules.',
+          answerAr: 'جميع البرامج حضورية في الرياض. تواصل معنا لمعرفة المواقع والمواعيد الحالية.',
         },
       });
       const f2 = await prisma.faqEntry.updateMany({
-        where: { questionAr: 'هل توفرون مجموعات المكعبات؟', answerAr: { contains: 'الحضورية' } },
+        where: { questionAr: 'هل توفرون مجموعات المكعبات؟' },
         data: {
-          answerEn: 'Yes — we guide you to the official e² Young Engineers kit your child needs at home, and building programs ship the kit to your door.',
-          answerAr: 'نعم — نرشدك إلى مجموعة e² Young Engineers الرسمية التي يحتاجها طفلك في المنزل، وبرامج البناء تُشحن عدّتها إلى باب منزلك.',
+          answerEn: 'Contact us for the equipment requirements for your chosen in-person program.',
+          answerAr: 'تواصل معنا لمعرفة متطلبات العدة للبرنامج الحضوري الذي تختاره.',
         },
       });
-      const t = await prisma.testimonial.updateMany({ where: { area: 'Riyadh' }, data: { area: 'Saudi Arabia' } });
+      await prisma.faqEntry.updateMany({
+        where: { OR: [{ questionAr: { contains: 'الأونلاين' } }, { questionEn: { contains: 'online classes', mode: 'insensitive' } }] },
+        data: {
+          questionAr: 'أين تُقام الحصص؟', questionEn: 'Where are classes held?',
+          answerAr: 'تُقام الحصص حضورياً في الرياض. تواصل معنا لتأكيد موقع البرنامج ومواعيده.',
+          answerEn: 'Classes take place in person in Riyadh. Contact us to confirm your program location and schedule.',
+        },
+      });
       // Fix stale in-person / "live online" wording inside program texts.
       // Deliberately narrow: exact legacy label values and anchored phrases
       // only — never a bare substring like 'حضوري' (it would corrupt words
       // such as 'الحضورية' and admin-authored copy). Longest phrases first.
       const AR_EXACT: Record<string, string> = {
-        'حضوري': 'أونلاين',
-        'مباشر أونلاين / حضوري': 'أونلاين',
-        'مباشر أونلاين': 'أونلاين',
-        'أونلاين مباشر': 'أونلاين',
+        'أونلاين': 'حضوري في الرياض',
+        'مباشر أونلاين / حضوري': 'حضوري في الرياض',
+        'مباشر أونلاين': 'حضوري في الرياض',
+        'أونلاين مباشر': 'حضوري في الرياض',
       };
       const EN_EXACT: Record<string, string> = {
-        'In-person': 'Online',
-        'Live online / in-person': 'Online',
-        'Live online': 'Online',
+        'Online': 'In-person in Riyadh',
+        'Live online / in-person': 'In-person in Riyadh',
+        'Live online': 'In-person in Riyadh',
       };
       const fixAr = (x: string) =>
         (AR_EXACT[x] ?? x)
-          .replaceAll('حصص مباشرة أونلاين', 'حصص أونلاين')
-          .replaceAll('مباشرة مدتها', 'مدتها')
-          .replaceAll('أونلاين أو حضورياً', 'أونلاين بالكامل');
+          .replaceAll('أونلاين أو حضورياً', 'حضورياً في الرياض')
+          .replaceAll('أونلاين بالكامل', 'حضورياً في الرياض')
+          .replaceAll('حصص أونلاين', 'حصص حضورية')
+          .replaceAll('أونلاين', 'حضوري');
       const fixEn = (x: string) =>
         (EN_EXACT[x] ?? x)
-          .replaceAll('live 45-minute classes, online or in person', 'live 45-minute classes, fully online')
-          .replaceAll('live sessions', 'sessions')
-          .replaceAll('Live online', 'Online')
-          .replaceAll('live online', 'online');
+          .replaceAll('online or in person', 'in person in Riyadh')
+          .replaceAll('fully online', 'in person in Riyadh')
+          .replace(/\blive online\b/gi, 'in-person')
+          .replace(/\bonline sessions\b/gi, 'in-person sessions')
+          .replace(/\bonline classes\b/gi, 'in-person classes');
       let textFixed = 0;
       for (const prog of await prisma.program.findMany()) {
         const data = {
@@ -184,14 +190,14 @@ export async function register() {
           textFixed++;
         }
       }
-      if (p.count || s.count || r.count || f.count || f2.count || t.count) {
-        console.log(`[online-only] reconciled: programs=${p.count} slots=${s.count} runs=${r.count} faqs=${f.count + f2.count}`);
+      if (p.count || s.count || r.count || textFixed) {
+        console.log(`[in-person] reconciled: programs=${p.count} slots=${s.count} runs=${r.count} texts=${textFixed}`);
       }
     } catch (e) {
-      console.error('[online-only] reconciliation failed:', e);
+      console.error('[in-person] reconciliation failed:', e);
     }
   };
-  void reconcileOnlineOnly();
+  void reconcileInPerson();
 
   const timer = setInterval(runSweep, SWEEP_INTERVAL_MS);
   timer.unref?.(); // never keep the process alive just for the sweep

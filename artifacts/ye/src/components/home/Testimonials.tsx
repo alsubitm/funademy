@@ -46,14 +46,14 @@ export function Testimonials({ lang, testimonials }: { lang: 'ar' | 'en'; testim
           <div className="pola po2">
             <div className="tape"></div>
             <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
-              <Image src="/workshop-coding.jpg" alt="Student coding in AlgoPlay Code workshop — FunAdemy online class" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
+              <Image src="/workshop-coding.jpg" alt="Student coding in AlgoPlay Code workshop — FunAdemy in-person class" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
             </div>
             <div className="cap2">AlgoPlay Code</div>
           </div>
           <div className="pola po3">
             <div className="tape"></div>
             <div className="ph2" style={{ padding: 0, overflow: 'hidden' }}>
-              <Image src="/group-class.jpg" alt="Group of kids attending e² Young Engineers online class 2026" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
+              <Image src="/group-class.jpg" alt="Group of kids attending e² Young Engineers in-person class 2026" fill sizes="(max-width: 640px) 50vw, 33vw" style={{ objectFit: 'cover' }} />
             </div>
             <div className="cap2">Class of 2026</div>
           </div>

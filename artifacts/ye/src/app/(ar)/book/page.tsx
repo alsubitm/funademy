@@ -14,7 +14,7 @@ const _bookBase = siteUrl();
 export const metadata = {
   title: 'حجز حصة تجريبية | FunAdemy',
   description:
-    'سجّل طفلك في حصة تجريبية مجانية مع FunAdemy ليعيش تجربة بناء نماذج LEGO® متحركة. برامج STEM للأطفال من ٤ إلى ١٨ سنة — حصص حضورية وأونلاين.',
+    'سجّل طفلك في حصة تجريبية مجانية مع FunAdemy ليعيش تجربة بناء نماذج LEGO® متحركة. برامج STEM للأطفال من ٤ إلى ١٨ سنة — حصص حضورية في الرياض.',
   openGraph: {
     type: 'website',
     locale: 'ar_SA',

@@ -17,6 +17,8 @@ export async function createMeetEvent(opts: {
   startsAt: Date;
   durationMin: number;
   attendeeEmail?: string | null;
+  inPerson?: boolean;
+  location?: string | null;
 }): Promise<MeetEvent> {
   const connectors = new ReplitConnectors();
   const end = new Date(opts.startsAt.getTime() + opts.durationMin * 60_000);
@@ -25,12 +27,13 @@ export async function createMeetEvent(opts: {
     description: opts.description ?? '',
     start: { dateTime: opts.startsAt.toISOString(), timeZone: 'Asia/Riyadh' },
     end: { dateTime: end.toISOString(), timeZone: 'Asia/Riyadh' },
-    conferenceData: { createRequest: { requestId: `funademy-${Date.now()}-${Math.random().toString(36).slice(2, 10)}` } },
+    ...(!opts.inPerson ? { conferenceData: { createRequest: { requestId: `funademy-${Date.now()}-${Math.random().toString(36).slice(2, 10)}` } } } : {}),
     // The durable trial communication outbox sends the reminder at its due
     // time; disable Calendar's default reminders to avoid duplicate emails.
     reminders: { useDefault: false },
   };
   if (opts.attendeeEmail) body.attendees = [{ email: opts.attendeeEmail }];
+  if (opts.location) body.location = opts.location;
 
   const res = await connectors.proxy(
     'google-calendar',
@@ -51,7 +54,7 @@ export async function createMeetEvent(opts: {
     event.hangoutLink ??
     event.conferenceData?.entryPoints?.find((e) => e.entryPointType === 'video')?.uri ??
     null;
-  return { eventId: event.id, meetUrl, htmlLink: event.htmlLink ?? null };
+  return { eventId: event.id, meetUrl: opts.inPerson ? null : meetUrl, htmlLink: event.htmlLink ?? null };
 }
 
 /**

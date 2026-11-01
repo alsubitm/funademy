@@ -14,7 +14,7 @@ const _bookBase = siteUrl();
 export const metadata = {
   title: 'Book a Trial | FunAdemy',
   description:
-    'Register your child for a free trial class with Young Engineers Riyadh and experience building moving LEGO® models. STEM programs for kids aged 4–18 — in-person and online.',
+    'Register your child for a free trial class with Young Engineers Riyadh and experience building moving LEGO® models. STEM programs for kids aged 4–18 — in person in Riyadh.',
   openGraph: {
     type: 'website',
     locale: 'en_SA',

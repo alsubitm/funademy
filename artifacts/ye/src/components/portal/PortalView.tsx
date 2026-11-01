@@ -197,7 +197,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       >
         <span style={{ fontSize: 36 }}>🎓</span>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>{lang === 'ar' ? 'منصة التعلّم' : 'Learning platform'}</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>{lang === 'ar' ? 'مكتبة الأنشطة' : 'Resource library'}</div>
           <div style={{ fontSize: 13, opacity: .85, marginTop: 2 }}>
             {lang === 'ar' ? 'دروس، تمارين، XP وشارات — ابدأ الآن!' : 'Lessons, activities, XP and badges — start learning!'}
           </div>
@@ -223,7 +223,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
               <div className="mt">
                 {child.firstName} · {weekdays[next.courseRun.weekday]} {fmt(lang, next.courseRun.time)} · {fmtDate(lang, next.date)}
                 {' · '}
-                {next.courseRun.format === 'online' ? `💻 ${d.online}` : `📍 ${next.courseRun.location ?? d.inPerson}`}
+                {`📍 ${next.courseRun.location ?? d.inPerson}`}
               </div>
             </div>
             {nextJoinUrl && (
@@ -313,7 +313,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                   {progName(s.courseRun.program)} — {weekdays[s.courseRun.weekday]} {fmt(lang, s.courseRun.time)}
                   {s.isMakeup && <span className="ptl-mk approved" style={{ marginInlineStart: 8 }}>🔁 {d.mkTag}</span>}
                   <span className="loc">
-                    {s.courseRun.format === 'online' ? `💻 ${d.online}` : `📍 ${s.courseRun.location ?? d.inPerson}`}
+                    {`📍 ${s.courseRun.location ?? d.inPerson}`}
                   </span>
                 </span>
                 {joinUrl && (
@@ -388,7 +388,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                 {m.makeupSession && (
                   <span className="loc">
                     🔁 {d.mkSlot}: {fmtDate(lang, m.makeupSession.date)} — {weekdays[m.makeupSession.courseRun.weekday]} {fmt(lang, m.makeupSession.courseRun.time)}
-                    {m.makeupSession.courseRun.format === 'online' ? ` · 💻 ${d.online}` : m.makeupSession.courseRun.location ? ` · 📍 ${m.makeupSession.courseRun.location}` : ''}
+                    {m.makeupSession.courseRun.location ? ` · 📍 ${m.makeupSession.courseRun.location}` : ''}
                   </span>
                 )}
                 {m.adminNote && <span className="loc">💬 {m.adminNote}</span>}

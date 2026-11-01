@@ -3,21 +3,23 @@
  *
  * Verifies:
  * 1. constants.ts reads NELC_LICENSE_NO from process.env at module-eval time.
- * 2. SiteFooter renders the license number when the env var is set, and
- *    renders nothing (no placeholder) when it is unset — via actual React
- *    server rendering, not a source scan.
- * 3. Both NELC pages export `dynamic = 'force-dynamic'` so Next.js does not
- *    statically bake an empty string into the page at build time.
+ * 2. SiteFooter no longer publicly displays an e-learning license (FunAdemy
+ *    programs are in person); the secret/records remain untouched.
+ * 3. The retired public /nelc and /en/nelc pages redirect to contact.
  *
  * Note on deployment: license number changes always require a new deployment
  * (which Replit triggers automatically when a secret is added/updated). No
  * code change is needed.
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { readFileSync } from 'fs';
-import path from 'path';
 
 // ── Mock heavy / Next.js-specific dependencies before any component import ──
+
+vi.mock('next/navigation', () => ({
+  permanentRedirect: vi.fn((url: string) => {
+    throw new Error(`REDIRECT:${url}`);
+  }),
+}));
 
 vi.mock('next/link', () => ({
   default: () => null,
@@ -84,8 +86,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { SiteFooter } from '@/components/SiteFooter';
 import NelcPageAr from '@/app/(ar)/nelc/page';
 import NelcPageEn from '@/app/en/nelc/page';
-
-const SRC = path.resolve(__dirname, '..');
+import { permanentRedirect } from 'next/navigation';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -112,90 +113,34 @@ describe('NELC_LICENSE_NO constant', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 2. SiteFooter rendering — set and unset states
+// 2. SiteFooter — public e-learning license display intentionally removed
 // ---------------------------------------------------------------------------
 
-describe('SiteFooter NELC license display', () => {
-  it('shows the license number in the footer when NELC_LICENSE_NO is set', () => {
-    vi.stubEnv('NELC_LICENSE_NO', 'NELC-2026-99999');
-    const html = renderToStaticMarkup(React.createElement(SiteFooter, { lang: 'ar' }));
-    expect(html).toContain('NELC-2026-99999');
-  });
-
-  it('shows the license number in the English footer when NELC_LICENSE_NO is set', () => {
-    vi.stubEnv('NELC_LICENSE_NO', 'NELC-2026-99999');
-    const html = renderToStaticMarkup(React.createElement(SiteFooter, { lang: 'en' }));
-    expect(html).toContain('NELC-2026-99999');
-    expect(html).toContain('NELC license no.');
-  });
-
-  it('renders nothing for the license when NELC_LICENSE_NO is unset', () => {
-    vi.stubEnv('NELC_LICENSE_NO', '');
-    const html = renderToStaticMarkup(React.createElement(SiteFooter, { lang: 'ar' }));
-    // No license number and no misleading placeholder text
-    expect(html).not.toContain('ترخيص المركز الوطني');
-    expect(html).not.toContain('NELC license no.');
-    expect(html).not.toContain('قيد الإعداد');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 3. NELC pages (/nelc and /en/nelc) rendering — set and unset states
-// ---------------------------------------------------------------------------
-
-describe('NELC pages license status block', () => {
-  it('/nelc shows the license number when NELC_LICENSE_NO is set', () => {
-    vi.stubEnv('NELC_LICENSE_NO', 'NELC-2026-12345');
-    const html = renderToStaticMarkup(React.createElement(NelcPageAr));
-    expect(html).toContain('NELC-2026-12345');
-    expect(html).toContain('مرخصة');
-    expect(html).not.toContain('قيد الإعداد');
-  });
-
-  it('/en/nelc shows the license number when NELC_LICENSE_NO is set', () => {
-    vi.stubEnv('NELC_LICENSE_NO', 'NELC-2026-12345');
-    const html = renderToStaticMarkup(React.createElement(NelcPageEn));
-    expect(html).toContain('NELC-2026-12345');
-    expect(html).toContain('Licensed');
-    expect(html).not.toContain('In preparation');
-  });
-
-  it('/nelc shows «قيد الإعداد» and no license number when unset', () => {
-    vi.stubEnv('NELC_LICENSE_NO', '');
-    const html = renderToStaticMarkup(React.createElement(NelcPageAr));
-    expect(html).toContain('قيد الإعداد');
-    expect(html).not.toContain('مرخصة ✅');
-  });
-
-  it('/en/nelc shows "In preparation" and no license number when unset', () => {
-    vi.stubEnv('NELC_LICENSE_NO', '');
-    const html = renderToStaticMarkup(React.createElement(NelcPageEn));
-    expect(html).toContain('In preparation');
-    expect(html).not.toContain('Licensed ✅');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 4. force-dynamic export guard (source scan — structural safety net)
-// ---------------------------------------------------------------------------
-
-const NELC_PAGES = [
-  'app/(ar)/nelc/page.tsx',
-  'app/en/nelc/page.tsx',
-] as const;
-
-describe('NELC pages are force-dynamic (not statically prerendered at build time)', () => {
-  for (const rel of NELC_PAGES) {
-    it(`${rel} exports dynamic = 'force-dynamic'`, () => {
-      const src = readFileSync(path.join(SRC, rel), 'utf8');
-      expect(
-        src.includes("dynamic = 'force-dynamic'") || src.includes('dynamic = "force-dynamic"'),
-        `${rel}: \`export const dynamic = 'force-dynamic'\` is missing — Next.js will statically ` +
-          `prerender this page at build time, baking in an empty license string. The license ` +
-          `status block will show "in preparation" until a new deployment even after the ` +
-          `NELC_LICENSE_NO secret is set (which Replit triggers automatically when a ` +
-          `secret is added/updated).`,
-      ).toBe(true);
+describe('SiteFooter does not promote an e-learning license', () => {
+  for (const lang of ['ar', 'en'] as const) {
+    it(`${lang} footer omits the license even when NELC_LICENSE_NO is set`, () => {
+      vi.stubEnv('NELC_LICENSE_NO', 'NELC-2026-99999');
+      const html = renderToStaticMarkup(React.createElement(SiteFooter, { lang }));
+      expect(html).not.toContain('NELC-2026-99999');
+      expect(html).not.toContain('NELC license no.');
+      expect(html).not.toContain('ترخيص المركز الوطني');
+      expect(html).not.toContain('/nelc');
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// 3. Retired public NELC pages redirect to contact
+// ---------------------------------------------------------------------------
+
+describe('Retired NELC pages redirect to contact', () => {
+  it('/nelc permanently redirects to /contact', () => {
+    expect(() => NelcPageAr()).toThrow();
+    expect(permanentRedirect).toHaveBeenCalledWith('/contact');
+  });
+
+  it('/en/nelc permanently redirects to /en/contact', () => {
+    expect(() => NelcPageEn()).toThrow();
+    expect(permanentRedirect).toHaveBeenCalledWith('/en/contact');
+  });
 });

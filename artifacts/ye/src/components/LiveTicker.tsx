@@ -31,7 +31,7 @@ export function LiveTicker({ slots, lang }: { slots: TickerSlot[]; lang: 'ar' | 
       <div className="wrap">
         <div className="sec-head" style={{ textAlign: 'center' }}>
           <span className="kick">LIVE LABS · 01</span>
-          <h2>{lang === 'ar' ? 'حصص هذا الأسبوع — حضور في الرياض، وSkyLab أونلاين' : 'This week — Riyadh classrooms and SkyLab online'}</h2>
+          <h2>{lang === 'ar' ? 'حصص هذا الأسبوع — حصص حضورية في الرياض' : 'This week — in-person classes in Riyadh'}</h2>
           <p className="sub" style={{ marginInline: 'auto' }}>
             {lang === 'ar' ? 'المقاعد تتغير مباشرة. اختر المختبر المناسب واحجز تجربتك.' : 'Seats update live. Find the right lab and reserve a trial.'}
           </p>
@@ -46,7 +46,7 @@ export function LiveTicker({ slots, lang }: { slots: TickerSlot[]; lang: 'ar' | 
           </div>
           {slots.map((s) => {
             const wait = s.seatsLeft <= 0;
-            const loc = s.program.format === 'in_person' && s.location ? s.location : 'ONLINE';
+            const loc = s.program.format === 'in_person' && s.location ? s.location : (lang === 'ar' ? 'الرياض' : 'RIYADH');
             return (
               <div className="row" role="row" key={s.id}>
                 <span className={`st ${wait ? 'last' : ''}`}>{wait ? (lang === 'ar' ? 'آخر المقاعد' : 'LAST SEATS') : (lang === 'ar' ? 'مفتوح' : 'OPEN')}</span>

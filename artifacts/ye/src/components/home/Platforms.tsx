@@ -10,7 +10,7 @@ const CARDS: Record<'ar' | 'en', { kick: string; title: string; sub: string; car
     sub: 'من الحجز الأول حتى متابعة تقدّم طفلك — هذه بواباتك السريعة.',
     cards: [
       { icon: '01', title: 'بوابة الأهالي', desc: 'الاشتراكات، الحضور، المدفوعات، وتقارير الأبناء', href: '/portal' },
-      { icon: '02', title: 'منصة تعلّم الأطفال', desc: 'دروس تفاعلية ونقاط وأوسمة لكل طفل مشترك', href: '/learn' },
+      { icon: '02', title: 'مكتبة الأنشطة', desc: 'أنشطة ونقاط وأوسمة لكل طفل مشترك', href: '/learn' },
       { icon: '03', title: 'حجز مقعد', desc: 'احجز مقعد طفلك في الدورات والحصص القادمة', href: '/book' },
       { icon: '04', title: 'الاشتراك الشهري', desc: 'سجّل في برنامج شهري مستمر يناسب عمر طفلك', href: '/enroll' },
       { icon: '05', title: 'استشارة مجانية', desc: 'جلسة تعريفية مع معلّم لاختيار البرنامج المناسب', href: '/consult' },
@@ -25,7 +25,7 @@ const CARDS: Record<'ar' | 'en', { kick: string; title: string; sub: string; car
     sub: 'From your first booking to tracking your child’s progress — quick doors to everything.',
     cards: [
       { icon: '01', title: 'Parent portal', desc: 'Subscriptions, attendance, payments & progress reports', href: '/en/portal' },
-      { icon: '02', title: 'Kids learning platform (Arabic)', desc: 'Interactive lessons, XP and badges for enrolled kids', href: '/learn' },
+      { icon: '02', title: 'Resource library', desc: 'Activities, XP and badges for enrolled kids', href: '/learn' },
       { icon: '03', title: 'Book a seat', desc: 'Reserve your child’s seat in upcoming classes', href: '/en/book' },
       { icon: '04', title: 'Monthly enrollment', desc: 'Join an ongoing monthly program that fits their age', href: '/en/enroll' },
       { icon: '05', title: 'Free consultation', desc: 'An intro session with a teacher to pick the right program', href: '/en/consult' },

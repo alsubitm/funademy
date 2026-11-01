@@ -11,7 +11,7 @@ const _enrollBase = siteUrl();
 export const metadata = {
   title: 'Monthly Enrollment | FunAdemy',
   description:
-    'Enroll your children in FunAdemy monthly STEM programs — LEGO® engineering, coding and robotics in Riyadh. Automatic 10% sibling discount. In-person and online for ages 4–18.',
+    'Enroll your children in FunAdemy monthly STEM programs — LEGO® engineering, coding and robotics in Riyadh. Automatic 10% sibling discount. In person for ages 4–18.',
   openGraph: {
     type: 'website',
     locale: 'en_SA',

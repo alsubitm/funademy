@@ -38,8 +38,8 @@ export function Hero({ lang }: { lang: 'ar' | 'en' }) {
             )}
             <p className="v3-lede">
               {ar
-                ? 'ميكانيكا، روبوتات، وبرمجة حقيقية مبنية على LEGO® للأعمار ٤-١٨ — حصص مباشرة بالعربية، حضورياً في الرياض وأونلاين من منزلك أينما كنت.'
-                : 'LEGO®-based mechanics, robotics and real coding for ages 4–18 — live classes in Arabic, in person in Riyadh and online from the comfort of your home.'}
+                ? 'ميكانيكا، روبوتات، وبرمجة حقيقية مبنية على LEGO® للأعمار ٤-١٨ — حصص مباشرة بالعربية، حضورياً في الرياض.'
+                : 'LEGO®-based mechanics, robotics and real coding for ages 4–18 — live classes in Arabic, in person in Riyadh.'}
             </p>
             <div className="v3-stem">
               {([['S', 'العلوم', 'Science'], ['T', 'التقنية', 'Technology'], ['E', 'الهندسة', 'Engineering'], ['M', 'الرياضيات', 'Math']] as const).map(([k, arL, enL]) => (

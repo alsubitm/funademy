@@ -5,6 +5,12 @@ description: Approved visual direction and preservation constraint for future Fu
 
 The user explicitly selected FunAdemy-V3-Arabic_1793492368686.html as the new reference and answered “Apply it to the existing website”. This supersedes the earlier v9 and navy blueprint directions. Read the actual attachment, including its final Arabic CSS overrides and embedded artwork. Preserve all existing pages, functionality, phone/WhatsApp numbers and booking flows.
 
+All FunAdemy programs are in person, not online training or learning.
+
+**Why:** The user explicitly said “remove anything about online learning as all of this not online training or learning”. This supersedes the old online-only assumption.
+
+**How to apply:** Use in-person delivery wording in Arabic and English, including metadata, invitations and program setup. Online booking/payments and private resource tools are separate from class delivery; preserve those.
+
 **Why:** After being told this V3 reference differs from the navy theme, the user explicitly confirmed applying it to the existing site. Merged functionality tasks do not establish completion of visual requests.
 
 The user rejected the recolored adaptation with “no i need the same design”. Match the attachment's actual composition, section order, copy, imagery and proportions rather than restyling the old homepage sections.

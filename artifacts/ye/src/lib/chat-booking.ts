@@ -71,7 +71,7 @@ export async function createTrialBooking(input: TrialInput) {
   try {
     const { booking, slot } = created;
     const existing = await prisma.appointment.findFirst({
-      where: { kind: 'trial', programId: input.programId, startsAt: booking.trialStartsAt!, status: 'scheduled', calendarEventId: { not: null } },
+      where: { kind: 'trial', programId: input.programId, startsAt: booking.trialStartsAt!, status: 'scheduled', calendarEventId: { not: null }, meetUrl: null },
     });
     let meet: { eventId: string; meetUrl: string | null };
     if (existing?.calendarEventId) {
@@ -82,7 +82,9 @@ export async function createTrialBooking(input: TrialInput) {
     } else {
       meet = await createMeetEvent({
         summary: `حصة تجريبية FunAdemy — ${slot.program.nameAr}`,
-        description: `حصة تجريبية عبر موقع FunAdemy\nالبرنامج: ${slot.program.nameAr} / ${slot.program.nameEn}`,
+        description: `حصة تجريبية حضورية في الرياض\nالبرنامج: ${slot.program.nameAr} / ${slot.program.nameEn}\n${slot.location || 'تواصل معنا لتأكيد موقع الحصة.'}`,
+        inPerson: true,
+        location: slot.location,
         startsAt: booking.trialStartsAt!, durationMin: CATALOG[slot.program.slug]?.lessonMin ?? 45, attendeeEmail: input.email,
       });
     }

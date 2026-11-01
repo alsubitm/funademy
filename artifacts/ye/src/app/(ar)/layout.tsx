@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
     title: 'FunAdemy — حيث المتعة تلتقي بالأكاديمية',
     description:
-      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين وحضورية في الرياض.',
+      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص حضورية في الرياض.',
     images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'FunAdemy' }],
   },
   twitter: {
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     site: '@funademy',
     title: 'FunAdemy — حيث المتعة تلتقي بالأكاديمية',
     description:
-      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص أونلاين وحضورية في الرياض.',
+      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص حضورية في الرياض.',
     images: [OG_IMAGE],
   },
 };

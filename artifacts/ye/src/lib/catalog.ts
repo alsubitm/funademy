@@ -16,13 +16,13 @@ export const CATALOG: Record<
   string,
   { field: FieldId; lessonMin: number; classCap: number; formatAr: string; formatEn: string }
 > = {
-  'big-builders': { field: 'world', lessonMin: 45, classCap: 12, formatAr: 'أونلاين', formatEn: 'Online' },
-  'bricks-challenge': { field: 'mech', lessonMin: 75, classCap: 16, formatAr: 'أونلاين', formatEn: 'Online' },
-  'galileo-technic': { field: 'mech', lessonMin: 75, classCap: 16, formatAr: 'أونلاين', formatEn: 'Online' },
-  smartivo: { field: 'code', lessonMin: 45, classCap: 12, formatAr: 'أونلاين', formatEn: 'Online' },
-  algoplay: { field: 'code', lessonMin: 75, classCap: 16, formatAr: 'أونلاين', formatEn: 'Online' },
-  robotoys: { field: 'code', lessonMin: 90, classCap: 16, formatAr: 'أونلاين', formatEn: 'Online' },
-  algoc: { field: 'code', lessonMin: 90, classCap: 8, formatAr: 'أونلاين', formatEn: 'Online' },
+  'big-builders': { field: 'world', lessonMin: 45, classCap: 12, formatAr: 'حضوري', formatEn: 'In-person' },
+  'bricks-challenge': { field: 'mech', lessonMin: 75, classCap: 16, formatAr: 'حضوري', formatEn: 'In-person' },
+  'galileo-technic': { field: 'mech', lessonMin: 75, classCap: 16, formatAr: 'حضوري', formatEn: 'In-person' },
+  smartivo: { field: 'code', lessonMin: 45, classCap: 12, formatAr: 'حضوري', formatEn: 'In-person' },
+  algoplay: { field: 'code', lessonMin: 75, classCap: 16, formatAr: 'حضوري', formatEn: 'In-person' },
+  robotoys: { field: 'code', lessonMin: 90, classCap: 16, formatAr: 'حضوري', formatEn: 'In-person' },
+  algoc: { field: 'code', lessonMin: 90, classCap: 8, formatAr: 'حضوري', formatEn: 'In-person' },
 };
 
 /** Learning-path order (age order, finish flag at AlgoC). */

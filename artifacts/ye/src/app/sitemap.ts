@@ -38,8 +38,6 @@ const STATIC_DATES: Record<string, Date> = {
   '/en/privacy': new Date('2024-06-01'),
   '/terms': new Date('2024-06-01'),
   '/en/terms': new Date('2024-06-01'),
-  '/nelc': new Date('2025-01-01'),
-  '/en/nelc': new Date('2025-01-01'),
 };
 
 function priority(p: string): number {

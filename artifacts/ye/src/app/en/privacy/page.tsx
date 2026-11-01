@@ -52,7 +52,7 @@ export default function PrivacyPageEn() {
       <h2>How we use it</h2>
       <ul>
         <li>Managing bookings, subscriptions, attendance and make-up sessions.</li>
-        <li>Showing your children's learning progress in the parent portal and learning platform.</li>
+        <li>Showing your children's learning progress in the parent portal and resource library.</li>
         <li>Contacting you about class times, reminders and renewals.</li>
         <li>Creating Google Calendar invites for consultations you book.</li>
         <li>Answering questions through the assistant, and carrying out an action only after showing a clear confirmation card and receiving your confirmation.</li>
@@ -60,7 +60,7 @@ export default function PrivacyPageEn() {
 
       <h2>Children's data protection</h2>
       <p>
-        The kids learning platform is designed so children never enter personal contact details. Kids sign in
+        The resource library is designed so children never enter personal contact details. Kids sign in
         with a PIN created and managed by the parent from the parent portal. Child data is never shown to other
         users and children are never shown ads.
       </p>

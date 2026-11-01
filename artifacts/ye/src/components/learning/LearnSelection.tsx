@@ -19,7 +19,7 @@ export default async function LearnSelection({ english = false }: { english?: bo
   return <main className="learn-landing" dir={english ? 'ltr' : 'rtl'} lang={english ? 'en' : 'ar'}>
     <div className="learn-header">
       <Link href={`${prefix}/portal`} className="learn-back">{t('← بوابة الأهالي', '← Parent portal')}</Link>
-      <h1 className="learn-title">{t('منصة التعلّم 🎓', 'Learning platform 🎓')}</h1>
+      <h1 className="learn-title">{t('مكتبة الأنشطة 🎓', 'Resource library 🎓')}</h1>
       <p className="learn-subtitle">{t('اختر طفلاً للبدء', 'Choose a child to get started')}</p>
     </div>
     {!enrolled ? <div className="learn-gate">

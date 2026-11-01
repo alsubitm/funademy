@@ -29,18 +29,18 @@ export function Pricing({ lang }: { lang: 'ar' | 'en' }) {
         </ScrollReveal>
 
         <div className="plans">
-          {/* Online Plan */}
+          {/* In-person Plan */}
           <ScrollReveal className="plan hot" style={{ transitionDelay: '100ms' }}>
             <div className="t">{lang === 'ar' ? 'مباشر مع المدرب' : 'LIVE WITH INSTRUCTOR'}</div>
             <div className="inner">
-              <h3>{lang === 'ar' ? 'أونلاين' : 'Online'}</h3>
+              <h3>{lang === 'ar' ? 'حضوري' : 'In-person'}</h3>
               <div className="pr">
                 <small>SAR</small> 1380 <small>{lang === 'ar' ? '/ للبرنامج' : '/ program'}</small>
               </div>
               <ul dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                 <li>{lang === 'ar' ? '٤-٦ حصص شهرياً' : '4–6 sessions per month'}</li>
                 <li>{lang === 'ar' ? 'مجموعات صغيرة: Big Builders حتى ١٢ · AlgoC حتى ٨ · بقية البرامج حتى ١٦' : 'Small groups: Big Builders max 12 · AlgoC max 8 · others max 16'}</li>
-                <li>{lang === 'ar' ? 'العدة تُشحن للمنزل' : 'Kit shipped to home'}</li>
+                <li>{lang === 'ar' ? 'تواصل معنا لمعرفة متطلبات العدة' : 'Contact us for equipment requirements'}</li>
                 <li>{lang === 'ar' ? 'بيئة تفاعلية اجتماعية' : 'Interactive social environment'}</li>
                 <li>{lang === 'ar' ? 'متابعة وتواصل مستمر' : 'Continuous follow-up'}</li>
               </ul>

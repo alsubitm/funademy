@@ -10,7 +10,7 @@ export function generateMetadata(): Metadata {
   return {
     title: 'Our Programs | FunAdemy',
     description:
-      'Three educational fields, seven e² Young Engineers certified programs for ages 4–18. Engineering, coding, and robotics online in Riyadh.',
+      'Three educational fields, seven e² Young Engineers certified programs for ages 4–18. Engineering, coding, and robotics in person in Riyadh.',
     alternates: {
       canonical: `${base}/en/programs`,
       languages: {

@@ -43,15 +43,15 @@ export default function TermsPageEn() {
       <h2>About the service</h2>
       <p>
         FunAdemy is a Saudi platform teaching kids engineering, coding and robotics (official partner of
-        e² Young Engineers). We offer in-person classes in Riyadh and live online classes, plus an interactive
-        learning platform for enrolled kids and a parent portal.
+        e² Young Engineers). We offer in-person classes in Riyadh, plus a resource
+        library for enrolled kids and a parent portal.
       </p>
 
       <h2>Accounts & login</h2>
       <ul>
         <li>Parents sign in with their mobile number and a one-time code (OTP) — no stored passwords.</li>
         <li>Parents are responsible for keeping their children's learning PIN confidential.</li>
-        <li>The kids learning platform is available to families with an active enrollment.</li>
+        <li>The resource library is available to families with an active enrollment.</li>
       </ul>
 
       <h2>Booking & payment</h2>
