@@ -81,3 +81,16 @@ html:has(.fa3){scroll-behavior:smooth;scroll-padding-top:100px}body:has(.fa3){ba
 .fa3 .kitecap:focus-visible{outline:3px solid var(--blue);outline-offset:5px}
 .fa3.motion-paused .kitecap,.fa3.motion-paused .kitecap .flipmark svg{transition:none!important}
 @media(prefers-reduced-motion:reduce){.fa3 .brand-kite,.fa3 .kitecap-orbit,.fa3 .kitecap-mark{animation:none!important}.fa3 .kitecap .flipmark svg{transition:none!important}}
+
+/* kite <-> cap automatic transformation (controlled KiteCapMark) */
+.fa3 .kcmark{position:relative;display:inline-block;flex-shrink:0}
+.fa3 .kcmark svg{position:absolute;inset:0;width:100%;height:100%;transition:opacity .6s ease,transform .8s cubic-bezier(.6,-0.2,.3,1.3)}
+.fa3 .kcmark .capV{opacity:0;transform:rotate(-45deg) scale(.85)}
+.fa3 .kcmark.is-cap .kiteV{opacity:0;transform:rotate(45deg) scale(.85)}.fa3 .kcmark.is-cap .capV{opacity:1;transform:none}
+.fa3 .kcmark.is-auto .kiteV{animation:fa3-kc-kite 7s ease-in-out infinite}.fa3 .kcmark.is-auto .capV{animation:fa3-kc-cap 7s ease-in-out infinite}
+@keyframes fa3-kc-kite{0%,38%{opacity:1;transform:translateY(0) rotate(0)}18%{transform:translateY(-4%) rotate(-8deg)}48%,88%{opacity:0;transform:translateY(8%) rotate(45deg) scale(.85)}100%{opacity:1;transform:translateY(0) rotate(0)}}
+@keyframes fa3-kc-cap{0%,38%{opacity:0;transform:translateY(-8%) rotate(-45deg) scale(.85)}48%,88%{opacity:1;transform:none}68%{transform:rotate(4deg)}100%{opacity:0;transform:translateY(-8%) rotate(-45deg) scale(.85)}}
+.fa3 .brand .kcmark.brand-kite{width:40px!important;height:40px!important}
+.fa3.motion-paused .kcmark svg{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){.fa3 .kcmark svg{animation:none!important;transition:none!important}}
+@media(max-width:650px){.fa3 .kitecap-stage .kcmark{width:96px!important;height:96px!important}}

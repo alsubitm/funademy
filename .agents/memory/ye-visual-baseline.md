@@ -9,6 +9,12 @@ The user explicitly selected FunAdemy-V3-Arabic_1793492368686.html as the new re
 
 The user rejected the recolored adaptation with “no i need the same design”. Match the attachment's actual composition, section order, copy, imagery and proportions rather than restyling the old homepage sections.
 
+Keep the moving kite-to-graduation-cap transformation in the current design, not only a swaying kite.
+
+**Why:** The user repeated that the previous logo moved and changed into a graduation hat and asked for that same effect.
+
+**How to apply:** Preserve the transformation in the header and midpage brand mark, including a touch-friendly automatic cycle, while honoring pause and reduced-motion settings.
+
 For people imagery, the user requested “make the humans look more saudis”, rejected the first localized images, and explicitly chose “Traditional Saudi clothing”.
 
 **Why:** The user wants Saudi representation in the site's visuals.

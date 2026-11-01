@@ -8,7 +8,7 @@ import { prefix, rich, tr, type Lang } from './shared';
 import { IdeaMachine } from './IdeaMachine';
 import { Programs } from './Programs';
 import { CodingLab } from './CodingLab';
-import { FlipMark } from '@/components/brand/FlipMark';
+import { KiteCapMark } from '@/components/brand/KiteCapMark';
 import { SocialLinks } from '@/components/SocialLinks';
 import './fa3.css';
 
@@ -76,8 +76,7 @@ export function FunHome({ lang }: { lang: Lang }) {
 
   const brand = (
     <Link className="brand" href={home} aria-label="FunAdemy home">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="brand-kite" src="/v3/kite-mark.webp" width={40} height={52} alt="" />
+      <KiteCapMark size={44} className="brand-kite" />
       <span>Fun<span>Ademy</span><small>{t('brandTag')}</small></span>
     </Link>
   );
@@ -151,7 +150,7 @@ export function FunHome({ lang }: { lang: Lang }) {
           <div className="way-intro reveal"><p className="eyebrow">{t('wayEyebrow')}</p><h2><span>{t('wayTitle1')}</span><br /><span className="blue-text">{t('wayTitle2')}</span></h2><p>{t('wayDescription')}</p><div className="pencil-note"><span aria-hidden="true">↳</span><span>{t('wayNote')}</span></div>
             <button type="button" className="kitecap" aria-pressed={landed} onClick={() => setLanded((v) => !v)} data-testid="button-kitecap"
               aria-label={lang === 'en' ? (landed ? 'Graduation cap: tap to fly the kite again' : 'Kite: tap to land it as a graduation cap') : (landed ? 'قبعة التخرج: اضغط لتطير الطائرة الورقية من جديد' : 'طائرة ورقية: اضغط لتهبط وتصبح قبعة تخرج')}>
-              <span className="kitecap-stage"><span className="kitecap-orbit" aria-hidden="true" /><FlipMark size={120} className="kitecap-mark" /></span>
+              <span className="kitecap-stage"><span className="kitecap-orbit" aria-hidden="true" /><KiteCapMark size={120} landed={landed} className="kitecap-mark" /></span>
               <span className="kitecap-copy" aria-hidden="true"><b>{lang === 'en' ? (landed ? 'Curiosity, graduated.' : 'Curiosity takes flight.') : (landed ? 'الفضول يتخرّج.' : 'الفضول يحلّق.')}</b><small>{lang === 'en' ? 'Tap the kite' : 'اضغط على الطائرة'} ↻</small></span>
             </button></div>
           <div className="way-steps">
