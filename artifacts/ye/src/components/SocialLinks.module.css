@@ -5,24 +5,64 @@
   gap: 16px 24px;
   padding: 24px 0;
 }
-.heading { font-size: 14px; font-weight: 800; }
-.links { display: flex; flex-wrap: wrap; gap: 10px; }
-.links a {
+.heading { font-size: 14px; font-weight: 800; color: #101a38; }
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.social .links .link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
+  gap: 10px;
   min-height: 44px;
-  padding: 10px 18px;
-  border: 1px solid #101a3833;
+  min-width: 150px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid #101a3826;
   border-radius: 999px;
   color: #101a38;
   background: #fffdf7;
+  box-shadow: 0 2px 0 #101a3814;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  transition: background .2s, transform .2s;
+  transition: background-color .2s, border-color .2s, transform .2s, box-shadow .2s;
 }
-.links a:hover { background: #ffca17; transform: translateY(-2px); }
-.links a:focus-visible { outline: 3px solid #1c54cb; outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .links a { transition: none; } }
+[dir='rtl'] .social .links .link { padding: 6px 6px 6px 14px; }
+.icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1c54cb14;
+  color: #1c54cb;
+  transition: background-color .2s, color .2s;
+}
+.icon svg { width: 18px; height: 18px; }
+.name { flex: 1; }
+.arrow { width: 14px; height: 14px; flex: none; opacity: .45; transition: opacity .2s; }
+[dir='rtl'] .arrow { transform: scaleX(-1); }
+.social .links .link:hover {
+  background: #fff3c4;
+  border-color: #e0a800;
+  box-shadow: 0 4px 0 #e0a80040;
+  transform: translateY(-2px);
+}
+.link:hover .icon { background: #1c54cb; color: #fffdf7; }
+.link:hover .arrow { opacity: 1; }
+.social .links .link:focus-visible { outline: 3px solid #1c54cb; outline-offset: 3px; }
+
+@media (max-width: 767px) {
+  .social { flex-direction: column; align-items: stretch; }
+  .links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .social .links .link { width: 100%; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .social .links .link, .icon, .arrow { transition: none; }
+  .social .links .link:hover { transform: none; }
+}
