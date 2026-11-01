@@ -1,6 +1,6 @@
 export const WHATSAPP_NUMBER = '966505551021';
 export const PHONE_DISPLAY = '+966 50 555 1021';
-export const EMAIL = 'ceo@falconeye.sa';
+export const EMAIL = 'admin@funademy.io';
 export const LICENSE_NO = '4030388340';
 /**
  * NELC (المركز الوطني للتعليم الإلكتروني) e-training license number.
