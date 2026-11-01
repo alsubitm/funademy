@@ -8,6 +8,7 @@ import { prefix, rich, tr, type Lang } from './shared';
 import { IdeaMachine } from './IdeaMachine';
 import { Programs } from './Programs';
 import { CodingLab } from './CodingLab';
+import { FlipMark } from '@/components/brand/FlipMark';
 import './fa3.css';
 
 /**
@@ -24,6 +25,7 @@ export function FunHome({ lang }: { lang: Lang }) {
   const [note, setNote] = useState('');
   const [drafted, setDrafted] = useState(false);
   const [year, setYear] = useState(2026);
+  const [landed, setLanded] = useState(false);
   const home = prefix(lang, '/');
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export function FunHome({ lang }: { lang: Lang }) {
   const brand = (
     <Link className="brand" href={home} aria-label="FunAdemy home">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/v3/kite-mark.webp" width={40} height={52} alt="" />
+      <img className="brand-kite" src="/v3/kite-mark.webp" width={40} height={52} alt="" />
       <span>Fun<span>Ademy</span><small>{t('brandTag')}</small></span>
     </Link>
   );
@@ -145,7 +147,12 @@ export function FunHome({ lang }: { lang: Lang }) {
         </div>
 
         <section className="our-way section-wrap" id="our-way">
-          <div className="way-intro reveal"><p className="eyebrow">{t('wayEyebrow')}</p><h2><span>{t('wayTitle1')}</span><br /><span className="blue-text">{t('wayTitle2')}</span></h2><p>{t('wayDescription')}</p><div className="pencil-note"><span aria-hidden="true">↳</span><span>{t('wayNote')}</span></div></div>
+          <div className="way-intro reveal"><p className="eyebrow">{t('wayEyebrow')}</p><h2><span>{t('wayTitle1')}</span><br /><span className="blue-text">{t('wayTitle2')}</span></h2><p>{t('wayDescription')}</p><div className="pencil-note"><span aria-hidden="true">↳</span><span>{t('wayNote')}</span></div>
+            <button type="button" className="kitecap" aria-pressed={landed} onClick={() => setLanded((v) => !v)} data-testid="button-kitecap"
+              aria-label={lang === 'en' ? (landed ? 'Graduation cap: tap to fly the kite again' : 'Kite: tap to land it as a graduation cap') : (landed ? 'قبعة التخرج: اضغط لتطير الطائرة الورقية من جديد' : 'طائرة ورقية: اضغط لتهبط وتصبح قبعة تخرج')}>
+              <span className="kitecap-stage"><span className="kitecap-orbit" aria-hidden="true" /><FlipMark size={120} className="kitecap-mark" /></span>
+              <span className="kitecap-copy" aria-hidden="true"><b>{lang === 'en' ? (landed ? 'Curiosity, graduated.' : 'Curiosity takes flight.') : (landed ? 'الفضول يتخرّج.' : 'الفضول يحلّق.')}</b><small>{lang === 'en' ? 'Tap the kite' : 'اضغط على الطائرة'} ↻</small></span>
+            </button></div>
           <div className="way-steps">
             {([['01', 'step1Title', 'step1Body', '✦', ''], ['02', 'step2Title', 'step2Body', '▦', ' blocks-icon'], ['03', 'step3Title', 'step3Body', '↗', '']] as const).map(([n, h, b, icon, cls]) => (
               <article className="way-step reveal" key={n}><div className="step-number">{n}</div><div><h3>{t(h)}</h3><p>{t(b)}</p></div><span className={`step-icon${cls}`} aria-hidden="true">{icon}</span></article>

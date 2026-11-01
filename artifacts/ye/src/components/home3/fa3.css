@@ -59,3 +59,25 @@ html:has(.fa3){scroll-behavior:smooth;scroll-padding-top:100px}body:has(.fa3){ba
 @media(prefers-reduced-motion:reduce){.fa3 .discovery-track,.fa3 .hero-gear,.fa3 .confetti-piece{animation:none!important}.fa3 .confetti-piece{display:none}.fa3 .program-card,.fa3 .button{transition:none!important}.fa3 .reveal{opacity:1!important;transform:none!important}}
 
 
+
+/* moving Kite-Cap marks */
+.fa3 .brand-kite{transform-origin:50% 15%;animation:fa3-kite-sway 4.8s ease-in-out infinite}
+.fa3 .brand:hover .brand-kite{animation-duration:1.6s}
+@keyframes fa3-kite-sway{0%,100%{transform:rotate(-6deg) translateY(0)}50%{transform:rotate(6deg) translateY(-3px)}}
+.fa3 .kitecap{margin-top:34px;display:flex;align-items:center;gap:22px;background:var(--white);border:1px solid var(--navy);border-radius:16px;box-shadow:4px 4px 0 var(--gold);padding:16px 26px 16px 16px;color:var(--navy);text-align:start;transition:transform .2s,box-shadow .2s;touch-action:manipulation}
+.fa3 .kitecap:hover{transform:translateY(-2px);box-shadow:6px 6px 0 var(--gold)}
+.fa3 .kitecap-stage{position:relative;width:120px;height:120px;display:grid;place-items:center;flex-shrink:0}
+.fa3 .kitecap-orbit{position:absolute;inset:4px;border:1.5px dashed #1c54cb55;border-radius:50%;animation:fa3-gear-spin 22s linear infinite}
+.fa3 .kitecap-mark{animation:fa3-kite-float 5s ease-in-out infinite;pointer-events:none}
+.fa3 .kitecap[aria-pressed=true] .kitecap-mark{animation:none}
+.fa3 .kitecap[aria-pressed=true] .kiteV{opacity:0;transform:rotate(45deg) scale(.9)}
+.fa3 .kitecap[aria-pressed=true] .capV{opacity:1;transform:rotate(0)}
+.fa3 .kitecap-copy b{display:block;font-family:var(--display);font-size:19px;letter-spacing:-.03em;line-height:1.2}
+.fa3 .kitecap-copy small{display:block;margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue)}
+[dir=rtl] .fa3 .kitecap{padding:16px 16px 16px 26px}[dir=rtl] .fa3 .kitecap-copy small{letter-spacing:0}
+@keyframes fa3-kite-float{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+@media(max-width:650px){.fa3 .kitecap{width:100%;gap:14px}.fa3 .kitecap-stage{width:96px;height:96px}.fa3 .kitecap-stage .flipmark{width:96px!important;height:96px!important}}
+.fa3.motion-paused .brand-kite,.fa3.motion-paused .kitecap-orbit,.fa3.motion-paused .kitecap-mark{animation:none!important}
+.fa3 .kitecap:focus-visible{outline:3px solid var(--blue);outline-offset:5px}
+.fa3.motion-paused .kitecap,.fa3.motion-paused .kitecap .flipmark svg{transition:none!important}
+@media(prefers-reduced-motion:reduce){.fa3 .brand-kite,.fa3 .kitecap-orbit,.fa3 .kitecap-mark{animation:none!important}.fa3 .kitecap .flipmark svg{transition:none!important}}
