@@ -74,9 +74,10 @@ beforeEach(async () => {
   families.push(family.id);
   mockCreate.mockReset();
   mockAddAttendee.mockReset();
-  mockCreate.mockImplementation(async () => ({
+  mockCreate.mockImplementation(async (opts) => ({
     eventId: `evt-${Math.random().toString(36).slice(2, 10)}`,
-    meetUrl: 'https://meet.google.com/test-mock',
+    // Match the real adapter: classroom events never carry a video link.
+    meetUrl: opts.inPerson ? null : 'https://meet.google.com/test-mock',
     htmlLink: null,
   }));
   mockAddAttendee.mockResolvedValue(undefined as never);
@@ -331,6 +332,7 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     const j1 = await r1.json();
     expect(j1.appointment?.startsAt).toBe(expectedStart.toISOString());
     expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ inPerson: true }));
 
     const r2 = await bookingsPOST(
       jsonReq('/svc/bookings', bookingBody(program.id, slot.id, 'family@example.com')),
@@ -352,8 +354,8 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
       where: { kind: 'trial', programId: program.id, startsAt: expectedStart },
     });
     expect(appts).toHaveLength(2);
+    expect(appts.every((appointment) => appointment.meetUrl === null)).toBe(true);
     expect(new Set(appts.map((a) => a.calendarEventId)).size).toBe(1);
-    expect(appts.every((a) => a.meetUrl === 'https://meet.google.com/test-mock')).toBe(true);
   });
 
   it('booking survives a Google failure (no appointment, booking still created)', async () => {
@@ -368,7 +370,11 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     // Cancelled/failed meeting must not be "reused" by the next booking.
     const r2 = await bookingsPOST(jsonReq('/svc/bookings', bookingBody(program.id, slot.id)));
     expect(r2.status).toBe(201);
-    expect((await r2.json()).appointment?.meetUrl).toBe('https://meet.google.com/test-mock');
+    const retried = await r2.json();
+    expect(retried.appointment).toBeTruthy();
+    expect(retried.appointment.meetUrl).toBeNull();
+    const saved = await prisma.appointment.findFirstOrThrow({ where: { bookingId: retried.id } });
+    expect(saved.calendarEventId).toBeTruthy();
   });
 
   it('recovers the real booking flow after the database aborts the seat transaction', async () => {

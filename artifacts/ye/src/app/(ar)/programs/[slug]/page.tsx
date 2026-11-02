@@ -1,4 +1,5 @@
-export const revalidate = 300;
+export const revalidate = 0;
+import { loadProgramPricing } from '@/lib/program-pricing';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
@@ -60,6 +61,7 @@ export default async function ProgramPage(props: { params: Promise<{ slug: strin
   }), null, 'program:page');
 
   if (!program) notFound();
+  const pricingRuns = await loadProgramPricing(program.id);
 
   const allProgs = await safeQuery(() => prisma.program.findMany({ orderBy: { position: 'asc' } }), [], 'program:siblings');
   const idx = allProgs.findIndex(p => p.id === program.id);
@@ -136,7 +138,7 @@ export default async function ProgramPage(props: { params: Promise<{ slug: strin
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(programSchema) }}
       />
-      <ProgramDetail program={program} prevProg={prevProg} nextProg={nextProg} lang="ar" />
+      <ProgramDetail program={program} pricingRuns={pricingRuns} prevProg={prevProg} nextProg={nextProg} lang="ar" />
     </>
   );
 }

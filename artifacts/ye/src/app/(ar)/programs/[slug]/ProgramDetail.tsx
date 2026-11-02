@@ -8,6 +8,8 @@ import { programDict } from './dict';
 import Link from 'next/link';
 import './page.css';
 import { Program, ScheduleSlot } from '@prisma/client';
+import { ProgramPricing } from './ProgramPricing';
+import type { ProgramPricingRun } from '@/lib/program-pricing';
 
 type ProgWithSlots = Program & { slots: ScheduleSlot[] };
 
@@ -15,11 +17,13 @@ export function ProgramDetail({
   program,
   prevProg,
   nextProg,
+  pricingRuns,
   lang
 }: {
   program: ProgWithSlots;
   prevProg: Program | null;
   nextProg: Program | null;
+  pricingRuns: ProgramPricingRun[] | null;
   lang: 'ar' | 'en';
 }) {
   const d = programDict[lang];
@@ -167,12 +171,7 @@ export function ProgramDetail({
           <div className="prog-sidebar">
             <div className="prog-book">
               <h4>{d.pricingTitle}</h4>
-              <div className="prog-price mb-6">
-                <div className="amt">
-                  <span style={{ fontSize: '0.5em', display: 'block', lineHeight: 1.3 }}>{d.pricingContact}</span>
-                </div>
-                <div className="note">{d.pricingFamily}</div>
-              </div>
+              <ProgramPricing runs={pricingRuns} lang={lang} />
               
               <Link href={lang === 'ar' ? `/book?program=${program.slug}` : `/en/book?program=${program.slug}`} className="btn y" style={{width: '100%', justifyContent: 'center', boxShadow: 'none'}}>
                 {d.bookTrial}
