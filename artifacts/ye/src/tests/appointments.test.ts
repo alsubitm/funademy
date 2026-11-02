@@ -280,6 +280,65 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     email: email ?? 'trial-reminders@example.com',
   });
 
+  it.each([null, '', '   ', 'Riyadh', 'الرياض', '  rIyAdH  '])(
+    'labels the city map honestly when the configured venue is %j',
+    async (location) => {
+      const { program, slot } = await createProgramWithSlot();
+      await prisma.scheduleSlot.update({ where: { id: slot.id }, data: { location } });
+
+      const result = await createTrialBooking({
+        ...bookingBody(program.id, slot.id), familyId: auth.familyId,
+      });
+
+      expect(result.calendarDegraded).toBe(false);
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+        inPerson: true,
+        location: 'Riyadh, Saudi Arabia',
+        description: [
+          'حصة تجريبية حضورية في الرياض',
+          `البرنامج: ${program.nameAr} / ${program.nameEn}`,
+          'الرياض — حضوري. تواصل معنا لتأكيد المقر الدقيق قبل الحضور.',
+          'خريطة المدينة وليست موقع المقر: https://www.google.com/maps/search/?api=1&query=Riyadh%2C%20Saudi%20Arabia',
+        ].join('\n'),
+      }));
+      expect(mockCreate.mock.calls[0][0].description).not.toContain('البحث عن المقر في الخرائط');
+    },
+  );
+
+  it.each(['Al Yasmin partner school', 'مركز العلوم & الفنون #2? جناح + A / B'])(
+    'preserves the configured venue and safely encodes its map query: %s',
+    async (location) => {
+      const { program, slot } = await createProgramWithSlot();
+      await prisma.scheduleSlot.update({ where: { id: slot.id }, data: { location } });
+
+      const result = await createTrialBooking({
+        ...bookingBody(program.id, slot.id), familyId: auth.familyId,
+      });
+
+      expect(result.calendarDegraded).toBe(false);
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+      const query = `${location}, Riyadh, Saudi Arabia`;
+      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+        inPerson: true,
+        location,
+        description: [
+          'حصة تجريبية حضورية في الرياض',
+          `البرنامج: ${program.nameAr} / ${program.nameEn}`,
+          location,
+          `البحث عن المقر في الخرائط: ${mapUrl}`,
+        ].join('\n'),
+      }));
+      const description = mockCreate.mock.calls[0][0].description!;
+      expect(description).not.toContain('خريطة المدينة');
+      expect(description).not.toContain('تواصل معنا لتأكيد المقر الدقيق');
+      const actualUrl = new URL(description.match(/https:\/\/\S+$/)![0]);
+      expect([...actualUrl.searchParams.entries()]).toEqual([['api', '1'], ['query', query]]);
+      expect(actualUrl.hash).toBe('');
+    },
+  );
+
   it('rejects anonymous and stale sessions without reserving seats or creating events', async () => {
     const { program, slot } = await createProgramWithSlot();
     auth.familyId = 0;
