@@ -9,3 +9,8 @@ description: How the vitest suite verifies next build survives an unreachable DA
 - **Gotcha:** validation harness and the ye-tests workflow can run the suite concurrently; two builds sharing one distDir corrupt each other ("Cannot find module webpack-runtime.js"). The test takes a mkdir-based lock and retries once on that specific flake.
 - **Gotcha:** `next build` rewrites tsconfig.json include to add `<distDir>/types/**/*.ts`; commit that include entry once so test runs don't churn tracked files. Always `rm -rf` the test dist dir before and after (stale partial output corrupts builds).
 - **Gotcha:** never run a production `next build`/`next start` while the dev workflow is up without `NEXT_DIST_DIR=<throwaway>` — they share `.next` and corrupt each other (missing page modules / prerender-manifest).
+
+## Keep third-party fonts outside the database-resilience assertion
+Use deterministic font responses only in the isolated test build, not in the app or normal production builds.
+**Why:** changing Google Fonts responses caused the Next font loader to fail before the database-resilience assertion could run. A database regression guard should not depend on external font response shapes.
+**How to apply:** retain real compilation and prerendering with the unreachable database; keep the font fixture explicitly scoped to the child test process and fail closed for new font requests.

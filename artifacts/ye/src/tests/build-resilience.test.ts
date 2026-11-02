@@ -38,6 +38,10 @@ function childEnv(): NodeJS.ProcessEnv {
   env.DATABASE_URL = UNREACHABLE_DB_URL;
   env.NEXT_DIST_DIR = DIST_DIR;
   env.NEXT_TELEMETRY_DISABLED = '1';
+  // This guard tests database resilience, not Google's CSS service. Keep
+  // font responses deterministic in this child only; production builds
+  // retain real next/font downloads.
+  env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES = path.join(YE_ROOT, 'src/tests/fixtures/google-fonts.cjs');
   return env as unknown as NodeJS.ProcessEnv;
 }
 
@@ -118,7 +122,7 @@ describe('build resilience (publish must not depend on a reachable DB)', () => {
           const tail = result.output.split('\n').slice(-60).join('\n');
           expect.fail(
             `next build failed with an unreachable DATABASE_URL (exit ${result.code}). ` +
-              `A page is likely querying the DB at build time without a safeQuery fallback.\n${tail}`,
+              `Inspect the build output below; an unguarded DB query is one possible cause.\n${tail}`,
           );
         }
         expect(result.code).toBe(0);
