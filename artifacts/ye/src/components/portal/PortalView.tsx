@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ClassroomLocation } from '@/components/ClassroomLocation';
 import { isTransientDatabaseError, prisma } from '@/lib/db';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { portalDict } from '@/app/(ar)/portal/dict';
@@ -223,7 +224,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
               <div className="mt">
                 {child.firstName} · {weekdays[next.courseRun.weekday]} {fmt(lang, next.courseRun.time)} · {fmtDate(lang, next.date)}
                 {' · '}
-                {`📍 ${next.courseRun.location ?? d.inPerson}`}
+                <ClassroomLocation location={next.courseRun.location} lang={lang} />
               </div>
             </div>
             {nextJoinUrl && (
@@ -260,7 +261,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                 <div className="nm">{progName(e.courseRun.program)}</div>
                 <div className="mt">
                   {(lang === 'ar' ? e.courseRun.titleAr : e.courseRun.titleEn) ?? ''} · {weekdays[e.courseRun.weekday]} {e.courseRun.time}
-                  {e.courseRun.location ? ` · 📍 ${e.courseRun.location}` : ''}
+                  {' · '}<ClassroomLocation location={e.courseRun.location} lang={lang} />
                 </div>
               </div>
               <div style={{ textAlign: 'end' }}>
@@ -287,6 +288,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                   {a.childFirstName ? ` — ${a.childFirstName}` : ''}
                 </div>
                 <div className="mt">{formatRiyadh(a.startsAt, lang)}</div>
+                {a.kind === 'trial' && <div className="mt"><ClassroomLocation lang={lang} /></div>}
               </div>
               {a.meetUrl && (
                 <a className="btn b" style={{ padding: '8px 18px', fontSize: 13 }} href={a.meetUrl} target="_blank" rel="noopener noreferrer">
@@ -313,7 +315,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                   {progName(s.courseRun.program)} — {weekdays[s.courseRun.weekday]} {fmt(lang, s.courseRun.time)}
                   {s.isMakeup && <span className="ptl-mk approved" style={{ marginInlineStart: 8 }}>🔁 {d.mkTag}</span>}
                   <span className="loc">
-                    {`📍 ${s.courseRun.location ?? d.inPerson}`}
+                    <ClassroomLocation location={s.courseRun.location} lang={lang} />
                   </span>
                 </span>
                 {joinUrl && (
@@ -388,7 +390,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                 {m.makeupSession && (
                   <span className="loc">
                     🔁 {d.mkSlot}: {fmtDate(lang, m.makeupSession.date)} — {weekdays[m.makeupSession.courseRun.weekday]} {fmt(lang, m.makeupSession.courseRun.time)}
-                    {m.makeupSession.courseRun.location ? ` · 📍 ${m.makeupSession.courseRun.location}` : ''}
+                    {' · '}<ClassroomLocation location={m.makeupSession.courseRun.location} lang={lang} />
                   </span>
                 )}
                 {m.adminNote && <span className="loc">💬 {m.adminNote}</span>}

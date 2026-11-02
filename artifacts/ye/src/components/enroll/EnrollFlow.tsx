@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { enrollDict } from '@/app/(ar)/enroll/dict';
+import { ClassroomLocation } from '@/components/ClassroomLocation';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 
 type Lang = 'ar' | 'en';
@@ -198,6 +199,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
               <div className="c-prog">
                 {lang === 'ar' ? it.programNameAr : it.programNameEn}
                 {it.weekday != null ? ` — ${weekdays[it.weekday]} ${it.time ?? ''}` : ''}
+                <div><ClassroomLocation location={runs.find((r) => r.id === it.courseRunId)?.location} lang={lang} /></div>
               </div>
             </div>
             <div className="c-price">
@@ -260,7 +262,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
                       <div className="r-name">{r.program.nameEn}</div>
                       <div className="r-meta">
                         {(lang === 'ar' ? r.titleAr : r.titleEn) ?? ''} · {weekdays[r.weekday]} {r.time}
-                        {r.location ? ` · 📍 ${r.location}` : ''}
+                        {' · '}<ClassroomLocation location={r.location} lang={lang} />
                       </div>
                       <div className={`r-seats ${r.seatsLeft <= 3 ? 'low' : ''}`}>
                         {full ? d.full : `${fmt(lang, r.seatsLeft)} ${d.seats}`}

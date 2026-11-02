@@ -3,6 +3,7 @@ import { prisma, withDbRetry } from '@/lib/db';
 import { addAttendeeToEvent, createMeetEvent } from '@/lib/google-calendar';
 import { CONSULT_DURATION_MIN, consultAvailability, nextOccurrence } from '@/lib/appointments';
 import { CATALOG } from '@/lib/catalog';
+import { classroomLocation, classroomMapUrl, isCityOnlyLocation } from '@/lib/classroom-location';
 
 type TrialInput = {
   programId: number; slotId: number; parentName: string; phone: string; email: string | null;
@@ -82,9 +83,9 @@ export async function createTrialBooking(input: TrialInput) {
     } else {
       meet = await createMeetEvent({
         summary: `حصة تجريبية FunAdemy — ${slot.program.nameAr}`,
-        description: `حصة تجريبية حضورية في الرياض\nالبرنامج: ${slot.program.nameAr} / ${slot.program.nameEn}\n${slot.location || 'تواصل معنا لتأكيد موقع الحصة.'}`,
+        description: `حصة تجريبية حضورية في الرياض\nالبرنامج: ${slot.program.nameAr} / ${slot.program.nameEn}\n${classroomLocation(slot.location, 'ar')}\n${isCityOnlyLocation(slot.location) ? 'خريطة المدينة وليست موقع المقر' : 'البحث عن المقر في الخرائط'}: ${classroomMapUrl(slot.location)}`,
         inPerson: true,
-        location: slot.location,
+        location: isCityOnlyLocation(slot.location) ? 'Riyadh, Saudi Arabia' : slot.location,
         startsAt: booking.trialStartsAt!, durationMin: CATALOG[slot.program.slug]?.lessonMin ?? 45, attendeeEmail: input.email,
       });
     }

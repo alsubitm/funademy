@@ -5,6 +5,8 @@ import { bookDict } from '@/app/(ar)/book/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { getSavedAge, saveAge } from '@/lib/savedAge';
 import { AccountFlow } from '@/components/account/AccountFlow';
+import { classroomLocation } from '@/lib/classroom-location';
+import { ClassroomLocation } from '@/components/ClassroomLocation';
 import '@/app/(ar)/account/page.css';
 
 type BookingFlowProps = {
@@ -163,6 +165,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   if (!verified) {
     return <div className="acct-pg">
       <p>{lang === 'ar' ? 'يرجى تأكيد رقم الجوال لحجز مقعد تجريبي.' : 'Please verify your phone number to reserve a trial seat.'}</p>
+      <p><ClassroomLocation lang={lang} /></p>
       <AccountFlow lang={lang} onAuthenticated={(family) => {
         setPhone(family.phone);
         setParentName(family.parentName);
@@ -178,6 +181,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
           <div className="icon">🎉</div>
           <h3>{d.successTitle}</h3>
           <p>{d.successDesc}</p>
+          <p><ClassroomLocation location={slots.find((s) => s.id === slotId)?.location} lang={lang} /></p>
           {appointment ? (
             <div className="appt-box" style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
               <p style={{ margin: '4px 0' }}>
@@ -266,6 +270,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
 
                 {step === 2 && (
           <div className="slot-list">
+            <p><ClassroomLocation location={slots.find((s) => s.id === slotId)?.location} lang={lang} /></p>
             {filteredSlots.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--mut)' }}>
                 <p>{d.noSlots}</p>
@@ -284,7 +289,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
                     <div className="slot-time">{weekdays[s.weekday]} — {s.time}</div>
                     <div className="slot-meta">
                       <span className={`slot-fmt ${s.format}`}>{fmtLabel}</span>
-                      {s.location && <span>📍 {s.location}</span>}
+                      <span>📍 {classroomLocation(s.location, lang)}</span>
                     </div>
                   </div>
                   <div className="slot-action">

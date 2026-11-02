@@ -18,3 +18,4 @@
 - [pnpm audit override safety](pnpm-audit-overrides.md) — auto-fix can replace root overrides with workspace settings; preserve existing security pins and constrain suggested upgrades.
 - [Trial abuse boundary](trial-abuse-boundary.md) — reuse family phone verification for trial seats; IP throttling alone cannot establish a reservation identity.
 - [Program tuition policy](program-price-policy.md) — quote base tuition per enrollment run, not per language or format; distinguish unavailable runs from failed lookups.
+- [Classroom venues](classroom-venues.md) — all classes are in person; obtain owner-confirmed venues and map links, never infer an address from Riyadh.
