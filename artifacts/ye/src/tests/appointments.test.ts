@@ -358,6 +358,83 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     expect(new Set(appts.map((a) => a.calendarEventId)).size).toBe(1);
   });
 
+  it('ignores a legacy remote trial event, then reuses the new classroom event', async () => {
+    const { program, slot } = await createProgramWithSlot();
+    const expectedStart = nextOccurrence(slot.weekday, slot.time);
+    const legacy = await prisma.appointment.create({
+      data: {
+        kind: 'trial',
+        status: 'scheduled',
+        programId: program.id,
+        startsAt: expectedStart,
+        parentName: `Legacy ${RUN}`,
+        phone: freshPhone(),
+        calendarEventId: `legacy-remote-${RUN}`,
+        meetUrl: 'https://meet.google.com/legacy-remote',
+      },
+    });
+    const classroomEventId = `classroom-${RUN}`;
+    mockCreate.mockResolvedValueOnce({
+      eventId: classroomEventId,
+      meetUrl: null,
+      htmlLink: null,
+    });
+
+    const first = await bookingsPOST(
+      jsonReq('/svc/bookings', bookingBody(program.id, slot.id, 'first@example.com')),
+    );
+    expect(first.status).toBe(201);
+    const firstBody = await first.json();
+    expect(firstBody.appointment).toMatchObject({
+      startsAt: expectedStart.toISOString(),
+      meetUrl: null,
+    });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      inPerson: true,
+      startsAt: expectedStart,
+    }));
+    expect(mockAddAttendee).not.toHaveBeenCalled();
+    const firstSaved = await prisma.appointment.findFirstOrThrow({
+      where: { bookingId: firstBody.id },
+    });
+    expect(firstSaved).toMatchObject({
+      programId: program.id,
+      startsAt: expectedStart,
+      calendarEventId: classroomEventId,
+      meetUrl: null,
+    });
+
+    const second = await bookingsPOST(
+      jsonReq('/svc/bookings', bookingBody(program.id, slot.id, 'second@example.com')),
+    );
+    expect(second.status).toBe(201);
+    const secondBody = await second.json();
+    expect(secondBody.appointment).toMatchObject({
+      startsAt: expectedStart.toISOString(),
+      meetUrl: null,
+    });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockAddAttendee).toHaveBeenCalledTimes(1);
+    expect(mockAddAttendee).toHaveBeenCalledWith(classroomEventId, 'second@example.com');
+    const secondSaved = await prisma.appointment.findFirstOrThrow({
+      where: { bookingId: secondBody.id },
+    });
+    expect(secondSaved.id).not.toBe(firstSaved.id);
+    expect(secondSaved).toMatchObject({
+      programId: program.id,
+      startsAt: expectedStart,
+      calendarEventId: classroomEventId,
+      meetUrl: null,
+    });
+    expect(await prisma.appointment.findUniqueOrThrow({ where: { id: legacy.id } }))
+      .toMatchObject({
+        status: 'scheduled',
+        calendarEventId: legacy.calendarEventId,
+        meetUrl: legacy.meetUrl,
+      });
+  });
+
   it('booking survives a Google failure (no appointment, booking still created)', async () => {
     const { program, slot } = await createProgramWithSlot();
     mockCreate.mockRejectedValueOnce(new Error('google down'));
