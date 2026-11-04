@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/windmill/"
+title = "FunAdemy — Windmill BC.013"
+description = "Bilingual instructor-guided digital companion for Young Engineers Bricks Challenge Windmill BC.013. Fourteen-stage original SVG build, gear simulation and anonymous device-local progress."
+version = "1.0.0"
+id = "artifacts/windmill"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/windmill/" ]
+localPort = 21396
+
+[services.development]
+run = "pnpm --filter @workspace/windmill run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/windmill", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/windmill/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21396"
+BASE_PATH = "/windmill/"
