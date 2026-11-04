@@ -87,6 +87,43 @@ CREATE TABLE "ye_instructors" (
 );
 
 -- CreateTable
+CREATE TABLE "ye_live_lab_rooms" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "instructorId" INTEGER NOT NULL,
+    "startsAt" TIMESTAMP(3) NOT NULL,
+    "durationMin" INTEGER NOT NULL DEFAULT 60,
+    "phase" TEXT NOT NULL DEFAULT 'waiting',
+    "step" INTEGER NOT NULL DEFAULT 0,
+    "motor" BOOLEAN NOT NULL DEFAULT false,
+    "speed" DOUBLE PRECISION NOT NULL DEFAULT 1,
+    "reverse" BOOLEAN NOT NULL DEFAULT false,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "meetUrl" TEXT,
+    "calendarStatus" TEXT NOT NULL DEFAULT 'not_sent',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ye_live_lab_rooms_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_live_lab_guests" (
+    "id" TEXT NOT NULL,
+    "roomId" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "revoked" BOOLEAN NOT NULL DEFAULT false,
+    "invitedAt" TIMESTAMP(3),
+    "joinedAt" TIMESTAMP(3),
+    "submittedAt" TIMESTAMP(3),
+    "answers" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
+    "score" INTEGER,
+
+    CONSTRAINT "ye_live_lab_guests_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ye_instructor_assignments" (
     "instructorId" INTEGER NOT NULL,
     "courseRunId" INTEGER NOT NULL,
@@ -805,6 +842,15 @@ CREATE TABLE "campaign_brick_events" (
 CREATE UNIQUE INDEX "ye_instructors_email_key" ON "ye_instructors"("email");
 
 -- CreateIndex
+CREATE INDEX "ye_live_lab_rooms_instructorId_startsAt_idx" ON "ye_live_lab_rooms"("instructorId", "startsAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_live_lab_guests_token_key" ON "ye_live_lab_guests"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_live_lab_guests_roomId_email_key" ON "ye_live_lab_guests"("roomId", "email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_instructor_notes_instructorId_sessionId_key" ON "ye_instructor_notes"("instructorId", "sessionId");
 
 -- CreateIndex
@@ -1010,6 +1056,12 @@ CREATE INDEX "ye_rate_limit_hits_at_idx" ON "ye_rate_limit_hits"("at");
 
 -- CreateIndex
 CREATE INDEX "campaign_brick_events_key_created_at_idx" ON "campaign_brick_events"("key", "created_at");
+
+-- AddForeignKey
+ALTER TABLE "ye_live_lab_rooms" ADD CONSTRAINT "ye_live_lab_rooms_instructorId_fkey" FOREIGN KEY ("instructorId") REFERENCES "ye_instructors"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_live_lab_guests" ADD CONSTRAINT "ye_live_lab_guests_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "ye_live_lab_rooms"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ye_instructor_assignments" ADD CONSTRAINT "ye_instructor_assignments_instructorId_fkey" FOREIGN KEY ("instructorId") REFERENCES "ye_instructors"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -2,7 +2,7 @@ import type { Lang } from './types';
 
 const ar = {
   brand: 'لوحة المدرّب', sub: 'INSTRUCTOR DESK',
-  nav: { overview: 'نظرة عامة', schedule: 'الجدول', roster: 'الفصول والطلاب', notes: 'ملاحظات التحضير', resources: 'المكتبة', lab: 'مختبر Windmill', settings: 'الحساب' },
+  nav: { overview: 'نظرة عامة', schedule: 'الجدول', roster: 'الفصول والطلاب', notes: 'ملاحظات التحضير', resources: 'المكتبة', lab: 'مختبر Windmill', live: 'الحصص المباشرة', settings: 'الحساب' },
   loginTitle: 'دخول المدرّبين', loginLead: 'مساحة خاصة بمدرّبي FunAdemy المعتمدين. الحسابات تُنشأ من الإدارة فقط.',
   email: 'البريد الإلكتروني', password: 'كلمة المرور', signIn: 'دخول', signingIn: 'جارٍ الدخول…',
   errInvalid: 'البريد أو كلمة المرور غير صحيحة.', errRate: 'محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.', errUnavailable: 'الخدمة غير متاحة مؤقتاً. حاول بعد قليل.', errGeneric: 'تعذّر الإكمال. حاول مرة أخرى.',
@@ -36,7 +36,7 @@ const ar = {
 
 const en: typeof ar = {
   brand: 'Instructor panel', sub: 'INSTRUCTOR DESK',
-  nav: { overview: 'Overview', schedule: 'Schedule', roster: 'Classes & students', notes: 'Prep notes', resources: 'Library', lab: 'Windmill lab', settings: 'Account' },
+  nav: { overview: 'Overview', schedule: 'Schedule', roster: 'Classes & students', notes: 'Prep notes', resources: 'Library', lab: 'Windmill lab', live: 'Live classes', settings: 'Account' },
   loginTitle: 'Instructor sign in', loginLead: 'Private workspace for approved FunAdemy instructors. Accounts are created by administrators only.',
   email: 'Email', password: 'Password', signIn: 'Sign in', signingIn: 'Signing in…',
   errInvalid: 'Email or password is incorrect.', errRate: 'Too many attempts. Wait a moment and try again.', errUnavailable: 'Service temporarily unavailable. Try again shortly.', errGeneric: 'Something went wrong. Please try again.',

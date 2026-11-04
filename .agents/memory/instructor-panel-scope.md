@@ -13,7 +13,13 @@ Keep staff access separate from family and administrator access. Accounts are ad
 
 **Why:** The existing site had an administrator panel but no instructor role. Reusing the administrator password for teachers would grant unrelated permissions; introducing a different identity provider would disrupt the existing authentication system.
 
-**How to apply:** Preserve account revocation and assignment checks on the server. Administrator preview is read-only for instructor-private preparation notes. The anonymous Windmill lab remains device-local and embedded as a teaching resource; embedding does not itself make its standalone URL private.
+**How to apply:** Preserve account revocation and assignment checks on the server. Administrator preview is read-only for instructor-private preparation notes. The standalone Windmill lab remains device-local; instructor-led sessions are a separate shared experience, not a change to anonymous progress.
+
+Online free trials are instructor-led: students observe the instructor's model and take a test only when the instructor unlocks it. Both administrators and assigned instructors manage invitations and Meet scheduling.
+
+**Why:** The owner explicitly requested instructor control, student viewing, and an end-of-session test, and selected online free trials as the Meet use case.
+
+**How to apply:** Keep shared classroom state and test grading server-owned. Never let a student's local lab progress control the shared class. Keep private student invitation links out of shared Google Calendar descriptions and guest lists.
 
 Provision instructor accounts in the environment where the user will sign in; a Preview account is not a live-site account.
 

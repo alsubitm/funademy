@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { LiveSessions } from '@/components/instructor/LiveSessions';
 
 type Instructor = { id: number; name: string; email: string; active: boolean; courseRunIds: number[] };
 type RunOpt = { id: number; title: string; program: string };
@@ -191,6 +192,10 @@ export function InstructorsTab() {
           ))}
         </div>
       )}
+
+      <div className="pt-8 border-t border-[#DFE5F2]" data-testid="section-admin-live">
+        <LiveSessions lang="ar" admin />
+      </div>
     </div>
   );
 }

@@ -17,8 +17,49 @@ model Instructor {
   createdAt    DateTime @default(now())
   assignments  InstructorAssignment[]
   notes        InstructorNote[]
+  liveRooms    LiveLabRoom[]
 
   @@map("ye_instructors")
+}
+
+model LiveLabRoom {
+  id             String   @id @default(uuid())
+  title          String
+  instructorId   Int
+  instructor     Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  startsAt       DateTime
+  durationMin    Int      @default(60)
+  phase          String   @default("waiting")
+  step           Int      @default(0)
+  motor          Boolean  @default(false)
+  speed          Float    @default(1)
+  reverse        Boolean  @default(false)
+  version        Int      @default(1)
+  meetUrl        String?
+  calendarStatus String   @default("not_sent")
+  createdAt      DateTime @default(now())
+  guests         LiveLabGuest[]
+
+  @@index([instructorId, startsAt])
+  @@map("ye_live_lab_rooms")
+}
+
+model LiveLabGuest {
+  id          String   @id @default(uuid())
+  roomId      String
+  room        LiveLabRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  token       String   @unique
+  name        String
+  email       String
+  revoked     Boolean  @default(false)
+  invitedAt   DateTime?
+  joinedAt    DateTime?
+  submittedAt DateTime?
+  answers     Int[]    @default([])
+  score       Int?
+
+  @@unique([roomId, email])
+  @@map("ye_live_lab_guests")
 }
 
 model InstructorAssignment {

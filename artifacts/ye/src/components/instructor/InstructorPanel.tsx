@@ -6,9 +6,10 @@ import { KiteMark } from '@/components/brand/FunAdemyMark';
 import type { Dashboard, Lang } from './types';
 import { t } from './strings';
 import { PasswordChange } from './PasswordChange';
+import { LiveSessions } from './LiveSessions';
 import { Icon, ICONS, Lab, Notes, Overview, Resources, Roster, Schedule, type NoteState } from './InstructorViews';
 
-const TABS = ['overview', 'schedule', 'roster', 'notes', 'resources', 'lab', 'settings'] as const;
+const TABS = ['overview', 'schedule', 'roster', 'notes', 'resources', 'lab', 'live', 'settings'] as const;
 type Tab = (typeof TABS)[number];
 
 async function readError(res: Response) {
@@ -206,6 +207,7 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
         {tab === 'notes' && <Notes data={data} lang={lang} s={s} notes={notes} setDraft={setDraft} save={save} readOnly={isAdmin} />}
         {tab === 'resources' && <Resources lang={lang} s={s} go={go} />}
         {labMounted && <Lab s={s} visible={tab === 'lab'} />}
+        {tab === 'live' && <LiveSessions lang={lang} admin={isAdmin} />}
         {tab === 'settings' && (
           <section>
             <h2 className="ip-h">{s.nav.settings}</h2>
