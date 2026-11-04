@@ -3,6 +3,11 @@ import { Axle, Blade, Brick, C, CrossEnd, Gear, Motor, Slope } from '@/component
 import type { Lesson } from '@/data/lessons/windmill';
 
 export interface Motion { driver: number; driven: number; axle: number; rotor: number; motorOn: boolean }
+export interface Motion { driver: number; driven: number; axle: number; rotor: number; motorOn: boolean }
+export interface Motion { driver: number; driven: number; axle: number; rotor: number; motorOn: boolean }
+export interface Motion { driver: number; driven: number; axle: number; rotor: number; motorOn: boolean }
+export interface Motion { driver: number; driven: number; axle: number; rotor: number; motorOn: boolean }
+export interface Motion { driver: number; driven: number; axle: number; rotor: number; motorOn: boolean }
 export const STILL: Motion = { driver: 0, driven: 0, axle: 0, rotor: 0, motorOn: false };
 
 /** Mechanical anchor points (model coordinates). Mechanical orientation is fixed; never mirrored in RTL. */
@@ -11,6 +16,8 @@ export const G = { x: 345, y: 212 }; // large driven gear centre (back of axle 1
 export const GEAR_R = 56;
 const AXLE_Y = (x: number) => R.y + ((G.y - R.y) / (G.x - R.x)) * (x - R.x);
 
+interface Ctx { m: Motion; teeth: { driver: number; driven: number } }
+interface Ctx { m: Motion; teeth: { driver: number; driven: number } }
 interface Ctx { m: Motion; teeth: { driver: number; driven: number } }
 
 const pinion = (t: Ctx['teeth']) => {
@@ -178,7 +185,7 @@ export function WindmillModel({ lesson, placed, motion, newest, popKey = 0, prev
       {Z.filter((id) => layerIds.includes(id)).map((id) => {
         const off = !joined && lesson.detachedLayers.includes(id) ? lesson.detachedOffset : { x: 0, y: 0 };
         return (
-          <g key={id} transform={`translate(${off.x} ${off.y})`} className="wm-layer-shift">
+          <g key={id} data-testid={`model-layer-${id}`} transform={`translate(${off.x} ${off.y})`} className="wm-layer-shift">
             <g key={id === newestLayer ? `p${popKey}` : 'still'} className={id === newestLayer ? `wm-pop${id === previewLayer ? ' wm-preview' : ''}` : undefined}>
               <LayerArt id={id} lesson={lesson} motion={motion} />
             </g>

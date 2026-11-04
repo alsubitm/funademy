@@ -20,3 +20,4 @@
 - [Program tuition policy](program-price-policy.md) — quote base tuition per enrollment run, not per language or format; distinguish unavailable runs from failed lookups.
 - [Classroom venues](classroom-venues.md) — all classes are in person; obtain owner-confirmed venues and map links, never infer an address from Riyadh.
 - [Windmill companion scope](windmill-companion.md) — actual BC.013 guide, not generic fan; original vectors, anonymous classroom use, and disclosed illustrative gear ratio.
+- [Windmill browser environment](windmill-browser-environment.md) — downloaded engines lack native libraries here; system Chromium works, not evidence of Firefox/WebKit or physical-device coverage.

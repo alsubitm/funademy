@@ -91,6 +91,67 @@ Browser verification used desktop Chromium at 1280×900 and touch-emulated Chrom
 
 Live SVG transforms confirmed a driver change of +63.126 degrees and a driven change of −21.042 degrees over the same sample interval; axle and blades followed the driven gear. Reduced-motion idle effects were checked separately.
 
+## Repeatable browser regressions
+
+The committed Playwright suite is in `tests/browser/lesson.spec.ts`, configured by
+`playwright.config.ts`. Run from the workspace root:
+
+```bash
+pnpm --filter @workspace/windmill test:browser:install
+pnpm --filter @workspace/windmill test:browser
+# One engine, or touch-emulated narrow viewport:
+pnpm --filter @workspace/windmill test:browser --project=firefox
+pnpm --filter @workspace/windmill test:browser --project=webkit-touch
+```
+
+On a supported Linux host, Playwright may also require its OS dependencies
+(`pnpm --filter @workspace/windmill exec playwright install --with-deps`).
+This is not an instruction to run apt inside Replit's Nix environment.
+Missing engines fail visibly; the suite does not silently drop or auto-skip them.
+
+The harness builds this artifact and starts a separate static preview on
+`127.0.0.1:4178/windmill/`, refusing to reuse an existing server. It passes only
+essential process paths and fixed build settings to Vite, not provider/database
+secrets. Each test uses a fresh anonymous browser context and real UI interactions,
+never fabricated completed progress. Requests are restricted to local GETs under
+`/windmill/`; unexpected destinations/methods are blocked and fail the test.
+The optional Google Fonts stylesheet is fulfilled with empty CSS without making
+a network call. There is no backend, login, database or provider setup.
+
+Coverage:
+- All 14 stages in English and Arabic, localized target labels, progress,
+  installed parts and visible model layers.
+- Desktop clicks and 390×844 touch-emulated taps; desktop pointer drag including
+  a rejected drop; Enter/Space placement and wrong-set rejection.
+- Refresh/language restoration in both directions and completed/tested restoration.
+- Demo navigation, motor, exit and reload without changing saved student work.
+- Reset cancellation, Escape dismissal, explicit confirmation and persisted reset.
+- Motor gating and actual SVG transforms: opposite driver/driven directions,
+  3:1 reduction, axle/blades following the driven gear, and frozen transforms
+  after stopping.
+
+Reports, failure screenshots and traces go under ignored
+`generated-artifacts/windmill/` at the workspace root. Inspect the HTML report with:
+`pnpm --filter @workspace/windmill exec playwright show-report ../../generated-artifacts/windmill/report`.
+Typechecking includes the suite and its configuration; existing `test` still runs
+the separate pure-engine Node tests.
+
+### Verified environment and limits (2026-11-04)
+
+- System Chromium: **11 passed**, one intentional touch-project pointer-drag skip
+  (touch placement is tested using taps instead). Command in this Replit:
+  `WINDMILL_CHROMIUM_EXECUTABLE=/repl/tools/bin/chromium pnpm --filter @workspace/windmill test:browser --project=chromium --project=chromium-touch`.
+- Downloaded Chromium could not start here (`libglib-2.0.so.0` missing), hence the
+  explicit system-executable override. On standard supported hosts, leave it unset
+  to use Playwright's version-matched Chromium.
+- Firefox: attempted, unavailable here due to missing X11/GTK/Pango libraries.
+- WebKit: attempted, unavailable here due to missing GTK/Wayland/GStreamer and
+  other required shared libraries. Neither Firefox nor WebKit is claimed passed.
+- All three engines have desktop and touch projects. Firefox's touch project
+  uses `hasTouch` and a narrow viewport but not unsupported `isMobile`.
+  Emulation is **not physical iOS/Android testing**, and Playwright WebKit is not
+  a claim of testing installed Safari. Webfont appearance is outside this suite.
+
 ## Publishing
 
 Use the workspace Publish action after reviewing Preview. The existing public domain was verified as `https://funademy.io`; the new lesson's intended public address after publishing is `https://funademy.io/windmill/`. The lab has **not been published by the build agent**.
