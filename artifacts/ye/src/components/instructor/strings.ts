@@ -30,7 +30,7 @@ const ar = {
   openLab: 'افتح المختبر', openNewTab: 'فتح في تبويب جديد', reload: 'إعادة التحميل', fullscreen: 'ملء الشاشة',
   labNote: 'المختبر يعمل دون تسجيل دخول، والتقدم محفوظ محلياً على هذا الجهاز ومستقل عن حسابك.',
   profile: 'الملف الشخصي', name: 'الاسم', role: 'الدور', roleInstructor: 'مدرّب', roleAdmin: 'مدير (معاينة)',
-  contactAdmin: 'لتعديل الاسم أو البريد أو الإسنادات أو كلمة المرور تواصل مع إدارة FunAdemy. لا تُرسل كلمة المرور في رسائل.',
+  contactAdmin: 'لتعديل الاسم أو البريد أو الإسنادات أو لاستعادة الوصول عند نسيان كلمة المرور تواصل مع إدارة FunAdemy. لا تُرسل كلمة المرور في رسائل.',
   leaveWarn: 'لديك تغييرات غير محفوظة. هل تريد المغادرة؟', menu: 'القائمة', today: 'اليوم', status: { scheduled: 'مجدولة', completed: 'مكتملة', cancelled: 'ملغاة', present: 'حاضر', absent: 'غائب', late: 'متأخر', excused: 'بعذر', active: 'نشط', enrolled: 'مسجّل', waitlisted: 'قائمة انتظار', withdrawn: 'منسحب' } as Record<string, string>,
 };
 
@@ -64,7 +64,7 @@ const en: typeof ar = {
   openLab: 'Open the lab', openNewTab: 'Open in new tab', reload: 'Reload', fullscreen: 'Fullscreen',
   labNote: 'The lab needs no sign in. Progress is saved locally on this device, independent of your account.',
   profile: 'Profile', name: 'Name', role: 'Role', roleInstructor: 'Instructor', roleAdmin: 'Administrator (preview)',
-  contactAdmin: 'To change your name, email, assignments or password, contact FunAdemy administration. Never send your password in messages.',
+  contactAdmin: 'To change your name, email or assignments, or recover access if you forget your password, contact FunAdemy administration. Never send your password in messages.',
   leaveWarn: 'You have unsaved changes. Leave anyway?', menu: 'Menu', today: 'Today', status: { scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled', present: 'Present', absent: 'Absent', late: 'Late', excused: 'Excused', active: 'Active', enrolled: 'Enrolled', waitlisted: 'Waitlisted', withdrawn: 'Withdrawn' },
 };
 

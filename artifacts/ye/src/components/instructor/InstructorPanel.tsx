@@ -5,6 +5,7 @@ import './instructor.css';
 import { KiteMark } from '@/components/brand/FunAdemyMark';
 import type { Dashboard, Lang } from './types';
 import { t } from './strings';
+import { PasswordChange } from './PasswordChange';
 import { Icon, ICONS, Lab, Notes, Overview, Resources, Roster, Schedule, type NoteState } from './InstructorViews';
 
 const TABS = ['overview', 'schedule', 'roster', 'notes', 'resources', 'lab', 'settings'] as const;
@@ -14,7 +15,7 @@ async function readError(res: Response) {
   try { const j = await res.json(); return typeof j?.error === 'string' ? j.error : ''; } catch { return ''; }
 }
 
-function Login({ lang, onDone }: { lang: Lang; onDone: () => void }) {
+function Login({ lang, onDone, notice }: { lang: Lang; onDone: () => void; notice?: string }) {
   const s = t(lang);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +39,7 @@ function Login({ lang, onDone }: { lang: Lang; onDone: () => void }) {
           <div><div className="ip-kick">FunAdemy</div><h1 className="ip-h" style={{ fontSize: 26, margin: 0 }}>{s.loginTitle}</h1></div>
         </div>
         <p className="ip-lead" style={{ marginBottom: 6 }}>{s.loginLead}</p>
+        {notice && <p role="status">{notice}</p>}
         <label htmlFor="ip-email">{s.email}</label>
         <input id="ip-email" className="ip-input" type="email" dir="ltr" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-instructor-email" />
         <label htmlFor="ip-pass">{s.password}</label>
@@ -69,6 +71,7 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
   const [data, setData] = useState<Dashboard | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
   const [labMounted, setLabMounted] = useState(false);
+  const [authNotice, setAuthNotice] = useState('');
   const [notes, setNotes] = useState<Record<number, NoteState>>({});
 
   const load = useCallback(async () => {
@@ -141,7 +144,7 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
   };
 
   if (state === 'loading' && !data) return <Skeleton />;
-  if (state === 'auth') return <Login lang={lang} onDone={load} />;
+  if (state === 'auth') return <Login lang={lang} onDone={load} notice={authNotice} />;
   if (state === 'error' || !data) {
     return (
       <div className="ip ip-login" dir={dir}>
@@ -219,6 +222,15 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
                 ? <a className="ip-btn" href={adminHref} data-testid="link-settings-back-admin">{s.backAdmin}</a>
                 : <button className="ip-btn" onClick={logout} data-testid="button-settings-logout"><Icon d={ICONS.logout} size={16} />{s.logout}</button>}
             </div>
+            {!isAdmin && <PasswordChange lang={lang}
+              beforeSubmit={() => !anyDirty || window.confirm(s.leaveWarn)}
+              onSignedOut={(changed) => {
+                setData(null); setNotes({}); setLabMounted(false); setTab('overview');
+                setAuthNotice(changed
+                  ? (lang === 'ar' ? 'تم تغيير كلمة المرور وإنهاء جميع جلساتك. سجّل الدخول بكلمة المرور الجديدة.' : 'Password changed. All sessions have ended. Sign in with your new password.')
+                  : (lang === 'ar' ? 'انتهت جلستك. سجّل الدخول مجدداً.' : 'Your session has ended. Please sign in again.'));
+                setState('auth');
+              }} />}
           </section>
         )}
       </main>
