@@ -1,6 +1,7 @@
 import { test as base, expect, type Page } from '@playwright/test';
 import { windmillLesson as lesson } from '../../src/data/lessons/windmill';
 import { UI } from '../../src/i18n/ui';
+import { createProgress } from '../../src/lib/lesson-engine';
 
 // Every test gets a new anonymous context. No auth state, database or provider.
 const test = base.extend<{ localOnly: void }>({
@@ -41,6 +42,99 @@ async function place(page: Page, number: number, touch = false) {
 }
 async function saved(page: Page) {
   return page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
+}
+
+const progressKey = `funademy.lab.progress.${lesson.id}.v${lesson.version}`;
+const languageKey = 'funademy.lab.language';
+
+for (const lang of ['ar', 'en'] as const) {
+  for (const failure of ['access', 'write'] as const) {
+    test(`storage notice: blocked ${failure} in ${lang} keeps building usable without saving`, async ({ page, context, hasTouch }) => {
+      const errors: string[] = [];
+      page.on('pageerror', error => errors.push(error.message));
+      await context.addInitScript(({ failure }) => {
+        if (failure === 'access') {
+          Object.defineProperty(window, 'localStorage', {
+            get() { throw new DOMException('Storage access denied', 'SecurityError'); },
+          });
+        } else {
+          // Reads work, but writes fail (e.g. quota exhaustion/private browsing).
+          Storage.prototype.setItem = function () {
+            throw new DOMException('Storage is full', 'QuotaExceededError');
+          };
+        }
+      }, { failure });
+      await open(page, lang);
+      const notice = page.getByTestId('storage-notice');
+      await expect(notice).toBeVisible();
+      await expect(notice).toHaveAttribute('role', 'alert');
+      await expect(notice).toHaveText(UI[lang].storageFail);
+      await expect(notice.getByRole('button')).toHaveCount(0);
+      await count(page, 0);
+      await place(page, 1, hasTouch);
+      await expect(page.getByTestId('step-title')).toHaveText(lesson.steps[1].title[lang]);
+      await expect(notice).toBeVisible();
+      await page.getByTestId('language').click();
+      await expect(notice).toHaveText(UI[lang === 'ar' ? 'en' : 'ar'].storageFail);
+      await count(page, 1);
+      if (failure === 'write') expect(await saved(page)).toEqual({});
+      await page.reload();
+      await count(page, 0);
+      await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+      await expect(notice).toBeVisible();
+      await expect(notice).toHaveText(UI.ar.storageFail);
+      await place(page, 1, hasTouch);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  for (const invalid of ['malformed JSON', 'stale version'] as const) {
+    test(`storage notice: ${invalid} in ${lang} is discarded and fresh progress persists`, async ({ page, context, hasTouch }) => {
+      const errors: string[] = [];
+      page.on('pageerror', error => errors.push(error.message));
+      const raw = invalid === 'malformed JSON' ? '{"placed":[' : JSON.stringify({
+        ...createProgress(lesson, lang === 'ar' ? 'en' : 'ar'),
+        // A structurally valid completed save, with only its version obsolete.
+        version: lesson.version - 1,
+        placed: lesson.steps.map(step => step.id),
+        hintsUsed: 7,
+        tested: true,
+      });
+      await context.addInitScript(({ progressKey, languageKey, raw, lang }) => {
+        // Seed once, not on reload: later assertions must inspect the app's writes.
+        if (sessionStorage.getItem('storage-regression-seeded')) return;
+        localStorage.setItem(progressKey, raw);
+        localStorage.setItem(languageKey, lang);
+        sessionStorage.setItem('storage-regression-seeded', 'yes');
+      }, { progressKey, languageKey, raw, lang });
+      await page.goto('./');
+      await expect(page.locator('html')).toHaveAttribute('lang', lang);
+      await expect(page.locator('html')).toHaveAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+      const notice = page.getByTestId('storage-notice');
+      await expect(notice).toBeVisible();
+      await expect(notice).toHaveAttribute('role', 'alert');
+      await expect(notice).toContainText(UI[lang].storageDiscarded);
+      await count(page, 0);
+      await expect(page.getByTestId('hints-used')).toHaveText(UI[lang].hintsUsed(0));
+      await expect(page.getByTestId('status-tested')).toHaveCount(0);
+      await expect(page.getByTestId('step-title')).toHaveText(lesson.steps[0].title[lang]);
+      await expect.poll(async () => JSON.parse((await saved(page))[progressKey])).toEqual(createProgress(lesson, lang));
+      // Dismissal is available only for discarded data and must not affect progress.
+      await notice.getByRole('button', { name: UI[lang].close, exact: true }).click();
+      await expect(notice).toHaveCount(0);
+      await place(page, 1, hasTouch);
+      const expected = { ...createProgress(lesson, lang), placed: [lesson.steps[0].id] };
+      await expect.poll(async () => JSON.parse((await saved(page))[progressKey])).toEqual(expected);
+      await page.reload();
+      await count(page, 1);
+      await expect(notice).toHaveCount(0);
+      await expect(page.locator('html')).toHaveAttribute('lang', lang);
+      await expect(page.getByTestId('step-title')).toHaveText(lesson.steps[1].title[lang]);
+      await expect(page.getByTestId('status-tested')).toHaveCount(0);
+      await place(page, 2, hasTouch);
+      expect(errors).toEqual([]);
+    });
+  }
 }
 
 for (const lang of ['en', 'ar'] as const) {
