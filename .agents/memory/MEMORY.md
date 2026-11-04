@@ -19,4 +19,3 @@
 - [Trial abuse boundary](trial-abuse-boundary.md) — reuse family phone verification for trial seats; IP throttling alone cannot establish a reservation identity.
 - [Program tuition policy](program-price-policy.md) — quote base tuition per enrollment run, not per language or format; distinguish unavailable runs from failed lookups.
 - [Classroom venues](classroom-venues.md) — all classes are in person; obtain owner-confirmed venues and map links, never infer an address from Riyadh.
-- [Engineering lab scope](engineering-lab-scope.md) — anonymous, device-local classroom practice; original content until approved Young Engineers materials are provided.

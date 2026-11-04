@@ -230,7 +230,6 @@ export function FunHome({ lang }: { lang: Lang }) {
         <div className="footer-big" aria-hidden="true"><div>Fun<span>Ademy</span></div><b>✳</b></div>
         <nav className="footer-links" aria-label={lang === 'ar' ? 'روابط الخدمات' : 'Service links'}>
           {feature.map(([path, label]) => <Link key={path} href={prefix(lang, path)}>{label}</Link>)}
-          <Link href={prefix(lang, '/lab')} data-testid="link-footer-lab">{lang === 'ar' ? 'مختبر التروس التجريبي' : 'Practice gear lab'}</Link>
         </nav>
         <div className="footer-top">
           {brand}
