@@ -1,0 +1,97 @@
+[
+  {
+    "file": "BalooBhaijaan2-Variable.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/baloobhaijaan2/BalooBhaijaan2%5Bwght%5D.ttf",
+    "sha256": "3e9f07fbc796c0ddcb3e6e0aa26f9c86741d9f5b7f5cb72f4ed3c06e55a19336"
+  },
+  {
+    "file": "baloobhaijaan2-OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/baloobhaijaan2/OFL.txt",
+    "sha256": "ad09b05dc8bc678c9daf7c4c5f7ef1f55e5726127f4330b2e98e40b9dffcb860"
+  },
+  {
+    "file": "IBMPlexSansArabic-Bold.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/IBMPlexSansArabic-Bold.ttf",
+    "sha256": "691e0c891a38637ae6bbdb69700f8042cb0724a137bee615068ffdb92244f61f"
+  },
+  {
+    "file": "IBMPlexSansArabic-Light.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/IBMPlexSansArabic-Light.ttf",
+    "sha256": "0af9d1effbb36ff74d13c64f752c771ecb9162a451cf151c5425f4d00d4daa7c"
+  },
+  {
+    "file": "IBMPlexSansArabic-Medium.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/IBMPlexSansArabic-Medium.ttf",
+    "sha256": "b8363ab9f733dfa4f8e96b8b2102c24b5cf4110fb96d1d3d9a9412f6fb49cf74"
+  },
+  {
+    "file": "IBMPlexSansArabic-Regular.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/IBMPlexSansArabic-Regular.ttf",
+    "sha256": "6f611412270a132bbac838da9259d4c68569b4175f3b3b8fa3fa36a30b56dab9"
+  },
+  {
+    "file": "IBMPlexSansArabic-SemiBold.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/IBMPlexSansArabic-SemiBold.ttf",
+    "sha256": "597bd5502e5997be4414e4c9c88834b30ff3784250c84f20bce2b20e53ebd467"
+  },
+  {
+    "file": "ibmplexsansarabic-OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/OFL.txt",
+    "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da"
+  },
+  {
+    "file": "IBMPlexMono-Bold.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexmono/IBMPlexMono-Bold.ttf",
+    "sha256": "ac27abd6450a64dd94467580a02fe6235156d5b92f2926ebbc8e7489df64e0be"
+  },
+  {
+    "file": "IBMPlexMono-Medium.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexmono/IBMPlexMono-Medium.ttf",
+    "sha256": "a9b4c49bb299e05b5f6c481e7fb5e78943d2793249a0c8874ab574a2d1ea6755"
+  },
+  {
+    "file": "IBMPlexMono-Regular.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexmono/IBMPlexMono-Regular.ttf",
+    "sha256": "6a3412f058c7d8dfd9170c41e85ade48e5156ecb89356110ca57a0a27734af46"
+  },
+  {
+    "file": "IBMPlexMono-SemiBold.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexmono/IBMPlexMono-SemiBold.ttf",
+    "sha256": "d3c38e55c78f5b0f28009fddba4834ec503278936a5986032424c9bd2d23aa46"
+  },
+  {
+    "file": "ibmplexmono-OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexmono/OFL.txt",
+    "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da"
+  },
+  {
+    "file": "spacegrotesk-OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/spacegrotesk/OFL.txt",
+    "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72"
+  },
+  {
+    "file": "SpaceGrotesk-Variable.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf",
+    "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72"
+  },
+  {
+    "file": "Manrope-Variable.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/Manrope%5Bwght%5D.ttf",
+    "sha256": "3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6"
+  },
+  {
+    "file": "manrope-OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/OFL.txt",
+    "sha256": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b"
+  },
+  {
+    "file": "NotoSansArabic-Variable.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "63111b5b2e074dd48cc67692e0a2726d86ee94c1c37fe8598257b7b4e87e869e"
+  },
+  {
+    "file": "notosansarabic-OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic/OFL.txt",
+    "sha256": "07fc70bfeb985cc1a87a8587d0a0c80bab11c86c9dc3fd95b6f0cb332f983e96"
+  }
+]

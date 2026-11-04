@@ -38,10 +38,7 @@ function childEnv(): NodeJS.ProcessEnv {
   env.DATABASE_URL = UNREACHABLE_DB_URL;
   env.NEXT_DIST_DIR = DIST_DIR;
   env.NEXT_TELEMETRY_DISABLED = '1';
-  // This guard tests database resilience, not Google's CSS service. Keep
-  // font responses deterministic in this child only; production builds
-  // retain real next/font downloads.
-  env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES = path.join(YE_ROOT, 'src/tests/fixtures/google-fonts.cjs');
+  // Fonts are bundled locally; neither production nor this guard needs Google.
   return env as unknown as NodeJS.ProcessEnv;
 }
 

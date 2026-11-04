@@ -1,32 +1,10 @@
-import { Baloo_Bhaijaan_2, IBM_Plex_Sans_Arabic, IBM_Plex_Mono, Space_Grotesk, Manrope, Noto_Sans_Arabic } from 'next/font/google';
+import { baloo, plexArabic, plexMono, spaceGrotesk, manrope, notoArabic } from '../fonts';
 import { siteUrl } from '@/lib/site-url';
 import { PHONE_DISPLAY } from '@/lib/constants';
 import '../globals.css';
 import '../v3.css';
 import type { Metadata, Viewport } from 'next';
 import { PublicChatMount } from '@/components/chat/PublicChatMount';
-
-const baloo = Baloo_Bhaijaan_2({
-  subsets: ['arabic', 'latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-baloo',
-});
-
-const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ['arabic', 'latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-plex-arabic',
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-plex-mono',
-});
-
-const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-v3-display' });
-const manrope = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-v3-body' });
-const notoArabic = Noto_Sans_Arabic({ subsets: ['arabic'], weight: ['400', '500', '600', '700', '800', '900'], variable: '--font-v3-arabic' });
 
 const SITE_URL = siteUrl();
 const OG_IMAGE = `${SITE_URL}/og-default.jpg`;
