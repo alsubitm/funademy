@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { enqueueAttendanceEvents, flushOutboxServer } from '@/lib/xapiOutbox';
+import { AttendanceError, saveAttendance } from '@/lib/attendance';
 import { requireAdmin } from '../guard';
 
 export const dynamic = 'force-dynamic';
@@ -73,31 +73,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
   }
 
-  const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
-  if (!session) return NextResponse.json({ error: 'session_not_found' }, { status: 404 });
-  const enrolled = await prisma.enrollment.findFirst({
-    where: { studentId, courseRunId: session.courseRunId, status: { in: ['active', 'paused'] } },
-  });
-  if (!enrolled) {
-    // Not enrolled in this run — allowed only if booked here as an approved makeup.
-    const makeup = await prisma.makeupRequest.findFirst({
-      where: { studentId, makeupSessionId: sessionId, status: 'approved' },
-    });
-    if (!makeup) return NextResponse.json({ error: 'not_enrolled' }, { status: 409 });
+  try {
+    const mark = await saveAttendance({ sessionId, studentId, status });
+    return NextResponse.json({ mark });
+  } catch (e) {
+    if (e instanceof AttendanceError) return NextResponse.json({ error: e.code }, { status: e.status });
+    return NextResponse.json({ error: 'service_unavailable' }, { status: 503 });
   }
-
-  const mark = await prisma.attendance.upsert({
-    where: { sessionId_studentId: { sessionId, studentId } },
-    update: { status, markedAt: new Date() },
-    create: { sessionId, studentId, status },
-  });
-
-  // NELC learning record: a real present/late mark queues registered (once
-  // per course run) + attended (once per session) for children with a
-  // national ID. Enqueue never throws; delivery is asynchronous.
-  if (status === 'present' || status === 'late') {
-    const queued = await enqueueAttendanceEvents({ studentId, sessionId });
-    if (queued > 0) void flushOutboxServer();
-  }
-  return NextResponse.json({ mark });
 }

@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { Dashboard, Lang, Run, Session } from './types';
 import { dayKey, fmtDate } from './types';
 import { statusLabel, WINDMILL_STAGES, type Strings } from './strings';
+import { AttendanceEditor } from './AttendanceEditor';
 
 export type NoteState = { draft: string; base: string; status: 'idle' | 'saving' | 'saved' | 'error'; error?: string; savedAt?: string };
 
@@ -168,12 +169,12 @@ export function Schedule({ data, lang, s }: { data: Dashboard; lang: Lang; s: St
   );
 }
 
-export function Roster({ data, lang, s }: { data: Dashboard; lang: Lang; s: Strings }) {
+export function Roster({ data, lang, s, onAttendanceSaved }: { data: Dashboard; lang: Lang; s: Strings; onAttendanceSaved: (sessionId: number, studentId: number, status: string) => void }) {
   const f = useFilters(data.runs);
   return (
     <section>
       <h2 className="ip-h">{s.nav.roster}</h2>
-      <p className="ip-lead">{s.attendanceRecorded} · {s.readOnly}</p>
+      <p className="ip-lead">{s.attendanceRecorded}{data.viewer.role === 'admin' ? ` · ${s.readOnly}` : ''}</p>
       {data.runs.length === 0 ? <Empty id="roster-runs" title={s.noRuns} body={s.noRunsLead} /> : (<>
         <FilterBar s={s} runs={data.runs} f={f} prefix="roster" />
         {f.filtered.length === 0 ? <Empty id="roster" title={s.noSessions} /> : f.filtered.map((r) => {
@@ -220,6 +221,7 @@ export function Roster({ data, lang, s }: { data: Dashboard; lang: Lang; s: Stri
                   </table>
                 </div>
               )}
+              {data.viewer.role === 'instructor' && <AttendanceEditor run={r} lang={lang} onSaved={onAttendanceSaved} />}
             </article>
           );
         })}

@@ -193,7 +193,13 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
         {state === 'loading' && <div className="ip-skel" style={{ height: 4, marginBottom: 12 }} />}
         {tab === 'overview' && <Overview data={data} lang={lang} s={s} notes={notes} go={go} />}
         {tab === 'schedule' && <Schedule data={data} lang={lang} s={s} />}
-        {tab === 'roster' && <Roster data={data} lang={lang} s={s} />}
+        {tab === 'roster' && <Roster data={data} lang={lang} s={s} onAttendanceSaved={(sessionId, studentId, status) => {
+          setData(prev => prev && ({ ...prev, runs: prev.runs.map(run => ({
+            ...run, sessions: run.sessions.map(session => session.id !== sessionId ? session : {
+              ...session, attendance: [...session.attendance.filter(a => a.studentId !== studentId), { studentId, status }],
+            }),
+          })) }));
+        }} />}
         {tab === 'notes' && <Notes data={data} lang={lang} s={s} notes={notes} setDraft={setDraft} save={save} readOnly={isAdmin} />}
         {tab === 'resources' && <Resources lang={lang} s={s} go={go} />}
         {labMounted && <Lab s={s} visible={tab === 'lab'} />}
