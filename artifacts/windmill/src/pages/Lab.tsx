@@ -273,7 +273,8 @@ export default function Lab() {
 
       {notice !== 'none' && (
         <div className="notice" role="alert" data-testid="storage-notice">
-          <span>{notice === 'blocked' ? t.storageFail : t.storageDiscarded}</span>
+          <span>{notice === 'blocked' ? t.storageFail : notice === 'conflict' ? t.storageConflict : t.storageDiscarded}</span>
+          {notice === 'conflict' && <button type="button" className="btn btn-soft" onClick={() => window.location.reload()}>{t.storageReload}</button>}
           {notice === 'discarded' && <button type="button" className="icon-btn" onClick={dismissNotice} aria-label={t.close}><X size={18} aria-hidden="true" /></button>}
         </div>
       )}

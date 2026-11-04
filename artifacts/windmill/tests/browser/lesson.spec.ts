@@ -47,6 +47,98 @@ async function saved(page: Page) {
 const progressKey = `funademy.lab.progress.${lesson.id}.v${lesson.version}`;
 const languageKey = 'funademy.lab.language';
 
+for (const lang of ['en', 'ar'] as const) {
+  test(`two tabs: newer construction is protected and reload resumes in ${lang}`, async ({ page, context }) => {
+    await open(page, lang);
+    const older = await context.newPage();
+    await open(older, lang);
+    await place(page, 1);
+    const latest = await saved(page);
+    await expect(older.getByTestId('storage-notice')).toContainText(UI[lang].storageConflict);
+    await older.getByTestId('hint').click();
+    expect(await saved(older)).toEqual(latest);
+    await older.getByRole('button', { name: UI[lang].storageReload }).click();
+    await count(older, 1);
+    await expect(older.getByTestId('storage-notice')).toHaveCount(0);
+    await place(older, 2);
+    await page.reload();
+    await count(page, 2);
+  });
+
+  test(`two tabs: missed notifications cannot resurrect progress after reset in ${lang}`, async ({ page, context }) => {
+    await open(page, lang);
+    await place(page, 1);
+    const older = await context.newPage();
+    // Simulate a suspended tab missing notifications: the pre-write guard must
+    // still reject its stale snapshot, without relying on storage/focus events.
+    await older.addInitScript(() => {
+      for (const name of ['storage', 'focus', 'pageshow']) {
+        window.addEventListener(name, event => event.stopImmediatePropagation(), true);
+      }
+      document.addEventListener('visibilitychange', event => event.stopImmediatePropagation(), true);
+    });
+    await open(older, lang);
+    await count(older, 1);
+    await page.getByTestId('reset').click();
+    await page.getByTestId('reset-confirm').click();
+    await count(page, 0);
+    const resetSave = await saved(page);
+    await older.getByTestId('hint').click();
+    await expect(older.getByTestId('storage-notice')).toContainText(UI[lang].storageConflict);
+    expect(await saved(older)).toEqual(resetSave);
+    await older.reload();
+    await count(older, 0);
+    await expect(older.getByTestId('hints-used')).toHaveText(UI[lang].hintsUsed(0));
+  });
+}
+
+test('two tabs: simultaneous saves serialize and identical reset snapshots still conflict', async ({ page, context }) => {
+  await open(page);
+  const older = await context.newPage();
+  await older.addInitScript(() => {
+    window.addEventListener('storage', e => e.stopImmediatePropagation(), true);
+    window.addEventListener('focus', e => e.stopImmediatePropagation(), true);
+    document.addEventListener('visibilitychange', e => e.stopImmediatePropagation(), true);
+  });
+  await open(older);
+  // Hold the actual save lock so both pages queue writes against the same base.
+  await page.evaluate(key => {
+    void navigator.locks.request(key, () => new Promise<void>(resolve => {
+      (window as unknown as { releaseSave: () => void }).releaseSave = resolve;
+    }));
+  }, progressKey);
+  await expect.poll(() => page.evaluate(() => typeof (window as unknown as { releaseSave?: () => void }).releaseSave)).toBe('function');
+  await page.getByTestId('hint').click();
+  await older.getByTestId('hint').click();
+  await page.evaluate(() => (window as unknown as { releaseSave: () => void }).releaseSave());
+  await expect.poll(async () => {
+    const notices = await Promise.all([page, older].map(p => p.getByTestId('storage-notice').allTextContents()));
+    return notices.flat().filter(text => text.includes(UI.en.storageConflict)).length;
+  }).toBe(1);
+  await expect.poll(async () => JSON.parse((await saved(page))[progressKey]).hintsUsed).toBe(1);
+  await page.reload();
+  await older.reload();
+  await page.getByTestId('reset').click();
+  await page.getByTestId('reset-confirm').click();
+  await older.reload();
+  const initial = (await saved(page))[progressKey];
+  await place(page, 1);
+  await page.getByTestId('reset').click();
+  await page.getByTestId('reset-confirm').click();
+  await expect.poll(async () => (await saved(page))[progressKey]).toBe(initial);
+  await older.getByTestId('hint').click();
+  await expect(older.getByTestId('storage-notice')).toContainText(UI.en.storageConflict);
+  expect((await saved(page))[progressKey]).toBe(initial);
+});
+
+test('without cross-tab locks saving fails closed but the lesson stays usable', async ({ page, context }) => {
+  await context.addInitScript(() => Object.defineProperty(navigator, 'locks', { value: undefined }));
+  await open(page);
+  await expect(page.getByTestId('storage-notice')).toHaveText(UI.en.storageFail);
+  await place(page, 1);
+  expect(await saved(page)).toEqual({});
+});
+
 for (const lang of ['ar', 'en'] as const) {
   for (const failure of ['access', 'write'] as const) {
     test(`storage notice: blocked ${failure} in ${lang} keeps building usable without saving`, async ({ page, context, hasTouch }) => {
