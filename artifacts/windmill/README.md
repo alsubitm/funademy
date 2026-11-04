@@ -164,6 +164,28 @@ The artifact serves `dist/public` as a static application under `/windmill/`, wi
 
 ## Limitations and next lesson
 
+### Offline copy retention
+
+Automatic cleanup keeps the current shell and retains its predecessors while any
+open lesson tab reports an older document version or cannot respond (including
+legacy or frozen tabs). It does not impose a destructive age/count limit.
+Once all lesson tabs confirm the current version, old copies are removed on
+activation, focus, or the next one-minute check. Closing a tab does not itself
+wake a service worker; cleanup resumes on the next lesson visit/check.
+
+Only cache names captured as predecessors at activation are eligible, so a
+later installing or waiting update is not removed. That list survives worker
+restarts. Exact cached old bundle URLs remain available to older tabs after
+another tab activates an update. Local progress and other applications' caches
+are never part of automatic cleanup. Unresponsive tabs intentionally delay
+reclamation until they close or reload.
+
+Retention verification: worker tests cover three versions, nonresponding legacy
+tabs, future waiting copies, and unrelated caches. A Chromium production-build
+check also verified two successive updates with an old tab open, byte-for-byte
+offline access to predecessor bundles, progress preserved through update/reload,
+and final pruning followed by a working offline reload.
+
 - This is a guided, stage-set assembly, not a free-form CAD or collision/torque simulator.
 - The original SVG is a readable schematic based on the guide, not an exact 3D replica. Tooth counts are illustrative as explained above.
 - Touch placement uses tap-select then tap-target; mouse and pen also support dragging.

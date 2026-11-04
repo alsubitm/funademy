@@ -22,9 +22,13 @@ export function offlinePlugin(): Plugin {
       for (const f of publicFiles) hash.update(f).update(readFileSync(path.join(root, 'public', f)));
       const template = readFileSync(path.join(root, 'offline-worker.js'), 'utf8');
       hash.update(template);
+      const version = hash.digest('hex').slice(0, 20);
+      const html = bundle['index.html'];
+      if (!html || html.type !== 'asset') throw new Error('Missing offline lesson shell');
+      html.source = String(html.source).replace('<head>', `<head><meta name="windmill-shell-version" content="${version}">`);
       this.emitFile({
         type: 'asset', fileName: 'sw.js',
-        source: template.replace('__VERSION__', hash.digest('hex').slice(0, 20))
+        source: template.replace('__VERSION__', version)
           .replace('__ASSETS__', JSON.stringify([...files, ...publicFiles].map(f => `/windmill/${f}`))),
       });
     },

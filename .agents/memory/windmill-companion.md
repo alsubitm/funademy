@@ -32,3 +32,14 @@ Offline support must remain opt-in and confined to the Windmill lesson, with no 
 **Why:** The classroom outage requirement is explicitly separate from the main site's private account, booking, payment and admin flows.
 
 **How to apply:** Never widen offline caching to the main site or bump lesson schema versions merely for shell updates. Verify offline behavior against built assets, not the development/HMR server.
+
+Prefer conservative offline-shell cleanup over a hard retention cap: an old,
+legacy, or frozen lesson tab that cannot confirm its document version must block
+automatic pruning.
+
+**Why:** Classroom tabs can remain open offline for long periods. Silence or a
+new controller does not prove an older document has stopped needing its assets.
+
+**How to apply:** Establish document-version agreement before deleting old
+copies; keep future waiting installs outside the cleanup candidates. Do not
+introduce a timeout that interprets an unresponsive tab as safe to discard.

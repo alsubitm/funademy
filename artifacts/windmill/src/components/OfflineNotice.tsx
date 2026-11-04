@@ -29,6 +29,8 @@ const copy = {
 };
 type Status = 'idle' | 'saving' | 'ready' | 'error' | 'unsupported' | 'dev';
 const supported = () => window.isSecureContext && 'serviceWorker' in navigator && 'caches' in window;
+// Capture the document version, never the (possibly newer) controller version.
+const shellVersion = document.querySelector<HTMLMetaElement>('meta[name="windmill-shell-version"]')?.content;
 
 async function isReady(worker: ServiceWorker): Promise<boolean> {
   return new Promise(resolve => {
@@ -65,17 +67,27 @@ export function OfflineNotice({ lang }: { lang: Language }) {
   }
 
   useEffect(() => {
+    const prune = () => navigator.serviceWorker.controller?.postMessage({ type: 'PRUNE_UNUSED' });
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'WINDMILL_SHELL_VERSION') {
+        event.ports[0]?.postMessage({ version: shellVersion });
+      }
+    };
     const onNetwork = () => {
       setOnline(navigator.onLine);
       if (navigator.onLine) void registration.current?.update().catch(() => {});
     };
     const onController = () => {
       if (reloadRequested.current) window.location.reload();
+      else prune();
     };
     window.addEventListener('online', onNetwork);
     window.addEventListener('offline', onNetwork);
     if (!import.meta.env.DEV && supported()) {
+      navigator.serviceWorker.addEventListener('message', onMessage);
       navigator.serviceWorker.addEventListener('controllerchange', onController);
+      window.addEventListener('focus', prune);
+      prune();
       void navigator.serviceWorker.getRegistration('/windmill/').then(reg => {
         // Never touch a main-site worker with a broader scope.
         if (reg?.scope === new URL('/windmill/', location.origin).href) {
@@ -84,10 +96,16 @@ export function OfflineNotice({ lang }: { lang: Language }) {
         }
       }).catch(() => setStatus('error'));
     }
+    // Closing another tab has no reliable service-worker event. A modest
+    // heartbeat retries cleanup while the lesson remains open, also offline.
+    const timer = !import.meta.env.DEV && supported() ? window.setInterval(prune, 60000) : undefined;
     return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', prune);
       window.removeEventListener('online', onNetwork);
       window.removeEventListener('offline', onNetwork);
       if (supported()) navigator.serviceWorker.removeEventListener('controllerchange', onController);
+      if (supported()) navigator.serviceWorker.removeEventListener('message', onMessage);
       if (registration.current) registration.current.onupdatefound = null;
     };
   }, []);
@@ -124,7 +142,9 @@ export function OfflineNotice({ lang }: { lang: Language }) {
     {(status === 'idle' || status === 'error') && <button className="btn btn-ghost" onClick={() => void enable()} data-testid="offline-save">{status === 'error' ? t.retry : t.enable}</button>}
     {update && <button className="btn btn-ghost" onClick={() => {
       reloadRequested.current = true;
-      registration.current?.waiting?.postMessage({ type: 'ACTIVATE_UPDATE' });
+      const waiting = registration.current?.waiting;
+      if (waiting) waiting.postMessage({ type: 'ACTIVATE_UPDATE' });
+      else window.location.reload(); // Another tab may already have activated it.
     }} data-testid="offline-update">{t.reload}</button>}
     {(status === 'ready' || status === 'error') && registration.current && <button className="btn btn-ghost" onClick={() => void remove()} data-testid="offline-remove">{t.remove}</button>}
   </aside>;
