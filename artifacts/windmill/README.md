@@ -4,6 +4,18 @@ An instructor-guided digital companion for Young Engineers Bricks Challenge lear
 
 No backend, no sign-in, no trackers, no personal data. Progress stays in browser `localStorage` only.
 
+## Optional classroom offline copy
+
+In a production build over HTTPS (or localhost), choose **Save for offline / حفظ دون اتصال** after the lesson loads. Wait for **Offline ready / الدرس جاهز دون اتصال** before disconnecting. Reopen the exact `/windmill/` address in the same browser. All fourteen stages, original SVG artwork, motor animation, hints, bilingual text and bundled fonts work locally. Browser storage may be cleared/evicted; check readiness before class. Private browsing may not retain it.
+
+The build emits a content-versioned `sw.js` with an explicit manifest. Registration is opt-in and scoped exactly to `/windmill/`; the worker caches only the lesson HTML, built JS/CSS, bundled fonts, favicon and local logo. No runtime response caching, main-site routes, API calls, accounts, payment data or tracking. Development/HMR is deliberately not cached.
+
+Updates install completely before a bilingual notice appears. Choose **Update and reload** at a convenient break; no forced reload. Worker versions never change or delete localStorage, and the existing lesson validator continues restoring progress, hints, language and motor-test status. Old shell caches are retained for open lesson tabs. **Remove offline copy** unregisters only this worker and removes only its caches; it does not reset progress. Keep the lesson schema version unchanged for shell-only upgrades.
+
+Fonts are self-hosted copies of Baloo Bhaijaan 2, IBM Plex Sans Arabic and Space Mono from Google Fonts, licensed under SIL OFL (licenses alongside files in `public/fonts/`).
+
+Production-mode verification: build, then `BASE_PATH=/windmill/ PORT=4173 pnpm --filter @workspace/windmill serve`. Use a fresh browser context at `http://localhost:4173/windmill/`, opt in, disable networking, reload and complete fourteen placements and the motor test. Re-enable networking, install a newly built shell, accept its update, and verify progress survives. `pnpm --filter @workspace/windmill test` also tests the cache boundary, incomplete installs, eviction detection and explicit update activation.
+
 ## Setup, run, build
 
 ```bash

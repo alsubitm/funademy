@@ -26,3 +26,9 @@ Additional engineering experiments and alternate inspection views must remain ex
 **Why:** The user approved exploratory controls and challenges, not changes to the supplied kit's construction instructions. Preserving that distinction avoids implying that experimental gear configurations are included in the kit.
 
 **How to apply:** Keep exploration state separate from saved student construction. Optional narration uses device speech voices, with explicit unavailability rather than silently falling back to the wrong language.
+
+Offline support must remain opt-in and confined to the Windmill lesson, with no accounts, student identifiers, or tracking. Shell upgrades must not reset validated local lesson progress.
+
+**Why:** The classroom outage requirement is explicitly separate from the main site's private account, booking, payment and admin flows.
+
+**How to apply:** Never widen offline caching to the main site or bump lesson schema versions merely for shell updates. Verify offline behavior against built assets, not the development/HMR server.

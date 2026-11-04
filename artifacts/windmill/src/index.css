@@ -1,5 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
 @import 'tailwindcss';
+@import './fonts.css';
+
+.offline-notice { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; padding: .6rem 1.5rem; border-bottom: 1px solid var(--border); font-size: .85rem; }
+.offline-notice p { flex: 1 1 260px; margin: 0; }
 
 @theme inline {
   --color-background: hsl(var(--background));

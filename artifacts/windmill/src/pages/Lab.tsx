@@ -16,6 +16,7 @@ import { NarrationControl } from '@/components/lab/NarrationControl';
 import { InspectDialog } from '@/components/lab/InspectDialog';
 import { ChallengeDialog } from '@/components/lab/ChallengeDialog';
 import { PresentationMode } from '@/components/lab/PresentationMode';
+import { OfflineNotice } from '@/components/OfflineNotice';
 
 type FeedbackKind = 'ok' | 'warn' | 'info';
 const VB = lesson.viewBox;
@@ -229,6 +230,7 @@ export default function Lab() {
           </button>
         </div>
       </header>
+      <OfflineNotice lang={lang} />
 
       <section className="lesson-head" aria-labelledby="lesson-title">
         <div className="lh-main">
