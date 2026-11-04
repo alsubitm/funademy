@@ -20,3 +20,9 @@ The PDF does not specify gear tooth counts. The prototype's numerical gear ratio
 **Why:** Claiming unverified physical-kit specifications would misrepresent the provided reference.
 
 **How to apply:** Retain the illustrative-ratio disclosure unless the owner supplies verified kit tooth counts; keep drawn gear teeth and animation speed ratios consistent.
+
+Additional engineering experiments and alternate inspection views must remain explicitly schematic and separate from the original guided BC.013 build.
+
+**Why:** The user approved exploratory controls and challenges, not changes to the supplied kit's construction instructions. Preserving that distinction avoids implying that experimental gear configurations are included in the kit.
+
+**How to apply:** Keep exploration state separate from saved student construction. Optional narration uses device speech voices, with explicit unavailability rather than silently falling back to the wrong language.

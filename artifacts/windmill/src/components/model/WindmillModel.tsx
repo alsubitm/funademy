@@ -160,12 +160,16 @@ export function LayerArt({ id, lesson, motion = STILL }: { id: string; lesson: L
   return <>{fn ? fn({ m: motion, teeth: { driver: t.driverTeeth, driven: t.drivenTeeth } }) : null}</>;
 }
 
-export function WindmillModel({ lesson, placed, motion, newest, time = 0 }: {
-  lesson: Lesson; placed: readonly string[]; motion: Motion; newest?: string | null; time?: number;
+export function WindmillModel({ lesson, placed, motion, newest, popKey = 0, preview, direction = 1 }: {
+  lesson: Lesson; placed: readonly string[]; motion: Motion; newest?: string | null; popKey?: number;
+  /** Step id drawn as a non-saved preview (animated, translucent). */
+  preview?: string | null; direction?: 1 | -1;
 }) {
-  const layerIds = lesson.steps.filter((s) => placed.includes(s.id)).map((s) => s.svgLayer.id);
-  const joined = placed.includes(lesson.joinStepId);
-  const newestLayer = lesson.steps.find((s) => s.id === newest)?.svgLayer.id;
+  const shown = preview ? [...placed, preview] : placed;
+  const layerIds = lesson.steps.filter((s) => shown.includes(s.id)).map((s) => s.svgLayer.id);
+  const joined = shown.includes(lesson.joinStepId);
+  const previewLayer = lesson.steps.find((s) => s.id === preview)?.svgLayer.id;
+  const newestLayer = previewLayer ?? lesson.steps.find((s) => s.id === newest)?.svgLayer.id;
   const t = lesson.transmission;
   const p = pinion({ driver: t.driverTeeth, driven: t.drivenTeeth });
   const complete = placed.length === lesson.steps.length;
@@ -175,7 +179,7 @@ export function WindmillModel({ lesson, placed, motion, newest, time = 0 }: {
         const off = !joined && lesson.detachedLayers.includes(id) ? lesson.detachedOffset : { x: 0, y: 0 };
         return (
           <g key={id} transform={`translate(${off.x} ${off.y})`} className="wm-layer-shift">
-            <g className={id === newestLayer ? 'wm-pop' : undefined}>
+            <g key={id === newestLayer ? `p${popKey}` : 'still'} className={id === newestLayer ? `wm-pop${id === previewLayer ? ' wm-preview' : ''}` : undefined}>
               <LayerArt id={id} lesson={lesson} motion={motion} />
             </g>
           </g>
@@ -185,11 +189,11 @@ export function WindmillModel({ lesson, placed, motion, newest, time = 0 }: {
         <g pointerEvents="none" aria-hidden="true">
           <path
             d={`M540 ${p.y} L${p.x} ${p.y} Q ${(p.x + G.x) / 2 + 10} ${(p.y + G.y) / 2 + 10} ${G.x} ${G.y} L${R.x} ${R.y}`}
-            fill="none" stroke="#00A9D6" strokeWidth={3} strokeDasharray="8 8" strokeDashoffset={-time * 48} strokeLinecap="round" opacity={0.95}
+            fill="none" stroke="#00A9D6" strokeWidth={3} strokeDasharray="8 8" strokeDashoffset={-motion.driver * 0.27} strokeLinecap="round" opacity={0.95}
           />
-          {/* Direction cues: pinion clockwise (positive), driven gear counter-clockwise. */}
-          <path d={`M${p.x + 28} ${p.y - 6} A 28 28 0 0 1 ${p.x + 4} ${p.y + 28}`} fill="none" stroke="#102047" strokeWidth={2.5} markerEnd="url(#wm-arrow)" />
-          <path d={`M${G.x + 20} ${G.y - 66} A 70 70 0 0 0 ${G.x - 50} ${G.y - 48}`} fill="none" stroke="#102047" strokeWidth={2.5} markerEnd="url(#wm-arrow)" />
+          {/* Direction cues follow the motor direction: forward = pinion clockwise, driven counter-clockwise. */}
+          <path d={`M${p.x + 28} ${p.y - 6} A 28 28 0 0 1 ${p.x + 4} ${p.y + 28}`} fill="none" stroke="#102047" strokeWidth={2.5} markerEnd={direction === 1 ? 'url(#wm-arrow)' : undefined} markerStart={direction === -1 ? 'url(#wm-arrow)' : undefined} data-testid="arrow-driver" />
+          <path d={`M${G.x + 20} ${G.y - 66} A 70 70 0 0 0 ${G.x - 50} ${G.y - 48}`} fill="none" stroke="#102047" strokeWidth={2.5} markerEnd={direction === 1 ? 'url(#wm-arrow)' : undefined} markerStart={direction === -1 ? 'url(#wm-arrow)' : undefined} data-testid="arrow-driven" />
         </g>
       )}
     </g>
