@@ -59,3 +59,19 @@ export function restoreProgress(lesson: LessonRules, raw: string | null): Progre
     return { lessonId: s.lessonId, version: s.version, language: s.language, placed: [...s.placed], hintsUsed: s.hintsUsed, tested: s.tested };
   } catch { return null; }
 }
+
+// Backups contain only the engine's allowlisted lesson state, never device metadata.
+export const MAX_BACKUP_BYTES = 16 * 1024;
+export function exportProgress(lesson: LessonRules, progress: Progress): string {
+  const clean = restoreProgress(lesson, JSON.stringify(progress));
+  if (!clean) throw new Error('Invalid lesson progress');
+  return JSON.stringify({ format: 'windmill-progress', backupVersion: 1, progress: clean }, null, 2);
+}
+export function importProgress(lesson: LessonRules, raw: string): Progress | null {
+  if (new TextEncoder().encode(raw).byteLength > MAX_BACKUP_BYTES) return null;
+  try {
+    const backup = JSON.parse(raw);
+    if (!backup || backup.format !== 'windmill-progress' || backup.backupVersion !== 1) return null;
+    return restoreProgress(lesson, JSON.stringify(backup.progress));
+  } catch { return null; }
+}

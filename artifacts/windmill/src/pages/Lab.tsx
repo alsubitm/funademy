@@ -17,6 +17,7 @@ import { InspectDialog } from '@/components/lab/InspectDialog';
 import { ChallengeDialog } from '@/components/lab/ChallengeDialog';
 import { PresentationMode } from '@/components/lab/PresentationMode';
 import { OfflineNotice } from '@/components/OfflineNotice';
+import { ProgressBackup } from '@/components/lab/ProgressBackup';
 
 type FeedbackKind = 'ok' | 'warn' | 'info';
 const VB = lesson.viewBox;
@@ -45,7 +46,7 @@ function PartThumb({ step }: { step: LessonStep }) {
 }
 
 export default function Lab() {
-  const { progress, setProgress, notice, dismissNotice } = useStoredProgress(lesson);
+  const { progress, setProgress, replaceProgress, notice, dismissNotice } = useStoredProgress(lesson);
   const lang: Language = progress.language;
   const t = UI[lang];
   const f = FX[lang];
@@ -218,6 +219,20 @@ export default function Lab() {
           <span className="prog-label">{t.bc}</span>
         </div>
         <div className="top-actions">
+          <ProgressBackup lesson={lesson} progress={progress}
+            onOpen={() => {
+              motor.stop(); narration.stop(); endPreview();
+              if (doneTimer.current) window.clearTimeout(doneTimer.current);
+              doneTimer.current = null;
+            }}
+            onReplace={(candidate) => {
+              if (!replaceProgress(candidate)) return false;
+              motor.stop(); narration.stop(); endPreview();
+              setDemo({ on: false, count: 0 }); setSelected(null); setNewest(null);
+              setShowHint(false); setFeedback(null); setAnswer(null); setDlg('none');
+              drag.current = null; setGhost(null);
+              return true;
+            }} />
           <button type="button" className={`btn btn-ghost ${demo.on ? 'is-on' : ''}`} aria-pressed={demo.on} data-testid="demo"
             onClick={() => { setDemo((d) => ({ on: !d.on, count: 0 })); setSelected(null); setFeedback(null); setShowHint(false); }}>
             <Presentation size={18} aria-hidden="true" />{demo.on ? t.demoOn : t.demo}

@@ -34,5 +34,12 @@ export function useStoredProgress(lesson: LessonRules) {
     }
   }, [lesson, progress]);
 
-  return { progress, setProgress, notice, dismissNotice: () => setNotice((n) => (n === 'discarded' ? 'none' : n)) };
+  function replaceProgress(candidate: Progress) {
+    const validated = restoreProgress(lesson, JSON.stringify(candidate));
+    if (!validated) return false;
+    setProgress(validated);
+    return true;
+  }
+
+  return { progress, setProgress, replaceProgress, notice, dismissNotice: () => setNotice((n) => (n === 'discarded' ? 'none' : n)) };
 }
