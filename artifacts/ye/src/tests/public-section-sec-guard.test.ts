@@ -47,6 +47,7 @@ const EXCLUDED_PREFIXES = [
   'components/admin', // admin dashboard components (internal)
   'components/portal', // family portal components (logged-in area)
   'components/account', // account area components (logged-in area)
+  'components/instructor', // private teaching workspace with its own .ip layout
 ];
 
 /**
