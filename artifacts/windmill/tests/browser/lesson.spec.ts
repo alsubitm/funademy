@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Locator, type Page } from '@playwright/test';
 import { windmillLesson as lesson } from '../../src/data/lessons/windmill';
 import { UI } from '../../src/i18n/ui';
 import { createProgress } from '../../src/lib/lesson-engine';
@@ -137,7 +137,103 @@ for (const lang of ['ar', 'en'] as const) {
   }
 }
 
+// Assert real keyboard traversal, including both boundary wraps. Do not focus
+// elements inside the modal: that would hide broken initial focus or tab order.
+async function trappedTabOrder(page: Page, controls: Locator[], initial = 0) {
+  await expect(controls[initial]).toBeFocused();
+  for (const key of ['Tab', 'Shift+Tab']) {
+    for (let step = 1; step <= controls.length * 2; step++) {
+      await page.keyboard.press(key);
+      const offset = key === 'Tab' ? step : -step;
+      const index = ((initial + offset) % controls.length + controls.length) % controls.length;
+      await expect(controls[index]).toBeFocused();
+    }
+  }
+}
+
 for (const lang of ['en', 'ar'] as const) {
+  test(`reset and reference dialog keyboard focus in ${lang}`, async ({ page }) => {
+    await open(page, lang);
+    await place(page, 1);
+    const original = await saved(page);
+    for (const kind of ['reset', 'reference'] as const) {
+      const opener = page.getByTestId(kind);
+      const dialog = page.getByTestId(`dialog-${kind}`);
+      const close = page.getByTestId(`dialog-${kind}-close`);
+      await opener.focus();
+      await page.keyboard.press('Enter');
+      await expect(dialog).toHaveAccessibleName(kind === 'reset' ? UI[lang].resetTitle : UI[lang].referenceTitle);
+      await expect(dialog).toHaveAttribute('aria-modal', 'true');
+      await expect(close).toHaveAccessibleName(UI[lang].close);
+      const controls = kind === 'reset'
+        ? [close, page.getByTestId('reset-cancel'), page.getByTestId('reset-confirm')]
+        : [close];
+      await trappedTabOrder(page, controls, kind === 'reset' ? 1 : 0);
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      await expect(opener).toBeFocused();
+      await count(page, 1);
+      expect(await saved(page)).toEqual(original);
+
+      // Reopening also catches stale listeners and lost restoration targets.
+      await page.keyboard.press('Space');
+      await expect(controls[kind === 'reset' ? 1 : 0]).toBeFocused();
+      await page.keyboard.press('Enter'); // Safe cancel or reference close.
+      await expect(dialog).toHaveCount(0);
+      await expect(opener).toBeFocused();
+      expect(await saved(page)).toEqual(original);
+    }
+  });
+
+  test(`completion dialog keyboard focus, reflection and replay in ${lang}`, async ({ page }) => {
+    await open(page, lang);
+    for (let n = 1; n <= 14; n++) await place(page, n);
+    const opener = page.getByTestId('run-motor');
+    const dialog = page.getByTestId('dialog-complete');
+    const close = page.getByTestId('dialog-complete-close');
+    const choices = UI[lang].answers.map((_, i) => page.getByTestId(`reflection-option-${i + 1}`));
+    const replay = page.getByTestId('replay');
+    await opener.focus();
+    await page.keyboard.press('Enter');
+    await expect(dialog).toHaveAccessibleName(UI[lang].doneTitle);
+    await expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await trappedTabOrder(page, [
+      close, ...choices, dialog.getByRole('button', { name: UI[lang].close, exact: true }).last(), replay,
+    ]);
+    const completed = await saved(page);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(opener).toBeFocused();
+    expect(await saved(page)).toEqual(completed);
+
+    await page.keyboard.press('Space'); // Stop, then start to reopen completion.
+    await expect(opener).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press('Enter');
+    await expect(close).toBeFocused();
+    await expect(page.getByTestId('reflection-feedback')).toBeEmpty();
+    for (let i = 0; i < choices.length; i++) {
+      await page.keyboard.press('Tab');
+      await expect(choices[i]).toBeFocused();
+      await expect(choices[i]).toContainText(UI[lang].answers[i]);
+      await page.keyboard.press(i % 2 === 0 ? 'Space' : 'Enter');
+      for (let j = 0; j < choices.length; j++) {
+        await expect(choices[j]).toHaveAttribute('aria-pressed', String(i === j));
+      }
+      await expect(page.getByTestId('reflection-feedback')).toHaveText(i === 0 ? UI[lang].correct : UI[lang].tryAgain);
+      await expect(choices[i]).toBeFocused();
+    }
+    await page.keyboard.press('Tab'); // Footer close.
+    await page.keyboard.press('Tab');
+    await expect(replay).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(dialog).toHaveCount(0);
+    await expect(opener).toBeFocused();
+    await expect(opener).toHaveAttribute('aria-pressed', 'true');
+    await count(page, 14);
+    await expect(page.getByTestId('status-tested')).toBeVisible();
+    expect(await saved(page)).toEqual(completed);
+  });
+
   test(`all 14 stages in ${lang}, motor and visible gear ratios`, async ({ page, isMobile, hasTouch }) => {
     await open(page, lang);
     await count(page, 0);

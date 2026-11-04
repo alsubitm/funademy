@@ -126,6 +126,10 @@ Coverage:
 - Refresh/language restoration in both directions and completed/tested restoration.
 - Demo navigation, motor, exit and reload without changing saved student work.
 - Reset cancellation, Escape dismissal, explicit confirmation and persisted reset.
+- Reset, reference and completion dialogs in both languages: initial focus,
+  forward/backward Tab wrapping, Escape and focus restoration to the opener.
+  Reflection choices and replay use Enter/Space without mouse interaction;
+  dismissal and replay preserve completed student progress.
 - Motor gating and actual SVG transforms: opposite driver/driven directions,
   3:1 reduction, axle/blades following the driven gear, and frozen transforms
   after stopping.
@@ -138,7 +142,7 @@ the separate pure-engine Node tests.
 
 ### Verified environment and limits (2026-11-04)
 
-- System Chromium: **11 passed**, one intentional touch-project pointer-drag skip
+- System Chromium: **19 passed**, one intentional touch-project pointer-drag skip
   (touch placement is tested using taps instead). Command in this Replit:
   `WINDMILL_CHROMIUM_EXECUTABLE=/repl/tools/bin/chromium pnpm --filter @workspace/windmill test:browser --project=chromium --project=chromium-touch`.
 - Downloaded Chromium could not start here (`libglib-2.0.so.0` missing), hence the
