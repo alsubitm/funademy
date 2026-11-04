@@ -1,0 +1,91 @@
+import type { Lang } from './types';
+
+const ar = {
+  brand: 'لوحة المدرّب', sub: 'INSTRUCTOR DESK',
+  nav: { overview: 'نظرة عامة', schedule: 'الجدول', roster: 'الفصول والطلاب', notes: 'ملاحظات التحضير', resources: 'المكتبة', lab: 'مختبر Windmill', settings: 'الحساب' },
+  loginTitle: 'دخول المدرّبين', loginLead: 'مساحة خاصة بمدرّبي FunAdemy المعتمدين. الحسابات تُنشأ من الإدارة فقط.',
+  email: 'البريد الإلكتروني', password: 'كلمة المرور', signIn: 'دخول', signingIn: 'جارٍ الدخول…',
+  errInvalid: 'البريد أو كلمة المرور غير صحيحة.', errRate: 'محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.', errUnavailable: 'الخدمة غير متاحة مؤقتاً. حاول بعد قليل.', errGeneric: 'تعذّر الإكمال. حاول مرة أخرى.',
+  loadError: 'تعذّر تحميل لوحة المدرّب.', retry: 'إعادة المحاولة',
+  adminPreview: 'معاينة إدارية — تعرض جميع الدفعات للقراءة فقط. ملاحظات التحضير لا تُحرَّر من حساب الإدارة.', backAdmin: 'العودة إلى لوحة الإدارة',
+  logout: 'تسجيل الخروج', hello: 'أهلاً',
+  activeRuns: 'دفعات نشطة', students: 'طلاب مسجّلون', upcoming: 'جلسات قادمة', notesReady: 'جلسات قادمة بملاحظة تحضير',
+  nextSessions: 'الجلسات القادمة', noUpcoming: 'لا توجد جلسات قادمة مجدولة.', noRuns: 'لم تُسند إليك أي دفعة بعد.', noRunsLead: 'عندما تُسند الإدارة دفعة إلى حسابك ستظهر هنا مع طلابها وجلساتها.',
+  search: 'ابحث باسم الدفعة أو البرنامج', allRuns: 'كل الدفعات', day: 'اليوم', allDays: 'كل الأيام', upcomingOnly: 'القادمة فقط', past: 'السابقة',
+  capacity: 'السعة', location: 'المكان', noLocation: 'لم يُحدد المكان', inactive: 'غير نشطة', active: 'نشطة',
+  roster: 'قائمة الطلاب', born: 'مواليد', noStudents: 'لا يوجد طلاب مسجّلون في هذه الدفعة.', attendanceRecorded: 'الحضور المسجّل', noAttendance: 'لم يُسجّل حضور بعد', readOnly: 'للقراءة فقط',
+  sessionsCount: 'جلسات', noSessions: 'لا توجد جلسات تطابق التصفية.', sessionNote: 'ملاحظة الجلسة',
+  prepLabel: 'ملاحظة التحضير الخاصة', prepHint: 'خاصة بك ولا تظهر للأهالي. حتى 5000 حرف.', save: 'حفظ', saving: 'جارٍ الحفظ…', saved: 'حُفظت', unsaved: 'تغييرات غير محفوظة', saveFailed: 'فشل الحفظ', discard: 'تراجع', savedAt: 'آخر حفظ',
+  noteForbidden: 'لا يمكنك تعديل هذه الجلسة.', noteTooLong: 'الملاحظة أطول من 5000 حرف.',
+  libTitle: 'BC.013 — ابنِ طاحونة الهواء', libLead: 'رفيق رقمي لدليل البناء المطبوع في Bricks Challenge. أربع عشرة محطة تطابق صفحات الدليل، لا دروس إضافية.',
+  howTo: 'كيف تستخدمه في الحصة',
+  tips: [
+    'اعرض المحطة على الشاشة قبل توزيع القطع، واطلب من الأطفال تسمية القطع المطلوبة.',
+    'دع كل طفل يبني بيديه أولاً، واستخدم المختبر للتحقق والمراجعة لا بديلاً عن البناء.',
+    'اقرأ «الملاحظة الهندسية» بصوت عالٍ بعد كل محطة واربطها بما بناه الطفل.',
+    'أعداد أسنان التروس في المختبر توضيحية؛ الدليل المطبوع لا يذكرها.',
+    'التقدم في المختبر محفوظ على الجهاز نفسه فقط ولا يرتبط بحساب الطفل.',
+  ],
+  stagesTitle: 'المحطات الأربع عشرة',
+  openLab: 'افتح المختبر', openNewTab: 'فتح في تبويب جديد', reload: 'إعادة التحميل', fullscreen: 'ملء الشاشة',
+  labNote: 'المختبر يعمل دون تسجيل دخول، والتقدم محفوظ محلياً على هذا الجهاز ومستقل عن حسابك.',
+  profile: 'الملف الشخصي', name: 'الاسم', role: 'الدور', roleInstructor: 'مدرّب', roleAdmin: 'مدير (معاينة)',
+  contactAdmin: 'لتعديل الاسم أو البريد أو الإسنادات أو كلمة المرور تواصل مع إدارة FunAdemy. لا تُرسل كلمة المرور في رسائل.',
+  leaveWarn: 'لديك تغييرات غير محفوظة. هل تريد المغادرة؟', menu: 'القائمة', today: 'اليوم', status: { scheduled: 'مجدولة', completed: 'مكتملة', cancelled: 'ملغاة', present: 'حاضر', absent: 'غائب', late: 'متأخر', excused: 'بعذر', active: 'نشط', enrolled: 'مسجّل', waitlisted: 'قائمة انتظار', withdrawn: 'منسحب' } as Record<string, string>,
+};
+
+const en: typeof ar = {
+  brand: 'Instructor panel', sub: 'INSTRUCTOR DESK',
+  nav: { overview: 'Overview', schedule: 'Schedule', roster: 'Classes & students', notes: 'Prep notes', resources: 'Library', lab: 'Windmill lab', settings: 'Account' },
+  loginTitle: 'Instructor sign in', loginLead: 'Private workspace for approved FunAdemy instructors. Accounts are created by administrators only.',
+  email: 'Email', password: 'Password', signIn: 'Sign in', signingIn: 'Signing in…',
+  errInvalid: 'Email or password is incorrect.', errRate: 'Too many attempts. Wait a moment and try again.', errUnavailable: 'Service temporarily unavailable. Try again shortly.', errGeneric: 'Something went wrong. Please try again.',
+  loadError: 'Could not load the instructor panel.', retry: 'Retry',
+  adminPreview: 'Admin preview — showing every run, read-only. Preparation notes cannot be edited from an admin session.', backAdmin: 'Back to admin',
+  logout: 'Sign out', hello: 'Welcome',
+  activeRuns: 'Active runs', students: 'Enrolled students', upcoming: 'Upcoming sessions', notesReady: 'Upcoming with prep note',
+  nextSessions: 'Next sessions', noUpcoming: 'No upcoming sessions scheduled.', noRuns: 'No runs assigned yet.', noRunsLead: 'When an administrator assigns a run to your account it will appear here with its students and sessions.',
+  search: 'Search run or program', allRuns: 'All runs', day: 'Day', allDays: 'All days', upcomingOnly: 'Upcoming', past: 'Past',
+  capacity: 'Capacity', location: 'Location', noLocation: 'Location not set', inactive: 'Inactive', active: 'Active',
+  roster: 'Roster', born: 'Born', noStudents: 'No students enrolled in this run.', attendanceRecorded: 'Recorded attendance', noAttendance: 'No attendance recorded yet', readOnly: 'Read-only',
+  sessionsCount: 'sessions', noSessions: 'No sessions match this filter.', sessionNote: 'Session note',
+  prepLabel: 'Private preparation note', prepHint: 'Only visible to you, never to families. Up to 5000 characters.', save: 'Save', saving: 'Saving…', saved: 'Saved', unsaved: 'Unsaved changes', saveFailed: 'Save failed', discard: 'Revert', savedAt: 'Last saved',
+  noteForbidden: 'You cannot edit this session.', noteTooLong: 'Note is longer than 5000 characters.',
+  libTitle: 'BC.013 — Build the Windmill', libLead: 'Digital companion to the printed Bricks Challenge build guide. Fourteen stages that match the guide pages — not extra lessons.',
+  howTo: 'Using it in class',
+  tips: [
+    'Show the stage on screen before handing out parts, and ask children to name the pieces they need.',
+    'Let every child build with their hands first; use the lab to check and review, not to replace building.',
+    'Read the engineering note aloud after each stage and connect it to what the child just built.',
+    'Gear tooth counts in the lab are illustrative; the printed guide does not list them.',
+    'Lab progress is stored on that device only and is not linked to a child account.',
+  ],
+  stagesTitle: 'The fourteen stages',
+  openLab: 'Open the lab', openNewTab: 'Open in new tab', reload: 'Reload', fullscreen: 'Fullscreen',
+  labNote: 'The lab needs no sign in. Progress is saved locally on this device, independent of your account.',
+  profile: 'Profile', name: 'Name', role: 'Role', roleInstructor: 'Instructor', roleAdmin: 'Administrator (preview)',
+  contactAdmin: 'To change your name, email, assignments or password, contact FunAdemy administration. Never send your password in messages.',
+  leaveWarn: 'You have unsaved changes. Leave anyway?', menu: 'Menu', today: 'Today', status: { scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled', present: 'Present', absent: 'Absent', late: 'Late', excused: 'Excused', active: 'Active', enrolled: 'Enrolled', waitlisted: 'Waitlisted', withdrawn: 'Withdrawn' },
+};
+
+export const STR = { ar, en };
+export type Strings = typeof ar;
+export const t = (lang: Lang) => STR[lang];
+export const statusLabel = (s: Strings, v: string) => s.status[v] ?? v;
+
+export const WINDMILL_STAGES: { n: number; en: string; ar: string; page: number }[] = [
+  { n: 1, en: 'Foundation', ar: 'القاعدة', page: 2 },
+  { n: 2, en: 'Green braces', ar: 'الدعامات الخضراء', page: 2 },
+  { n: 3, en: 'Bridge platform', ar: 'منصة الجسر', page: 2 },
+  { n: 4, en: 'Second red course', ar: 'الصف الأحمر الثاني', page: 2 },
+  { n: 5, en: 'Axle housing', ar: 'حاضنة المحور', page: 3 },
+  { n: 6, en: 'Upper tower and axle 12', ar: 'أعلى البرج والمحور 12', page: 3 },
+  { n: 7, en: 'Gears on the axle', ar: 'التروس على المحور', page: 4 },
+  { n: 8, en: 'Rotor hub', ar: 'محور الدوّار', page: 4 },
+  { n: 9, en: 'Motor platform', ar: 'منصة المحرك', page: 5 },
+  { n: 10, en: 'Motor and drive gear', ar: 'المحرك وترس القيادة', page: 5 },
+  { n: 11, en: 'Mesh the gears', ar: 'تعشيق التروس', page: 6 },
+  { n: 12, en: 'Yellow supports', ar: 'الدعامات الصفراء', page: 6 },
+  { n: 13, en: 'Blue slopes and top cap', ar: 'المنحدرات الزرقاء والغطاء', page: 7 },
+  { n: 14, en: 'Windmill blades', ar: 'شفرات الطاحونة', page: 7 },
+];

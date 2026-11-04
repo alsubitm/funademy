@@ -15,6 +15,7 @@ import { KiteMark, Wordmark } from '@/components/brand/FunAdemyMark';
 import CurriculumTab from './CurriculumTab';
 import { NelcTab } from './NelcTab';
 import { SupportTab } from './SupportTab';
+import { InstructorsTab } from './InstructorsTab';
 
 export function AdminDashboard({ programs }: { programs: any[] }) {
   const [activeTab, setActiveTab] = useState('bookings');
@@ -34,6 +35,11 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
       id: 'runs',
       label: 'الدفعات',
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    },
+    {
+      id: 'instructors',
+      label: 'المدرّبون',
+      icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 16v5"/><circle cx="12" cy="9" r="3"/></svg>
     },
     {
       id: 'payments',
@@ -178,6 +184,7 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
         <div className="max-w-7xl mx-auto">
           {activeTab === 'kpis' && <KpisTab />}
           {activeTab === 'runs' && <RunsTab programs={programs} />}
+          {activeTab === 'instructors' && <InstructorsTab />}
           {activeTab === 'payments' && <PaymentsTab />}
           {activeTab === 'progress' && <ProgressTab />}
           {activeTab === 'makeup' && <MakeupTab />}

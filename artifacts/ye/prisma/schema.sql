@@ -74,6 +74,38 @@ CREATE TYPE "ye_lrn_video_type" AS ENUM ('youtube', 'vimeo', 'mp4');
 CREATE TYPE "ye_lrn_exercise_type" AS ENUM ('multiple_choice', 'matching', 'fill_blank', 'picture_select');
 
 -- CreateTable
+CREATE TABLE "ye_instructors" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "authVersion" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ye_instructors_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_instructor_assignments" (
+    "instructorId" INTEGER NOT NULL,
+    "courseRunId" INTEGER NOT NULL,
+
+    CONSTRAINT "ye_instructor_assignments_pkey" PRIMARY KEY ("instructorId","courseRunId")
+);
+
+-- CreateTable
+CREATE TABLE "ye_instructor_notes" (
+    "id" SERIAL NOT NULL,
+    "instructorId" INTEGER NOT NULL,
+    "sessionId" INTEGER NOT NULL,
+    "text" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_instructor_notes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ye_programs" (
     "id" SERIAL NOT NULL,
     "slug" TEXT NOT NULL,
@@ -770,6 +802,12 @@ CREATE TABLE "campaign_brick_events" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ye_instructors_email_key" ON "ye_instructors"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_instructor_notes_instructorId_sessionId_key" ON "ye_instructor_notes"("instructorId", "sessionId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_programs_slug_key" ON "ye_programs"("slug");
 
 -- CreateIndex
@@ -972,6 +1010,18 @@ CREATE INDEX "ye_rate_limit_hits_at_idx" ON "ye_rate_limit_hits"("at");
 
 -- CreateIndex
 CREATE INDEX "campaign_brick_events_key_created_at_idx" ON "campaign_brick_events"("key", "created_at");
+
+-- AddForeignKey
+ALTER TABLE "ye_instructor_assignments" ADD CONSTRAINT "ye_instructor_assignments_instructorId_fkey" FOREIGN KEY ("instructorId") REFERENCES "ye_instructors"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_instructor_assignments" ADD CONSTRAINT "ye_instructor_assignments_courseRunId_fkey" FOREIGN KEY ("courseRunId") REFERENCES "ye_course_runs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_instructor_notes" ADD CONSTRAINT "ye_instructor_notes_instructorId_fkey" FOREIGN KEY ("instructorId") REFERENCES "ye_instructors"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_instructor_notes" ADD CONSTRAINT "ye_instructor_notes_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ye_class_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ye_schedule_slots" ADD CONSTRAINT "ye_schedule_slots_programId_fkey" FOREIGN KEY ("programId") REFERENCES "ye_programs"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { ChatAssistant } from './ChatAssistant';
 
-const PRIVATE_SEGMENTS = ['/admin', '/portal', '/account', '/learn', '/help'];
+const PRIVATE_SEGMENTS = ['/admin', '/instructor', '/portal', '/account', '/learn', '/help'];
 
 export function PublicChatMount({ lang }: { lang: 'ar' | 'en' }) {
   const pathname = usePathname();

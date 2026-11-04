@@ -7,6 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Instructor {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  active       Boolean  @default(true)
+  authVersion  Int      @default(1)
+  createdAt    DateTime @default(now())
+  assignments  InstructorAssignment[]
+  notes        InstructorNote[]
+
+  @@map("ye_instructors")
+}
+
+model InstructorAssignment {
+  instructor   Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  instructorId Int
+  courseRun    CourseRun  @relation(fields: [courseRunId], references: [id], onDelete: Cascade)
+  courseRunId  Int
+
+  @@id([instructorId, courseRunId])
+  @@map("ye_instructor_assignments")
+}
+
+model InstructorNote {
+  id           Int          @id @default(autoincrement())
+  instructor   Instructor   @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  instructorId Int
+  session      ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId    Int
+  text         String
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([instructorId, sessionId])
+  @@map("ye_instructor_notes")
+}
+
 model Program {
   id            Int            @id @default(autoincrement())
   slug          String         @unique
@@ -379,6 +416,7 @@ model CourseRun {
   active          Boolean        @default(true)
   sessions        ClassSession[]
   enrollments     Enrollment[]
+  instructorAssignments InstructorAssignment[]
 
   @@index([programId, active])
   @@map("ye_course_runs")
@@ -394,6 +432,7 @@ model ClassSession {
   meetingUrl     String? // per-session override of courseRun.meetingUrl
   recordingUrl   String? // link to the class recording after the session
   attendance     Attendance[]
+  instructorNotes InstructorNote[]
   makeupRequests MakeupRequest[] @relation("MissedSession")
   makeupsInto    MakeupRequest[] @relation("MakeupSession")
 
