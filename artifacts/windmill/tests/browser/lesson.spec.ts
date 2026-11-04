@@ -48,6 +48,114 @@ const progressKey = `funademy.lab.progress.${lesson.id}.v${lesson.version}`;
 const languageKey = 'funademy.lab.language';
 
 for (const lang of ['en', 'ar'] as const) {
+  for (const failure of ['progress', 'language'] as const) {
+    for (const missedNotifications of [false, true]) {
+      test(`partial save: failed ${failure} in ${lang}, notifications ${missedNotifications ? 'missed' : 'received'}`, async ({ page, context, hasTouch }) => {
+        const errors: string[] = [];
+        page.on('pageerror', error => errors.push(error.message));
+        await open(page, lang);
+        await place(page, 1, hasTouch);
+        await expect.poll(async () => JSON.parse((await saved(page))[progressKey]).placed)
+          .toEqual([lesson.steps[0].id]);
+        const older = await context.newPage();
+        older.on('pageerror', error => errors.push(error.message));
+        if (missedNotifications) {
+          await older.addInitScript(() => {
+            for (const name of ['storage', 'focus', 'pageshow']) {
+              window.addEventListener(name, event => event.stopImmediatePropagation(), true);
+            }
+            document.addEventListener('visibilitychange', event => event.stopImmediatePropagation(), true);
+          });
+        }
+        await open(older, lang);
+        await count(older, 1);
+        // Drain initialization writes before installing a fault in this page only.
+        await older.evaluate(key => navigator.locks.request(key, () => {}), progressKey);
+        const before = await saved(page);
+        const revisionKey = `${progressKey}.revision`;
+        const failedKey = failure === 'progress' ? progressKey : languageKey;
+        await page.evaluate(({ failedKey, progressKey, languageKey }) => {
+          const original = Storage.prototype.setItem;
+          const attempts: string[] = [];
+          (window as unknown as { saveAttempts: string[] }).saveAttempts = attempts;
+          let failed = false;
+          Storage.prototype.setItem = function (key, value) {
+            if (this === localStorage && [progressKey, `${progressKey}.revision`, languageKey].includes(key)) {
+              attempts.push(key);
+              // Fail exactly once: subsequent writes would succeed if the hook
+              // incorrectly retried an uncertain save or kept autosaving.
+              if (key === failedKey && !failed) {
+                failed = true;
+                throw new DOMException('Injected partial save failure', 'QuotaExceededError');
+              }
+            }
+            return original.call(this, key, value);
+          };
+        }, { failedKey, progressKey, languageKey });
+
+        const nextLang = lang === 'en' ? 'ar' : 'en';
+        await page.getByTestId('language').click();
+        const notice = page.getByTestId('storage-notice');
+        await expect(notice).toBeVisible();
+        await expect(notice).toHaveAttribute('role', 'alert');
+        await expect(notice).toHaveText(UI[nextLang].storageFail);
+        await expect(notice.getByRole('button')).toHaveCount(0);
+        const attemptedKeys = failure === 'progress'
+          ? [revisionKey, progressKey] : [revisionKey, progressKey, languageKey];
+        const attempts = () => page.evaluate(() => (window as unknown as { saveAttempts: string[] }).saveAttempts);
+        expect(await attempts()).toEqual(attemptedKeys);
+        const partial = await saved(page);
+        expect(partial[revisionKey]).toBeTruthy();
+        expect(partial[revisionKey]).not.toBe(before[revisionKey]);
+        // A failed progress write preserves the exact previous snapshot; a
+        // failed language write leaves the new, complete snapshot readable.
+        const readable = failure === 'progress'
+          ? JSON.parse(before[progressKey])
+          : { ...JSON.parse(before[progressKey]), language: nextLang };
+        expect(partial).toEqual({
+          ...before,
+          [revisionKey]: partial[revisionKey],
+          [progressKey]: failure === 'progress' ? before[progressKey] : JSON.stringify(readable),
+        });
+
+        await place(page, 2, hasTouch);
+        await expect(notice).toHaveText(UI[nextLang].storageFail);
+        await page.evaluate(key => navigator.locks.request(key, () => {}), progressKey);
+        expect(await attempts()).toEqual(attemptedKeys);
+        expect(await saved(page)).toEqual(partial);
+
+        if (missedNotifications) {
+          await expect(older.getByTestId('storage-notice')).toHaveCount(0);
+          // Only the pre-write comparison can catch the revision-only change.
+          await older.getByTestId('hint').click();
+        }
+        await expect(older.getByTestId('storage-notice')).toContainText(UI[lang].storageConflict);
+        await older.getByTestId('hint').click();
+        await older.evaluate(key => navigator.locks.request(key, () => {}), progressKey);
+        expect(await saved(older)).toEqual(partial);
+
+        // Explicit reload acknowledges the readable snapshot (not the unsaved
+        // second placement), and restores normal saving without merging it.
+        await older.getByRole('button', { name: UI[lang].storageReload }).click();
+        await count(older, 1);
+        await expect(older.locator('html')).toHaveAttribute('lang', readable.language);
+        await expect(older.getByTestId('hints-used')).toHaveText(UI[readable.language as 'en' | 'ar'].hintsUsed(readable.hintsUsed));
+        await expect(older.getByTestId('storage-notice')).toHaveCount(0);
+        await expect.poll(async () => JSON.parse((await saved(older))[progressKey])).toEqual(readable);
+        await place(older, 2, hasTouch);
+        await expect.poll(async () => JSON.parse((await saved(older))[progressKey])).toEqual({
+          ...readable, placed: lesson.steps.slice(0, 2).map(step => step.id),
+        });
+        await page.reload();
+        await count(page, 2);
+        await expect(page.getByTestId('storage-notice')).toHaveCount(0);
+        expect(errors).toEqual([]);
+      });
+    }
+  }
+}
+
+for (const lang of ['en', 'ar'] as const) {
   test(`two tabs: newer construction is protected and reload resumes in ${lang}`, async ({ page, context }) => {
     await open(page, lang);
     const older = await context.newPage();
