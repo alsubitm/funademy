@@ -47,6 +47,92 @@ async function saved(page: Page) {
 const progressKey = `funademy.lab.progress.${lesson.id}.v${lesson.version}`;
 const languageKey = 'funademy.lab.language';
 
+async function canonical(page: Page) {
+  return page.evaluate(key => new Promise<{ raw: string; revision: string }>((resolve, reject) => {
+    const open = indexedDB.open('funademy.lab.progress', 1);
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result;
+      const tx = db.transaction('lessons', 'readonly');
+      const read = tx.objectStore('lessons').get(key);
+      tx.oncomplete = () => { db.close(); resolve(read.result); };
+      tx.onabort = () => { db.close(); reject(tx.error); };
+    };
+  }), progressKey);
+}
+
+test('transactional saves migrate legacy progress and ignore stale mirrors on reload', async ({ page, context }) => {
+  const legacy = { ...createProgress(lesson, 'en'), placed: [lesson.steps[0].id], hintsUsed: 3 };
+  await context.addInitScript(({ progressKey, legacy }) => {
+    if (sessionStorage.getItem('seeded')) return;
+    localStorage.setItem(progressKey, JSON.stringify(legacy));
+    sessionStorage.setItem('seeded', 'yes');
+  }, { progressKey, legacy });
+  await open(page);
+  await count(page, 1);
+  await expect.poll(async () => JSON.parse((await canonical(page)).raw)).toEqual(legacy);
+  await page.getByTestId('backup-open').click();
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByTestId('backup-download').click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toBe('windmill-progress.json');
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  const backup = Buffer.concat(chunks);
+  await page.getByTestId('dialog-backup-close').click();
+  await page.getByTestId('reset').click();
+  await page.getByTestId('reset-confirm').click();
+  await expect.poll(async () => JSON.parse((await canonical(page)).raw).placed.length).toBe(0);
+  // An old app tab or stale renderer mirror cannot become authoritative again.
+  await page.evaluate(({ progressKey, legacy }) => {
+    localStorage.setItem(progressKey, JSON.stringify(legacy));
+    localStorage.setItem(`${progressKey}.revision`, 'old-tab');
+  }, { progressKey, legacy });
+  await page.reload();
+  await count(page, 0);
+  await page.getByTestId('backup-open').click();
+  await page.getByTestId('backup-file').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: backup });
+  await page.getByTestId('backup-confirm').click();
+  await expect.poll(async () => JSON.parse((await canonical(page)).raw)).toEqual(legacy);
+  await page.reload();
+  await count(page, 1);
+  await expect(page.getByTestId('hints-used')).toHaveText(UI.en.hintsUsed(3));
+});
+
+test('transactional saves fail closed when IndexedDB is unavailable', async ({ page, context }) => {
+  await context.addInitScript(() => {
+    Object.defineProperty(window, 'indexedDB', { get() { throw new DOMException('Denied', 'SecurityError'); } });
+  });
+  await open(page);
+  await expect(page.getByTestId('storage-notice')).toHaveText(UI.en.storageFail);
+  await place(page, 1);
+  expect(await saved(page)).toEqual({});
+});
+
+test('transactional saves preserve the committed build after a partial mirror failure', async ({ page }) => {
+  await open(page);
+  await place(page, 1);
+  await expect.poll(async () => JSON.parse((await canonical(page)).raw).placed.length).toBe(1);
+  const committed = await canonical(page);
+  await page.evaluate(key => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (name, value) {
+      if (name === key) throw new DOMException('Quota exhausted', 'QuotaExceededError');
+      original.call(this, name, value);
+    };
+  }, progressKey);
+  await page.getByTestId('reset').click();
+  await page.getByTestId('reset-confirm').click();
+  await expect(page.getByTestId('storage-notice')).toHaveText(UI.en.storageFail);
+  expect(await canonical(page)).toEqual(committed);
+  await page.reload();
+  await count(page, 1);
+  await expect(page.getByTestId('storage-notice')).toHaveCount(0);
+  await place(page, 2);
+  await expect.poll(async () => JSON.parse((await canonical(page)).raw).placed.length).toBe(2);
+});
+
 for (const lang of ['en', 'ar'] as const) {
   for (const failure of ['progress', 'language'] as const) {
     for (const missedNotifications of [false, true]) {
@@ -197,6 +283,71 @@ for (const lang of ['en', 'ar'] as const) {
     await older.reload();
     await count(older, 0);
     await expect(older.getByTestId('hints-used')).toHaveText(UI[lang].hintsUsed(0));
+  });
+}
+
+for (const lang of ['en', 'ar'] as const) {
+  test(`two tabs: confirmed device clear wins over a queued stale save in ${lang}`, async ({ page, context }) => {
+    // A suspended classroom tab can miss all notifications. Its queued writer
+    // must recheck the revision inside the lock, not trust the visible snapshot.
+    // Suppress them on both pages so lock-query counts measure only save jobs,
+    // not incidental focus checks from opening/closing the confirmation dialog.
+    await context.addInitScript(() => {
+      for (const name of ['storage', 'focus', 'pageshow']) {
+        window.addEventListener(name, event => event.stopImmediatePropagation(), true);
+      }
+      document.addEventListener('visibilitychange', event => event.stopImmediatePropagation(), true);
+    });
+    await open(page, lang);
+    await place(page, 1);
+    await expect.poll(async () => JSON.parse((await saved(page))[progressKey]).placed.length).toBe(1);
+    const older = await context.newPage();
+    await open(older, lang);
+    await count(older, 1);
+    await older.evaluate(key => navigator.locks.request(key, () => {}), progressKey);
+    const before = await saved(page);
+    await page.evaluate(key => {
+      void navigator.locks.request(key, () => new Promise<void>(resolve => {
+        (window as unknown as { releaseSave: () => void }).releaseSave = resolve;
+      }));
+    }, progressKey);
+    await expect.poll(() => page.evaluate(() =>
+      typeof (window as unknown as { releaseSave?: () => void }).releaseSave)).toBe('function');
+    const pending = () => page.evaluate(async key =>
+      (await navigator.locks.query()).pending?.filter(lock => lock.name === key).length ?? 0, progressKey);
+    try {
+      await page.getByTestId('reset').click();
+      // Merely opening confirmation must not clear anything.
+      expect(await saved(page)).toEqual(before);
+      expect(await pending()).toBe(0);
+      await page.getByTestId('reset-confirm').click();
+      await count(page, 0);
+      await expect.poll(pending).toBe(1);
+      await older.getByTestId('hint').click();
+      await expect.poll(pending).toBe(2);
+      // Both writes are genuinely waiting; neither has reached storage yet.
+      expect(await saved(page)).toEqual(before);
+    } finally {
+      await page.evaluate(() => (window as unknown as { releaseSave: () => void }).releaseSave());
+    }
+    await expect.poll(async () => ({
+      current: JSON.parse((await saved(page))[progressKey]).placed.length,
+      stale: JSON.parse((await saved(older))[progressKey]).hintsUsed,
+      notices: await older.getByTestId('storage-notice').allTextContents(),
+    })).toEqual({ current: 0, stale: 0, notices: [expect.stringContaining(UI[lang].storageConflict)] });
+    const cleared = await saved(page);
+    expect(JSON.parse(cleared[progressKey])).toEqual(createProgress(lesson, lang));
+    expect(cleared[`${progressKey}.revision`]).not.toBe(before[`${progressKey}.revision`]);
+    // A conflicted tab cannot resurrect the old build with another edit either.
+    await older.getByTestId('hint').click();
+    expect(await saved(older)).toEqual(cleared);
+    await older.getByRole('button', { name: UI[lang].storageReload }).click();
+    await count(older, 0);
+    await expect(older.getByTestId('hints-used')).toHaveText(UI[lang].hintsUsed(0));
+    await expect(older.getByTestId('storage-notice')).toHaveCount(0);
+    await page.reload();
+    await count(page, 0);
+    expect(await saved(page)).toEqual(cleared);
   });
 }
 

@@ -46,7 +46,7 @@ function PartThumb({ step }: { step: LessonStep }) {
 }
 
 export default function Lab() {
-  const { progress, setProgress, replaceProgress, notice, dismissNotice } = useStoredProgress(lesson);
+  const { progress, setProgress, replaceProgress, notice, ready, dismissNotice } = useStoredProgress(lesson);
   const lang: Language = progress.language;
   const t = UI[lang];
   const f = FX[lang];
@@ -208,6 +208,8 @@ export default function Lab() {
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
   const blades = (lesson.transmission.driverRpm * lesson.transmission.driverTeeth) / lesson.transmission.drivenTeeth;
   const trayCards = lesson.trayOrder.map((num) => lesson.steps[num - 1]);
+
+  if (!ready) return <main className="lab" role="status">{lang === 'ar' ? 'جارٍ تحميل التقدم…' : 'Loading progress…'}</main>;
 
   return (
     <div className="lab">
