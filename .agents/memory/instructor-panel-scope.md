@@ -7,7 +7,7 @@ The user wants the engineering lab in a dedicated, detailed instructor control p
 
 **Why:** They explicitly rejected public-menu placement and requested a professional instructor area.
 
-**How to apply:** Keep teaching resources accessible from the instructor workspace and staff management from Admin. Do not add public navigation links without approval.
+**How to apply:** Keep teaching resources accessible from the instructor workspace and staff management from Admin. The owner subsequently approved an instructor-login entry on the main page; this permits a public login link, not public access to teaching controls or student records.
 
 Keep staff access separate from family and administrator access. Accounts are administrator-provisioned; instructors only receive assigned teaching records and their own preparation notes, not financial or parent-contact data.
 

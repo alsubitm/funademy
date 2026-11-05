@@ -71,6 +71,7 @@ export function FunHome({ lang }: { lang: Lang }) {
       <a href="#our-way" onClick={() => setMenuOpen(false)}>{t('navWay')}</a>
       <a href="#programs" onClick={() => setMenuOpen(false)}>{t('navPrograms')}</a>
       <a href="#schools" onClick={() => setMenuOpen(false)}>{t('navSchools')}</a>
+      <Link href={prefix(lang, '/instructor')} onClick={() => setMenuOpen(false)}>{lang === 'ar' ? 'دخول المدرّبين' : 'Instructor login'}</Link>
     </>
   );
 
