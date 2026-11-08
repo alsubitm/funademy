@@ -147,6 +147,9 @@ describe('GET /svc/admin/sms', () => {
     asAdmin();
     vi.stubEnv('AUTHENTICA_API_KEY', 'k');
     fetchMock.mockResolvedValue(balance200({ balance: 91 }));
+    // Other serial suites may leave recent OTP rows in the shared test DB.
+    // Assert this fixture's contribution rather than assuming an empty table.
+    const baseline = await (await smsGET()).json();
     const mk = (delivered: boolean | null, ageMs: number) =>
       prisma.otpCode.create({
         data: {
@@ -165,7 +168,7 @@ describe('GET /svc/admin/sms', () => {
       mk(false, 25 * 3600_000), // outside the 24h window
     ]);
     const body = await (await smsGET()).json();
-    expect(body.failed24h).toBe(2);
-    expect(body.sent24h).toBe(1);
+    expect(body.failed24h - baseline.failed24h).toBe(2);
+    expect(body.sent24h - baseline.sent24h).toBe(1);
   });
 });

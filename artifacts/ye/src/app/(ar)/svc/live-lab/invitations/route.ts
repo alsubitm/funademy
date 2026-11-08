@@ -11,7 +11,8 @@ export async function POST(req: Request) {
     await roomTransaction(actor, b.roomId, async (tx, room) => {
       if (room.phase !== 'waiting') throw new LiveError(409, 'session_started');
       const email = b.email.trim().toLowerCase();
-      if (await tx.liveLabGuest.findUnique({ where: { roomId_email: { roomId: room.id, email } } })) throw new LiveError(409, 'already_invited');
+      // Email is the guardian's contact, not a student's identity. Each
+      // invitation gets its own seat and capability, including siblings.
       if (await tx.liveLabGuest.count({ where: { roomId: room.id, revoked: false } }) >= 16) throw new LiveError(409, 'session_full');
       await tx.liveLabGuest.create({ data: { roomId: room.id, name: b.name.trim(), email, token: randomBytes(32).toString('hex') } });
       await tx.liveLabRoom.update({ where: { id: room.id }, data: { calendarStatus: 'needs_sync' } });

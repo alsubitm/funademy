@@ -63,7 +63,7 @@ describe('live Windmill classroom', () => {
   it('issues private invitations, grades once on the server, and revokes access', async () => {
     const id = await create();
     expect((await invite(req({ roomId: id, name: 'Student', email: 'guardian@example.invalid' }))).status).toBe(200);
-    expect((await invite(req({ roomId: id, name: 'Student', email: 'GUARDIAN@example.invalid' }))).status).toBe(409);
+    expect((await invite(req({ roomId: id, name: 'Sibling', email: 'GUARDIAN@example.invalid' }))).status).toBe(200);
     const guest = await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } });
     const waiting = await (await getStudent(guest.token)).json();
     expect(waiting.questions).toEqual([]);
@@ -86,13 +86,51 @@ describe('live Windmill classroom', () => {
     expect((await getStudent(guest.token)).status).toBe(404);
     expect((await submit(req({ token: guest.token, answers: [0, 1, 2, 0, 1] }))).status).toBe(404);
   });
-  it('serializes invitations at the sixteen-seat limit', async () => {
+  it('keeps siblings private with independent results, revocation and restoration', async () => {
+    const id = await create();
+    for (const [name, email] of [['Sibling A', 'Guardian@example.invalid'], ['Sibling B', 'guardian@example.invalid']]) {
+      expect((await invite(req({ roomId: id, name, email }))).status).toBe(200);
+    }
+    const [a, b] = await prisma.liveLabGuest.findMany({ where: { roomId: id }, orderBy: { name: 'asc' } });
+    expect(a.email).toBe(b.email);
+    expect(a.token).not.toBe(b.token);
+    const viewA = await (await getStudent(a.token)).json();
+    expect(viewA.name).toBe('Sibling A');
+    expect(JSON.stringify(viewA)).not.toContain(b.name);
+    expect(JSON.stringify(viewA)).not.toContain(b.token);
+    expect(JSON.stringify(viewA)).not.toContain(a.email);
+    expect((await prisma.liveLabGuest.findUniqueOrThrow({ where: { id: b.id } })).joinedAt).toBeNull();
+    expect((await calendar(req({ roomId: id }))).status).toBe(200);
+    expect(await prisma.liveLabGuest.count({ where: { roomId: id, invitedAt: { not: null } } })).toBe(2);
+    await PATCH(req({ id, version: 1, phase: 'teaching', step: 14 }, 'PATCH'));
+    await PATCH(req({ id, version: 2, phase: 'quiz' }, 'PATCH'));
+    expect(await (await submit(req({ token: a.token, answers: [0, 1, 2, 0, 1] }))).json()).toEqual({ score: 5, total: 5 });
+    expect((await (await getStudent(b.token)).json()).submission).toBeNull();
+    expect((await revoke(req({ roomId: id, guestId: a.id, revoked: true }, 'PATCH'))).status).toBe(200);
+    expect((await getStudent(a.token)).status).toBe(404);
+    expect((await submit(req({ token: a.token, answers: [0, 1, 2, 0, 1] }))).status).toBe(404);
+    expect(await (await submit(req({ token: b.token, answers: [2, 2, 2, 2, 2] }))).json()).toEqual({ score: 1, total: 5 });
+    expect((await calendar(req({ roomId: id }))).status).toBe(200);
+    expect(vi.mocked(syncLiveCalendar).mock.calls.at(-1)?.[1]).toEqual([b.email]);
+    expect((await revoke(req({ roomId: id, guestId: a.id, revoked: false }, 'PATCH'))).status).toBe(200);
+    expect((await (await getStudent(a.token)).json()).submission).toEqual({ score: 5, total: 5 });
+    expect(await (await submit(req({ token: b.token, answers: [0, 1, 2, 0, 1] }))).json()).toEqual({ score: 1, total: 5 });
+  });
+  it('serializes sibling invitations and restoration at the sixteen-seat limit', async () => {
     const id = await create();
     await prisma.liveLabGuest.createMany({ data: Array.from({ length: 15 }, (_, i) => ({
-      roomId: id, name: 'Test', email: `${i}@example.invalid`, token: `${id}-${i}`,
+      roomId: id, name: `Sibling ${i}`, email: 'family@example.invalid', token: `${id}-${i}`,
     })) });
-    const r = await Promise.all(['a', 'b'].map(n => invite(req({ roomId: id, name: n, email: `${n}@example.invalid` }))));
+    const r = await Promise.all(['a', 'b'].map(n => invite(req({ roomId: id, name: n, email: 'family@example.invalid' }))));
     expect(r.map(x => x.status).sort()).toEqual([200, 409]);
+    expect(await prisma.liveLabGuest.count({ where: { roomId: id, revoked: false } })).toBe(16);
+    const guest = await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } });
+    expect((await revoke(req({ roomId: id, guestId: guest.id, revoked: true }, 'PATCH'))).status).toBe(200);
+    const competing = await Promise.all([
+      revoke(req({ roomId: id, guestId: guest.id, revoked: false }, 'PATCH')),
+      invite(req({ roomId: id, name: 'Another sibling', email: 'family@example.invalid' })),
+    ]);
+    expect(competing.map(x => x.status).sort()).toEqual([200, 409]);
     expect(await prisma.liveLabGuest.count({ where: { roomId: id, revoked: false } })).toBe(16);
   });
   it('keeps a failed calendar send unsent and supports a pending Meet response', async () => {

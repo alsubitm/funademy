@@ -58,7 +58,7 @@ model LiveLabGuest {
   answers     Int[]    @default([])
   score       Int?
 
-  @@unique([roomId, email])
+  @@index([roomId, email])
   @@map("ye_live_lab_guests")
 }
 

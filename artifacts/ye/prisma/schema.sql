@@ -848,7 +848,7 @@ CREATE INDEX "ye_live_lab_rooms_instructorId_startsAt_idx" ON "ye_live_lab_rooms
 CREATE UNIQUE INDEX "ye_live_lab_guests_token_key" ON "ye_live_lab_guests"("token");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ye_live_lab_guests_roomId_email_key" ON "ye_live_lab_guests"("roomId", "email");
+CREATE INDEX "ye_live_lab_guests_roomId_email_idx" ON "ye_live_lab_guests"("roomId", "email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ye_instructor_notes_instructorId_sessionId_key" ON "ye_instructor_notes"("instructorId", "sessionId");

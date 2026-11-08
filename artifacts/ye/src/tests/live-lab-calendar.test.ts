@@ -14,9 +14,10 @@ describe('one Google Meet per live Windmill session', () => {
       id: 'event', hangoutLink: 'https://meet.google.com/abc-defg-hij',
       attendees: [{ email: 'family@example.invalid' }, { email: 'teacher@example.invalid' }],
     }));
-    expect(await syncLiveCalendar(room, ['family@example.invalid'], 'teacher@example.invalid')).toEqual({ meetUrl: 'https://meet.google.com/abc-defg-hij' });
+    expect(await syncLiveCalendar(room, ['family@example.invalid', 'FAMILY@example.invalid'], 'teacher@example.invalid')).toEqual({ meetUrl: 'https://meet.google.com/abc-defg-hij' });
     const call = proxy.mock.calls[1];
     const payload = JSON.parse(call[2].body);
+    expect(payload.attendees).toEqual([{ email: 'family@example.invalid' }, { email: 'teacher@example.invalid' }]);
     expect(payload.id).toBe('lab12345678123412341234123456789abc');
     expect(payload.conferenceData.createRequest.requestId).toBe(payload.id);
     expect(payload.guestsCanSeeOtherGuests).toBe(false);
@@ -30,7 +31,7 @@ describe('one Google Meet per live Windmill session', () => {
       id: 'event', hangoutLink: 'https://meet.google.com/abc-defg-hij',
       attendees: [{ email: 'family@example.invalid' }, { email: 'teacher@example.invalid' }],
     }));
-    await syncLiveCalendar(room, ['family@example.invalid'], 'teacher@example.invalid');
+    await syncLiveCalendar(room, ['family@example.invalid', 'family@example.invalid'], 'teacher@example.invalid');
     expect(proxy).toHaveBeenCalledTimes(1);
   });
   it('repairs a changed guest list on a recovered create conflict', async () => {
