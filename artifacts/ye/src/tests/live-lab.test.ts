@@ -130,6 +130,21 @@ describe('live Windmill classroom', () => {
     expect(guests[0].idempotencyKey).toBe(body.idempotencyKey);
     expect(guests[0].token).toMatch(/^[0-9a-f]{64}$/);
   });
+  it('keeps a revoked guest disabled when the original invitation is replayed', async () => {
+    const id = await create();
+    const body = { roomId: id, name: 'Revoked Student', email: 'guardian@example.invalid', idempotencyKey: `revoked-retry-${prefix}-${id}` };
+    expect((await invite(req(body))).status).toBe(200);
+    const guest = await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } });
+
+    expect((await revoke(req({ roomId: id, guestId: guest.id, revoked: true }, 'PATCH'))).status).toBe(200);
+    expect((await getStudent(guest.token)).status).toBe(404);
+    expect((await invite(req(body))).status).toBe(200);
+
+    const replayed = await prisma.liveLabGuest.findUniqueOrThrow({ where: { id: guest.id } });
+    expect(replayed.revoked).toBe(true);
+    expect(replayed.token).toBe(guest.token);
+    expect((await getStudent(replayed.token)).status).toBe(404);
+  });
   it('allows a distinct same-name student and replays a committed invitation when full', async () => {
     const id = await create();
     const body = { roomId: id, name: 'Same Name', email: 'guardian@example.invalid', idempotencyKey: `same-${prefix}-${id}` };
