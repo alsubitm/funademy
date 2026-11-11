@@ -19,6 +19,7 @@ const T = {
     stage: 'التحكم بالنموذج', prev: 'السابق', next: 'التالي', step: (n: number) => `الخطوة ${n} من ${TOTAL}`, motorOn: 'تشغيل المحرك', motorOff: 'إيقاف المحرك', speed: 'السرعة', reverse: 'عكس الاتجاه',
     preview: 'ما يراه الطلاب', guests: 'الضيوف', addGuest: 'إضافة ضيف', gName: 'اسم الطالب', gEmail: 'بريد ولي الأمر', add: 'إضافة', onlyWaiting: 'تُضاف الدعوات قبل بدء الحصة فقط.', max: `الحد الأقصى ${MAX_GUESTS} طالباً. أضف كل أخ أو أخت باسمه وبنفس بريد ولي الأمر؛ لكل طالب مقعد ورابط خاص ونتيجة مستقلة.`,
     copy: 'نسخ رابط المختبر الخاص', share: 'مشاركة', copied: 'نُسخ', revoke: 'إلغاء الدعوة', restore: 'إعادة التفعيل', revoked: 'ملغاة',
+    editName: 'تصحيح الاسم', saveName: 'حفظ الاسم', cancelEdit: 'إلغاء', namePlaceholder: 'اسم الطالب',
     privateNote: 'رابط المختبر الخاص لا يُرسل في دعوة التقويم. شاركه مع ولي الأمر بنفسك وبشكل خاص. ينتهي بعد 24 ساعة من نهاية الموعد.', revokeNote: 'إلغاء الدعوة يمنع دخول المختبر فوراً، لكن قائمة حضور التقويم تتحدّث بعد المزامنة فقط. قبول أو إخراج المشاركين في Meet يتم من المضيف بشكل منفصل.', cancel: 'إلغاء الحصة', confirmCancel: 'إلغاء هذه الحصة نهائياً؟', noAccess: 'انتهت صلاحية الدخول. حدّث الصفحة وسجّل الدخول مجدداً.',
     calendar: 'دعوات التقويم', send: 'إرسال دعوات التقويم', sync: 'إعادة المزامنة', syncing: 'جارٍ المزامنة…',
     calNote: 'دعوة Google Calendar تحتوي رابط Meet المشترك فقط، ودعوة واحدة لكل بريد ولي أمر. يبقى البريد في التقويم ما دام لأحد الأبناء دعوة مفعّلة. قبول Google للتحديث لا يضمن وصول البريد.',
@@ -36,6 +37,7 @@ const T = {
     stage: 'Stage control', prev: 'Previous', next: 'Next', step: (n: number) => `Step ${n} of ${TOTAL}`, motorOn: 'Run motor', motorOff: 'Stop motor', speed: 'Speed', reverse: 'Reverse',
     preview: 'What students see', guests: 'Guests', addGuest: 'Add guest', gName: 'Student name', gEmail: 'Guardian email', add: 'Add', onlyWaiting: 'Guests can be added only before the class starts.', max: `Up to ${MAX_GUESTS} students. Add each sibling by name using the same guardian email; each student gets a seat, private link, and separate result.`,
     copy: 'Copy private lab link', share: 'Share', copied: 'Copied', revoke: 'Revoke', restore: 'Re-enable', revoked: 'Revoked',
+    editName: 'Correct name', saveName: 'Save name', cancelEdit: 'Cancel', namePlaceholder: 'Student name',
     privateNote: 'The private lab link is not included in the calendar invitation. Share it with the guardian yourself, privately. It expires 24 hours after the scheduled end.', revokeNote: 'Revoking blocks lab access immediately, but the Calendar attendee list updates only after Sync. The Meet host admits or removes participants separately.', cancel: 'Cancel session', confirmCancel: 'Cancel this session permanently?', noAccess: 'Access expired. Refresh and sign in again.',
     calendar: 'Calendar invitations', send: 'Send calendar invitations', sync: 'Retry sync', syncing: 'Syncing…',
     calNote: 'Google Calendar sends one invitation per guardian email, containing only the shared Meet link. The email stays on the calendar while any sibling has an active invitation. Google accepting the update does not guarantee email delivery.',
@@ -194,6 +196,8 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
   const busy = busyRaw || stale;
   const [gName, setGName] = useState('');
   const [gEmail, setGEmail] = useState('');
+  const [nameEditId, setNameEditId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
@@ -317,7 +321,17 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
           {room.guests.map((g) => (
             <div key={g.id} className="ip-live-guest" data-testid={`row-guest-${g.id}`}>
               <div style={{ minWidth: 0 }}>
-                <strong>{g.name}</strong> {g.revoked && <span className="ip-pill bad">{s.revoked}</span>}
+                {nameEditId === g.id ? (
+                  <form className="ip-live-row" onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (await guestCall('PATCH', { guestId: g.id, name: nameDraft.trim() })) setNameEditId(null);
+                  }}>
+                    <input className="ip-input" required maxLength={80} value={nameDraft} onChange={(e) => setNameDraft(e.target.value)}
+                      aria-label={s.namePlaceholder} data-testid={`input-guest-name-edit-${g.id}`} />
+                    <button className="ip-btn sm" disabled={busy || !nameDraft.trim()} data-testid={`button-guest-name-save-${g.id}`}>{s.saveName}</button>
+                    <button type="button" className="ip-btn line sm" disabled={busy} onClick={() => setNameEditId(null)} data-testid={`button-guest-name-cancel-${g.id}`}>{s.cancelEdit}</button>
+                  </form>
+                ) : <strong data-testid={`text-guest-name-${g.id}`}>{g.name}</strong>} {g.revoked && <span className="ip-pill bad">{s.revoked}</span>}
                 <div className="ip-live-note" dir="ltr" style={{ textAlign: 'start', margin: 0 }}>{g.email}</div>
                 <div className="ip-meta" style={{ fontSize: 12 }}>
                   <span>{g.invitedAt ? `${s.invited} · ${riyadh(g.invitedAt, lang)}` : s.notInvited}</span>
@@ -326,6 +340,7 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
                 </div>
               </div>
               <div className="ip-live-row">
+                {!ended && nameEditId !== g.id && <button className="ip-btn line sm" disabled={busy} onClick={() => { setNameDraft(g.name); setNameEditId(g.id); }} data-testid={`button-guest-name-edit-${g.id}`}>{s.editName}</button>}
                 {!g.revoked && !ended && <button className="ip-btn line sm" onClick={() => copy(g)} data-testid={`button-guest-copy-${g.id}`}>{copied === g.id ? s.copied : s.copy}</button>}
                 {!g.revoked && !ended && canShare && <button className="ip-btn line sm" onClick={() => share(g)} data-testid={`button-guest-share-${g.id}`}>{s.share}</button>}
                 {!ended && <button className="ip-btn line sm" disabled={busy} onClick={() => guestCall('PATCH', { guestId: g.id, revoked: !g.revoked })} data-testid={`button-guest-revoke-${g.id}`}>{g.revoked ? s.restore : s.revoke}</button>}

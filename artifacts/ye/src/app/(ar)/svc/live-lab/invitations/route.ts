@@ -34,11 +34,21 @@ export async function PATCH(req: Request) {
     if (!safeInstructorMutation(req)) throw new LiveError(403, 'forbidden');
     const actor = await staff();
     const b = await req.json();
-    if (!validId(b.roomId) || !validId(b.guestId) || typeof b.revoked !== 'boolean') throw new LiveError(400, 'invalid_input');
+    const isNameChange = typeof b.name === 'string' && b.revoked === undefined;
+    const isRevocation = typeof b.revoked === 'boolean' && b.name === undefined;
+    if (!validId(b.roomId) || !validId(b.guestId) ||
+      (!isNameChange && !isRevocation) ||
+      (isNameChange && (!b.name.trim() || b.name.length > 80))) throw new LiveError(400, 'invalid_input');
     await roomTransaction(actor, b.roomId, async (tx, room) => {
       if (room.phase === 'ended') throw new LiveError(409, 'session_ended');
       const guest = await tx.liveLabGuest.findFirst({ where: { id: b.guestId, roomId: room.id } });
       if (!guest) throw new LiveError(404, 'not_found');
+      if (isNameChange) {
+        // A correction changes only this invitation's label; keep its token,
+        // guardian contact, seat and quiz state intact.
+        await tx.liveLabGuest.update({ where: { id: guest.id }, data: { name: b.name.trim() } });
+        return;
+      }
       if (!b.revoked && guest.revoked && await tx.liveLabGuest.count({ where: { roomId: room.id, revoked: false } }) >= 16) throw new LiveError(409, 'session_full');
       await tx.liveLabGuest.update({ where: { id: guest.id }, data: { revoked: b.revoked } });
       await tx.liveLabRoom.update({ where: { id: room.id }, data: { calendarStatus: 'needs_sync' } });

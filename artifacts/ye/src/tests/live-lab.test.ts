@@ -148,6 +148,48 @@ describe('live Windmill classroom', () => {
     expect(guests.find(g => g.id === original.id)?.token).toBe(original.token);
     expect(new Set(guests.map(g => g.token)).size).toBe(2);
   });
+  it('corrects only the selected guest name without changing access, seat, contact, or quiz result', async () => {
+    const id = await create();
+    await invite(inviteRequest(id, 'Wrong sibling', 'guardian@example.invalid'));
+    await invite(inviteRequest(id, 'Correct sibling', 'guardian@example.invalid'));
+    const [guest, sibling] = await prisma.liveLabGuest.findMany({ where: { roomId: id }, orderBy: { name: 'asc' } });
+    await PATCH(req({ id, version: 1, phase: 'teaching', step: 14 }, 'PATCH'));
+    await PATCH(req({ id, version: 2, phase: 'quiz' }, 'PATCH'));
+    expect(await (await submit(req({ token: guest.token, answers: [0, 1, 2, 0, 1] }))).json()).toEqual({ score: 5, total: 5 });
+    const before = await prisma.liveLabGuest.findUniqueOrThrow({ where: { id: guest.id } });
+
+    expect((await revoke(req({ roomId: id, guestId: guest.id, name: 'Fixed sibling' }, 'PATCH'))).status).toBe(200);
+
+    const after = await prisma.liveLabGuest.findUniqueOrThrow({ where: { id: guest.id } });
+    expect(after.name).toBe('Fixed sibling');
+    expect(after.token).toBe(before.token);
+    expect(after.email).toBe(before.email);
+    expect(after.revoked).toBe(before.revoked);
+    expect(after.invitedAt).toEqual(before.invitedAt);
+    expect(after.joinedAt).toEqual(before.joinedAt);
+    expect(after.submittedAt).toEqual(before.submittedAt);
+    expect(after.answers).toEqual(before.answers);
+    expect(after.score).toBe(before.score);
+    expect((await (await getStudent(after.token)).json()).name).toBe('Fixed sibling');
+    expect((await prisma.liveLabGuest.findUniqueOrThrow({ where: { id: sibling.id } })).name).toBe('Wrong sibling');
+
+    expect((await revoke(req({ roomId: id, guestId: sibling.id, name: '   ' }, 'PATCH'))).status).toBe(400);
+    expect((await revoke(req({ roomId: id, guestId: sibling.id, name: 'Another', revoked: true }, 'PATCH'))).status).toBe(400);
+  });
+  it('enforces room ownership and guest scoping for name corrections', async () => {
+    const id = await create();
+    await invite(inviteRequest(id, 'Student', 'guardian@example.invalid'));
+    const guest = await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } });
+    const otherRoom = await create();
+
+    expect((await revoke(req({ roomId: otherRoom, guestId: guest.id, name: 'Wrong room' }, 'PATCH'))).status).toBe(404);
+    login(other);
+    expect((await revoke(req({ roomId: id, guestId: guest.id, name: 'Not authorized' }, 'PATCH'))).status).toBe(403);
+    login();
+    await PATCH(req({ id, version: 1, phase: 'ended' }, 'PATCH'));
+    expect((await revoke(req({ roomId: id, guestId: guest.id, name: 'Too late' }, 'PATCH'))).status).toBe(409);
+    expect((await prisma.liveLabGuest.findUniqueOrThrow({ where: { id: guest.id } })).name).toBe('Student');
+  });
   it('serializes sibling invitations and restoration at the sixteen-seat limit', async () => {
     const id = await create();
     await prisma.liveLabGuest.createMany({ data: Array.from({ length: 15 }, (_, i) => ({
