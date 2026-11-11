@@ -137,3 +137,41 @@ Verified sources:
 - https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty
 
 No provider has been selected, no quote accepted and no resource purchased.
+
+### Published cost comparison — checked 11 November 2026
+
+The owner requested a cost comparison before choosing. Kloudbean's PostgreSQL
+pricing page includes a separate Saudi-region table, distinct from its cheaper
+general-region plans:
+
+| Saudi plan | RAM / vCPU | SSD | Included bandwidth | USD/month | SAR/month |
+| --- | --- | --- | --- | --- | --- |
+| Micro | 1 GB / 2 | 40 GB | 10 GB | 54 | 202.50 |
+| Small | 2 GB / 2 | 60 GB | 20 GB | 102 | 382.50 |
+| Medium | 4 GB / 2 | 80 GB | 30 GB | 175 | 656.25 |
+| Standard 8GB | 8 GB / 2 | 160 GB | 40 GB | 336 | 1,260.00 |
+
+SAR conversions assume USD 1 = SAR 3.75, exclude taxes, payment conversion fees,
+and overages. The Saudi section specifies extra outbound bandwidth at
+USD 0.15/GB (SAR 0.5625/GB). General marketing copy elsewhere on the same page
+says bandwidth is free; use the Saudi-specific terms and require a written
+quote to resolve this discrepancy. Daily backups are advertised as included,
+but confirm retention, restore service, location and SLA for the quoted plan.
+
+Source: https://www.kloudbean.com/managed-databases-postgresql/
+
+Google's pricing page exposes regional selectors, but the retrieved numeric
+table was labelled Iowa, not Saudi Arabia. The separate Dammam SKU page did not
+expose loaded rates. **Do not present the Iowa prices as Saudi prices.**
+Obtain a CNTXT quote for comparable specifications, including storage, backup
+usage, egress, support and availability configuration:
+
+- https://cloud.google.com/sql/pricing
+- https://cloud.google.com/skus?currency=USD&filter=Cloud%20SQL%20for%20PostgreSQL%20Dammam
+
+For comparable initial quotes, use 2 vCPU / 4 GB RAM / 80 GB SSD, daily Saudi
+backups and 30 GB monthly outbound transfer; request single-zone and
+high-availability alternatives separately. This is a comparison specification,
+not a load-tested capacity recommendation. These figures are not total platform
+costs: app hosting, object storage, messaging, video services and payment fees
+are separate.
