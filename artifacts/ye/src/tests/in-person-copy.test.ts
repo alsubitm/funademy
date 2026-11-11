@@ -1,6 +1,7 @@
 /**
- * Public copy guard: FunAdemy programs are in person in Riyadh.
- * Fails if public home/catalog/footer/legal copy promotes online learning.
+ * Public copy guard: the existing catalog remains in person in Riyadh.
+ * The homepage now separately and transparently advertises the January 2027
+ * online course in preparation; keep that copy out of this legacy-copy scan.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
@@ -13,7 +14,6 @@ const SRC = path.resolve(__dirname, '..');
 const ONLINE_LEARNING = /live online|online class|online learning|learning platform|from anywhere|أونلاين|عبر الإنترنت|من أي مكان|منصة التعل|التعليم الإلكتروني/i;
 
 const PUBLIC_FILES = [
-  'components/home3/data.ts',
   'lib/i18n.ts',
   'lib/catalog.ts',
   'components/SiteFooter.tsx',
@@ -27,7 +27,6 @@ const PUBLIC_FILES = [
   'app/en/terms/page.tsx',
   'app/(ar)/layout.tsx',
   'app/en/layout.tsx',
-  'app/en/page.tsx',
   'app/llms.txt/route.ts',
   'app/sitemap.ts',
 ];
@@ -41,8 +40,16 @@ describe('in-person public copy', () => {
   });
 
   it('home hero note says in person in Riyadh', () => {
-    expect(copy.en.heroNote).toMatch(/In-person in Riyadh/);
-    expect(copy.ar.heroNote).toMatch(/حضوري في الرياض/);
+    expect(copy.en.heroNote).toMatch(/Live online.*Riyadh famil/);
+    expect(copy.ar.heroNote).toMatch(/مباشر أونلاين.*عائلات الرياض/);
+  });
+
+  it('homepage presents the online course as a future course in preparation', () => {
+    expect(copy.en.heroDescription).toMatch(/January 2027 online course is in preparation/);
+    expect(copy.ar.heroDescription).toMatch(/دورة أونلاين لشهر يناير 2027/);
+    const metadata = readFileSync(path.join(SRC, 'app/en/page.tsx'), 'utf8');
+    expect(metadata).toMatch(/live, tutor-led online course for January 2027/);
+    expect(metadata).toMatch(/current groups and prices/);
   });
 
   it('i18n banner and legend are in person', () => {

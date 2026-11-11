@@ -35,7 +35,7 @@ const COPY = {
 export function OnlineCourse({ lang }: { lang: Lang }) {
   const c = COPY[lang];
   return (
-    <section className="online-course section-wrap" id="online" aria-labelledby="online-title">
+    <section className="sec online-course section-wrap" id="online" aria-labelledby="online-title">
       <div className="sand-divider" aria-hidden="true" />
       <div className="online-grid">
         <div className="online-copy reveal">
