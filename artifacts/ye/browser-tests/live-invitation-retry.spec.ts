@@ -153,10 +153,13 @@ test('preserves a rejected full-class invitation and retries the same identity w
   expect(await db.liveLabGuest.count({ where: { roomId, idempotencyKey: originalKey } })).toBe(0);
   expect(await db.liveLabGuest.count({ where: { roomId, revoked: false } })).toBe(16);
 
+  // The rejected details may be intentionally corrected before trying again.
+  await name.fill('Corrected student');
+
   // Free a seat through the actual instructor action without remounting the form.
   await page.getByTestId(`button-guest-revoke-${finalSeatId}`).click();
   await expect(add).toBeEnabled();
-  await expect(name).toHaveValue('Waiting student');
+  await expect(name).toHaveValue('Corrected student');
   await expect(email).toHaveValue('waiting@example.invalid');
   const accepted = page.waitForResponse(res =>
     res.url().endsWith('/svc/live-lab/invitations') && res.request().method() === 'POST');
@@ -165,10 +168,21 @@ test('preserves a rejected full-class invitation and retries the same identity w
   await expect(name).toHaveValue('');
   await expect(email).toHaveValue('');
   expect(requests).toHaveLength(2);
-  expect(requests[1]).toEqual(requests[0]);
+  expect(requests[1]).toMatchObject({
+    name: 'Corrected student',
+    email: 'waiting@example.invalid',
+  });
+  expect(requests[1].idempotencyKey).not.toBe(originalKey);
+  const rejectedDetails = await db.liveLabGuest.findMany({ where: { roomId, name: 'Waiting student' } });
+  expect(rejectedDetails).toHaveLength(0);
   const invited = await db.liveLabGuest.findMany({ where: { roomId, email: 'waiting@example.invalid' } });
   expect(invited).toHaveLength(1);
-  expect(invited[0]).toMatchObject({ name: 'Waiting student', idempotencyKey: originalKey, revoked: false });
+  expect(invited[0]).toMatchObject({
+    name: 'Corrected student',
+    email: 'waiting@example.invalid',
+    idempotencyKey: requests[1].idempotencyKey,
+    revoked: false,
+  });
   await expect(page.getByTestId(`row-guest-${invited[0].id}`)).toBeVisible();
   expect(await db.liveLabGuest.count({ where: { roomId, revoked: false } })).toBe(16);
   expect(await db.liveLabGuest.count({ where: { roomId } })).toBe(17);
