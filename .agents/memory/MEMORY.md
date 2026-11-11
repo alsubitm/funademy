@@ -14,11 +14,12 @@
 - [YE SMS OTP delivery](ye-sms-otp-delivery.md) — Authentica carries OUR codes (custom-OTP send); live by key presence; persist-before-send (timeout ≠ undelivered); advisory-lock caps provider calls; OTP-only API.
 - [Database retry safety](database-retry-safety.md) — retry reads broadly, but replay transactions only after failures that prove PostgreSQL aborted or never began them.
 - [Replit AI setup availability](replit-ai-setup-availability.md) — AI setup callback may be absent despite skill docs; keep provider failure fail-closed and never invent gateway credentials.
-- [YE visual baseline](ye-visual-baseline.md) — User selected FunAdemy V3 Arabic HTML, superseding v9/navy; preserve existing features, phone numbers and booking flows.
+- [Online classes direction](online-classes-direction.md) — Approved adapting this project to phased online courses and Bright Play; preserve records; residency and collection rules need verification.
+- [YE visual baseline](ye-visual-baseline.md) — Historical V3 reference; Bright Play now supersedes its conflicting rules; retain kite-to-cap motion and existing routes.
 - [pnpm audit override safety](pnpm-audit-overrides.md) — auto-fix can replace root overrides with workspace settings; preserve existing security pins and constrain suggested upgrades.
 - [Trial abuse boundary](trial-abuse-boundary.md) — reuse family phone verification for trial seats; IP throttling alone cannot establish a reservation identity.
 - [Program tuition policy](program-price-policy.md) — quote base tuition per enrollment run, not per language or format; distinguish unavailable runs from failed lookups.
-- [Classroom venues](classroom-venues.md) — regular programs stay in person; online free trials via Meet are approved. Never infer an address from Riyadh.
+- [Classroom venues](classroom-venues.md) — New January 2027 courses online; preserve historical in-person venues and bookings. Never infer an address from Riyadh.
 - [Windmill companion scope](windmill-companion.md) — actual BC.013 guide, not generic fan; original vectors, anonymous classroom use, and disclosed illustrative gear ratio.
 - [Instructor panel scope](instructor-panel-scope.md) — private teaching workspace instead of public-menu lab link; admin-provisioned accounts and assigned-class access, separate from finance.
 - [Windmill browser environment](windmill-browser-environment.md) — downloaded engines lack native libraries here; system Chromium works, not evidence of Firefox/WebKit or physical-device coverage.

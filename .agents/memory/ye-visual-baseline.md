@@ -3,6 +3,17 @@ name: YE visual baseline
 description: Approved visual direction and preservation constraint for future FunAdemy interface work.
 ---
 
+**Current direction:** The owner has since approved the Online Classes brief
+for this existing project. Its Bright Play palette, online-course messaging,
+casual child clothing and configuration-based licensor rules supersede the
+conflicting historical instructions below. See [Online classes direction](online-classes-direction.md).
+
+**Why:** The owner explicitly confirmed adapting this project to the new brief.
+
+**How to apply:** Use the new brief for new work; preserve functioning routes,
+records and the kite-to-cap animation. The notes below explain prior choices,
+not permission to override the current direction.
+
 The user explicitly selected FunAdemy-V3-Arabic_1793492368686.html as the new reference and answered “Apply it to the existing website”. This supersedes the earlier v9 and navy blueprint directions. Read the actual attachment, including its final Arabic CSS overrides and embedded artwork. Preserve all existing pages, functionality, phone/WhatsApp numbers and booking flows.
 
 All FunAdemy programs are in person, not online training or learning.

@@ -10,6 +10,8 @@ import { Programs } from './Programs';
 import { CodingLab } from './CodingLab';
 import { KiteCapMark } from '@/components/brand/KiteCapMark';
 import { SocialLinks } from '@/components/SocialLinks';
+import { curriculumCredit } from '@/config/curriculum';
+import { OnlineCourse } from './OnlineCourse';
 import './fa3.css';
 
 /**
@@ -28,6 +30,7 @@ export function FunHome({ lang }: { lang: Lang }) {
   const [year, setYear] = useState(2026);
   const [landed, setLanded] = useState(false);
   const home = prefix(lang, '/');
+  const credit = curriculumCredit();
 
   useEffect(() => {
     setYear(new Date().getFullYear());
@@ -69,6 +72,7 @@ export function FunHome({ lang }: { lang: Lang }) {
   const navLinks = (
     <>
       <a href="#our-way" onClick={() => setMenuOpen(false)}>{t('navWay')}</a>
+      <a href="#online" onClick={() => setMenuOpen(false)}>{lang === 'ar' ? 'يناير 2027' : 'January 2027'}</a>
       <a href="#programs" onClick={() => setMenuOpen(false)}>{t('navPrograms')}</a>
       <a href="#schools" onClick={() => setMenuOpen(false)}>{t('navSchools')}</a>
       <Link href={prefix(lang, '/instructor')} onClick={() => setMenuOpen(false)}>{lang === 'ar' ? 'دخول المدرّبين' : 'Instructor login'}</Link>
@@ -89,7 +93,7 @@ export function FunHome({ lang }: { lang: Lang }) {
   return (
     <div className={`fa3${paused ? ' motion-paused' : ''}`} ref={rootRef}>
       <a className="skip-link" href="#main">{t('skip')}</a>
-      <div className="club-banner"><span aria-hidden="true">✳</span><p>{t('clubBanner')}</p><span aria-hidden="true">✳</span></div>
+      <div className="club-banner"><span aria-hidden="true">✦</span><p>{t('clubBanner')}</p><span aria-hidden="true">✦</span></div>
       <header className="site-header">
         {brand}
         <nav className="desktop-nav" aria-label="Main navigation">{navLinks}</nav>
@@ -97,7 +101,7 @@ export function FunHome({ lang }: { lang: Lang }) {
           <Link className="language-button" href={lang === 'ar' ? '/en' : '/'} lang={lang === 'ar' ? 'en' : 'ar'} aria-label={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'} data-testid="link-language">
             {lang === 'en' ? 'العربية' : 'English'} <span aria-hidden="true">◎</span>
           </Link>
-          <a className="button button-small button-navy header-cta" href="#contact"><span>{t('letsTalk')}</span><span aria-hidden="true">↗</span></a>
+          <a className="button button-small button-blue header-cta" href="#contact"><span>{t('letsTalk')}</span><span aria-hidden="true">↗</span></a>
           <button className="menu-button" type="button" aria-expanded={menuOpen} aria-controls="mobile-nav" aria-label={t(menuOpen ? 'closeMenu' : 'openMenu')} onClick={() => setMenuOpen((o) => !o)} data-testid="button-menu"><span /><span /></button>
         </div>
       </header>
@@ -112,7 +116,7 @@ export function FunHome({ lang }: { lang: Lang }) {
       <main id="main">
         <section className="hero section-wrap">
           <div className="hero-copy">
-            <p className="eyebrow"><span className="tiny-star" aria-hidden="true">✳</span> <span>{t('heroEyebrow')}</span></p>
+            <p className="eyebrow"><span className="tiny-star" aria-hidden="true">✦</span> <span>{t('heroEyebrow')}</span></p>
             <h1><span>{t('heroTitle1')}</span><br /><span className="highlight">{t('heroTitle2')}</span><span className="title-spark" aria-hidden="true">✦</span></h1>
             <p className="hero-description">{t('heroDescription')}</p>
             <div className="hero-actions">
@@ -134,7 +138,7 @@ export function FunHome({ lang }: { lang: Lang }) {
               <img src="/v3/casual-hero.webp" fetchPriority="high" width={1024} height={1024} alt={t('heroAlt')} />
               <figcaption><span className="photo-index">01 /</span> <span>{t('photoCaption')}</span><span aria-hidden="true">↗</span></figcaption>
             </figure>
-            <div className="curiosity-seal" aria-hidden="true"><span>{t('sealTop')}</span><b>✳</b><span>{t('sealBottom')}</span></div>
+            <div className="curiosity-seal" aria-hidden="true"><span>{t('sealTop')}</span><b>✦</b><span>{t('sealBottom')}</span></div>
             <div className="aha-sticker" aria-hidden="true"><span>{t('aha')}</span><svg viewBox="0 0 80 50"><path d="M7 37 Q29 4 61 20 M50 9 L65 20 L51 32" /></svg></div>
             <div className="floating-tag"><span className="tag-dot" aria-hidden="true" /><span>{t('handsOn')}</span></div>
           </div>
@@ -143,9 +147,11 @@ export function FunHome({ lang }: { lang: Lang }) {
 
         <div className="discovery-strip" aria-hidden="true">
           <div className="discovery-track">
-            {[0, 1].flatMap((r) => (['strip1', 'strip2', 'strip3', 'strip4'] as CopyKey[]).flatMap((k) => [<span key={`${r}${k}`}>{t(k)}</span>, <b key={`${r}${k}b`}>✳</b>]))}
+            {[0, 1].flatMap((r) => (['strip1', 'strip2', 'strip3', 'strip4'] as CopyKey[]).flatMap((k) => [<span key={`${r}${k}`}>{t(k)}</span>, <b key={`${r}${k}b`}>✦</b>]))}
           </div>
         </div>
+
+        <OnlineCourse lang={lang} />
 
         <section className="our-way section-wrap" id="our-way">
           <div className="way-intro reveal"><p className="eyebrow">{t('wayEyebrow')}</p><h2><span>{t('wayTitle1')}</span><br /><span className="blue-text">{t('wayTitle2')}</span></h2><p>{t('wayDescription')}</p><div className="pencil-note"><span aria-hidden="true">↳</span><span>{t('wayNote')}</span></div>
@@ -167,7 +173,7 @@ export function FunHome({ lang }: { lang: Lang }) {
         <section className="service-section section-wrap" aria-labelledby="service-title">
           <div className="service-heading"><div><p className="eyebrow">{t('serviceEyebrow')}</p><h2 id="service-title">{t('serviceTitle')}</h2></div><p>{t('serviceNote')}</p></div>
           <div className="service-links">
-            {([['01', '/book', 'serviceBook', 'serviceBookDesc'], ['02', '/portal', 'servicePortal', 'servicePortalDesc'], ['03', '/learn', 'serviceLearn', 'serviceLearnDesc']] as const).map(([n, path, h, d]) => (
+            {([['01', '/book', 'serviceBook', 'serviceBookDesc'], ['02', '/enroll', 'serviceEnroll', 'serviceEnrollDesc'], ['03', '/portal', 'servicePortal', 'servicePortalDesc'], ['04', '/learn', 'serviceLearn', 'serviceLearnDesc']] as const).map(([n, path, h, d]) => (
               <Link key={n} href={prefix(lang, path)} data-testid={`link-service-${path.slice(1)}`}><span className="service-number" aria-hidden="true">{n}</span><div><h3>{t(h)}</h3><p>{t(d)}</p></div><span className="service-arrow" aria-hidden="true">↗</span></Link>
             ))}
           </div>
@@ -175,17 +181,17 @@ export function FunHome({ lang }: { lang: Lang }) {
 
         <section className="play-section" id="play">
           <div className="section-wrap play-layout">
-            <div className="play-copy reveal"><p className="eyebrow"><span aria-hidden="true">✳</span> <span>{t('playEyebrow')}</span></p><h2><span>{t('playTitle1')}</span><br /><span>{t('playTitle2')}</span></h2><p>{t('playBody')}</p><div className="play-lesson"><span aria-hidden="true">↳</span><div><b>{t('lessonTitle')}</b><p>{t('lessonBody')}</p></div></div><p className="demo-note">{t('demoNote')}</p></div>
+            <div className="play-copy reveal"><p className="eyebrow"><span aria-hidden="true">✦</span> <span>{t('playEyebrow')}</span></p><h2><span>{t('playTitle1')}</span><br /><span>{t('playTitle2')}</span></h2><p>{t('playBody')}</p><div className="play-lesson"><span aria-hidden="true">↳</span><div><b>{t('lessonTitle')}</b><p>{t('lessonBody')}</p></div></div><p className="demo-note">{t('demoNote')}</p></div>
             <CodingLab lang={lang} motionPaused={paused} />
           </div>
         </section>
 
         <section className="schools section-wrap" id="schools">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="school-photo reveal"><img src="/v3/casual-school.webp" alt={t('schoolAlt')} loading="lazy" width={1024} height={1024} /><div className="school-label"><span aria-hidden="true">✳</span><span>{t('schoolLabel')}</span></div></div>
+          <div className="school-photo reveal"><img src="/v3/casual-school.webp" alt={t('schoolAlt')} loading="lazy" width={1024} height={1024} /><div className="school-label"><span aria-hidden="true">✦</span><span>{t('schoolLabel')}</span></div></div>
           <div className="school-copy reveal"><p className="eyebrow">{t('schoolsEyebrow')}</p><h2><span>{t('schoolTitle1')}</span><br /><span className="highlight">{t('schoolTitle2')}</span></h2><p>{t('schoolBody')}</p>
             <ul className="school-points">{(['schoolPoint1', 'schoolPoint2', 'schoolPoint3'] as const).map((k) => <li key={k}><span aria-hidden="true">↗</span><span>{t(k)}</span></li>)}</ul>
-            <a className="button button-navy" href="#contact" data-testid="link-school-enquiry" onClick={() => { setEnqType('school'); setInterest('partnership'); }}><span>{t('schoolCta')}</span><span aria-hidden="true">↗</span></a>
+            <a className="button button-blue" href="#contact" data-testid="link-school-enquiry" onClick={() => { setEnqType('school'); setInterest('partnership'); }}><span>{t('schoolCta')}</span><span aria-hidden="true">↗</span></a>
           </div>
         </section>
 
@@ -219,7 +225,7 @@ export function FunHome({ lang }: { lang: Lang }) {
                 </select></div>
               <div className="form-field"><label htmlFor="enquiry-note">{rich(t('formNote'))}</label>
                 <textarea id="enquiry-note" rows={3} maxLength={1000} placeholder={t('notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} data-testid="input-enquiry-note" /></div>
-              <button type="submit" className="button button-navy" data-testid="button-enquiry-submit"><span>{t('formSubmit')}</span><span aria-hidden="true">↗</span></button>
+              <button type="submit" className="button button-blue" data-testid="button-enquiry-submit"><span>{t('formSubmit')}</span><span aria-hidden="true">↗</span></button>
               <p className="form-explainer">{t('formExplainer')}</p>
               <p className="form-status" role="status" hidden={!drafted}>{drafted ? t('formSuccess') : ''}</p>
             </form>
@@ -228,15 +234,19 @@ export function FunHome({ lang }: { lang: Lang }) {
       </main>
 
       <footer className="site-footer section-wrap">
-        <div className="footer-big" aria-hidden="true"><div>Fun<span>Ademy</span></div><b>✳</b></div>
+        <div className="footer-big" aria-hidden="true"><div>Fun<span>Ademy</span></div><b>✦</b></div>
         <nav className="footer-links" aria-label={lang === 'ar' ? 'روابط الخدمات' : 'Service links'}>
           {feature.map(([path, label]) => <Link key={path} href={prefix(lang, path)}>{label}</Link>)}
         </nav>
         <div className="footer-top">
           {brand}
           <p>{rich(t('footerBrand'))}</p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="curriculum-credit"><span>{t('curriculumCredit')}</span><img src="/v3/ye-credit.webp" loading="lazy" width={112} height={62} alt="Young Engineers" /></div>
+          {credit && (
+            <div className="curriculum-credit" data-testid="text-curriculum-credit"><span>{credit.text[lang]}</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {credit.logo && <img src={credit.logo.src} loading="lazy" width={credit.logo.width} height={credit.logo.height} alt={credit.logo.alt} />}
+            </div>
+          )}
         </div>
         <SocialLinks lang={lang} />
         <div className="footer-bottom">

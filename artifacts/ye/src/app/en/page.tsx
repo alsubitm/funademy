@@ -5,9 +5,9 @@ import { siteUrl } from '@/lib/site-url';
 export function generateMetadata(): Metadata {
   const base = siteUrl();
   return {
-    title: { absolute: 'FunAdemy — Where Fun Meets Academy | Live STEM for Kids' },
+    title: { absolute: 'FunAdemy | Live online engineering classes for children in Riyadh' },
     description:
-      'STEM education through moving LEGO® models for children aged 4–18. Online and in-person classes in Riyadh. e² Young Engineers, Falcon Eye license.',
+      'FunAdemy is preparing a live, tutor-led online course for January 2027: small-group engineering, coding and robotics adventures for Riyadh families. See the enrolment page for current groups and prices.',
     alternates: {
       canonical: `${base}/en`,
       languages: {

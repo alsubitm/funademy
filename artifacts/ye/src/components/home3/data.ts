@@ -11,10 +11,10 @@ export const copy = {
   "heroEyebrow": "WELCOME TO THE WHAT-IF CLUB",
   "heroTitle1": "Small sparks.",
   "heroTitle2": "Big ideas.",
-  "heroDescription": "What if a handful of bricks could build a world of possibilities? Let’s find out. Engineering, coding and robotics, with a whole lot of fun.",
+  "heroDescription": "Engineering, coding and robotics adventures in small live groups, led by a real tutor and joined from home. A January 2027 online course is in preparation.",
   "explore": "Find their next adventure",
   "trySpark": "Try a little spark",
-  "heroNote": "In-person in Riyadh · Ages 4–18",
+  "heroNote": "Live online, tutor-led · Riyadh families",
   "photoCaption": "SMALL HANDS. BIG POSSIBILITIES.",
   "sealTop": "MADE FOR",
   "sealBottom": "CURIOUS MINDS",
@@ -25,7 +25,7 @@ export const copy = {
   "strip2": "ASK BIG QUESTIONS",
   "strip3": "MAKE HAPPY DISCOVERIES",
   "strip4": "TRY. TINKER. REPEAT.",
-  "wayEyebrow": "THE FUNADEMY WAY",
+  "wayEyebrow": "THE FunAdemy WAY",
   "wayTitle1": "Less “sit still.”",
   "wayTitle2": "More “what if?”",
   "wayDescription": "Children make sense of the world by exploring it. We turn that natural curiosity into opportunities to build, test, think and discover together.",
@@ -39,7 +39,7 @@ export const copy = {
   "programEyebrow": "PICK A PATH. FIND A POSSIBILITY.",
   "programTitle1": "What will they",
   "programTitle2": "discover next?",
-  "programIntro": "Seven programs. Ages 4–18. From first discoveries to real code, explore the Young Engineers programs in the FunAdemy world.",
+  "programIntro": "From first discoveries to real code, these are the adventures being prepared for live online groups.",
   "filterAll": "All adventures",
   "filterBuild": "Building",
   "filterCode": "Coding",
@@ -50,11 +50,13 @@ export const copy = {
   "programCount": "adventures to explore",
   "serviceEyebrow": "YOUR NEXT STEP",
   "serviceTitle": "More ways to explore FunAdemy.",
-  "serviceNote": "These services open on funademy.io.",
+  "serviceNote": "Each link opens a working FunAdemy page today.",
   "serviceBook": "Book a trial",
   "serviceBookDesc": "Explore the trial booking options and find a starting point for your child.",
   "servicePortal": "Parent portal",
   "servicePortalDesc": "Access your family’s subscriptions, attendance and learning updates.",
+  "serviceEnroll": "Enrolment",
+  "serviceEnrollDesc": "See the enrolment page and what it currently offers your family.",
   "serviceLearn": "Resource library",
   "serviceLearnDesc": "Activities and resources for enrolled children.",
   "playEyebrow": "A TINY TASTE OF THE FUN",
@@ -73,7 +75,7 @@ export const copy = {
   "labReady": "Start at the kite. Add up to 12 moves, then run your sequence.",
   "labEmpty": "Add a few arrow commands first. Where should the kite go?",
   "labRunning": "Your idea is taking flight…",
-  "labWin": "You did it! A clear plan turned into a brilliant discovery. ✦",
+  "labWin": "You did it! A clear plan turned into a brilliant discovery.",
   "labWall": "Oops, a blue block! Change your steps and try again.",
   "labEdge": "That step goes off the board. Rethink the route and try again.",
   "labTry": "A good start! The star is still waiting. Add or change your steps.",
@@ -98,10 +100,10 @@ export const copy = {
   "faqTitle": "A few good questions.",
   "faqQ1": "Does my child need any experience?",
   "faqA1": "Start by telling us their age and interests. We’ll help you explore a suitable program and explain any experience needed before you book.",
-  "faqQ2": "What’s the connection to Young Engineers?",
-  "faqA2": "FunAdemy is an educational brand of Falcon Eye Ltd in Saudi Arabia. Our portfolio includes licensed Young Engineers programs, delivered within the applicable licensed scope.",
+  "faqQ2": "What is the January 2027 online course?",
+  "faqA2": "It is a live, tutor-led online course for small groups, currently in preparation. For groups and prices available now, see the enrolment page.",
   "faqQ3": "Where can I find schedules and prices?",
-  "faqA3": "Get in touch for current program availability, locations, schedules and fees. We’ll help you find the right next step for your family or school.",
+  "faqA3": "Current groups, schedules and prices are shown on the enrolment page. Message us and we will help you find the right next step.",
   "faqQ4": "Can a school discuss a tailored experience?",
   "faqA4": "Yes—tell us about your learners and objectives. We can discuss suitable programs and practical arrangements together.",
   "contactEyebrow": "THE NEXT BIG IDEA STARTS WITH HELLO",
@@ -124,12 +126,11 @@ export const copy = {
   "formSubmit": "Open my email draft",
   "formExplainer": "Opens your email app with your enquiry ready to send.",
   "formSuccess": "Your email draft is ready. If no email app opened, use the email address shown here. Nothing has been sent automatically.",
-  "footerBrand": "An educational brand of Falcon Eye Ltd.<br>Saudi Arabia.",
-  "curriculumCredit": "Featuring licensed programs from",
+  "footerBrand": "An educational brand of Falcon Eye Ltd.",
   "footerTag": "A little curiosity goes a long way.",
   "backTop": "Back to top",
   "dialogDiscover": "A world to explore",
-  "dialogNote": "Ask us about current availability, suitability, locations and fees.",
+  "dialogNote": "Part of the January 2027 online course in preparation. For current groups and prices, see the enrolment page.",
   "dialogCta": "Ask about this adventure",
   "closeDialog": "Close program details",
   "openMenu": "Open navigation",
@@ -173,10 +174,10 @@ export const copy = {
   "heroEyebrow": "حيّاك في عالم «وش يصير لو؟»",
   "heroTitle1": "فكرة صغيرة.",
   "heroTitle2": "وخيال كبير.",
-  "heroDescription": "ماذا لو فتحت بضع قطع بناء عالمًا من الاحتمالات؟ لنكتشف معًا. هندسة وبرمجة وروبوتات، والكثير من المرح.",
+  "heroDescription": "مغامرات في الهندسة والبرمجة والروبوتات ضمن مجموعات صغيرة مباشرة، يقودها مدرّب حقيقي ويحضرها طفلك من البيت. ونجهّز حاليًا دورة أونلاين لشهر يناير 2027.",
   "explore": "شوف مغامرتهم الجاية",
   "trySpark": "يلا نجرّب",
-  "heroNote": "حضوري في الرياض · للأعمار ٤–١٨",
+  "heroNote": "مباشر أونلاين مع مدرّب · لعائلات الرياض",
   "photoCaption": "أيادي صغيرة. وأفكار كبيرة.",
   "sealTop": "للّي يحبّون",
   "sealBottom": "يجرّبون ويكتشفون",
@@ -187,7 +188,7 @@ export const copy = {
   "strip2": "اسأل كل اللي بخاطرك",
   "strip3": "يا سلام على الاكتشاف!",
   "strip4": "جرّب. عدّل. وجرّب مرّة ثانية.",
-  "wayEyebrow": "التعلّم على طريقة FUNADEMY",
+  "wayEyebrow": "التعلّم على طريقة FunAdemy",
   "wayTitle1": "نجرّب بأيدينا.",
   "wayTitle2": "ونتعلّم وإحنا نلعب.",
   "wayDescription": "يفهم الأطفال العالم عندما يستكشفونه. نحول فضولهم الطبيعي إلى فرص للبناء والتجربة والتفكير والاكتشاف معًا.",
@@ -201,7 +202,7 @@ export const copy = {
   "programEyebrow": "اختَر مغامرتك. وخلّ خيالك ينطلق.",
   "programTitle1": "وش بيكتشفون",
   "programTitle2": "هالمرّة؟",
-  "programIntro": "سبعة برامج للأعمار ٤–١٨. من أول اكتشاف إلى كتابة الكود، تعرّف على برامج Young Engineers ضمن عالم FunAdemy.",
+  "programIntro": "من أول اكتشاف إلى كتابة الكود، هذه المغامرات التي نجهّزها للمجموعات المباشرة أونلاين.",
   "filterAll": "كل المغامرات",
   "filterBuild": "البناء",
   "filterCode": "البرمجة",
@@ -212,11 +213,13 @@ export const copy = {
   "programCount": "مغامرات للاكتشاف",
   "serviceEyebrow": "خطوتك القادمة",
   "serviceTitle": "طرق أكثر لاكتشاف FunAdemy.",
-  "serviceNote": "تفتح هذه الخدمات على موقع funademy.io.",
+  "serviceNote": "كل رابط يفتح صفحة FunAdemy تعمل الآن.",
   "serviceBook": "احجز حصة تجريبية",
   "serviceBookDesc": "استكشف خيارات الحجز واختر نقطة البداية المناسبة لطفلك.",
   "servicePortal": "بوابة الأهالي",
   "servicePortalDesc": "تابع اشتراكات عائلتك والحضور ومستجدات التعلّم.",
+  "serviceEnroll": "التسجيل",
+  "serviceEnrollDesc": "اطّلع على صفحة التسجيل وما تتيحه لعائلتك حاليًا.",
   "serviceLearn": "مكتبة الأنشطة",
   "serviceLearnDesc": "أنشطة ومصادر للأطفال المشتركين.",
   "playEyebrow": "خذ لك جولة من المرح",
@@ -235,7 +238,7 @@ export const copy = {
   "labReady": "ابدأ من الطائرة الورقية. أضف حتى 12 خطوة، ثم شغّل خطتك.",
   "labEmpty": "أضف بعض الأسهم أولًا. إلى أين ستتجه الطائرة؟",
   "labRunning": "فكرتك تنطلق الآن…",
-  "labWin": "كفو عليك! ضبطتها ووصلت للنجمة! ✦",
+  "labWin": "كفو عليك! ضبطتها ووصلت للنجمة!",
   "labWall": "أوه، مربع أزرق! عدّل خطواتك وجرّب مرّة ثانية.",
   "labEdge": "هالخطوة تطلعك برّا اللوحة. عدّل المسار وجرّب مرّة ثانية.",
   "labTry": "بداية حلوة! باقي لك شوي على النجمة. زوّد خطوات أو عدّل خطتك.",
@@ -260,10 +263,10 @@ export const copy = {
   "faqTitle": "اسأل، وخلّنا نجاوبك.",
   "faqQ1": "هل يحتاج طفلي إلى خبرة سابقة؟",
   "faqA1": "أخبرنا بعمر طفلك واهتماماته. سنساعدك في استكشاف البرنامج المناسب، ونوضح أي خبرة مطلوبة قبل الحجز.",
-  "faqQ2": "ما علاقة FunAdemy بـ Young Engineers؟",
-  "faqA2": "FunAdemy علامة تعليمية تابعة لشركة Falcon Eye Ltd في المملكة العربية السعودية. تضم برامجنا محتوى Young Engineers المرخّص، ويُنفَّذ ضمن نطاق الترخيص المعتمد.",
+  "faqQ2": "ما هي دورة يناير 2027 أونلاين؟",
+  "faqA2": "دورة مباشرة أونلاين مع مدرّب لمجموعات صغيرة، وهي قيد التجهيز حاليًا. للاطلاع على المجموعات والأسعار المتاحة الآن، زر صفحة التسجيل.",
   "faqQ3": "أين أجد المواعيد والأسعار؟",
-  "faqA3": "تواصل معنا لمعرفة البرامج المتاحة حاليًا والمواقع والمواعيد والرسوم. سنساعدك في اختيار الخطوة المناسبة لعائلتك أو مدرستك.",
+  "faqA3": "تجد المجموعات والمواعيد والأسعار الحالية في صفحة التسجيل. راسلنا وسنساعدك في اختيار الخطوة المناسبة.",
   "faqQ4": "هل يمكن للمدرسة مناقشة تجربة تناسب طلابها؟",
   "faqA4": "بالتأكيد. أخبرونا عن طلابكم وأهدافكم، وسنناقش معًا البرامج المناسبة والترتيبات العملية.",
   "contactEyebrow": "كل فكرة كبيرة تبدأ بـ«هلا»",
@@ -286,12 +289,11 @@ export const copy = {
   "formSubmit": "افتح مسودة بريدي",
   "formExplainer": "يفتح تطبيق البريد برسالة استفسارك جاهزة للإرسال.",
   "formSuccess": "مسودة رسالتك جاهزة. إن لم يفتح تطبيق البريد، استخدم العنوان الموضّح هنا. لم تُرسل أي رسالة تلقائيًا.",
-  "footerBrand": "علامة تعليمية تابعة لشركة Falcon Eye Ltd.<br>المملكة العربية السعودية.",
-  "curriculumCredit": "نقدّم برامج مرخّصة من",
+  "footerBrand": "علامة تعليمية تابعة لشركة Falcon Eye Ltd.",
   "footerTag": "شوي فضول يودّيك بعيد.",
   "backTop": "إلى الأعلى",
   "dialogDiscover": "عالم يستحق الاستكشاف",
-  "dialogNote": "اسألنا عن التوفّر الحالي وملاءمة البرنامج والمواقع والرسوم.",
+  "dialogNote": "ضمن دورة يناير 2027 أونلاين قيد التجهيز. للمجموعات والأسعار الحالية، زر صفحة التسجيل.",
   "dialogCta": "أبي أعرف عن هالمغامرة",
   "closeDialog": "إغلاق تفاصيل البرنامج",
   "openMenu": "فتح القائمة",
@@ -327,212 +329,7 @@ export const copy = {
  }
 } as const;
 export type CopyKey = keyof typeof copy.en;
-export type Program = { id: string; name: string; category: string; categoryKey: CopyKey; age: string; image: string; photo: boolean; short: { en: string; ar: string }; description: { en: string; ar: string }; skills: { en: string[]; ar: string[] } };
-export const programs: Program[] = [
- {
-  "id": "big-builders",
-  "name": "Big Builders",
-  "category": "building",
-  "categoryKey": "catEarly",
-  "age": "4–6",
-  "image": "/v3/casual-hero.webp",
-  "photo": true,
-  "short": {
-   "en": "First discoveries, built one brick at a time.",
-   "ar": "أولى الاكتشافات، قطعة بناء بعد أخرى."
-  },
-  "description": {
-   "en": "Stories and simple building challenges introduce the world of science. Young learners explore shapes, movement and everyday objects while developing coordination and spatial thinking.",
-   "ar": "تفتح القصص وتحديات البناء البسيطة باب العلوم. يستكشف الصغار الأشكال والحركة والأشياء من حولهم، وينمّون التآزر الحركي والتفكير المكاني."
-  },
-  "skills": {
-   "en": [
-    "Exploring early science",
-    "Building simple models",
-    "Developing spatial thinking"
-   ],
-   "ar": [
-    "استكشاف العلوم المبكرة",
-    "بناء نماذج بسيطة",
-    "تنمية التفكير المكاني"
-   ]
-  }
- },
- {
-  "id": "smartivo",
-  "name": "Smartivo",
-  "category": "coding",
-  "categoryKey": "catEarly",
-  "age": "4–6",
-  "image": "/v3/casual-school.webp",
-  "photo": true,
-  "short": {
-   "en": "Spot a pattern. Plan a sequence. Let clever thinking begin.",
-   "ar": "اكتشف نمطًا. رتّب خطواتك. ودع التفكير الذكي يبدأ."
-  },
-  "description": {
-   "en": "Playful pattern puzzles, sequencing challenges and interactive logic games introduce early computational thinking. Children practice making a plan and discovering what happens next.",
-   "ar": "تقدّم ألغاز الأنماط وتحديات التسلسل وألعاب المنطق التفاعلية أساسيات التفكير الحاسوبي. يتدرّب الأطفال على وضع خطة واكتشاف ما يحدث بعدها."
-  },
-  "skills": {
-   "en": [
-    "Recognizing patterns",
-    "Following a sequence",
-    "Solving logic puzzles"
-   ],
-   "ar": [
-    "تمييز الأنماط",
-    "ترتيب الخطوات",
-    "حل ألغاز المنطق"
-   ]
-  }
- },
- {
-  "id": "bricks",
-  "name": "Bricks Challenge",
-  "category": "building",
-  "categoryKey": "catBuild",
-  "age": "6–10",
-  "image": "/v3/model-engineering.webp",
-  "short": {
-   "en": "Turn a handful of bricks into an “I built that!” moment.",
-   "ar": "ركّب قطعة ورا قطعة، وبكل فخر قول: «أنا سويتها!»"
-  },
-  "description": {
-   "en": "Explore mechanical ideas by building models. Young learners connect hands-on construction with the engineering concepts behind things that move.",
-   "ar": "استكشاف الأفكار الميكانيكية ببناء النماذج. يربط الأطفال البناء العملي بالمفاهيم الهندسية التي تفسّر حركة الأشياء."
-  },
-  "skills": {
-   "en": [
-    "Building mechanical models",
-    "Exploring how mechanisms work",
-    "Testing and improving ideas"
-   ],
-   "ar": [
-    "بناء نماذج ميكانيكية",
-    "استكشاف عمل الآليات",
-    "اختبار الأفكار وتطويرها"
-   ]
-  },
-  "photo": false
- },
- {
-  "id": "algoplay",
-  "name": "AlgoPlay",
-  "category": "coding",
-  "categoryKey": "catCode",
-  "age": "6–10",
-  "image": "/v3/casual-coding.webp",
-  "photo": true,
-  "short": {
-   "en": "Guide a virtual robot. Test a clever plan. Make logic click.",
-   "ar": "وجّه روبوتًا افتراضيًا. اختبر خطة ذكية. واكتشف متعة المنطق."
-  },
-  "description": {
-   "en": "Bring coding ideas to life through virtual robot missions. Learners explore loops and conditions, test their instructions and debug solutions one step at a time.",
-   "ar": "حوّل أفكار البرمجة إلى مهام لروبوتات افتراضية. يستكشف المتعلمون الحلقات والشروط، ويختبرون تعليماتهم ويصحّحون الأخطاء خطوة بخطوة."
-  },
-  "skills": {
-   "en": [
-    "Using loops and conditions",
-    "Planning robot instructions",
-    "Finding and fixing errors"
-   ],
-   "ar": [
-    "استخدام الحلقات والشروط",
-    "تخطيط تعليمات الروبوت",
-    "اكتشاف الأخطاء وتصحيحها"
-   ]
-  }
- },
- {
-  "id": "galileo",
-  "name": "Galileo Technic",
-  "category": "building",
-  "categoryKey": "catBuild",
-  "age": "7–10",
-  "image": "/v3/model-engineering.webp",
-  "short": {
-   "en": "Bigger mechanisms. Bolder engineering ideas.",
-   "ar": "آليات أكثر تطورًا. وأفكار هندسية أجرأ."
-  },
-  "description": {
-   "en": "Take mechanical exploration further with more complex builds. Learners investigate gear systems, transmission and walking mechanisms, connecting each design with the engineering ideas behind it.",
-   "ar": "انتقل بالاستكشاف الميكانيكي إلى نماذج أكثر تعقيدًا. يتعرّف المتعلمون على أنظمة التروس ونقل الحركة وآليات المشي، ويربطون كل تصميم بالمفاهيم الهندسية التي تفسّره."
-  },
-  "skills": {
-   "en": [
-    "Exploring gear systems",
-    "Understanding transmission",
-    "Building complex mechanisms"
-   ],
-   "ar": [
-    "استكشاف أنظمة التروس",
-    "فهم نقل الحركة",
-    "بناء آليات متقدمة"
-   ]
-  },
-  "photo": false
- },
- {
-  "id": "robotoys",
-  "name": "RoboToys",
-  "category": "robotics",
-  "categoryKey": "catRobot",
-  "age": "9–12",
-  "image": "/v3/model-robotics.webp",
-  "short": {
-   "en": "Meet the moving, making, wonderfully inventive side of robotics.",
-   "ar": "اكتشف جانب الروبوتات المليء بالحركة والبناء والأفكار المبتكرة."
-  },
-  "description": {
-   "en": "Bring robotics and mechanisms together in hands-on model-building experiences. Explore how parts interact and turn an idea into something that moves.",
-   "ar": "الجمع بين الروبوتات والآليات في تجارب بناء تطبيقية. استكشاف تفاعل الأجزاء وتحويل الفكرة إلى نموذج يتحرك."
-  },
-  "skills": {
-   "en": [
-    "Building robotic models",
-    "Understanding mechanisms",
-    "Experimenting with movement"
-   ],
-   "ar": [
-    "بناء نماذج روبوتية",
-    "فهم الآليات",
-    "التجريب بالحركة"
-   ]
-  },
-  "photo": false
- },
- {
-  "id": "algoc",
-  "name": "AlgoC",
-  "category": "coding",
-  "categoryKey": "catCode",
-  "age": "13–18",
-  "image": "/v3/model-coding.webp",
-  "short": {
-   "en": "From a clever idea to real code.",
-   "ar": "من فكرة ذكية إلى كود حقيقي."
-  },
-  "description": {
-   "en": "Move from programming blocks to written code. Teens work with variables and functions, break problems into smaller parts and develop coding projects they can explain and share.",
-   "ar": "انتقل من المكعبات البرمجية إلى كتابة الكود. يستخدم اليافعون المتغيرات والدوال، ويقسّمون المشكلات إلى أجزاء أصغر، ويطوّرون مشاريع برمجية يمكنهم شرحها ومشاركتها."
-  },
-  "skills": {
-   "en": [
-    "Writing code with variables and functions",
-    "Breaking down problems",
-    "Developing coding projects"
-   ],
-   "ar": [
-    "كتابة الكود باستخدام المتغيرات والدوال",
-    "تفكيك المشكلات",
-    "تطوير مشاريع برمجية"
-   ]
-  },
-  "photo": false
- }
-] as Program[];
+export type { Program } from '@/config/curriculum';
 export type Idea = { icon: string; en: string[]; ar: string[] };
 export const ideas: Record<string, Idea[]> = {
  "building": [

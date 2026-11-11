@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { programs, type CopyKey, type Program } from './data';
+import type { CopyKey } from './data';
+import { curriculum, curriculumPrograms, type Program } from '@/config/curriculum';
 import { prefix, tr, type Lang } from './shared';
 
 const FILTERS: [string, CopyKey][] = [['all', 'filterAll'], ['building', 'filterBuild'], ['coding', 'filterCode'], ['robotics', 'filterRobot']];
@@ -13,6 +14,7 @@ export function Programs({ lang, onEnquire }: { lang: Lang; onEnquire: (p: Progr
   const [selected, setSelected] = useState<Program | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const lastButton = useRef<HTMLButtonElement | null>(null);
+  const programs = curriculumPrograms();
   const list = programs.filter((p) => filter === 'all' || p.category === filter);
   const ageText = (p: Program) => `${t('ages')} ${p.age} ${t('years')}`;
 
@@ -33,6 +35,17 @@ export function Programs({ lang, onEnquire }: { lang: Lang; onEnquire: (p: Progr
   return (
     <section className="programs section-wrap" id="programs">
       <div className="section-heading reveal"><div><p className="eyebrow">{t('programEyebrow')}</p><h2><span>{t('programTitle1')}</span><br /><span className="serif-word">{t('programTitle2')}</span></h2></div><p>{t('programIntro')}</p></div>
+      {programs.length === 0 ? (
+        <div className="program-empty" data-testid="status-programs-empty">
+          <span className="program-empty-mark" aria-hidden="true">✦</span>
+          {lang === 'ar' ? (
+            <div><h3>نجهّز المغامرات الآن.</h3><p>دورة يناير 2027 أونلاين قيد التجهيز. للمجموعات الحالية زر صفحة التسجيل، أو احجز حصة تجريبية.</p></div>
+          ) : (
+            <div><h3>The adventures are being prepared.</h3><p>The January 2027 online course is in preparation. For current groups, see the enrolment page, or book a trial.</p></div>
+          )}
+          <Link href={prefix(lang, '/book')} className="button button-blue" data-testid="link-programs-empty-book"><span>{t('serviceBook')}</span><span aria-hidden="true">↗</span></Link>
+        </div>
+      ) : (<>
       <div className="program-toolbar">
         <div className="filter-tabs" aria-label="Filter programs">
           {FILTERS.map(([id, key]) => (
@@ -47,7 +60,7 @@ export function Programs({ lang, onEnquire }: { lang: Lang; onEnquire: (p: Progr
             <div className={`program-picture${p.photo ? ' has-photo' : ''}`}>
               <span className="card-age">{ageText(p)}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.image} alt={lang === 'en' ? 'Learning and construction from the Young Engineers portfolio' : 'التعلّم والبناء ضمن مجموعة برامج Young Engineers'} loading="lazy" width={800} height={660} />
+              <img src={p.image} alt={curriculum ? (p.photo ? curriculum.illustrationAlt : curriculum.modelImageAlt)[lang] : ''} loading="lazy" width={800} height={660} />
             </div>
             <p className="card-category">{t(p.categoryKey)}</p>
             <h3>{p.name}</h3>
@@ -58,6 +71,7 @@ export function Programs({ lang, onEnquire }: { lang: Lang; onEnquire: (p: Progr
           </article>
         ))}
       </div>
+      </>)}
       <div className="program-bottom"><p>{t('programNote')}</p><a href="#contact" className="text-link"><span>{t('guideMe')}</span><span aria-hidden="true">↗</span></a></div>
 
       <dialog ref={dialogRef} className="program-dialog" aria-labelledby="dialog-title"

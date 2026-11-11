@@ -6,23 +6,23 @@ export function generateMetadata(): Metadata {
   const base = siteUrl();
   const ogImage = `${base}/og-default.jpg`;
   return {
-    title: { absolute: 'FunAdemy — حيث المتعة تلتقي بالأكاديمية | برامج STEM مباشرة للأطفال' },
+    title: { absolute: 'FunAdemy | حصص هندسة وبرمجة مباشرة أونلاين للأطفال في الرياض' },
     description:
-      'FunAdemy: تعليم STEM عبر نماذج LEGO® للأطفال من ٤ إلى ١٨ سنة في الرياض. سجّل تجربتك المجانية اليوم مع e² Young Engineers — ترخيص فالكون آي.',
+      'FunAdemy تجهّز دورة أونلاين مباشرة مع مدرّب لشهر يناير 2027: مغامرات في الهندسة والبرمجة والروبوتات لأطفال الرياض ضمن مجموعات صغيرة. للمجموعات والأسعار الحالية زر صفحة التسجيل.',
     openGraph: {
       siteName: 'FunAdemy',
       type: 'website',
       locale: 'ar_SA',
       url: `${base}/`,
-      title: 'FunAdemy — حيث المتعة تلتقي بالأكاديمية',
-      description: 'برامج STEM بالليغو للأطفال في الرياض. احجز تجربة مجانية.',
-      images: [{ url: ogImage, width: 1200, height: 630, alt: 'FunAdemy — حيث المتعة تلتقي بالأكاديمية' }],
+      title: 'FunAdemy | حصص مباشرة أونلاين للأطفال',
+      description: 'دورة أونلاين مباشرة مع مدرّب، قيد التجهيز لشهر يناير 2027. المجموعات والأسعار الحالية في صفحة التسجيل.',
+      images: [{ url: ogImage, width: 1200, height: 630, alt: 'FunAdemy | حصص مباشرة أونلاين للأطفال' }],
     },
     twitter: {
       card: 'summary_large_image',
       site: '@funademy',
-      title: 'FunAdemy — حيث المتعة تلتقي بالأكاديمية',
-      description: 'برامج STEM بالليغو للأطفال في الرياض. احجز تجربة مجانية.',
+      title: 'FunAdemy | حصص مباشرة أونلاين للأطفال',
+      description: 'دورة أونلاين مباشرة مع مدرّب، قيد التجهيز لشهر يناير 2027. المجموعات والأسعار الحالية في صفحة التسجيل.',
       images: [ogImage],
     },
     alternates: {

@@ -94,3 +94,55 @@ html:has(.fa3){scroll-behavior:smooth;scroll-padding-top:100px}body:has(.fa3){ba
 .fa3.motion-paused .kcmark svg{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){.fa3 .kcmark svg{animation:none!important;transition:none!important}}
 @media(max-width:650px){.fa3 .kitecap-stage .kcmark{width:96px!important;height:96px!important}}
+/* ===== Bright Play overrides (Jan 2027 online foundation) ===== */
+.fa3{--paper:#fbf7ee;--white:#fffdf7;--navy:#101a38;--blue:#7c3aed;--deep:#5b21b6;--gold:#ffca17;--sand:linear-gradient(90deg,#f7e3b2,#f2cd7e,#e5ae4a);--display:var(--font-baloo),'Baloo Bhaijaan 2',var(--font-plex-arabic),sans-serif;--body:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif}
+[dir=rtl] .fa3{--display:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif;--body:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif}
+[dir=rtl] .fa3 .brand>span,[dir=rtl] .fa3 .program-card h3,[dir=rtl] .fa3 .program-dialog h2,[dir=rtl] .fa3 .contact-email,[dir=rtl] .fa3 .contact-links a[dir=ltr]{font-family:var(--font-baloo),'Baloo Bhaijaan 2',sans-serif}
+.fa3 .eyebrow{text-transform:none}
+.fa3 .button-blue,.fa3 .button-navy{background:var(--blue);color:var(--white);box-shadow:0 4px 0 var(--navy);border:2px solid var(--navy)}
+.fa3 .button-blue:hover,.fa3 .button-navy:hover{background:var(--blue);box-shadow:0 6px 0 var(--navy)}
+.fa3 .button-blue:active,.fa3 .button-navy:active{background:var(--deep);transform:translateY(2px);box-shadow:0 1px 0 var(--navy)}
+.fa3 .club-banner{background:var(--gold);color:var(--navy);border-bottom:2px solid var(--navy)}
+.fa3 .skip-link{background:var(--white);color:var(--navy);border:2px solid var(--navy)}
+.fa3 .code-bubble{background:var(--white);color:var(--deep);border:2px solid var(--navy)}
+.fa3 .step-number,.fa3 .service-number{background:var(--gold);color:var(--navy);border:2px solid var(--navy)}
+.fa3 .filter-tabs button.active,.fa3 .filter-tabs button:hover{background:var(--blue);color:var(--white);border-color:var(--navy)}
+.fa3 .contact-copy .eyebrow{background:var(--white);color:var(--navy);border:2px solid var(--navy)}
+.fa3 .program-dialog::backdrop{background:#fbf7eecc}
+.fa3 .program-dialog{border:3px solid var(--navy);box-shadow:8px 8px 0 var(--navy)}
+.fa3 .play-section{background:#f1eafe;background-image:none;color:var(--navy)}
+.fa3 .play-section:before{border-color:#7c3aed22;box-shadow:none}
+.fa3 .play-copy .eyebrow,.fa3 .play-copy h2>span:last-child{color:var(--deep)}
+.fa3 .play-copy>p:not(.eyebrow),.fa3 .play-lesson p,.fa3 .play-copy .demo-note{color:#3d4560!important}
+.fa3 .play-lesson>span,.fa3 .play-section:after{color:var(--gold)}
+.fa3 .coding-lab{border:3px solid var(--navy);box-shadow:8px 9px 0 var(--navy)}
+.fa3 .grid-cell.blocked{background:var(--blue);border-color:var(--navy)}
+.fa3 .contact-section:after{content:'✦'}
+.fa3 .sand-divider{height:6px;border-radius:6px;background:var(--sand)}
+.fa3 .service-links{grid-template-columns:repeat(4,minmax(0,1fr))}
+.fa3 .service-heading{border-top:0;position:relative}
+.fa3 .service-heading:before{content:'';position:absolute;top:0;inset-inline:0;height:4px;border-radius:4px;background:var(--sand)}
+.fa3 .online-course{padding-block:56px 64px}
+.fa3 .online-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:72px;align-items:center;padding-block:56px}
+.fa3 .online-copy h2{margin-top:18px;font-size:clamp(36px,4.2vw,58px)}
+.fa3 .online-copy>p:not(.eyebrow):not(.online-status){font-size:15px;line-height:1.9;margin-top:22px;max-width:480px}
+.fa3 .online-dot{width:11px;height:11px;border-radius:50%;background:var(--blue);border:2px solid var(--navy)}
+.fa3 .online-points{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:8px;font-size:14px;font-weight:600}
+.fa3 .online-points li{display:flex;gap:10px;align-items:center}.fa3 .online-points li>span:first-child{color:var(--blue)}
+.fa3 .online-status{display:inline-flex;align-items:center;gap:10px;margin-top:26px;padding:8px 14px;border:2px solid var(--navy);border-radius:999px;background:var(--gold);color:var(--navy);font-size:12px;font-weight:700}
+.fa3 .online-status>span{width:8px;height:8px;border-radius:50%;background:var(--navy)}
+.fa3 .online-links{display:grid;gap:14px}
+.fa3 .online-link{display:flex;align-items:center;gap:16px;min-height:72px;padding:16px 20px;background:var(--white);border:2px solid var(--navy);border-radius:16px;box-shadow:4px 4px 0 var(--navy);transition:transform .2s,box-shadow .2s,background .2s}
+.fa3 .online-link:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--navy);background:#fff6d1}
+.fa3 .online-link:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--navy)}
+.fa3 .online-link.is-primary{background:var(--blue);color:var(--white)}.fa3 .online-link.is-primary:active{background:var(--deep)}
+.fa3 .online-link.is-primary small{color:#ede4ff}
+.fa3 .online-link-num{font-family:var(--font-baloo),sans-serif;font-weight:800;font-size:13px;width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;background:var(--gold);color:var(--navy);border:2px solid var(--navy)}
+.fa3 .online-link-text{flex:1;display:grid;gap:2px}.fa3 .online-link-text b{font-size:16px}.fa3 .online-link-text small{font-size:12px;color:var(--muted)}
+.fa3 .online-link-arrow{font-size:22px}
+.fa3 .program-empty{margin-top:36px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;padding:32px;border:2px dashed var(--navy);border-radius:20px;background:var(--white)}
+.fa3 .program-empty>div{flex:1;min-width:240px}.fa3 .program-empty h3{font-size:24px}.fa3 .program-empty p{margin-top:8px;font-size:14px}
+.fa3 .program-empty-mark{font-size:42px;color:var(--gold);-webkit-text-stroke:1.5px var(--navy)}
+@media(max-width:900px){.fa3 .service-links{grid-template-columns:repeat(2,minmax(0,1fr))}.fa3 .online-grid{grid-template-columns:1fr;gap:36px}}
+@media(max-width:650px){.fa3 .service-links{grid-template-columns:1fr}.fa3 .online-course{padding-block:36px}.fa3 .online-grid{padding-block:36px}}
+@media(prefers-reduced-motion:reduce){.fa3 .online-link,.fa3 .button,.fa3 .reveal{transition:none!important}.fa3 .online-link:hover{transform:none}}
