@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const jar = new Map<string, string>();
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: (name: string) => jar.has(name) ? { value: jar.get(name) } : undefined }) }));
@@ -16,6 +17,8 @@ let teacher: number, other: number;
 const req = (body: unknown, method = 'POST') => new Request('http://localhost/svc/live-lab', {
   method, headers: { 'content-type': 'application/json', origin: 'http://localhost' }, body: JSON.stringify(body),
 });
+const inviteRequest = (roomId: string, name: string, email: string) =>
+  req({ roomId, name, email, idempotencyKey: randomUUID() });
 const login = (id = teacher) => { jar.clear(); jar.set(INSTRUCTOR_COOKIE, instructorToken(id, 1)); };
 const create = async () => {
   const r = await POST(req({ title: 'Windmill test', instructorId: teacher, startsAt: new Date(Date.now() + 3600000).toISOString(), durationMin: 60 }));
@@ -62,8 +65,8 @@ describe('live Windmill classroom', () => {
   });
   it('issues private invitations, grades once on the server, and revokes access', async () => {
     const id = await create();
-    expect((await invite(req({ roomId: id, name: 'Student', email: 'guardian@example.invalid' }))).status).toBe(200);
-    expect((await invite(req({ roomId: id, name: 'Sibling', email: 'GUARDIAN@example.invalid' }))).status).toBe(200);
+    expect((await invite(inviteRequest(id, 'Student', 'guardian@example.invalid'))).status).toBe(200);
+    expect((await invite(inviteRequest(id, 'Sibling', 'GUARDIAN@example.invalid'))).status).toBe(200);
     const guest = await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } });
     const waiting = await (await getStudent(guest.token)).json();
     expect(waiting.questions).toEqual([]);
@@ -89,7 +92,7 @@ describe('live Windmill classroom', () => {
   it('keeps siblings private with independent results, revocation and restoration', async () => {
     const id = await create();
     for (const [name, email] of [['Sibling A', 'Guardian@example.invalid'], ['Sibling B', 'guardian@example.invalid']]) {
-      expect((await invite(req({ roomId: id, name, email }))).status).toBe(200);
+      expect((await invite(inviteRequest(id, name, email))).status).toBe(200);
     }
     const [a, b] = await prisma.liveLabGuest.findMany({ where: { roomId: id }, orderBy: { name: 'asc' } });
     expect(a.email).toBe(b.email);
@@ -116,26 +119,55 @@ describe('live Windmill classroom', () => {
     expect((await (await getStudent(a.token)).json()).submission).toEqual({ score: 5, total: 5 });
     expect(await (await submit(req({ token: b.token, answers: [0, 1, 2, 0, 1] }))).json()).toEqual({ score: 1, total: 5 });
   });
+  it('reuses one guest and private token for concurrent invitation retries', async () => {
+    const id = await create();
+    const body = { roomId: id, name: 'Same Name', email: 'guardian@example.invalid', idempotencyKey: `retry-${prefix}-${id}` };
+    const responses = await Promise.all([invite(req(body)), invite(req(body))]);
+    expect(responses.map(r => r.status)).toEqual([200, 200]);
+
+    const guests = await prisma.liveLabGuest.findMany({ where: { roomId: id } });
+    expect(guests).toHaveLength(1);
+    expect(guests[0].idempotencyKey).toBe(body.idempotencyKey);
+    expect(guests[0].token).toMatch(/^[0-9a-f]{64}$/);
+  });
+  it('allows a distinct same-name student and replays a committed invitation when full', async () => {
+    const id = await create();
+    const body = { roomId: id, name: 'Same Name', email: 'guardian@example.invalid', idempotencyKey: `same-${prefix}-${id}` };
+    expect((await invite(req(body))).status).toBe(200);
+    const original = await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } });
+    expect((await invite(req({ ...body, idempotencyKey: `distinct-${prefix}-${id}` }))).status).toBe(200);
+    await prisma.liveLabGuest.createMany({ data: Array.from({ length: 14 }, (_, i) => ({
+      roomId: id, name: `Other ${i}`, email: 'other@example.invalid', token: `${id}-${i}`,
+    })) });
+
+    expect((await invite(req(body))).status).toBe(200);
+    expect((await PATCH(req({ id, version: 1, phase: 'teaching' }, 'PATCH'))).status).toBe(200);
+    expect((await invite(req(body))).status).toBe(200);
+    const guests = await prisma.liveLabGuest.findMany({ where: { roomId: id, name: 'Same Name' } });
+    expect(guests).toHaveLength(2);
+    expect(guests.find(g => g.id === original.id)?.token).toBe(original.token);
+    expect(new Set(guests.map(g => g.token)).size).toBe(2);
+  });
   it('serializes sibling invitations and restoration at the sixteen-seat limit', async () => {
     const id = await create();
     await prisma.liveLabGuest.createMany({ data: Array.from({ length: 15 }, (_, i) => ({
       roomId: id, name: `Sibling ${i}`, email: 'family@example.invalid', token: `${id}-${i}`,
     })) });
-    const r = await Promise.all(['a', 'b'].map(n => invite(req({ roomId: id, name: n, email: 'family@example.invalid' }))));
+    const r = await Promise.all(['a', 'b'].map(n => invite(inviteRequest(id, n, 'family@example.invalid'))));
     expect(r.map(x => x.status).sort()).toEqual([200, 409]);
     expect(await prisma.liveLabGuest.count({ where: { roomId: id, revoked: false } })).toBe(16);
     const guest = await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } });
     expect((await revoke(req({ roomId: id, guestId: guest.id, revoked: true }, 'PATCH'))).status).toBe(200);
     const competing = await Promise.all([
       revoke(req({ roomId: id, guestId: guest.id, revoked: false }, 'PATCH')),
-      invite(req({ roomId: id, name: 'Another sibling', email: 'family@example.invalid' })),
+      invite(inviteRequest(id, 'Another sibling', 'family@example.invalid')),
     ]);
     expect(competing.map(x => x.status).sort()).toEqual([200, 409]);
     expect(await prisma.liveLabGuest.count({ where: { roomId: id, revoked: false } })).toBe(16);
   });
   it('keeps a failed calendar send unsent and supports a pending Meet response', async () => {
     const id = await create();
-    await invite(req({ roomId: id, name: 'Student', email: 'guardian@example.invalid' }));
+    await invite(inviteRequest(id, 'Student', 'guardian@example.invalid'));
     vi.mocked(syncLiveCalendar).mockRejectedValueOnce(new Error('provider failed'));
     expect((await calendar(req({ roomId: id }))).status).toBe(503);
     expect((await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } })).invitedAt).toBeNull();
@@ -151,7 +183,7 @@ describe('live Windmill classroom', () => {
       method: 'PATCH', headers: { 'content-type': 'application/json', origin: 'https://attacker.invalid' },
       body: JSON.stringify({ id, version: 1, phase: 'teaching' }),
     }))).status).toBe(403);
-    await invite(req({ roomId: id, name: 'Student', email: 'guardian@example.invalid' }));
+    await invite(inviteRequest(id, 'Student', 'guardian@example.invalid'));
     const guest = await prisma.liveLabGuest.findFirstOrThrow({ where: { roomId: id } });
     await prisma.liveLabRoom.update({ where: { id }, data: { startsAt: new Date(Date.now() - 3 * 86400000) } });
     expect((await getStudent(guest.token)).status).toBe(410);

@@ -49,6 +49,7 @@ model LiveLabGuest {
   roomId      String
   room        LiveLabRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
   token       String   @unique
+  idempotencyKey String?
   name        String
   email       String
   revoked     Boolean  @default(false)
@@ -58,6 +59,7 @@ model LiveLabGuest {
   answers     Int[]    @default([])
   score       Int?
 
+  @@unique([roomId, idempotencyKey])
   @@index([roomId, email])
   @@map("ye_live_lab_guests")
 }

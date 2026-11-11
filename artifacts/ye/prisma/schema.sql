@@ -111,6 +111,7 @@ CREATE TABLE "ye_live_lab_guests" (
     "id" TEXT NOT NULL,
     "roomId" TEXT NOT NULL,
     "token" TEXT NOT NULL,
+    "idempotencyKey" TEXT,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "revoked" BOOLEAN NOT NULL DEFAULT false,
@@ -849,6 +850,9 @@ CREATE UNIQUE INDEX "ye_live_lab_guests_token_key" ON "ye_live_lab_guests"("toke
 
 -- CreateIndex
 CREATE INDEX "ye_live_lab_guests_roomId_email_idx" ON "ye_live_lab_guests"("roomId", "email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ye_live_lab_guests_roomId_idempotencyKey_key" ON "ye_live_lab_guests"("roomId", "idempotencyKey");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ye_instructor_notes_instructorId_sessionId_key" ON "ye_instructor_notes"("instructorId", "sessionId");

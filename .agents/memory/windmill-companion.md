@@ -15,11 +15,11 @@ Keep this pilot anonymous and device-local: no registration, children's names, c
 
 **How to apply:** Preserve student progress when demonstrating. Any future cloud progress or instructor accounts need a separately authorized scope.
 
-Online instructor-led trials are a separately authorized scope: siblings may share one guardian email but must have individually named student entries, private links, independent results and revocation, within sixteen student seats.
+Online instructor-led trials are a separately authorized scope: siblings may share one guardian email, and even students with the same name must remain separate entries with private links, independent results and revocation, within sixteen student seats. Only the same request's room-scoped idempotency key identifies a retry; guardian email and name are never deduplication keys.
 
 **Why:** The user explicitly requested family-shared contact details without merging student identities. The anonymous standalone companion rule does not prohibit this trial workflow.
 
-**How to apply:** Treat guardian email as contact information, not student identity; Calendar membership is per guardian email while trial access is per child.
+**How to apply:** Treat guardian email as contact information, not student identity; Calendar membership is per guardian email while trial access is per child. Generate a fresh key for each deliberate invitation and reuse it only while retrying that invitation.
 
 The PDF does not specify gear tooth counts. The prototype's numerical gear ratio is an explicitly labeled teaching schematic.
 

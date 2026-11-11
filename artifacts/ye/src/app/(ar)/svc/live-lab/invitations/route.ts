@@ -6,15 +6,24 @@ export async function POST(req: Request) {
     if (!safeInstructorMutation(req)) throw new LiveError(403, 'forbidden');
     const actor = await staff();
     const b = await req.json();
-    if (!validId(b.roomId) || typeof b.name !== 'string' || !b.name.trim() || b.name.length > 80 ||
+    if (!validId(b.roomId) || typeof b.idempotencyKey !== 'string' || b.idempotencyKey.length < 16 || b.idempotencyKey.length > 128 ||
+      typeof b.name !== 'string' || !b.name.trim() || b.name.length > 80 ||
       typeof b.email !== 'string' || b.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) throw new LiveError(400, 'invalid_input');
     await roomTransaction(actor, b.roomId, async (tx, room) => {
-      if (room.phase !== 'waiting') throw new LiveError(409, 'session_started');
       const email = b.email.trim().toLowerCase();
+      const name = b.name.trim();
+      const existing = await tx.liveLabGuest.findUnique({
+        where: { roomId_idempotencyKey: { roomId: room.id, idempotencyKey: b.idempotencyKey } },
+      });
+      if (existing) {
+        if (existing.name !== name || existing.email !== email) throw new LiveError(409, 'idempotency_conflict');
+        return;
+      }
+      if (room.phase !== 'waiting') throw new LiveError(409, 'session_started');
       // Email is the guardian's contact, not a student's identity. Each
       // invitation gets its own seat and capability, including siblings.
       if (await tx.liveLabGuest.count({ where: { roomId: room.id, revoked: false } }) >= 16) throw new LiveError(409, 'session_full');
-      await tx.liveLabGuest.create({ data: { roomId: room.id, name: b.name.trim(), email, token: randomBytes(32).toString('hex') } });
+      await tx.liveLabGuest.create({ data: { roomId: room.id, idempotencyKey: b.idempotencyKey, name, email, token: randomBytes(32).toString('hex') } });
       await tx.liveLabRoom.update({ where: { id: room.id }, data: { calendarStatus: 'needs_sync' } });
     });
     return reply({ ok: true });
