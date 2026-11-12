@@ -970,4 +970,8 @@ h2{color:inherit}
   .chat-ui__panel{height:min(calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)),calc(var(--chat-vvh,100dvh) - 20px))}
   .chat-ui__composer{position:sticky;bottom:0}
 }
+/* Tablet split view: keep the Arabic chat header visible on short-height screens. */
+@media(min-width:641px) and (max-height:860px){
+  [dir='rtl'] .chat-ui--widget{bottom:calc(24px + env(safe-area-inset-bottom))}
+}
 @media(prefers-reduced-motion:reduce){.chat-ui__avatar.is-glowing .chat-ui__avatar-star{animation:none;opacity:.8}}
