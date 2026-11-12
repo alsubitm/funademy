@@ -9,12 +9,8 @@ const COPY = {
     body: 'FunAdemy is preparing its first online course: small groups, a real tutor on screen, and hands-on engineering, coding and robotics challenges. For groups and prices available now, visit the enrolment page.',
     points: ['Small live groups with a tutor', 'Arabic first, with English available', 'Join from home in Riyadh'],
     status: 'January 2027 course in preparation',
-    links: [
-      ['/book', 'Book a trial class', 'Book a trial class through the current booking page.'],
-      ['/enroll', 'Enrolment page', 'Current groups and prices.'],
-      ['/portal', 'Parent portal', 'Already with FunAdemy? Sign in here.'],
-      ['/instructor', 'Tutor access', 'For FunAdemy tutors only.'],
-    ],
+    linkTitle: 'See current groups and prices',
+    linkDescription: 'Open the enrolment page for available programmes.',
   },
   ar: {
     eyebrow: 'يناير 2027، قيد التجهيز',
@@ -23,12 +19,8 @@ const COPY = {
     body: 'تجهّز FunAdemy أول دورة أونلاين: مجموعات صغيرة، ومدرّب حقيقي على الشاشة، وتحديات عملية في الهندسة والبرمجة والروبوتات. وللمجموعات والأسعار المتاحة الآن، زر صفحة التسجيل.',
     points: ['مجموعات صغيرة مباشرة مع مدرّب', 'بالعربي أولًا، والإنجليزية متاحة', 'حضور من البيت في الرياض'],
     status: 'دورة يناير 2027 قيد التجهيز',
-    links: [
-      ['/book', 'احجز حصة تجريبية', 'احجز حصة تجريبية عبر صفحة الحجز الحالية.'],
-      ['/enroll', 'صفحة التسجيل', 'المجموعات والأسعار الحالية.'],
-      ['/portal', 'بوابة الأهالي', 'معنا من قبل؟ سجّل دخولك هنا.'],
-      ['/instructor', 'دخول المدرّبين', 'لمدرّبي FunAdemy فقط.'],
-    ],
+    linkTitle: 'المجموعات والأسعار الحالية',
+    linkDescription: 'انتقل إلى صفحة التسجيل للاطّلاع على البرامج المتاحة.',
   },
 } as const;
 
@@ -46,13 +38,10 @@ export function OnlineCourse({ lang }: { lang: Lang }) {
           <p className="online-status" data-testid="status-registration"><span aria-hidden="true" />{c.status}</p>
         </div>
         <div className="online-links reveal">
-          {c.links.map(([path, title, desc], i) => (
-            <Link key={path} href={prefix(lang, path)} className={`online-link${i === 0 ? ' is-primary' : ''}`} data-testid={`link-online-${path.slice(1)}`}>
-              <span className="online-link-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
-              <span className="online-link-text"><b>{title}</b><small>{desc}</small></span>
-              <span className="online-link-arrow" aria-hidden="true">↗</span>
-            </Link>
-          ))}
+          <Link href={prefix(lang, '/enroll')} className="online-link is-primary" data-testid="link-online-enroll">
+            <span className="online-link-num" aria-hidden="true">↗</span>
+            <span className="online-link-text"><b>{c.linkTitle}</b><small>{c.linkDescription}</small></span>
+          </Link>
         </div>
       </div>
       <div className="sand-divider" aria-hidden="true" />

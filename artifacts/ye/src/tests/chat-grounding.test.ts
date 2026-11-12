@@ -29,6 +29,11 @@ afterEach(() => {
 });
 
 describe('chat provider grounding authority', () => {
+  it('fails closed when the AI provider is not configured', async () => {
+    delete process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    delete process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+    await expect(answerWithOpenAI('When are classes?', [], sources)).resolves.toBeNull();
+  });
   it('rejects missing, unknown, and partially cited factual lines', () => {
     expect(validateGroundedAnswer('Classes are Sunday.', sources)).toBe(false);
     expect(validateGroundedAnswer('Classes are Sunday. [faq:999]', sources)).toBe(false);

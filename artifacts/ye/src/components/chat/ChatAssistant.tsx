@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { waLink } from '@/lib/constants';
 import type { ChatAction, ChatMessage, ChatSession, ChatSource } from './types';
 
@@ -10,8 +10,16 @@ type JsonRecord = Record<string, unknown>;
 
 const copy = {
   ar: {
-    name: 'مساعد فناديمي',
-    open: 'افتح مساعد فناديمي',
+    name: 'نُجَيْم',
+    open: 'اسأل نُجَيْم — افتح المحادثة',
+    launcher: 'اسأل نُجَيْم',
+    greeting: 'هلا! أنا نُجَيْم من FunAdemy ⭐ أقدر أساعدك تختار برنامج لطفلك، أو نجرّب تحدّي تروس. وش تحب نسوي؟',
+    shortcuts: 'اقتراحات سريعة',
+    shortcutAge: 'وش يناسب طفلي؟',
+    shortcutTrial: 'حصة تجريبية',
+    shortcutGears: 'تحدّي تروس',
+    providerUnavailable: 'خدمة الذكاء الاصطناعي غير متاحة حالياً، فهذا الرد آلي من معلومات الموقع المعتمدة. للتفاصيل تواصل مع فريق الأكاديمية.',
+    celebrate: 'إجابة صحيحة! نجمة نُجَيْم تلمع',
     close: 'إغلاق المحادثة',
     intro: 'أهلاً! أساعدك في البرامج والمواعيد والحجز. لا ترسل بيانات بطاقة الدفع.',
     consent: 'أوافق على إرسال رسائلي إلى خدمة المساعد لمعالجتها وحفظ سجل المحادثة حسب سياسة الخصوصية.',
@@ -51,11 +59,19 @@ const copy = {
     payment: 'المدفوعات',
     account: 'حسابي',
     you: 'أنت',
-    assistant: 'مساعد فناديمي',
+    assistant: 'نُجَيْم',
   },
   en: {
-    name: 'FunAdemy assistant',
-    open: 'Open FunAdemy assistant',
+    name: 'Nujaym',
+    open: 'Ask Nujaym — open chat',
+    launcher: 'Ask Nujaym',
+    greeting: "Hi! I'm Nujaym from FunAdemy ⭐ I can help you choose a program for your child, or we can try a gear challenge. What would you like to do?",
+    shortcuts: 'Suggestions',
+    shortcutAge: 'What suits my child?',
+    shortcutTrial: 'Trial class',
+    shortcutGears: 'Gear challenge',
+    providerUnavailable: 'The AI service is unavailable right now, so this is an automatic reply built from verified site information. Contact the academy team for details.',
+    celebrate: "Correct answer! Nujaym's star is glowing",
     close: 'Close chat',
     intro: 'Hello! I can help with programs, schedules and booking. Do not send payment card details.',
     consent: 'I agree that my messages may be processed and chat history stored as described in the privacy policy.',
@@ -95,7 +111,7 @@ const copy = {
     payment: 'Payments',
     account: 'My account',
     you: 'You',
-    assistant: 'FunAdemy assistant',
+    assistant: 'Nujaym',
   },
 } as const;
 
@@ -207,7 +223,7 @@ function sourceFromRef(ref: string, lang: Lang): ChatSource {
   return { title: lang === 'ar' ? 'الأسئلة الشائعة' : 'Frequently asked questions', url: `${root || '/'}#faq` };
 }
 
-async function streamMessage(conversationId: string, content: string, lang: Lang): Promise<{ message: ChatMessage; action?: ChatAction }> {
+async function streamMessage(conversationId: string, content: string, lang: Lang): Promise<{ message: ChatMessage; action?: ChatAction; celebrate: boolean }> {
   const response = await fetch(`/svc/chat/conversations/${encodeURIComponent(conversationId)}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
@@ -222,6 +238,8 @@ async function streamMessage(conversationId: string, content: string, lang: Lang
   let refs: ChatSource[] = [];
   let action: ChatAction | undefined;
   let handoff = false;
+  let celebrate = false;
+  let providerUnavailable = false;
   while (true) {
     const { done, value } = await reader.read();
     buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
@@ -238,6 +256,8 @@ async function streamMessage(conversationId: string, content: string, lang: Lang
         if (typeof eventValue.messageId === 'string') messageId = eventValue.messageId;
         if (Array.isArray(eventValue.sources)) refs = sourcesFrom(eventValue.sources) || [];
         if (eventValue.handoff === true) handoff = true;
+        if (eventValue.celebrate === true) celebrate = true;
+        if (eventValue.providerUnavailable === true) providerUnavailable = true;
         if (isRecord(eventValue.preparedAction) && typeof eventValue.preparedAction.id === 'string') {
           const kind = typeof eventValue.preparedAction.kind === 'string' ? eventValue.preparedAction.kind : 'action';
           const payload = isRecord(eventValue.preparedAction.payload) ? eventValue.preparedAction.payload : {};
@@ -248,7 +268,7 @@ async function streamMessage(conversationId: string, content: string, lang: Lang
     if (done) break;
   }
   if (!answer) throw new Error('empty_stream');
-  return { message: { id: messageId, role: 'assistant', content: answer, sources: refs, handoff }, action };
+  return { message: { id: messageId, role: 'assistant', content: answer, sources: refs, handoff, providerUnavailable }, action, celebrate };
 }
 
 function actionTitle(kind: string, lang: Lang) {
@@ -268,6 +288,34 @@ function safeSourceUrl(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+const BOOK_LINK = /(\/(?:en\/)?(?:book|enroll|contact|account|consult))(?![\w/-])/g;
+
+/** Render plain text, linking only an allowlist of existing internal routes. */
+function LinkifiedText({ text, messageId }: { text: string; messageId: string }) {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let index = 0;
+  for (const match of text.matchAll(BOOK_LINK)) {
+    const start = match.index ?? 0;
+    const before = start > 0 ? text[start - 1] : '';
+    if (/[\w.:/]/.test(before)) continue;
+    if (start > last) parts.push(text.slice(last, start));
+    parts.push(<Link key={`l-${index}`} href={match[0]} className="chat-ui__inline-link" data-testid={`link-chat-inline-${messageId}-${index}`}>{match[0]}</Link>);
+    index += 1;
+    last = start + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
+
+function Avatar({ glow = false, size = 'md' }: { glow?: boolean; size?: 'sm' | 'md' | 'lg' }) {
+  return <span className={`chat-ui__avatar chat-ui__avatar--${size} ${glow ? 'is-glowing' : ''}`} aria-hidden="true">
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src="/brand/nujaym.webp" alt="" width={256} height={256} decoding="async" />
+    <span className="chat-ui__avatar-star" />
+  </span>;
 }
 
 export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'widget' | 'page' }) {
@@ -290,6 +338,8 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   const [escalating, setEscalating] = useState(false);
   const [escalated, setEscalated] = useState(false);
   const [hasAccount, setHasAccount] = useState(false);
+  const [glow, setGlow] = useState(0);
+  const panelRef = useRef<HTMLElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -340,6 +390,32 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, busy]);
 
+  useEffect(() => {
+    if (!open || mode !== 'widget') return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const apply = () => {
+      const el = panelRef.current?.parentElement;
+      if (!el) return;
+      const keyboard = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      el.style.setProperty('--chat-kb', `${keyboard}px`);
+      el.style.setProperty('--chat-vvh', `${vv.height}px`);
+    };
+    apply();
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    return () => {
+      vv.removeEventListener('resize', apply);
+      vv.removeEventListener('scroll', apply);
+    };
+  }, [open, mode]);
+
+  useEffect(() => {
+    if (!glow) return;
+    const timer = window.setTimeout(() => setGlow(0), 1800);
+    return () => window.clearTimeout(timer);
+  }, [glow]);
+
   const acceptConsent = () => {
     if (!consentChecked) return;
     localStorage.setItem('funademy-chat-consent', 'yes');
@@ -379,6 +455,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
     setSessionId(undefined);
     setMessages([]);
     setDraft('');
+    setLastDraft('');
     setError(undefined);
     requestAnimationFrame(() => textareaRef.current?.focus());
   };
@@ -397,13 +474,13 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
     }
   };
 
-  const send = async (text = draft) => {
+  const send = async (text = draft, retry = false) => {
     const clean = text.trim();
     if (!clean || busy || !online) return;
     setLastDraft(clean);
     setDraft('');
     setError(undefined);
-    setMessages((current) => [...current, { id: `local-${Date.now()}`, role: 'user', content: clean }]);
+    if (!retry) setMessages((current) => [...current, { id: `local-${Date.now()}`, role: 'user', content: clean }]);
     setBusy(true);
     try {
       let activeId = sessionId;
@@ -420,6 +497,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
       }
       const streamed = await streamMessage(activeId, clean, lang);
       setMessages((current) => [...current, streamed.message]);
+      if (streamed.celebrate) setGlow(Date.now());
       if (streamed.action) setPreparedActions((current) => [...current, streamed.action as ChatAction]);
       void loadSessions();
     } catch {
@@ -455,24 +533,26 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
 
   const panel = (
     <section
+      ref={panelRef}
       className={`sec chat-ui__panel ${mode === 'page' ? 'chat-ui__panel--page' : ''}`}
       role={mode === 'widget' ? 'dialog' : 'region'}
       aria-modal={mode === 'widget' ? true : undefined}
       aria-label={t.name}
     >
       <header className="chat-ui__header">
-        <div><span className="chat-ui__status" aria-hidden="true" /> <strong>{t.name}</strong></div>
+        <div className="chat-ui__title"><Avatar size="sm" glow={glow > 0} key={`hdr-${glow}`} /><span className="chat-ui__status" aria-hidden="true" /> <strong>{t.name}</strong></div>
+        {glow > 0 && <span className="sr-only" role="status">{t.celebrate}</span>}
         <div className="chat-ui__header-actions">
           {consented && <button type="button" onClick={startNew} data-testid="button-new-chat">{t.newChat}</button>}
           {mode === 'widget' && (
-            <button className="chat-ui__icon-button" type="button" aria-label={t.close} onClick={() => setOpen(false)} data-testid="button-close-chat">×</button>
+            <button className="chat-ui__icon-button" type="button" aria-label={t.close} onClick={() => { setOpen(false); requestAnimationFrame(() => launcherRef.current?.focus()); }} data-testid="button-close-chat"><span aria-hidden="true">×</span></button>
           )}
         </div>
       </header>
 
       {!consented ? (
         <div className="chat-ui__consent">
-          <div className="chat-ui__bot-mark" aria-hidden="true">✦</div>
+          <Avatar size="lg" />
           <h2>{t.name}</h2>
           <p>{t.intro}</p>
           <label className="chat-ui__consent-copy">
@@ -505,12 +585,26 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
 
           <div className="chat-ui__conversation">
             <div className="chat-ui__messages" ref={scrollRef} aria-live="polite" aria-busy={busy}>
+              {messages.length === 0 && !historyBusy ? (
+                <article className="chat-ui__message chat-ui__message--assistant chat-ui__greeting" data-testid="text-chat-greeting">
+                  <span className="chat-ui__speaker"><Avatar size="sm" /> {t.assistant}</span>
+                  <p>{t.greeting}</p>
+                </article>
+              ) : null}
+              {messages.length === 0 && !historyBusy ? (
+                <div className="chat-ui__shortcuts" role="group" aria-label={t.shortcuts}>
+                  {([['age', t.shortcutAge], ['trial', t.shortcutTrial], ['gears', t.shortcutGears]] as const).map(([key, label]) => (
+                    <button key={key} type="button" disabled={busy || !online} onClick={() => void send(label)} data-testid={`button-chat-shortcut-${key}`}>{label}</button>
+                  ))}
+                </div>
+              ) : null}
               {messages.length === 0 && !historyBusy ? <p className="chat-ui__empty">{t.empty}</p> : null}
               {messages.length === 0 && !historyBusy ? <QuickLinks lang={lang} t={t} hasAccount={hasAccount} /> : null}
               {messages.map((message) => (
                 <article key={message.id} className={`chat-ui__message chat-ui__message--${message.role}`} data-testid={`message-chat-${message.id}`}>
-                  <span className="chat-ui__speaker">{message.role === 'user' ? t.you : t.assistant}</span>
-                  <p>{message.content}</p>
+                  <span className="chat-ui__speaker">{message.role === 'assistant' && <Avatar size="sm" />} {message.role === 'user' ? t.you : t.assistant}</span>
+                  <p>{message.role === 'assistant' ? <LinkifiedText text={message.content} messageId={message.id} /> : message.content}</p>
+                  {message.providerUnavailable ? <p className="chat-ui__provider-note" role="note" data-testid={`text-provider-unavailable-${message.id}`}>{t.providerUnavailable}</p> : null}
                   {message.sources?.length ? (
                     <div className="chat-ui__sources">
                       <strong>{t.source}</strong>
@@ -538,7 +632,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
             </div>
 
             {!online && <p className="chat-ui__notice" role="status">{t.offline}</p>}
-            {error && <div className="chat-ui__error" role="alert"><span>{error}</span>{lastDraft && <button type="button" onClick={() => void send(lastDraft)}>{t.retry}</button>}</div>}
+            {error && <div className="chat-ui__error" role="alert"><span>{error}</span>{lastDraft && <button type="button" onClick={() => void send(lastDraft, true)}>{t.retry}</button>}</div>}
             <form className="chat-ui__composer" onSubmit={submit}>
               <label className="sr-only" htmlFor={`chat-input-${mode}`}>{t.placeholder}</label>
               <textarea
@@ -585,8 +679,8 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
         onClick={() => setOpen((value) => !value)}
         data-testid="button-open-chat"
       >
-        <span aria-hidden="true">✦</span>
-        <span>{lang === 'ar' ? 'اسألنا' : 'Ask us'}</span>
+        <Avatar size="md" glow={glow > 0 && !open} key={`l-${glow}`} />
+        <span>{t.launcher}</span>
       </button>
     </div>
   );

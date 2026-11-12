@@ -173,7 +173,7 @@ export function FunHome({ lang }: { lang: Lang }) {
         <section className="service-section section-wrap" aria-labelledby="service-title">
           <div className="service-heading"><div><p className="eyebrow">{t('serviceEyebrow')}</p><h2 id="service-title">{t('serviceTitle')}</h2></div><p>{t('serviceNote')}</p></div>
           <div className="service-links">
-            {([['01', '/book', 'serviceBook', 'serviceBookDesc'], ['02', '/enroll', 'serviceEnroll', 'serviceEnrollDesc'], ['03', '/portal', 'servicePortal', 'servicePortalDesc'], ['04', '/learn', 'serviceLearn', 'serviceLearnDesc']] as const).map(([n, path, h, d]) => (
+            {([['01', '/book', 'serviceBook', 'serviceBookDesc'], ['02', '/portal', 'servicePortal', 'servicePortalDesc'], ['03', '/learn', 'serviceLearn', 'serviceLearnDesc']] as const).map(([n, path, h, d]) => (
               <Link key={n} href={prefix(lang, path)} data-testid={`link-service-${path.slice(1)}`}><span className="service-number" aria-hidden="true">{n}</span><div><h3>{t(h)}</h3><p>{t(d)}</p></div><span className="service-arrow" aria-hidden="true">↗</span></Link>
             ))}
           </div>

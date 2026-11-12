@@ -9,6 +9,7 @@ import { accountSummary, formatAccountSummary, prepareChatAction } from '@/lib/c
 import { purgeExpiredChat } from '@/lib/chat-retention';
 import { detectSensitivePaymentInput } from '@/lib/chat-safety';
 import { waLink } from '@/lib/constants';
+import { childAge, gearReply, isRecommendation, recommendationSources, responseLocale } from '@/lib/nujaym';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +33,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!parsed.success) return NextResponse.json({ error: 'validation' }, { status: 400 });
   const { conversation, identity } = await ownedConversation(req, id);
   if (!conversation) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  const locale = responseLocale(parsed.data.content, conversation.locale);
   if (detectSensitivePaymentInput(parsed.data.content)) {
-    const warning = conversation.locale === 'ar'
+    const warning = locale === 'ar'
       ? 'لا يمكن للمساعد معالجة أو حفظ بيانات البطاقات أو الحسابات البنكية. لا ترسل هذه البيانات هنا، وتواصل مع فريقنا عبر واتساب للمساعدة الآمنة.'
       : 'The assistant cannot process or store card or banking details. Do not send them here; contact our team on WhatsApp for safe assistance.';
     const blockedStream = new ReadableStream({
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           type: 'done',
           blocked: 'sensitive_payment_input',
           handoff: true,
-          handoffUrl: waLink(conversation.locale === 'ar' ? 'مرحباً، أحتاج مساعدة آمنة من فريق فناديمي.' : 'Hello, I need safe assistance from the FunAdemy team.'),
+          handoffUrl: waLink(locale === 'ar' ? 'مرحباً، أحتاج مساعدة آمنة من فريق FunAdemy.' : 'Hello, I need safe assistance from the FunAdemy team.'),
           sources: [],
         }));
         controller.close();
@@ -82,23 +84,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        const chronologicalHistory = [...history].reverse();
         const allSources = await buildLiveKnowledge();
-        const sources = selectKnowledge(parsed.data.content, allSources);
+        const recommendation = isRecommendation(parsed.data.content, chronologicalHistory);
+        const age = childAge(parsed.data.content, chronologicalHistory);
+        const sources = recommendation
+          ? recommendationSources(parsed.data.content, chronologicalHistory, allSources)
+          : selectKnowledge([parsed.data.content, ...chronologicalHistory.filter(m => m.role === 'user').slice(-2).map(m => m.content)].join(' '), allSources);
+        const challenge = gearReply(parsed.data.content, chronologicalHistory, locale);
         const text = parsed.data.content.toLowerCase();
         const sensitive = /(refund|استرداد|إلغاء.*(دفع|اشتراك)|هوية|national.?id|تغيير.*(بيانات|هوية))/.test(text);
-        const accountIntent = /(حسابي|ملخص|اشتراك|دفعات|حجوزات|حصصي|account|summary|subscription|payments|bookings|classes)/.test(text);
-        const trialIntent = /(trial|تجريبية|حصة تجريبية)/.test(text);
+        const accountIntent = /(حسابي|ملخص حساب|اشتراكي|دفعاتي|حجوزاتي|حصصي|my account|account summary|my subscription|my payments|my bookings|my classes)/.test(text);
+        const trialIntent = /(trial|تجريبية|حصة تجريبية|كيف.*[اأ]حجز|how.*book)/.test(text);
         const consultIntent = /(consult|consultation|استشارة)/.test(text);
         const makeupIntent = /(makeup|تعويض)/.test(text);
         let preparedAction: { id: string; kind: string; payload: unknown; expiresAt: Date } | null = null;
-        let deterministicAnswer: string | null = null;
+        let deterministicAnswer: string | null = challenge?.text ?? null;
+        if (!deterministicAnswer && recommendation && age === null) {
+          deterministicAnswer = locale === 'ar' ? 'أكيد! كم عمر طفلك، وش يحب: البناء أو البرمجة أو الروبوتات؟'
+            : 'Happy to help! How old is your child, and do they enjoy building, coding, or robotics?';
+        } else if (!deterministicAnswer && recommendation && !sources.length) {
+          deterministicAnswer = locale === 'ar' ? 'ما لقيت برنامجًا منشورًا يناسب هذا العمر. خلّ فريقنا يساعدك في الاختيار: /contact.'
+            : 'I could not find a published programme for that age. Our team can help you choose: /en/contact.';
+        }
         if (identity.familyId && conversation.familyId === identity.familyId && accountIntent) {
           const account = await accountSummary(identity.familyId);
           deterministicAnswer = account
-            ? formatAccountSummary(account, conversation.locale === 'en' ? 'en' : 'ar')
-            : (conversation.locale === 'ar' ? 'تعذر تحميل حسابك الآن. افتح /account أو اطلب تحويلك للفريق.' : 'Your account could not be loaded. Open /en/account or ask for a handoff.');
+            ? formatAccountSummary(account, locale)
+            : (locale === 'ar' ? 'تعذر تحميل حسابك الآن. افتح /account أو اطلب تحويلك للفريق.' : 'Your account could not be loaded. Open /en/account or ask for a handoff.');
         } else if (accountIntent) {
-          deterministicAnswer = conversation.locale === 'ar'
+          deterministicAnswer = locale === 'ar'
             ? 'سجّل الدخول أولاً لعرض بيانات عائلتك بأمان، ثم افتح /account.'
             : 'Sign in first to view your family data securely, then open /en/account.';
         }
@@ -117,7 +132,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           }
         }
         if (!preparedAction && !deterministicAnswer && (trialIntent || consultIntent || makeupIntent)) {
-          deterministicAnswer = conversation.locale === 'ar'
+          deterministicAnswer = locale === 'ar'
             ? trialIntent
               ? 'لحجز حصة تجريبية اختر الطفل والبرنامج والموعد من صفحة الحجز: /book. لن أنفّذ أي حجز قبل عرض بطاقة تأكيد.'
               : consultIntent
@@ -129,7 +144,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 ? 'Choose an available consultation time at /en/consult. A confirmation card can then be shown.'
                 : 'Eligible makeup requests are available for the missed class in /en/account. Sign in and select the missed session.';
         } else if (preparedAction && !deterministicAnswer) {
-          deterministicAnswer = conversation.locale === 'ar'
+          deterministicAnswer = locale === 'ar'
             ? 'جهزت طلبك فقط. راجع بطاقة الإجراء واضغط تأكيد لتنفيذه.'
             : 'I only prepared the request. Review the action card and click confirm to execute it.';
         }
@@ -143,30 +158,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             });
           }
         }
+        const modelAnswer = !sensitive && !deterministicAnswer ? await answerWithOpenAI(
+          parsed.data.content,
+          chronologicalHistory.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content.slice(0, 3000) })),
+          sources,
+        ) : null;
+        const providerUnavailable = !sensitive && !deterministicAnswer && sources.length > 0 && !modelAnswer;
+        const recommendationFallback = recommendation && sources.length
+          ? sources.slice(0, 2).map(s => locale === 'ar'
+            ? `${s.titleEn} يناسب عمر ${s.ageMin}–${s.ageMax}. ${s.descriptionAr ?? ''} [${s.id}]`
+            : `${s.titleEn} is for ages ${s.ageMin}–${s.ageMax}. ${s.descriptionEn ?? ''} [${s.id}]`).join('\n')
+          : null;
         const answer = sensitive
-          ? (conversation.locale === 'ar' ? 'لا أستطيع تنفيذ طلبات الدفع أو الإلغاء أو تغيير الهوية. حوّلت طلبك إلى الفريق المختص.' : 'I cannot perform payment, cancellation, or identity changes. Your request has been escalated to the team.')
+          ? (locale === 'ar' ? 'لا أستطيع تنفيذ طلبات الدفع أو الإلغاء أو تغيير الهوية. حوّلت طلبك إلى الفريق المختص.' : 'I cannot perform payment, cancellation, or identity changes. Your request has been escalated to the team.')
           : deterministicAnswer
             ? deterministicAnswer
           :
-          (await answerWithOpenAI(
-            parsed.data.content,
-            history.reverse().map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content.slice(0, 3000) })),
-            sources,
-          )) ??
+          modelAnswer ?? recommendationFallback ??
           (sources.length
-            ? (deterministicGroundedAnswer(sources, conversation.locale === 'en' ? 'en' : 'ar')!)
-            : (conversation.locale === 'ar'
+            ? (deterministicGroundedAnswer(sources, locale)!)
+            : (locale === 'ar'
               ? 'لا تتوفر لدي معلومة موثوقة عن هذا السؤال، ولن أخمّن. يمكنني تحويله لفريق الدعم.'
               : 'I do not have a reliable source for that question, so I will not guess. I can hand it off to support.'));
         const refs = sources
           .filter((source) => answer.includes(source.id))
-          .map(({ id: sourceId, title, url }) => ({ id: sourceId, title, url }));
+          .map(({ id: sourceId, titleAr, titleEn, url }) => ({
+            id: sourceId, title: locale === 'ar' ? titleAr : titleEn,
+            url: locale === 'en' ? `/en${url === '/' ? '' : url}` : url,
+          }));
         const assistant = await prisma.chatMessage.create({
           data: { conversationId: id, role: 'assistant', content: answer, sourceRefs: refs, expiresAt: chatExpiry() },
         });
         await prisma.chatConversation.update({ where: { id }, data: { expiresAt: chatExpiry() } });
         controller.enqueue(sse({ type: 'delta', content: answer }));
-        controller.enqueue(sse({ type: 'done', messageId: assistant.id, userMessageId: userMessage.id, sources: refs, preparedAction }));
+        controller.enqueue(sse({ type: 'done', messageId: assistant.id, userMessageId: userMessage.id, sources: refs, preparedAction, celebrate: !sensitive && answer === challenge?.text && challenge.celebrate, providerUnavailable }));
       } catch (error) {
         console.error('[chat] response failed');
         await prisma.chatAudit.create({ data: { conversationId: id, familyId: conversation.familyId, event: 'provider_failure', expiresAt: chatExpiry() } }).catch(() => {});

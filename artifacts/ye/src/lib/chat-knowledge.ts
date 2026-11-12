@@ -8,6 +8,10 @@ export type KnowledgeSource = {
   titleEn: string;
   url: string;
   text: string;
+  ageMin?: number;
+  ageMax?: number;
+  descriptionAr?: string;
+  descriptionEn?: string;
 };
 
 const clean = (value: unknown) =>
@@ -35,6 +39,15 @@ export async function buildLiveKnowledge(): Promise<KnowledgeSource[]> {
   ]);
 
   return [
+    {
+      id: 'policy:assistant',
+      type: 'policy' as const,
+      title: 'FunAdemy',
+      titleAr: 'FunAdemy',
+      titleEn: 'FunAdemy',
+      url: '/contact',
+      text: 'Nujaym / نُجَيْم is the FunAdemy assistant for programme questions and engineering challenges. Use /book or /en/book for trial booking and personal details, /enroll or /en/enroll for enrollment, /contact or /en/contact for academy support. Unknown fees, schedules and availability must be confirmed with the academy.',
+    },
     {
       id: 'policy:privacy',
       type: 'policy' as const,
@@ -64,6 +77,10 @@ export async function buildLiveKnowledge(): Promise<KnowledgeSource[]> {
     },
     ...programs.map((p) => ({
       id: `program:${p.id}`,
+      ageMin: p.ageMin,
+      ageMax: p.ageMax,
+      descriptionAr: clean(p.descAr),
+      descriptionEn: clean(p.descEn),
       type: 'program' as const,
       title: p.nameAr,
       titleAr: p.nameAr,
@@ -77,7 +94,7 @@ export async function buildLiveKnowledge(): Promise<KnowledgeSource[]> {
       title: r.program.nameAr,
       titleAr: r.program.nameAr,
       titleEn: r.program.nameEn,
-      url: '/enroll/runs',
+      url: '/enroll',
       text: clean(
         `${r.program.nameAr} / ${r.program.nameEn}; ${r.startDate.toISOString()}–${r.endDate.toISOString()}; weekday ${r.weekday}; ${r.time}; ${r.format}; seats ${r.seatsLeft}; monthly SAR ${r.monthlyPriceSar}`,
       ),
@@ -105,7 +122,7 @@ export async function buildLiveKnowledge(): Promise<KnowledgeSource[]> {
 
 export function selectKnowledge(query: string, sources: KnowledgeSource[], limit = 14) {
   const terms = new Set(query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((x) => x.length > 2));
-  return sources
+  const selected = sources
     .map((source) => ({
       source,
       score: [...terms].reduce((n, term) => n + (source.text.toLowerCase().includes(term) ? 1 : 0), 0),
@@ -114,4 +131,5 @@ export function selectKnowledge(query: string, sources: KnowledgeSource[], limit
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((x) => x.source);
+  return selected.length ? selected : sources.filter(s => s.id === 'policy:assistant');
 }

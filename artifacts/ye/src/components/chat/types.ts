@@ -22,6 +22,8 @@ export type ChatMessage = {
   sources?: ChatSource[];
   actions?: ChatAction[];
   handoff?: boolean;
+  /** Live-only flag: reply came from the verified fallback, not the AI model. */
+  providerUnavailable?: boolean;
 };
 
 export type ChatSession = {

@@ -18,3 +18,5 @@ process.env.DATABASE_URL = testDbUrl();
 delete process.env.AUTHENTICA_API_KEY;
 delete process.env.MOYASAR_SECRET_KEY;
 delete process.env.TAMARA_API_TOKEN;
+delete process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+delete process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
