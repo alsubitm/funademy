@@ -23,4 +23,10 @@ the eligible original after the alternate is cleared and the editor reopened.
 
 External iframe documents and MP4 responses are stubbed so the suite asserts application player
 selection and embed URLs, not third-party video delivery or decoding.
+
+`chat-viewport.spec.ts` exercises the English and Arabic widget at a short
+390×740 browser viewport. It substitutes a deterministic `VisualViewport`
+event target to check resize and scroll handling, reachable composer/close
+controls, focus restoration, and reduced-motion styling. This is browser
+emulation only; it does not claim physical iPhone or keyboard coverage.
 Failure traces go to ignored `generated-artifacts/browser-tests`.
