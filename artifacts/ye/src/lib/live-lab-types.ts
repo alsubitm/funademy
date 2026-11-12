@@ -10,6 +10,8 @@ export type LiveGuest = {
   id: string; name: string; email: string; joinPath: string;
   revoked: boolean; invitedAt: string | null; joinedAt: string | null;
   submittedAt: string | null; score: number | null;
+  emailConsentAt: string | null;
+  privateEmailStatus: string; privateEmailSentAt: string | null; privateEmailError: string | null;
 };
 export type LiveStaffResponse = {
   rooms: (LiveRoom & { guests: LiveGuest[] })[];

@@ -5,7 +5,8 @@
 - [YE build-resilience guard](ye-build-resilience-guard.md) — vitest spawns real next build with unreachable DB; nested build needs whitelist env or it fails with /_document errors.
 - [YE test DB isolation](ye-tests-isolation.md) — fail-closed ye_test DB pattern; setup-env strips provider keys (real-SMS incident); validation registration can hijack the .replit Project workflow.
 - [YE payments live/sim switching](ye-payments-live-sim.md) — providers go live purely by secret presence; settlement re-verifies via provider API, never trusts redirects; seats release on failure.
-- [YE appointments & Google Calendar](ye-appointments-gcal.md) — consultKey unique claim before Meet creation; one event per class occurrence; connector invites replace email provider.
+- [YE appointments & Google Calendar](ye-appointments-gcal.md) — one meeting per occurrence; keep private student capability links out of shared invitations.
+- [Private invitation email safety](private-invitation-email.md) — persist immutable send content before contact; ambiguous retries must stop before provider deduplication expires.
 - [YE Next.js artifact constraints](ye-nextjs-artifact.md) — Prisma manages public schema (db push drops undeclared tables — declare raw-SQL tables as models!); YE uses /svc routes; shared brick counter via raw SQL.
 - [NELC readiness](nelc-readiness.md) — registered mirrors wizard example verbatim; other steps follow NELC package per-step shapes; ONE send per national ID (fresh ID per attempt); WAF → browser relay; no fake success.
 - [Task-merge clobber risk](task-merge-clobber.md) — stale-base task merges silently revert main's recent work on shared files; grep key symbols after merges, restore via `git log --all -S`.

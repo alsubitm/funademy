@@ -17,7 +17,8 @@ export async function GET() {
       where: { active: true, ...(actor.id ? { id: actor.id } : {}) }, select: { id: true, name: true },
     });
     return reply({ role: actor.role, instructors, rooms: rooms.map(room => ({
-      ...roomWire(room), guests: room.guests.map(({ token, answers: _answers, roomId: _roomId, ...guest }) => ({
+      ...roomWire(room), guests: room.guests.map(({ token, answers: _answers, roomId: _roomId,
+        privateEmailPayload: _payload, privateEmailProviderId: _provider, privateEmailAttemptedAt: _attempt, ...guest }) => ({
         ...guest, joinPath: `/windmill/live/${token}`,
       })),
     })) });

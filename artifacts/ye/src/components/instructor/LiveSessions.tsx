@@ -20,7 +20,10 @@ const T = {
     preview: 'ما يراه الطلاب', guests: 'الضيوف', addGuest: 'إضافة ضيف', gName: 'اسم الطالب', gEmail: 'بريد ولي الأمر', add: 'إضافة', onlyWaiting: 'تُضاف الدعوات قبل بدء الحصة فقط.', max: `الحد الأقصى ${MAX_GUESTS} طالباً. أضف كل أخ أو أخت باسمه وبنفس بريد ولي الأمر؛ لكل طالب مقعد ورابط خاص ونتيجة مستقلة.`,
     copy: 'نسخ رابط المختبر الخاص', share: 'مشاركة', copied: 'نُسخ', revoke: 'إلغاء الدعوة', restore: 'إعادة التفعيل', revoked: 'ملغاة',
     editName: 'تصحيح الاسم', saveName: 'حفظ الاسم', cancelEdit: 'إلغاء', namePlaceholder: 'اسم الطالب',
-    privateNote: 'رابط المختبر الخاص لا يُرسل في دعوة التقويم. شاركه مع ولي الأمر بنفسك وبشكل خاص. ينتهي بعد 24 ساعة من نهاية الموعد.', revokeNote: 'إلغاء الدعوة يمنع دخول المختبر فوراً، لكن قائمة حضور التقويم تتحدّث بعد المزامنة فقط. قبول أو إخراج المشاركين في Meet يتم من المضيف بشكل منفصل.', cancel: 'إلغاء الحصة', confirmCancel: 'إلغاء هذه الحصة نهائياً؟', noAccess: 'انتهت صلاحية الدخول. حدّث الصفحة وسجّل الدخول مجدداً.',
+    privateNote: 'يُرسل الرابط تلقائياً ببريد خاص بعد تأكيد موافقة ولي الأمر، ولا يظهر في التقويم المشترك. قبول مزود البريد لا يضمن وصوله. ينتهي الرابط بعد 24 ساعة من نهاية الموعد.', revokeNote: 'إلغاء الدعوة يمنع دخول المختبر فوراً، لكن قائمة حضور التقويم تتحدّث بعد المزامنة فقط. قبول أو إخراج المشاركين في Meet يتم من المضيف بشكل منفصل.', cancel: 'إلغاء الحصة', confirmCancel: 'إلغاء هذه الحصة نهائياً؟', noAccess: 'انتهت صلاحية الدخول. حدّث الصفحة وسجّل الدخول مجدداً.',
+    emailConsent: 'أؤكد موافقة ولي الأمر على استلام رابط الطالب الخاص بهذا البريد.',
+    emailSend: 'تأكيد الموافقة وإرسال الرابط', emailRetry: 'إعادة محاولة البريد',
+    emailState: { not_requested: 'البريد: بانتظار الموافقة', pending: 'البريد: لم يُؤكد الإرسال — أعد المحاولة', sent: 'البريد: قبله مزود الإرسال', failed: 'البريد: تعذّر تأكيد الإرسال — أعد المحاولة', review_required: 'البريد: نتيجة غير مؤكدة؛ راجع Resend أو شارك الرابط يدوياً. توقفت المحاولات لمنع التكرار.' } as Record<string, string>,
     calendar: 'دعوات التقويم', send: 'إرسال دعوات التقويم', sync: 'إعادة المزامنة', syncing: 'جارٍ المزامنة…',
     calNote: 'دعوة Google Calendar تحتوي رابط Meet المشترك فقط، ودعوة واحدة لكل بريد ولي أمر. يبقى البريد في التقويم ما دام لأحد الأبناء دعوة مفعّلة. قبول Google للتحديث لا يضمن وصول البريد.',
     cal: { not_sent: 'لم تُرسل', needs_sync: 'تحتاج مزامنة', ready: 'جاهزة', pending: 'Google يجهّز Meet — أعد المزامنة بعد قليل' } as Record<string, string>,
@@ -38,7 +41,10 @@ const T = {
     preview: 'What students see', guests: 'Guests', addGuest: 'Add guest', gName: 'Student name', gEmail: 'Guardian email', add: 'Add', onlyWaiting: 'Guests can be added only before the class starts.', max: `Up to ${MAX_GUESTS} students. Add each sibling by name using the same guardian email; each student gets a seat, private link, and separate result.`,
     copy: 'Copy private lab link', share: 'Share', copied: 'Copied', revoke: 'Revoke', restore: 'Re-enable', revoked: 'Revoked',
     editName: 'Correct name', saveName: 'Save name', cancelEdit: 'Cancel', namePlaceholder: 'Student name',
-    privateNote: 'The private lab link is not included in the calendar invitation. Share it with the guardian yourself, privately. It expires 24 hours after the scheduled end.', revokeNote: 'Revoking blocks lab access immediately, but the Calendar attendee list updates only after Sync. The Meet host admits or removes participants separately.', cancel: 'Cancel session', confirmCancel: 'Cancel this session permanently?', noAccess: 'Access expired. Refresh and sign in again.',
+    privateNote: 'The link is emailed privately once guardian consent is confirmed, never included in shared Calendar invitations. Provider acceptance does not guarantee delivery. Links expire 24 hours after the scheduled end.', revokeNote: 'Revoking blocks lab access immediately, but the Calendar attendee list updates only after Sync. The Meet host admits or removes participants separately.', cancel: 'Cancel session', confirmCancel: 'Cancel this session permanently?', noAccess: 'Access expired. Refresh and sign in again.',
+    emailConsent: 'I confirm the guardian agreed to receive this student’s private link at this email address.',
+    emailSend: 'Confirm consent and email link', emailRetry: 'Retry private email',
+    emailState: { not_requested: 'Email: awaiting consent', pending: 'Email: send unconfirmed — retry', sent: 'Email: accepted by provider', failed: 'Email: send unconfirmed — retry', review_required: 'Email: outcome uncertain; check Resend or share privately. Retries stopped to prevent duplicates.' } as Record<string, string>,
     calendar: 'Calendar invitations', send: 'Send calendar invitations', sync: 'Retry sync', syncing: 'Syncing…',
     calNote: 'Google Calendar sends one invitation per guardian email, containing only the shared Meet link. The email stays on the calendar while any sibling has an active invitation. Google accepting the update does not guarantee email delivery.',
     cal: { not_sent: 'Not sent', needs_sync: 'Needs sync', ready: 'Ready', pending: 'Google is preparing Meet — retry sync shortly' } as Record<string, string>,
@@ -196,6 +202,8 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
   const busy = busyRaw || stale;
   const [gName, setGName] = useState('');
   const [gEmail, setGEmail] = useState('');
+  const [emailConsent, setEmailConsent] = useState(false);
+  const [emailMsg, setEmailMsg] = useState('');
   const [nameEditId, setNameEditId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
@@ -220,6 +228,19 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
       if (!res.ok) { setErr(await errText(res, lang, s.failed)); return false; }
       return true;
     } catch { setErr(s.failed); return false; } finally { await reload(); setBusy(false); }
+  };
+  const sendEmail = async (g: LiveGuest) => {
+    if (!g.emailConsentAt && !window.confirm(s.emailConsent)) return;
+    setBusy(true); setEmailMsg('');
+    try {
+      const res = await fetch('/svc/live-lab/invitations/email', {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: room.id, guestId: g.id, consent: !g.emailConsentAt }),
+      });
+      if (!res.ok) { setEmailMsg(await errText(res, lang, s.failed)); return; }
+      const result = await res.json();
+      setEmailMsg(s.emailState[result.status] ?? s.failed);
+    } catch { setEmailMsg(s.failed); } finally { await reload(); setBusy(false); }
   };
   const sync = async () => {
     setSyncBusy(true); setSyncMsg('');
@@ -305,19 +326,22 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
               if (!guestRequest.current || guestRequest.current.signature !== signature) {
                 guestRequest.current = { signature, key: crypto.randomUUID() };
               }
-              if (await guestCall('POST', { name, email, idempotencyKey: guestRequest.current.key })) {
+              if (await guestCall('POST', { name, email, emailConsent, idempotencyKey: guestRequest.current.key })) {
                 guestRequest.current = null;
                 setGName('');
                 setGEmail('');
+                setEmailConsent(false);
               }
             }}>
               <label>{s.gName}<input className="ip-input" required maxLength={80} value={gName} onChange={(e) => setGName(e.target.value)} data-testid="input-guest-name" /></label>
               <label>{s.gEmail}<input className="ip-input" type="email" dir="ltr" required value={gEmail} onChange={(e) => setGEmail(e.target.value)} data-testid="input-guest-email" /></label>
+              <label style={{ gridColumn: '1/-1' }}><span><input type="checkbox" checked={emailConsent} onChange={(e) => setEmailConsent(e.target.checked)} data-testid="checkbox-guest-email-consent" /> {s.emailConsent}</span></label>
               <button className="ip-btn" disabled={busy || active >= MAX_GUESTS} data-testid="button-guest-add">{s.add}</button>
             </form>
           ) : <p className="ip-live-note">{s.onlyWaiting}</p>}
           <p className="ip-live-note">{s.max}</p>
           <p className="ip-live-note">{s.revokeNote}</p>
+          {emailMsg && <p role="status" className="ip-live-note">{emailMsg}</p>}
           {room.guests.map((g) => (
             <div key={g.id} className="ip-live-guest" data-testid={`row-guest-${g.id}`}>
               <div style={{ minWidth: 0 }}>
@@ -333,6 +357,11 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
                   </form>
                 ) : <strong data-testid={`text-guest-name-${g.id}`}>{g.name}</strong>} {g.revoked && <span className="ip-pill bad">{s.revoked}</span>}
                 <div className="ip-live-note" dir="ltr" style={{ textAlign: 'start', margin: 0 }}>{g.email}</div>
+                <div className="ip-live-note" data-testid={`status-guest-email-${g.id}`}>
+                  {s.emailState[g.privateEmailStatus] ?? s.emailState.not_requested}
+                  {g.privateEmailSentAt && ` · ${riyadh(g.privateEmailSentAt, lang)}`}
+                  {g.privateEmailError && <span dir="ltr"> ({g.privateEmailError})</span>}
+                </div>
                 <div className="ip-meta" style={{ fontSize: 12 }}>
                   <span>{g.invitedAt ? `${s.invited} · ${riyadh(g.invitedAt, lang)}` : s.notInvited}</span>
                   <span>{g.joinedAt ? `${s.joined} · ${riyadh(g.joinedAt, lang)}` : s.notJoined}</span>
@@ -340,6 +369,7 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
                 </div>
               </div>
               <div className="ip-live-row">
+                {!g.revoked && !ended && !['sent', 'review_required'].includes(g.privateEmailStatus) && <button className="ip-btn line sm" disabled={busy} onClick={() => sendEmail(g)} data-testid={`button-guest-email-${g.id}`}>{g.emailConsentAt ? s.emailRetry : s.emailSend}</button>}
                 {!ended && nameEditId !== g.id && <button className="ip-btn line sm" disabled={busy} onClick={() => { setNameDraft(g.name); setNameEditId(g.id); }} data-testid={`button-guest-name-edit-${g.id}`}>{s.editName}</button>}
                 {!g.revoked && !ended && <button className="ip-btn line sm" onClick={() => copy(g)} data-testid={`button-guest-copy-${g.id}`}>{copied === g.id ? s.copied : s.copy}</button>}
                 {!g.revoked && !ended && canShare && <button className="ip-btn line sm" onClick={() => share(g)} data-testid={`button-guest-share-${g.id}`}>{s.share}</button>}

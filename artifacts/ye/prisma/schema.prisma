@@ -50,6 +50,13 @@ model LiveLabGuest {
   room        LiveLabRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
   token       String   @unique
   idempotencyKey String?
+  emailConsentAt DateTime?
+  privateEmailStatus String @default("not_requested")
+  privateEmailPayload Json?
+  privateEmailAttemptedAt DateTime?
+  privateEmailSentAt DateTime?
+  privateEmailProviderId String?
+  privateEmailError String?
   name        String
   email       String
   revoked     Boolean  @default(false)
