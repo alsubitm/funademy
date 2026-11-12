@@ -96,6 +96,7 @@ html:has(.fa3){scroll-behavior:smooth;scroll-padding-top:100px}body:has(.fa3){ba
 @media(max-width:650px){.fa3 .kitecap-stage .kcmark{width:96px!important;height:96px!important}}
 /* ===== Bright Play overrides (Jan 2027 online foundation) ===== */
 .fa3{--paper:#fbf7ee;--white:#fffdf7;--navy:#101a38;--blue:#7c3aed;--deep:#5b21b6;--gold:#ffca17;--sand:linear-gradient(90deg,#f7e3b2,#f2cd7e,#e5ae4a);--display:var(--font-baloo),'Baloo Bhaijaan 2',var(--font-plex-arabic),sans-serif;--body:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif}
+.fa3 .brand>span>span{color:#1c54cb}
 [dir=rtl] .fa3{--display:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif;--body:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif}
 [dir=rtl] .fa3 .brand>span,[dir=rtl] .fa3 .program-card h3,[dir=rtl] .fa3 .program-dialog h2,[dir=rtl] .fa3 .contact-email,[dir=rtl] .fa3 .contact-links a[dir=ltr]{font-family:var(--font-baloo),'Baloo Bhaijaan 2',sans-serif}
 .fa3 .eyebrow{text-transform:none}
