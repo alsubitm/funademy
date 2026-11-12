@@ -187,3 +187,41 @@ test('preserves a rejected full-class invitation and retries the same identity w
   expect(await db.liveLabGuest.count({ where: { roomId, revoked: false } })).toBe(16);
   expect(await db.liveLabGuest.count({ where: { roomId } })).toBe(17);
 });
+
+test('rejects an invitation if the class starts after the form loads but before the request reaches the server', async ({ page, context }) => {
+  await context.addCookies([{
+    name: 'ye_instructor', value: instructorToken(instructorId), url: 'http://127.0.0.1:3107',
+  }]);
+
+  await page.route('**/svc/live-lab/invitations', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    // The instructor already has the waiting-room form open. Start the room
+    // in the gap between submit and the real invitation handler.
+    await db.liveLabRoom.update({
+      where: { id: roomId },
+      data: { phase: 'teaching', version: { increment: 1 } },
+    });
+    await route.continue();
+  });
+
+  await page.goto('/instructor');
+  await page.getByTestId('nav-instructor-live').click();
+  await expect(page.getByTestId(`card-live-${roomId}`)).toBeVisible();
+  await page.getByTestId(`card-live-${roomId}`).click();
+  await page.getByTestId('input-guest-name').fill('Late student');
+  await page.getByTestId('input-guest-email').fill('late@example.invalid');
+
+  const invitation = page.waitForResponse(res =>
+    res.url().endsWith('/svc/live-lab/invitations') && res.request().method() === 'POST');
+  await page.getByTestId('button-guest-add').click();
+  const response = await invitation;
+  expect(response.status()).toBe(409);
+  expect(await response.json()).toMatchObject({ error: 'session_started' });
+
+  expect(await db.liveLabGuest.count({ where: { roomId } })).toBe(0);
+  await expect(page.getByTestId(`status-live-phase-${roomId}`)).toHaveText('قيد الشرح');
+  await expect(page.getByTestId('card-live-stage')).toBeVisible();
+  await expect(page.getByText('تُضاف الدعوات قبل بدء الحصة فقط.')).toBeVisible();
+  await expect(page.getByTestId('input-guest-name')).toHaveCount(0);
+  await expect(page.locator('[data-testid^="row-guest-"]')).toHaveCount(0);
+});
