@@ -45,9 +45,15 @@ describe('public copy during the online-course transition', () => {
     }
   });
 
-  it('home hero describes live tutor-led online classes for Riyadh families', () => {
-    expect(copy.en.heroNote).toMatch(/Live online, tutor-led.*Riyadh/);
-    expect(copy.ar.heroNote).toMatch(/مباشر أونلاين مع مدرّب.*الرياض/);
+  it('home hero has clean headlines and omits the live-coach Riyadh note', () => {
+    expect(copy.en.heroTitle1).not.toMatch(/\.$/);
+    expect(copy.en.heroTitle2).not.toMatch(/\.$/);
+    expect(copy.ar.heroTitle1).not.toMatch(/\.$/);
+    expect(copy.ar.heroTitle2).not.toMatch(/\.$/);
+    expect(copy.en).not.toHaveProperty('heroNote');
+    expect(copy.ar).not.toHaveProperty('heroNote');
+    const home = readFileSync(path.join(SRC, 'components/home3/FunHome.tsx'), 'utf8');
+    expect(home).not.toContain('className="hero-note"');
   });
 
   it('preserves the legacy in-person banner and legend', () => {

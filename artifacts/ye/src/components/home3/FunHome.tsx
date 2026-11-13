@@ -123,7 +123,6 @@ export function FunHome({ lang }: { lang: Lang }) {
               <a className="button button-blue" href="#programs" data-testid="link-hero-explore"><span>{t('explore')}</span><span aria-hidden="true">↗</span></a>
               <a className="text-link" href="#idea-machine" data-testid="link-hero-spark"><span className="play-icon" aria-hidden="true">▷</span><span>{t('trySpark')}</span></a>
             </div>
-            <div className="hero-note"><span className="note-line" aria-hidden="true" /><span>{t('heroNote')}</span></div>
           </div>
           <div className="hero-visual">
             <svg className="orbit-trail" viewBox="0 0 600 600" aria-hidden="true"><ellipse cx="300" cy="300" rx="283" ry="215" transform="rotate(-35 300 300)" /><path d="M60 390q70 170 290 125" /></svg>

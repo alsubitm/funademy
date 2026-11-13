@@ -119,6 +119,7 @@ html:has(.fa3){scroll-behavior:smooth;scroll-padding-top:100px}body:has(.fa3){ba
 .fa3 .coding-lab{border:3px solid var(--navy);box-shadow:8px 9px 0 var(--navy)}
 .fa3 .grid-cell.blocked{background:var(--blue);border-color:var(--navy)}
 .fa3 .contact-section:after{content:'✦'}
+.fa3 .footer-big span{color:#1c54cb}
 .fa3 .sand-divider{height:6px;border-radius:6px;background:var(--sand)}
 .fa3 .service-links{grid-template-columns:repeat(4,minmax(0,1fr))}
 .fa3 .service-heading{border-top:0;position:relative}
