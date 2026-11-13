@@ -32,7 +32,7 @@ const locales = [
 ] as const;
 
 for (const locale of locales) {
-  for (const interruption of ['truncated', 'read-error'] as const) {
+  for (const interruption of ['truncated', 'read-error', 'stalled', 'cancelled'] as const) {
     test(`${locale.name} retries a ${interruption} reply stream without duplicating the prompt`, async ({ page }) => {
       const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
       let partial = '';
@@ -50,9 +50,17 @@ for (const locale of locales) {
           if (interrupted || !String(args[0]).match(/\/svc\/chat\/conversations\/[^/]+\/messages$/)) return response;
           interrupted = true;
           const reader = response.body!.getReader();
+          args[1]?.signal?.addEventListener('abort', () => {
+            document.documentElement.dataset.chatReplyAborted = 'yes';
+          }, { once: true });
           let delivered = false;
           return new Response(new ReadableStream<Uint8Array>({
             async pull(controller) {
+              if (delivered && (interruption === 'stalled' || interruption === 'cancelled')) {
+                // Leave the connection open forever after the first delta.
+                await new Promise(() => {});
+                return;
+              }
               if (delivered && interruption === 'read-error') {
                 await reader.cancel();
                 controller.error(new TypeError('Connection interrupted after partial reply'));
@@ -66,6 +74,10 @@ for (const locale of locales) {
                 document.documentElement.dataset.chatPartialRead = 'yes';
                 controller.enqueue(chunk.value);
               }
+            },
+            cancel() {
+              document.documentElement.dataset.chatReaderCancelled = 'yes';
+              return reader.cancel();
             },
           }, { highWaterMark: 0 }), { status: response.status, headers: response.headers });
         };
@@ -92,6 +104,7 @@ for (const locale of locales) {
       });
       await page.goto(locale.path);
       await page.getByTestId('button-open-chat').click();
+      await page.clock.install();
       const composer = page.getByTestId('input-chat-message');
       await composer.fill(prompt);
       await page.getByTestId('button-send-chat').click();
@@ -99,6 +112,28 @@ for (const locale of locales) {
       // The HTTP request succeeded and a delta was consumed before interruption.
       await expect(page.locator('html')).toHaveAttribute('data-chat-partial-read', 'yes');
       const alert = page.locator('.chat-ui__error[role="alert"]');
+      if (interruption === 'stalled' || interruption === 'cancelled') {
+        await expect(composer).toBeDisabled();
+        await expect(alert).toHaveCount(0);
+        if (interruption === 'cancelled') {
+          await page.getByTestId('button-close-chat').click();
+          await page.getByTestId('button-open-chat').click();
+          await page.clock.runFor(31_000);
+          await expect(page.locator('html')).toHaveAttribute('data-chat-reply-aborted', 'yes');
+          await expect(page.locator('html')).toHaveAttribute('data-chat-reader-cancelled', 'yes');
+          await expect(alert).toHaveCount(0);
+          await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+          await expect(composer).toBeEnabled();
+          expect(submitted).toHaveLength(1);
+          return;
+        }
+        await page.clock.runFor(29_000);
+        await expect(composer).toBeDisabled();
+        await expect(alert).toHaveCount(0);
+        await page.clock.runFor(1_001);
+        await expect(page.locator('html')).toHaveAttribute('data-chat-reply-aborted', 'yes');
+        await expect(page.locator('html')).toHaveAttribute('data-chat-reader-cancelled', 'yes');
+      }
       await expect(alert).toContainText(locale.direction === 'rtl'
         ? 'تعذر إكمال الطلب' : 'We could not complete that request');
       await expect(page.getByTestId('button-chat-retry')).toBeEnabled();

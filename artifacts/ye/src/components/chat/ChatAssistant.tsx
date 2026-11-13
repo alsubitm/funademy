@@ -223,12 +223,27 @@ function sourceFromRef(ref: string, lang: Lang): ChatSource {
   return { title: lang === 'ar' ? 'الأسئلة الشائعة' : 'Frequently asked questions', url: `${root || '/'}#faq` };
 }
 
-async function streamMessage(conversationId: string, content: string, lang: Lang, idempotencyKey: string): Promise<{ message: ChatMessage; action?: ChatAction; celebrate: boolean }> {
-  const response = await fetch(`/svc/chat/conversations/${encodeURIComponent(conversationId)}/messages`, {
+const REPLY_INACTIVITY_MS = 30_000;
+
+// Also settle when a response body stops delivering without closing. Racing
+// the signal handles readers that do not themselves reject when fetch aborts.
+function untilAborted<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(signal.reason);
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) abort();
+    operation.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
+  });
+}
+
+async function streamMessage(conversationId: string, content: string, lang: Lang, idempotencyKey: string, signal: AbortSignal, activity: () => void): Promise<{ message: ChatMessage; action?: ChatAction; celebrate: boolean }> {
+  const response = await untilAborted(fetch(`/svc/chat/conversations/${encodeURIComponent(conversationId)}/messages`, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({ content, idempotencyKey }),
-  });
+  }), signal);
+  activity();
   if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -241,33 +256,40 @@ async function streamMessage(conversationId: string, content: string, lang: Lang
   let celebrate = false;
   let providerUnavailable = false;
   let completed = false;
-  while (true) {
-    const { done, value } = await reader.read();
-    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-    const events = buffer.split('\n\n');
-    buffer = events.pop() || '';
-    for (const event of events) {
-      const dataLine = event.split('\n').find((line) => line.startsWith('data:'));
-      if (!dataLine) continue;
-      const eventValue: unknown = JSON.parse(dataLine.slice(5).trim());
-      if (!isRecord(eventValue)) continue;
-      if (eventValue.type === 'error') throw new Error('stream_error');
-      if (eventValue.type === 'delta' && typeof eventValue.content === 'string') answer += eventValue.content;
-      if (eventValue.type === 'done') {
-        completed = true;
-        if (typeof eventValue.messageId === 'string') messageId = eventValue.messageId;
-        if (Array.isArray(eventValue.sources)) refs = sourcesFrom(eventValue.sources) || [];
-        if (eventValue.handoff === true) handoff = true;
-        if (eventValue.celebrate === true) celebrate = true;
-        if (eventValue.providerUnavailable === true) providerUnavailable = true;
-        if (isRecord(eventValue.preparedAction) && typeof eventValue.preparedAction.id === 'string') {
-          const kind = typeof eventValue.preparedAction.kind === 'string' ? eventValue.preparedAction.kind : 'action';
-          const payload = isRecord(eventValue.preparedAction.payload) ? eventValue.preparedAction.payload : {};
-          action = { id: eventValue.preparedAction.id, kind, payload, status: 'prepared', title: actionTitle(kind, lang), description: actionDescription(kind, payload, lang) };
+  try {
+    while (true) {
+      const { done, value } = await untilAborted(reader.read(), signal);
+      if (value?.byteLength) activity();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+      for (const event of events) {
+        const dataLine = event.split('\n').find((line) => line.startsWith('data:'));
+        if (!dataLine) continue;
+        const eventValue: unknown = JSON.parse(dataLine.slice(5).trim());
+        if (!isRecord(eventValue)) continue;
+        if (eventValue.type === 'error') throw new Error('stream_error');
+        if (eventValue.type === 'delta' && typeof eventValue.content === 'string') answer += eventValue.content;
+        if (eventValue.type === 'done') {
+          completed = true;
+          if (typeof eventValue.messageId === 'string') messageId = eventValue.messageId;
+          if (Array.isArray(eventValue.sources)) refs = sourcesFrom(eventValue.sources) || [];
+          if (eventValue.handoff === true) handoff = true;
+          if (eventValue.celebrate === true) celebrate = true;
+          if (eventValue.providerUnavailable === true) providerUnavailable = true;
+          if (isRecord(eventValue.preparedAction) && typeof eventValue.preparedAction.id === 'string') {
+            const kind = typeof eventValue.preparedAction.kind === 'string' ? eventValue.preparedAction.kind : 'action';
+            const payload = isRecord(eventValue.preparedAction.payload) ? eventValue.preparedAction.payload : {};
+            action = { id: eventValue.preparedAction.id, kind, payload, status: 'prepared', title: actionTitle(kind, lang), description: actionDescription(kind, payload, lang) };
+          }
         }
       }
+      if (done || completed) break;
     }
-    if (done) break;
+  } finally {
+    // Do not await cancellation: a broken transport must not block the UI.
+    void reader.cancel().catch(() => {});
+    reader.releaseLock();
   }
   // EOF can arrive after a partial delta without a network error. Only the
   // server's terminal event makes an answer safe to display as complete.
@@ -349,6 +371,19 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingSend = useRef<{ content: string; key: string } | undefined>(undefined);
+  const activeSend = useRef<AbortController | undefined>(undefined);
+
+  const cancelSend = useCallback(() => {
+    activeSend.current?.abort();
+    activeSend.current = undefined;
+    setBusy(false);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    // Closing the widget or navigating away is cancellation, not failure.
+    return cancelSend;
+  }, [open, cancelSend]);
 
   const loadSessions = useCallback(async () => {
     setHistoryBusy(true);
@@ -442,6 +477,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   };
 
   const selectSession = async (id: string) => {
+    cancelSend();
     pendingSend.current = undefined;
     setLastDraft('');
     setError(undefined);
@@ -460,6 +496,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   };
 
   const startNew = () => {
+    cancelSend();
     pendingSend.current = undefined;
     setSessionId(undefined);
     setMessages([]);
@@ -485,7 +522,19 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
 
   const send = async (text = draft, retry = false) => {
     const clean = text.trim();
-    if (!clean || busy || !online) return;
+    if (!clean || busy || activeSend.current || !online) return;
+    const controller = new AbortController();
+    activeSend.current = controller;
+    let inactivityTimer: ReturnType<typeof setTimeout>;
+    const activity = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        controller.abort(new DOMException('Reply stopped arriving', 'TimeoutError'));
+      }, REPLY_INACTIVITY_MS);
+    };
+    activity();
+    const clearInactivity = () => clearTimeout(inactivityTimer);
+    controller.signal.addEventListener('abort', clearInactivity, { once: true });
     const attempt = retry && pendingSend.current?.content === clean
       ? pendingSend.current
       : { content: clean, key: crypto.randomUUID() };
@@ -498,17 +547,21 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
     try {
       let activeId = sessionId;
       if (!activeId) {
-        const createdPayload = await request('/svc/chat/conversations', {
+        const createdPayload = await untilAborted(request('/svc/chat/conversations', {
           method: 'POST',
+          signal: controller.signal,
           body: JSON.stringify({ consent: true, locale: lang }),
-        });
+        }), controller.signal);
+        if (activeSend.current !== controller) return;
+        activity();
         const created = conversationFrom(createdPayload);
         if (!created) throw new Error('Missing conversation');
         activeId = created.id;
         setSessionId(activeId);
         setHasAccount(isRecord(createdPayload) && createdPayload.hasFamilyAccount === true);
       }
-      const streamed = await streamMessage(activeId, clean, lang, attempt.key);
+      const streamed = await streamMessage(activeId, clean, lang, attempt.key, controller.signal, activity);
+      if (activeSend.current !== controller) return;
       setMessages((current) => [...current, streamed.message]);
       if (streamed.celebrate) setGlow(Date.now());
       if (streamed.action) setPreparedActions((current) => [...current, streamed.action as ChatAction]);
@@ -516,9 +569,16 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
       setLastDraft('');
       void loadSessions();
     } catch {
-      setError(t.error);
+      if (activeSend.current === controller && (!controller.signal.aborted || controller.signal.reason?.name === 'TimeoutError')) {
+        setError(t.error);
+      }
     } finally {
-      setBusy(false);
+      clearInactivity();
+      controller.signal.removeEventListener('abort', clearInactivity);
+      if (activeSend.current === controller) {
+        activeSend.current = undefined;
+        setBusy(false);
+      }
     }
   };
 
