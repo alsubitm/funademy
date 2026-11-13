@@ -221,6 +221,102 @@ for (const locale of locales) {
     }
   });
 
+  test(`${locale.name} conversation history stays readable and reachable at 150% text size`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.addInitScript(() => {
+      localStorage.setItem('funademy-chat-consent', 'yes');
+    });
+
+    const longTitle = locale.direction === 'rtl'
+      ? 'اختيار تجربة هندسية عملية تناسب عمر الطفل واهتماماته ومواعيد العائلة قبل التسجيل في البرنامج'
+      : 'Choosing a hands-on engineering trial that fits our child’s age, interests, and family schedule before enrollment';
+    const sessions = [
+      { id: 'history-long-title', title: longTitle },
+      { id: 'history-builds', title: locale.direction === 'rtl' ? 'أفكار بناء الروبوتات' : 'Robot-building ideas' },
+      { id: 'history-schedules', title: locale.direction === 'rtl' ? 'مواعيد التجارب القادمة' : 'Upcoming trial schedules' },
+      { id: 'history-projects', title: locale.direction === 'rtl' ? 'مشاريع هندسية للأطفال' : 'Engineering projects for children' },
+    ];
+
+    await page.route('**/svc/chat/conversations', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ conversations: sessions, hasFamilyAccount: false }),
+    }));
+    await page.route('**/svc/chat/conversations/history-long-title', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        messages: [
+          { id: 'history-user-message', role: 'user', content: locale.direction === 'rtl' ? 'أرغب في معرفة المزيد عن التجربة.' : 'I would like to learn more about the trial.' },
+          { id: 'history-assistant-message', role: 'assistant', content: locale.direction === 'rtl' ? 'يمكننا اختيار تجربة تناسب اهتمامات طفلك.' : 'We can find a trial that matches your child’s interests.' },
+        ],
+      }),
+    }));
+
+    await page.goto(locale.path);
+    await page.addStyleTag({ content: 'html { font-size: 150% !important; }' });
+    await page.getByTestId('button-open-chat').click();
+
+    const dialog = page.getByRole('dialog');
+    const history = page.locator('.chat-ui__history');
+    const longTitleButton = page.getByTestId('button-chat-session-history-long-title');
+    const messages = page.locator('.chat-ui__messages');
+    const composer = page.getByTestId('input-chat-message');
+    const close = page.getByTestId('button-close-chat');
+
+    await expect(dialog).toBeVisible();
+    await expect(longTitleButton).toHaveText(longTitle);
+    await expect(longTitleButton).toHaveCSS('white-space', 'normal');
+    await expect(longTitleButton).toHaveCSS('text-overflow', 'clip');
+    const titleMetrics = await longTitleButton.evaluate(el => ({
+      clientWidth: el.clientWidth,
+      scrollWidth: el.scrollWidth,
+      clientHeight: el.clientHeight,
+      scrollHeight: el.scrollHeight,
+    }));
+    expect(titleMetrics.scrollWidth).toBeLessThanOrEqual(titleMetrics.clientWidth + 1);
+    expect(titleMetrics.scrollHeight).toBeLessThanOrEqual(titleMetrics.clientHeight + 1);
+    expect(titleMetrics.clientHeight).toBeGreaterThan(44);
+
+    await longTitleButton.click();
+    await expect(page.getByTestId('message-chat-history-assistant-message')).toContainText(
+      locale.direction === 'rtl' ? 'يمكننا اختيار تجربة' : 'We can find a trial',
+    );
+    await expect(page.getByTestId('button-new-chat')).toBeVisible();
+    await expect(page.getByTestId('button-delete-chat')).toBeVisible();
+
+    const lastSession = page.getByTestId('button-chat-session-history-projects');
+    await lastSession.scrollIntoViewIfNeeded();
+    await expect(lastSession).toBeVisible();
+    const historyBox = await history.boundingBox();
+    const lastSessionBox = await lastSession.boundingBox();
+    expect(historyBox).not.toBeNull();
+    expect(lastSessionBox).not.toBeNull();
+    expect(lastSessionBox!.x).toBeGreaterThanOrEqual(historyBox!.x);
+    expect(lastSessionBox!.x + lastSessionBox!.width).toBeLessThanOrEqual(historyBox!.x + historyBox!.width);
+
+    const deleteButton = page.getByTestId('button-delete-chat');
+    await deleteButton.scrollIntoViewIfNeeded();
+    await expect(deleteButton).toBeVisible();
+    const deleteBox = await deleteButton.boundingBox();
+    const scrolledHistoryBox = await history.boundingBox();
+    expect(deleteBox).not.toBeNull();
+    expect(scrolledHistoryBox).not.toBeNull();
+    expect(deleteBox!.x).toBeGreaterThanOrEqual(scrolledHistoryBox!.x);
+    expect(deleteBox!.x + deleteBox!.width).toBeLessThanOrEqual(scrolledHistoryBox!.x + scrolledHistoryBox!.width);
+
+    const messageBox = await messages.boundingBox();
+    const composerBox = await composer.boundingBox();
+    const closeBox = await close.boundingBox();
+    const panelBox = await dialog.boundingBox();
+    for (const box of [messageBox, composerBox, closeBox, panelBox]) expect(box).not.toBeNull();
+    expect(messageBox!.width).toBeGreaterThan(250);
+    expect(messageBox!.height).toBeGreaterThan(80);
+    expect(composerBox!.y + composerBox!.height).toBeLessThanOrEqual(panelBox!.y + panelBox!.height);
+    expect(closeBox!.y).toBeGreaterThanOrEqual(panelBox!.y);
+    expect(closeBox!.y + closeBox!.height).toBeLessThanOrEqual(panelBox!.y + panelBox!.height);
+  });
+
   test(`${locale.name} offline notice wraps at 150% without hiding chat controls`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 740 });
     await page.addInitScript(() => {
