@@ -14,6 +14,15 @@ Use isolated test-only signed sessions for curriculum browser regressions, not l
 **Why:** these regressions target saved editor state and learner rendering, not authentication delivery; real credentials introduce unnecessary exposure and provider side effects.
 **How to apply:** keep actual authorization guards and first-party API/database requests intact. Stub only external player documents and describe the assertion as player selection, not proof that a provider streams the video.
 
+## Browser clocks do not age server quotas
+Tests that advance the browser clock must still isolate the real server's caller
+quota per scenario and clean up only their own rate-limit records.
+**Why:** browser time travel leaves PostgreSQL rate-limit timestamps unchanged.
+Sequential cases and repeated runs can exhaust a shared caller's quota before
+the stream scenario starts, producing misleading timeout failures.
+**How to apply:** give each isolated browser case a unique synthetic forwarded
+address. Preserve the real limiter; do not disable it or clear unrelated counters.
+
 ## Provider secrets must be stripped in setup-env (incident 2026-08-12)
 With the live-by-presence pattern, adding a provider key to the workspace made
 OLD suites hit the real provider: family-account tests delivered real SMS to

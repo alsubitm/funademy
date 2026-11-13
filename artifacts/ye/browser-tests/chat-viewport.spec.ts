@@ -1,14 +1,26 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import { testDbUrl } from '../src/tests/test-db';
 
 const db = new PrismaClient({ datasourceUrl: testDbUrl() });
 const createdConversations = new Set<string>();
+const createdRateKeys = new Set<string>();
+test.beforeEach(async ({ page }) => {
+  // Real handlers enforce durable IP quotas. Isolate each browser scenario
+  // so adding cases or rerunning this file cannot exhaust another test's limit.
+  const ip = `fd00:${randomBytes(14).toString('hex').match(/.{4}/g)!.join(':')}`;
+  createdRateKeys.add(`chat:create:${ip}`);
+  createdRateKeys.add(`chat:send:${ip}`);
+  await page.setExtraHTTPHeaders({ 'x-forwarded-for': ip });
+});
 test.afterEach(async () => {
   const ids = [...createdConversations];
   await db.chatAudit.deleteMany({ where: { conversationId: { in: ids } } });
   await db.chatConversation.deleteMany({ where: { id: { in: ids } } });
   createdConversations.clear();
+  await db.rateLimitHit.deleteMany({ where: { key: { in: [...createdRateKeys] } } });
+  createdRateKeys.clear();
 });
 test.afterAll(async () => { await db.$disconnect(); });
 
@@ -417,7 +429,7 @@ for (const locale of locales) {
     }
   }
 
-  for (const interruption of ['truncated', 'read-error', 'stalled', 'cancelled'] as const) {
+  for (const interruption of ['truncated', 'read-error', 'stalled', 'stalled-after-chunks', 'cancelled'] as const) {
     test(`${locale.name} retries a ${interruption} reply stream without duplicating the prompt`, async ({ page }) => {
       const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
       let partial = '';
@@ -434,24 +446,41 @@ for (const locale of locales) {
           const response = await originalFetch(...args);
           if (interrupted || !String(args[0]).match(/\/svc\/chat\/conversations\/[^/]+\/messages$/)) return response;
           interrupted = true;
-          const reader = response.body!.getReader();
+          const delayedEvents = interruption === 'stalled-after-chunks'
+            ? (await response.text()).split('\n\n').filter(Boolean) : null;
+          const reader = delayedEvents ? null : response.body!.getReader();
           args[1]?.signal?.addEventListener('abort', () => {
             document.documentElement.dataset.chatReplyAborted = 'yes';
           }, { once: true });
           let delivered = false;
+          let deliveredChunks = 0;
           return new Response(new ReadableStream<Uint8Array>({
             async pull(controller) {
+              if (delayedEvents) {
+                if (deliveredChunks === delayedEvents.length) {
+                  // Never send EOF or done: only the inactivity deadline can
+                  // release the composer after the last healthy delta.
+                  await new Promise(() => {});
+                  return;
+                }
+                if (deliveredChunks > 0) await new Promise(resolve => setTimeout(resolve, 20_000));
+                controller.enqueue(new TextEncoder().encode(`${delayedEvents[deliveredChunks]}\n\n`));
+                deliveredChunks += 1;
+                document.documentElement.dataset.chatChunksDelivered = String(deliveredChunks);
+                document.documentElement.dataset.chatPartialRead = 'yes';
+                return;
+              }
               if (delivered && (interruption === 'stalled' || interruption === 'cancelled')) {
                 // Leave the connection open forever after the first delta.
                 await new Promise(() => {});
                 return;
               }
               if (delivered && interruption === 'read-error') {
-                await reader.cancel();
+                await reader!.cancel();
                 controller.error(new TypeError('Connection interrupted after partial reply'));
                 return;
               }
-              const chunk = await reader.read();
+              const chunk = await reader!.read();
               if (chunk.done) {
                 controller.close();
               } else {
@@ -462,7 +491,7 @@ for (const locale of locales) {
             },
             cancel() {
               document.documentElement.dataset.chatReaderCancelled = 'yes';
-              return reader.cancel();
+              return reader?.cancel();
             },
           }, { highWaterMark: 0 }), { status: response.status, headers: response.headers });
         };
@@ -481,15 +510,29 @@ for (const locale of locales) {
           .map(event => JSON.parse(event.slice(5)));
         complete = events.find(event => event.type === 'delta').content;
         replyId = events.find(event => event.type === 'done').messageId;
-        partial = complete.slice(0, 12);
+        partial = complete.slice(0, interruption === 'stalled-after-chunks' ? 48 : 12);
+        const size = Math.ceil(partial.length / 4);
+        const deltas = interruption === 'stalled-after-chunks'
+          ? Array.from({ length: 4 }, (_, index) => ({
+            type: 'delta', content: partial.slice(index * size, (index + 1) * size),
+          }))
+          : [{ type: 'delta', content: partial }];
+        if (interruption === 'stalled-after-chunks') {
+          expect(partial.length).toBeGreaterThanOrEqual(4);
+          expect(partial).not.toBe(complete);
+        }
         await route.fulfill({
           response,
-          body: `data: ${JSON.stringify({ type: 'delta', content: partial })}\n\n`,
+          body: deltas.map(event => `data: ${JSON.stringify(event)}\n\n`).join(''),
         });
       });
       await page.goto(locale.path);
       await page.getByTestId('button-open-chat').click();
-      await page.clock.install();
+      const start = new Date('2030-01-01T00:00:00Z');
+      await page.clock.install({ time: start });
+      if (interruption === 'stalled-after-chunks') {
+        await page.clock.pauseAt(new Date(start.getTime() + 1_000));
+      }
       const composer = page.getByTestId('input-chat-message');
       await composer.fill(prompt);
       await page.getByTestId('button-send-chat').click();
@@ -497,6 +540,32 @@ for (const locale of locales) {
       // The HTTP request succeeded and a delta was consumed before interruption.
       await expect(page.locator('html')).toHaveAttribute('data-chat-partial-read', 'yes');
       const alert = page.locator('.chat-ui__error[role="alert"]');
+      if (interruption === 'stalled-after-chunks') {
+        const html = page.locator('html');
+        const expectActive = async () => {
+          await expect(composer).toBeDisabled();
+          await expect(alert).toHaveCount(0);
+          await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+          await expect(html).not.toHaveAttribute('data-chat-reply-aborted', 'yes');
+          await expect(html).not.toHaveAttribute('data-chat-reader-cancelled', 'yes');
+        };
+        await expect(html).toHaveAttribute('data-chat-chunks-delivered', '1');
+        await expectActive();
+        for (let delivered = 2; delivered <= 4; delivered += 1) {
+          await page.clock.runFor(20_000);
+          await expect(html).toHaveAttribute('data-chat-chunks-delivered', String(delivered));
+          await expectActive();
+        }
+        // At t=89.999s all earlier deadlines have passed, but the latest
+        // delta (t=60s) must still have its full 30-second activity window.
+        await page.clock.runFor(29_999);
+        await expectActive();
+        expect(submitted).toHaveLength(1);
+        await page.clock.runFor(2);
+        await expect(html).toHaveAttribute('data-chat-reply-aborted', 'yes');
+        await expect(html).toHaveAttribute('data-chat-reader-cancelled', 'yes');
+        await expect(html).toHaveAttribute('data-chat-chunks-delivered', '4');
+      }
       if (interruption === 'stalled' || interruption === 'cancelled') {
         await expect(composer).toBeDisabled();
         await expect(alert).toHaveCount(0);
