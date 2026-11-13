@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { LrnChild } from '@prisma/client';
 import { useLearningLocale } from '@/components/learning/locale';
@@ -39,6 +39,11 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
     nationalId: '',
   });
   const [err, setErr] = useState('');
+  const [reason, setReason] = useState('');
+  useEffect(() => {
+    const r = new URLSearchParams(window.location.search).get('reason');
+    if (r === 'session' || r === 'profile') setReason(r);
+  }, []);
 
   async function createChild() {
     if (!form.name.trim() || !/^\d{4,}$/.test(form.pin)) {
@@ -83,6 +88,18 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
 
   return (
     <div className="learn-children-wrap">
+      {reason && (
+        <div className="learn-notice" role="status" data-testid={`status-learn-reason-${reason}`}>
+          {reason === 'session'
+            ? t('انتهى وضع الطفل. اختر ملف التعلّم وأدخل رمز PIN للمتابعة.', 'Child mode ended. Choose a learning profile and enter its PIN to continue.')
+            : t('اختير ملف تعلّم مختلف على هذا الجهاز. اختر الملف الصحيح وأدخل رمز PIN.', 'A different learning profile was selected on this device. Choose the right profile and enter its PIN.')}
+        </div>
+      )}
+      {children.length === 0 && (
+        <p className="learn-notice soft" data-testid="empty-learn-profiles">
+          {t('لا توجد ملفات تعلّم بعد. أضف ملفاً لكل طفل؛ ملفات التعلّم منفصلة عن تسجيل الدورات.', 'No learning profiles yet. Add one for each child; learning profiles are separate from course enrollment.')}
+        </p>
+      )}
       <div className="learn-children-grid">
         {children.map((c) => (
           <ChildCard
@@ -92,7 +109,7 @@ export default function LearnChildrenClient({ initialChildren, badgeIcons }: Pro
             onUpdate={(u) => setChildren((prev) => prev.map((x) => (x.id === u.id ? u : x)))}
           />
         ))}
-        <button className="learn-add-card" onClick={() => setShowAdd(true)}>
+        <button className="learn-add-card" onClick={() => setShowAdd(true)} data-testid="button-learn-add-profile">
           <span className="learn-add-icon">+</span>
           <span>{t('إضافة طفل', 'Add a child')}</span>
         </button>
@@ -206,7 +223,15 @@ function ChildCard({
         body: JSON.stringify({ pin }),
       });
       if (!res.ok) {
-        setErr(res.status === 401 ? t('رمز PIN غير صحيح', 'Incorrect PIN') : t('حدث خطأ', 'Something went wrong. Please try again.'));
+        const body = await res.json().catch(() => ({}));
+        if (body.error === 'unauthorized') {
+          window.location.href = path('/account?next=') + path('/learn');
+          return;
+        }
+        setErr(body.error === 'wrong_pin' ? t('رمز PIN غير صحيح', 'Incorrect PIN')
+          : body.error === 'no_active_enrollment' ? t('لا يوجد تسجيل نشط. راجع بوابة الأهالي.', 'No active enrollment. Check the parent portal.')
+          : res.status === 429 ? t('محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.', 'Too many attempts. Wait before trying again.')
+          : t('حدث خطأ', 'Something went wrong. Please try again.'));
         setPin('');
         return;
       }
@@ -219,11 +244,11 @@ function ChildCard({
   }
 
   return (
-    <div className="learn-child-card">
+    <div className="learn-child-card" data-testid={`card-learn-profile-${child.id}`}>
       <div className="learn-child-avatar">{child.avatar}</div>
       <div className="learn-child-name">{child.name}</div>
       <div className="learn-child-band">{t(BAND_LABELS_AR[child.band], child.band[0].toUpperCase() + child.band.slice(1))}</div>
-      <div className="learn-child-xp">⭐ {child.xp} XP &nbsp;|&nbsp; 🔥 {child.streak}</div>
+      <div className="learn-child-xp">{child.xp} XP · {child.streak} {t('أيام متتالية', 'day streak')}</div>
       {child.badges.length > 0 && (
         <div className="learn-child-badges">
           {child.badges.slice(0, 3).map((b) => (
@@ -247,18 +272,19 @@ function ChildCard({
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
             onKeyDown={(e) => { if (e.key === 'Enter') enterKidMode(); }}
             autoFocus
+            data-testid={`input-learn-pin-${child.id}`}
           />
-          {err && <p className="learn-err">{err}</p>}
+          {err && <p className="learn-err" role="alert" data-testid={`status-learn-pin-${child.id}`}>{err}</p>}
           <div className="learn-pin-actions">
-            <button className="btn y small" onClick={enterKidMode} disabled={loading}>
+            <button className="btn y small" onClick={enterKidMode} disabled={loading} data-testid={`button-learn-enter-${child.id}`}>
               {loading ? t('جاري الدخول...', 'Signing in...') : t('دخول', 'Enter')}
             </button>
             <button className="btn small" onClick={() => { setEntering(false); setPin(''); setErr(''); }}>{t('إلغاء', 'Cancel')}</button>
           </div>
         </div>
       ) : (
-        <button className="btn y learn-enter-btn" onClick={() => setEntering(true)}>
-          {t('ابدأ التعلّم 🚀', 'Start learning 🚀')}
+        <button className="btn y learn-enter-btn" onClick={() => setEntering(true)} aria-label={`${t('ابدأ التعلّم', 'Start learning')}: ${child.name}`} data-testid={`button-learn-start-${child.id}`}>
+          {t('ابدأ التعلّم', 'Start learning')}
         </button>
       )}
     </div>
@@ -326,9 +352,9 @@ function NationalIdRow({ child, onUpdate }: { child: ChildData; onUpdate: (c: Ch
           }}
         >
           {child.nationalId ? (
-            <>🪪 <span className="nid-value">{child.nationalId}</span></>
+            <><span className="nid-value">{child.nationalId}</span></>
           ) : (
-            <>🪪 {t('إضافة رقم الهوية (لتوثيق التعلّم في نيلك)', 'Add national ID (for NELC learning records)')}</>
+            <>{t('إضافة رقم الهوية (لتوثيق التعلّم في نيلك)', 'Add national ID (for NELC learning records)')}</>
           )}
         </button>
       </div>

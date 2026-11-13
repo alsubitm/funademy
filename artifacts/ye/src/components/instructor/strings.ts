@@ -31,6 +31,8 @@ const ar = {
   labNote: 'المختبر يعمل دون تسجيل دخول، والتقدم محفوظ محلياً على هذا الجهاز ومستقل عن حسابك.',
   profile: 'الملف الشخصي', name: 'الاسم', role: 'الدور', roleInstructor: 'مدرّب', roleAdmin: 'مدير (معاينة)',
   contactAdmin: 'لتعديل الاسم أو البريد أو الإسنادات أو لاستعادة الوصول عند نسيان كلمة المرور تواصل مع إدارة FunAdemy. لا تُرسل كلمة المرور في رسائل.',
+  refresh: 'تحديث البيانات', refreshing: 'جارٍ التحديث…', refreshed: 'تم التحديث', refreshFailed: 'تعذّر التحديث — المعروض آخر نسخة محمّلة', draftsKept: 'مسوداتك غير المحفوظة محفوظة على هذه الصفحة',
+  openClass: 'الطلاب والحضور', classContext: 'الفصل المحدد', classMissing: 'الفصل المطلوب غير مُسند إليك أو لم يعد متاحاً — نعرض كل الدفعات.',
   leaveWarn: 'لديك تغييرات غير محفوظة. هل تريد المغادرة؟', menu: 'القائمة', today: 'اليوم', status: { scheduled: 'مجدولة', completed: 'مكتملة', cancelled: 'ملغاة', present: 'حاضر', absent: 'غائب', late: 'متأخر', excused: 'بعذر', active: 'نشط', enrolled: 'مسجّل', waitlisted: 'قائمة انتظار', withdrawn: 'منسحب' } as Record<string, string>,
 };
 
@@ -65,6 +67,8 @@ const en: typeof ar = {
   labNote: 'The lab needs no sign in. Progress is saved locally on this device, independent of your account.',
   profile: 'Profile', name: 'Name', role: 'Role', roleInstructor: 'Instructor', roleAdmin: 'Administrator (preview)',
   contactAdmin: 'To change your name, email or assignments, or recover access if you forget your password, contact FunAdemy administration. Never send your password in messages.',
+  refresh: 'Refresh data', refreshing: 'Refreshing…', refreshed: 'Updated', refreshFailed: 'Refresh failed — showing the last loaded data', draftsKept: 'Your unsaved drafts are kept on this page',
+  openClass: 'Students & attendance', classContext: 'Selected class', classMissing: 'That class is not assigned to you or is no longer available — showing all runs.',
   leaveWarn: 'You have unsaved changes. Leave anyway?', menu: 'Menu', today: 'Today', status: { scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled', present: 'Present', absent: 'Absent', late: 'Late', excused: 'Excused', active: 'Active', enrolled: 'Enrolled', waitlisted: 'Waitlisted', withdrawn: 'Withdrawn' },
 };
 

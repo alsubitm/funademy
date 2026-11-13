@@ -77,14 +77,14 @@ export function AttendanceEditor({ run, lang, onSaved }: {
   return <div style={{ marginTop: 20 }} data-testid={`attendance-editor-${run.id}`}>
     <label htmlFor={`attendance-session-${run.id}`}>{ar ? 'تسجيل حضور الحصة' : 'Record session attendance'}</label>
     <div className="ip-filters">
-      <select id={`attendance-session-${run.id}`} className="ip-select" value={sessionId} disabled={busy !== null}
+      <select id={`attendance-session-${run.id}`} data-testid={`select-attendance-session-${run.id}`} className="ip-select" value={sessionId} disabled={busy !== null}
         onChange={e => setSessionId(e.target.value)}>
         <option value="">{ar ? 'اختر الحصة' : 'Choose a session'}</option>
         {run.sessions.map(x => <option key={x.id} value={x.id}>{fmtDate(x.date, lang, { dateStyle: 'medium', timeStyle: 'short' })} · {statusLabel(s, x.status)}</option>)}
       </select>
-      {sessionId && <button className="ip-btn line" disabled={loading || busy !== null} onClick={() => setRefresh(v => v + 1)}>{s.reload}</button>}
+      {sessionId && <button className="ip-btn line" disabled={loading || busy !== null} onClick={() => setRefresh(v => v + 1)} data-testid={`button-attendance-reload-${run.id}`}>{s.reload}</button>}
     </div>
-    <div role={failed ? 'alert' : 'status'} aria-live="polite">{loading ? (ar ? 'جارٍ التحميل…' : 'Loading…') : busy !== null ? s.saving : message}</div>
+    <div role={failed ? 'alert' : 'status'} aria-live="polite" className={`ip-att-status${failed ? ' bad' : ''}`} data-testid={`status-attendance-${run.id}`} data-state={loading ? 'loading' : busy !== null ? 'saving' : failed ? 'error' : message ? 'saved' : 'idle'}>{loading ? (ar ? 'جارٍ التحميل…' : 'Loading…') : busy !== null ? s.saving : message}</div>
     {!loading && sessionId && !rows.length && !failed && <p>{s.noStudents}</p>}
     {rows.map(row => <div className="ip-save-row" key={row.id} data-testid={`attendance-student-${row.id}`}>
       <b>{row.firstName}{row.makeup ? (ar ? ' · تعويض' : ' · Makeup') : ''}</b>
@@ -93,6 +93,7 @@ export function AttendanceEditor({ run, lang, onSaved }: {
         {(['present', 'absent', 'late', 'excused'] as const).map(status =>
           <button key={status} className={`ip-btn ${row.status === status ? 'gold' : 'line'}`}
             aria-pressed={row.status === status} aria-label={`${row.firstName}: ${statusLabel(s, status)}`}
+            data-testid={`button-attendance-${row.id}-${status}`}
             disabled={busy !== null || blocked || row.status === status} onClick={() => save(row, status)}>
             {statusLabel(s, status)}
           </button>)}

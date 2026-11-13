@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { WEEKDAYS_AR } from '@/lib/constants';
+import { useAdminSearch, pick, setAdminParams } from './useAdminQuery';
+
+const R_STATE = ['all', 'active', 'inactive'] as const;
+const R_SEATS = ['all', 'available', 'full'] as const;
 
 const fmtDate = (d: string | Date) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -21,6 +25,15 @@ const NO_ID_BADGE = (
 export function RunsTab({ programs }: { programs: any[] }) {
   const [runs, setRuns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const params = useAdminSearch();
+  const rq = params.get('rq') ?? '';
+  const rState = pick(params, 'rstate', R_STATE, 'all');
+  const rSeats = pick(params, 'rseats', R_SEATS, 'all');
+  const rawProg = params.get('rprogram') ?? 'all';
+  const rProgram = rawProg === 'all' || programs.some((p) => String(p.id) === rawProg) ? rawProg : 'all';
+  const runFiltersOn = !!rq.trim() || rState !== 'all' || rSeats !== 'all' || rProgram !== 'all';
+  const clearRunFilters = () => setAdminParams({ rq: null, rstate: null, rseats: null, rprogram: null });
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -46,9 +59,13 @@ export function RunsTab({ programs }: { programs: any[] }) {
 
   const fetchRuns = useCallback(async () => {
     try {
-      const res = await fetch('/svc/admin/runs');
+      const res = await fetch('/svc/admin/runs', { cache: 'no-store' });
       if (res.status === 401) { window.location.reload(); return; }
+      if (!res.ok) throw new Error('load');
       setRuns((await res.json()).runs || []);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -263,11 +280,29 @@ export function RunsTab({ programs }: { programs: any[] }) {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <div className="w-8 h-8 border-4 border-[#DFE5F2] border-t-[#1C54CB] rounded-full animate-spin"></div>
-      <div className="text-[#5F6B92] font-bold font-mono tracking-widest text-sm uppercase">LOADING...</div>
+    <div className="space-y-4" aria-busy="true" data-testid="status-runs-loading">
+      <div className="adm-skel" style={{ height: 110 }} />
+      <div className="adm-skel" style={{ height: 64 }} />
+      <div className="adm-skel" style={{ height: 240 }} />
     </div>
   );
+  if (loadError && runs.length === 0) return (
+    <div className="adm-state err" role="alert" data-testid="status-runs-error">
+      <b>تعذّر تحميل الدفعات.</b>
+      <p>لم تتغير أي بيانات. أعد المحاولة بعد التحقق من الاتصال.</p>
+      <button type="button" className="adm-btn" onClick={() => { setLoading(true); void fetchRuns(); }} data-testid="button-runs-retry">إعادة المحاولة</button>
+    </div>
+  );
+  const needle = rq.trim().toLowerCase();
+  const visibleRuns = runs.filter((r) => {
+    if (rProgram !== 'all' && String(r.program?.id ?? r.programId) !== rProgram) return false;
+    if (rState === 'active' && !r.active) return false;
+    if (rState === 'inactive' && r.active) return false;
+    if (rSeats === 'available' && !(r.seatsLeft > 0)) return false;
+    if (rSeats === 'full' && r.seatsLeft > 0) return false;
+    if (needle && ![r.program?.nameAr, r.titleAr, r.location, r.time].some((v) => String(v ?? '').toLowerCase().includes(needle))) return false;
+    return true;
+  });
 
   /* ——— attendance screen ——— */
   if (openRun && openSession) {
@@ -503,12 +538,45 @@ export function RunsTab({ programs }: { programs: any[] }) {
         </form>
       )}
 
+      <div className="adm-filters" role="search" aria-label="تصفية الدفعات">
+        <label className="adm-field grow">
+          <span>بحث</span>
+          <input type="search" value={rq} placeholder="البرنامج أو اسم الدفعة أو الموقع" onChange={(e) => setAdminParams({ rq: e.target.value })} data-testid="input-runs-search" />
+        </label>
+        <label className="adm-field">
+          <span>البرنامج</span>
+          <select value={rProgram} onChange={(e) => setAdminParams({ rprogram: e.target.value })} data-testid="select-runs-program">
+            <option value="all">كل البرامج</option>
+            {programs.map((p) => <option key={p.id} value={String(p.id)}>{p.nameAr}</option>)}
+          </select>
+        </label>
+        <label className="adm-field">
+          <span>الحالة</span>
+          <select value={rState} onChange={(e) => setAdminParams({ rstate: e.target.value })} data-testid="select-runs-state">
+            <option value="all">الكل</option>
+            <option value="active">نشطة</option>
+            <option value="inactive">موقفة</option>
+          </select>
+        </label>
+        <label className="adm-field">
+          <span>المقاعد</span>
+          <select value={rSeats} onChange={(e) => setAdminParams({ rseats: e.target.value })} data-testid="select-runs-seats">
+            <option value="all">الكل</option>
+            <option value="available">بها مقاعد متاحة</option>
+            <option value="full">ممتلئة</option>
+          </select>
+        </label>
+        <div className="adm-count" role="status" aria-live="polite" data-testid="text-runs-count">{visibleRuns.length} من {runs.length} دفعة</div>
+        {runFiltersOn && <button type="button" className="adm-btn line" onClick={clearRunFilters} data-testid="button-runs-clear">مسح التصفية</button>}
+      </div>
+      {loadError && <div className="adm-state err" role="alert" data-testid="status-runs-refresh-error">تعذّر تحديث القائمة؛ المعروض آخر نسخة محمّلة. <button type="button" className="adm-link" onClick={() => void fetchRuns()}>إعادة المحاولة</button></div>}
+
       <div className="bg-white rounded-[24px] border border-[#DFE5F2] overflow-x-auto shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
         <table className="data-table">
           <thead><tr><th>البرنامج / الدفعة</th><th>الجدول</th><th>الفترة</th><th>المسجلون</th><th>المقاعد</th><th>السعر</th><th>الحالة</th><th>إجراءات</th></tr></thead>
           <tbody>
-            {runs.map((r) => (
-              <tr key={r.id} className={!r.active ? 'opacity-60 bg-[#F7FAFF]' : ''}>
+            {visibleRuns.map((r) => (
+              <tr key={r.id} data-testid={`row-run-${r.id}`} className={!r.active ? 'opacity-60 bg-[#F7FAFF]' : ''}>
                 <td data-label="البرنامج">
                   <div className="font-display font-bold text-[15px]" style={{ color: r.program?.color || '#1C54CB' }}>{r.program?.nameAr}</div>
                   <div className="text-xs text-[#5F6B92] mt-0.5">{r.titleAr || '-'}</div>
@@ -530,7 +598,13 @@ export function RunsTab({ programs }: { programs: any[] }) {
                 </td>
               </tr>
             ))}
-            {runs.length === 0 && <tr><td colSpan={8} className="text-center py-16 text-[#5F6B92] font-bold">لا توجد دفعات.</td></tr>}
+            {runs.length === 0 && <tr><td colSpan={8} className="text-center py-16 text-[#5F6B92] font-bold" data-testid="empty-runs">لا توجد دفعات.</td></tr>}
+            {runs.length > 0 && visibleRuns.length === 0 && (
+              <tr><td colSpan={8} className="text-center py-12" data-testid="empty-runs-filtered">
+                <b>لا توجد دفعات تطابق التصفية.</b>{' '}
+                <button type="button" className="adm-link" onClick={clearRunFilters} data-testid="button-runs-clear-empty">مسح التصفية</button>
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>

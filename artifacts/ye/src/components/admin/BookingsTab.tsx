@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useAdminSearch, pick, setAdminParams } from './useAdminQuery';
+
+const B_STATUS = ['all', 'new', 'contacted', 'enrolled', 'converted'] as const;
+const B_OWNER = ['all', 'assigned', 'unassigned'] as const;
 
 type Metrics = {
   total: number;
@@ -41,15 +45,46 @@ export function BookingsTab() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<Metrics>(emptyMetrics);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
+  const params = useAdminSearch();
+  const q = params.get('bq') ?? '';
+  const fStatus = pick(params, 'bstatus', B_STATUS, 'all');
+  const fOwner = pick(params, 'bowner', B_OWNER, 'all');
+  const programOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    bookings.forEach((b) => b.program && m.set(String(b.program.id), b.program.nameAr));
+    return [...m.entries()];
+  }, [bookings]);
+  const rawProgram = params.get('bprogram') ?? 'all';
+  const fProgram = rawProgram === 'all' || programOptions.some(([id]) => id === rawProgram) ? rawProgram : 'all';
+  const filtersOn = !!q.trim() || fStatus !== 'all' || fOwner !== 'all' || fProgram !== 'all';
+  const visible = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return bookings.filter((b) => {
+      if (fStatus === 'converted' ? !b.converted : fStatus !== 'all' && (b.converted || b.status !== fStatus)) return false;
+      if (fProgram !== 'all' && String(b.program?.id) !== fProgram) return false;
+      const owner = String(b.assignedTo ?? '').trim();
+      if (fOwner === 'assigned' && !owner) return false;
+      if (fOwner === 'unassigned' && owner) return false;
+      if (needle && ![b.childFirstName, b.parentName, b.phone, b.email, owner, b.program?.nameAr, b.program?.nameEn]
+        .some((v) => String(v ?? '').toLowerCase().includes(needle))) return false;
+      return true;
+    });
+  }, [bookings, q, fStatus, fOwner, fProgram]);
+  const clearFilters = () => setAdminParams({ bq: null, bstatus: null, bowner: null, bprogram: null });
 
   const fetchBookings = async () => {
     try {
       const res = await fetch('/svc/admin/bookings', { cache: 'no-store' });
       if (res.status === 401) return window.location.reload();
+      if (!res.ok) throw new Error('load');
       const data = await res.json();
       setBookings(data.bookings || []);
       setMetrics(data.metrics || emptyMetrics);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -72,7 +107,22 @@ export function BookingsTab() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-[#DFE5F2] border-t-[#1C54CB] rounded-full animate-spin" /></div>;
+    return (
+      <div className="space-y-4" aria-busy="true" data-testid="status-bookings-loading">
+        <div className="adm-skel" style={{ height: 120 }} />
+        <div className="adm-skel" style={{ height: 64 }} />
+        <div className="adm-skel" style={{ height: 180 }} />
+      </div>
+    );
+  }
+  if (loadError && bookings.length === 0) {
+    return (
+      <div className="adm-state err" role="alert" data-testid="status-bookings-error">
+        <b>تعذّر تحميل الحجوزات.</b>
+        <p>لم تتغير أي بيانات. تحقق من الاتصال ثم أعد المحاولة.</p>
+        <button type="button" className="adm-btn" onClick={() => { setLoading(true); void fetchBookings(); }} data-testid="button-bookings-retry">إعادة المحاولة</button>
+      </div>
+    );
   }
 
   const cards = [
@@ -90,7 +140,10 @@ export function BookingsTab() {
             <h2 className="text-3xl font-display font-bold text-[#101A38]">متابعة الحجوزات التجريبية</h2>
             <p className="text-[#5F6B92] mt-2">الخطوة القادمة، المسؤول، الحضور، والتحويل إلى اشتراك مدفوع.</p>
           </div>
-          <a href="/svc/admin/bookings?format=csv" className="bg-[#101A38] text-white px-6 py-3 rounded-xl font-bold self-start">تصدير CSV</a>
+          <div className="self-start text-start">
+            <a href="/svc/admin/bookings?format=csv" className="adm-btn navy" data-testid="link-bookings-csv">تصدير CSV — كل الحجوزات</a>
+            <div className="adm-hint" data-testid="text-bookings-csv-scope">يشمل التصدير جميع الحجوزات دون تطبيق التصفية الحالية.</div>
+          </div>
         </div>
       </div>
 
@@ -104,9 +157,47 @@ export function BookingsTab() {
         ))}
       </div>
 
+      <div className="adm-filters" role="search" aria-label="تصفية الحجوزات">
+        <label className="adm-field grow">
+          <span>بحث</span>
+          <input type="search" value={q} placeholder="اسم الطفل أو ولي الأمر أو الجوال أو المسؤول"
+            onChange={(e) => setAdminParams({ bq: e.target.value })} data-testid="input-bookings-search" />
+        </label>
+        <label className="adm-field">
+          <span>الحالة</span>
+          <select value={fStatus} onChange={(e) => setAdminParams({ bstatus: e.target.value })} data-testid="select-bookings-status">
+            <option value="all">كل الحالات</option>
+            <option value="new">جديد</option>
+            <option value="contacted">تم التواصل</option>
+            <option value="enrolled">مسجّل — دون دفع مؤكد</option>
+            <option value="converted">مشترك مدفوع</option>
+          </select>
+        </label>
+        <label className="adm-field">
+          <span>البرنامج</span>
+          <select value={fProgram} onChange={(e) => setAdminParams({ bprogram: e.target.value })} data-testid="select-bookings-program">
+            <option value="all">كل البرامج</option>
+            {programOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        </label>
+        <label className="adm-field">
+          <span>المسؤول</span>
+          <select value={fOwner} onChange={(e) => setAdminParams({ bowner: e.target.value })} data-testid="select-bookings-owner">
+            <option value="all">الكل</option>
+            <option value="assigned">مُسنَد</option>
+            <option value="unassigned">غير مُسنَد</option>
+          </select>
+        </label>
+        <div className="adm-count" role="status" aria-live="polite" data-testid="text-bookings-count">
+          {visible.length} من {bookings.length} حجز
+        </div>
+        {filtersOn && <button type="button" className="adm-btn line" onClick={clearFilters} data-testid="button-bookings-clear">مسح التصفية</button>}
+      </div>
+      {loadError && <div className="adm-state err" role="alert" data-testid="status-bookings-refresh-error">تعذّر تحديث القائمة؛ المعروض آخر نسخة محمّلة. <button type="button" className="adm-link" onClick={() => void fetchBookings()}>إعادة المحاولة</button></div>}
+
       <div className="space-y-4">
-        {bookings.map((b) => (
-          <article key={b.id} className="bg-white rounded-[24px] border border-[#DFE5F2] p-5 sm:p-6 shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
+        {visible.map((b) => (
+          <article key={b.id} data-testid={`card-booking-${b.id}`} className="bg-white rounded-[24px] border border-[#DFE5F2] p-5 sm:p-6 shadow-[0_8px_30px_rgba(7,17,42,0.04)]">
             <div className="grid lg:grid-cols-[1.2fr_1fr_1fr] gap-5">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -181,7 +272,13 @@ export function BookingsTab() {
             </div>
           </article>
         ))}
-        {bookings.length === 0 && <div className="bg-white rounded-2xl p-12 text-center text-[#5F6B92]">لا توجد حجوزات تجريبية بعد.</div>}
+        {bookings.length === 0 && <div className="adm-state" data-testid="empty-bookings">لا توجد حجوزات تجريبية بعد.</div>}
+        {bookings.length > 0 && visible.length === 0 && (
+          <div className="adm-state" data-testid="empty-bookings-filtered">
+            <b>لا توجد حجوزات تطابق التصفية.</b>
+            <button type="button" className="adm-btn line" onClick={clearFilters} data-testid="button-bookings-clear-empty">مسح التصفية</button>
+          </div>
+        )}
       </div>
     </div>
   );

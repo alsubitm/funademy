@@ -68,7 +68,7 @@ function SessionRow({ f, lang, s, right }: { f: Flat; lang: Lang; s: Strings; ri
   );
 }
 
-export function Overview({ data, lang, s, notes, go }: { data: Dashboard; lang: Lang; s: Strings; notes: Record<number, NoteState>; go: (t: string) => void }) {
+export function Overview({ data, lang, s, notes, go }: { data: Dashboard; lang: Lang; s: Strings; notes: Record<number, NoteState>; go: (t: string, runId?: number | null) => void }) {
   const flat = flatten(data.runs);
   const upcoming = flat.filter((f) => isUpcoming(f.session.date) && f.session.status !== 'cancelled');
   const studentIds = new Set(data.runs.flatMap((r) => r.students.map((st) => st.id)));
@@ -96,20 +96,25 @@ export function Overview({ data, lang, s, notes, go }: { data: Dashboard; lang: 
             {upcoming.length === 0 ? <Empty id="upcoming" title={s.noUpcoming} /> : (
               <ul className="ip-list">{upcoming.slice(0, 6).map((f) => <SessionRow key={f.session.id} f={f} lang={lang} s={s} />)}</ul>
             )}
-            <div style={{ marginTop: 12 }}><button className="ip-btn line" onClick={() => go('schedule')} data-testid="button-overview-schedule">{s.nav.schedule}</button></div>
+            <div style={{ marginTop: 12 }}><button className="ip-btn line" onClick={() => go('schedule', null)} data-testid="button-overview-schedule">{s.nav.schedule}</button></div>
           </div>
           <div className="ip-card">
             <h3>{s.nav.roster}</h3>
             <ul className="ip-list">
               {data.runs.map((r) => (
-                <li key={r.id} className="ip-sess" style={{ gridTemplateColumns: '1fr auto' }} data-testid={`card-run-summary-${r.id}`}>
+                <li key={r.id} className="ip-sess ip-sess-run" data-testid={`card-run-summary-${r.id}`}>
                   <div><div className="ip-sess-t">{r.title}</div><div className="ip-sess-m" dir="ltr" style={{ textAlign: 'start' }}>{r.program}</div></div>
                   <span className="ip-pill gold">{r.students.length}/{r.capacity}</span>
+                  <div className="ip-run-actions">
+                    <button className="ip-btn line sm" onClick={() => go('schedule', r.id)} aria-label={`${s.nav.schedule}: ${r.title}`} data-testid={`button-run-schedule-${r.id}`}>{s.nav.schedule}</button>
+                    <button className="ip-btn line sm" onClick={() => go('roster', r.id)} aria-label={`${s.nav.roster}: ${r.title}`} data-testid={`button-run-roster-${r.id}`}>{s.openClass}</button>
+                    <button className="ip-btn line sm" onClick={() => go('notes', r.id)} aria-label={`${s.nav.notes}: ${r.title}`} data-testid={`button-run-notes-${r.id}`}>{s.nav.notes}</button>
+                  </div>
                 </li>
               ))}
             </ul>
             <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="ip-btn line" onClick={() => go('roster')} data-testid="button-overview-roster">{s.nav.roster}</button>
+              <button className="ip-btn line" onClick={() => go('roster', null)} data-testid="button-overview-roster">{s.nav.roster}</button>
               <button className="ip-btn gold" onClick={() => go('lab')} data-testid="button-overview-lab">{s.openLab}</button>
             </div>
           </div>
@@ -119,12 +124,17 @@ export function Overview({ data, lang, s, notes, go }: { data: Dashboard; lang: 
   );
 }
 
-function useFilters(runs: Run[]) {
+type Ctx = { runCtx: number | null; onRun: (id: number | null) => void };
+function useFilters(runs: Run[], ctx: Ctx) {
   const [q, setQ] = useState('');
-  const [runId, setRunId] = useState('all');
+  const valid = ctx.runCtx !== null && runs.some((r) => r.id === ctx.runCtx);
+  const runId = valid ? String(ctx.runCtx) : 'all';
+  const missing = ctx.runCtx !== null && !valid;
+  const setRunId = (v: string) => ctx.onRun(v === 'all' ? null : Number(v));
   const filtered = useMemo(() => runs.filter((r) => (runId === 'all' || String(r.id) === runId) &&
-    (!q.trim() || `${r.title} ${r.program} ${r.location ?? ''}`.toLowerCase().includes(q.trim().toLowerCase()))), [runs, q, runId]);
-  return { q, setQ, runId, setRunId, filtered };
+    (!q.trim() || `${r.title} ${r.program} ${r.location ?? ''} ${r.students.map(st => st.firstName).join(' ')}`.toLowerCase().includes(q.trim().toLowerCase()))), [runs, q, runId]);
+  const current = valid ? runs.find((r) => r.id === ctx.runCtx) ?? null : null;
+  return { q, setQ, runId, setRunId, filtered, current, missing };
 }
 function FilterBar({ s, runs, f, children, prefix }: { s: Strings; runs: Run[]; f: ReturnType<typeof useFilters>; children?: React.ReactNode; prefix: string }) {
   return (
@@ -135,12 +145,19 @@ function FilterBar({ s, runs, f, children, prefix }: { s: Strings; runs: Run[]; 
         {runs.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
       </select>
       {children}
+      {f.current && (
+        <div className="ip-ctx" role="status" data-testid={`status-${prefix}-class-context`}>
+          <span>{s.classContext}: <b>{f.current.title}</b></span>
+          <button className="ip-btn line sm" onClick={() => f.setRunId('all')} data-testid={`button-${prefix}-clear-class`}>{s.allRuns}</button>
+        </div>
+      )}
+      {f.missing && <div className="ip-ctx warn" role="status" data-testid={`status-${prefix}-class-missing`}>{s.classMissing}</div>}
     </div>
   );
 }
 
-export function Schedule({ data, lang, s }: { data: Dashboard; lang: Lang; s: Strings }) {
-  const f = useFilters(data.runs);
+export function Schedule({ data, lang, s, runCtx, onRun }: { data: Dashboard; lang: Lang; s: Strings } & Ctx) {
+  const f = useFilters(data.runs, { runCtx, onRun });
   const [when, setWhen] = useState<'upcoming' | 'past'>('upcoming');
   const [day, setDay] = useState('');
   const list = flatten(f.filtered).filter((x) => (when === 'upcoming' ? isUpcoming(x.session.date) : !isUpcoming(x.session.date)) && (!day || dayKey(x.session.date) === day));
@@ -170,8 +187,8 @@ export function Schedule({ data, lang, s }: { data: Dashboard; lang: Lang; s: St
   );
 }
 
-export function Roster({ data, lang, s, onAttendanceSaved }: { data: Dashboard; lang: Lang; s: Strings; onAttendanceSaved: (sessionId: number, studentId: number, status: string) => void }) {
-  const f = useFilters(data.runs);
+export function Roster({ data, lang, s, onAttendanceSaved, runCtx, onRun }: { data: Dashboard; lang: Lang; s: Strings; onAttendanceSaved: (sessionId: number, studentId: number, status: string) => void } & Ctx) {
+  const f = useFilters(data.runs, { runCtx, onRun });
   return (
     <section>
       <h2 className="ip-h">{s.nav.roster}</h2>
@@ -231,11 +248,11 @@ export function Roster({ data, lang, s, onAttendanceSaved }: { data: Dashboard; 
   );
 }
 
-export function Notes({ data, lang, s, notes, setDraft, save, readOnly }: {
+export function Notes({ data, lang, s, notes, setDraft, save, readOnly, runCtx, onRun }: {
   data: Dashboard; lang: Lang; s: Strings; notes: Record<number, NoteState>; readOnly: boolean;
   setDraft: (id: number, v: string) => void; save: (id: number) => void;
-}) {
-  const f = useFilters(data.runs);
+} & Ctx) {
+  const f = useFilters(data.runs, { runCtx, onRun });
   const [when, setWhen] = useState<'upcoming' | 'past'>('upcoming');
   const list = flatten(f.filtered).filter((x) => (when === 'upcoming' ? isUpcoming(x.session.date) : !isUpcoming(x.session.date)));
   if (when === 'past') list.reverse();
@@ -265,7 +282,7 @@ export function Notes({ data, lang, s, notes, setDraft, save, readOnly }: {
                 onChange={(e) => setDraft(x.session.id, e.target.value)} data-testid={`input-note-${x.session.id}`} />
               <div className="ip-save-row">
                 <span className="mono" style={{ color: tooLong ? 'var(--bad)' : undefined }}>{n.draft.length}/5000</span>
-                <span aria-live="polite" data-testid={`status-note-${x.session.id}`}>
+                <span role={n.status === 'error' ? 'alert' : 'status'} aria-live="polite" data-testid={`status-note-${x.session.id}`} data-state={n.status === 'saved' && dirty ? 'dirty' : dirty && n.status === 'idle' ? 'dirty' : n.status}>
                   {n.status === 'saving' && <span className="ip-state" style={{ color: 'var(--blue)' }}>{s.saving}</span>}
                   {n.status === 'error' && <span className="ip-state" style={{ color: 'var(--bad)' }}>{n.error ?? s.saveFailed}</span>}
                   {n.status !== 'saving' && n.status !== 'error' && dirty && <span className="ip-state" style={{ color: 'var(--warn)' }}>{s.unsaved}</span>}

@@ -4,6 +4,7 @@ import { isTransientDatabaseError, prisma } from '@/lib/db';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { portalDict } from '@/app/(ar)/portal/dict';
 import { MakeupButton } from './MakeupButton';
+import { PortalNav } from './PortalNav';
 import { effectiveMonthlySar, subscriptionState } from '@/lib/billing';
 import { RenewButton } from '@/components/portal/RenewButton';
 import { portalSessions, joinUrlFor } from '@/lib/portal-sessions';
@@ -13,7 +14,7 @@ import { moyasarLive, tamaraLive, paymentAvailability } from '@/lib/payments';
 type Lang = 'ar' | 'en';
 
 const BADGE_ICONS: Record<string, string> = {
-  star: '⭐', gear: '⚙️', rocket: '🚀', crown: '👑', bolt: '⚡', kite: '🪁',
+  star: '★', gear: '⚙', rocket: '▲', crown: '♛', bolt: 'ϟ', kite: '◆',
 };
 
 function fmtDate(lang: Lang, d: Date): string {
@@ -176,50 +177,45 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       {/* renewal reminder banner */}
       <RenewalAlert lang={lang} familyId={familyId} d={d} />
 
-      {/* child switcher */}
-      <div className="ptl-switch">
-        {students.map((s) => (
-          <Link key={s.id} className={`ptl-kid ${s.id === child.id ? 'sel' : ''}`} href={`${base}/portal?child=${s.id}`}>
-            <span className="dot" />
-            {s.firstName}
-          </Link>
-        ))}
+      <PortalNav
+        base={base}
+        childId={child.id}
+        kids={students.map((s) => ({ id: s.id, firstName: s.firstName, birthYear: s.birthYear }))}
+        childLabel={d.navChildren}
+        sectionsLabel={d.navSections}
+        labels={{ upcoming: d.upcoming, enrollments: d.enrollments, attendance: d.attendance, skills: d.skills, payments: d.payments }}
+        sectionLabels={{
+          upcoming: fmt(lang, allUpcoming.length),
+          enrollments: fmt(lang, enrollments.length),
+          attendance: attendance.length ? `${fmt(lang, attendance.filter((a) => a.status === 'present' || a.status === 'late').length)}/${fmt(lang, attendance.length)}` : '—',
+          skills: programSkills.length ? `${fmt(lang, programSkills.filter((sk) => skillState.get(sk.id) === 'mastered').length)}/${fmt(lang, programSkills.length)}` : '—',
+          payments: '',
+        }}
+      />
+
+      {/* Learning: an explicit profile choice — course students and learning profiles are separate records. */}
+      <div className="ptl-card ptl-learn" data-testid="card-portal-learning">
+        <div>
+          <div className="ptl-learn-t">{d.learnTitle}</div>
+          <p>{d.learnBody}</p>
+        </div>
+        <Link className="ptl-learn-go" href={`${base}/learn`} data-testid="link-portal-learning-chooser">{d.learnCta}</Link>
       </div>
 
-      {/* Learning platform CTA */}
-      <Link
-        href={lang === 'ar' ? '/learn' : '/en/learn'}
-        className="ptl-card"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
-          background: 'linear-gradient(135deg,#1C54CB,#22DAFF 220%)', color: '#fff',
-          borderRadius: 14, padding: '16px 20px', marginBottom: 0,
-        }}
-      >
-        <span style={{ fontSize: 36 }}>🎓</span>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>{lang === 'ar' ? 'مكتبة الأنشطة' : 'Resource library'}</div>
-          <div style={{ fontSize: 13, opacity: .85, marginTop: 2 }}>
-            {lang === 'ar' ? 'دروس، تمارين، XP وشارات — ابدأ الآن!' : 'Lessons, activities, XP and badges — start learning!'}
-          </div>
-        </div>
-        <span style={{ marginInlineStart: 'auto', fontSize: 20 }}>{lang === 'ar' ? '←' : '→'}</span>
-      </Link>
-
       {/* next session hero */}
-      <div className="ptl-card ptl-next">
+      <div className="ptl-card ptl-next" id="ptl-upcoming-next">
         <div className="hd">
-          <span className="ico" aria-hidden>{next ? '🎥' : '📅'}</span>
+          <span className="ico" aria-hidden="true" />
           <span className="ttl">{d.nextTitle}</span>
           {next && <span className={`ptl-next-when ${nextIsToday ? 'today' : ''}`}>{nextWhen}</span>}
-          {allUpcoming.length > 1 && <a className="all" href="#upcoming">{d.nextAll} ({fmt(lang, allUpcoming.length)})</a>}
+          {allUpcoming.length > 1 && <a className="all" href={`${base}/portal?child=${child.id}#ptl-upcoming`}>{d.nextAll} ({fmt(lang, allUpcoming.length)})</a>}
         </div>
         {next ? (
           <div className="bd">
             <div className="info">
               <div className="nm">
                 {progName(next.courseRun.program)}
-                {next.isMakeup && <span className="ptl-mk approved" style={{ marginInlineStart: 8 }}>🔁 {d.mkTag}</span>}
+                {next.isMakeup && <span className="ptl-mk approved" style={{ marginInlineStart: 8 }}>{d.mkTag}</span>}
               </div>
               <div className="mt">
                 {child.firstName} · {weekdays[next.courseRun.weekday]} {fmt(lang, next.courseRun.time)} · {fmtDate(lang, next.date)}
@@ -229,7 +225,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
             </div>
             {nextJoinUrl && (
               <a className="ptl-live lg" href={nextJoinUrl} target="_blank" rel="noopener noreferrer">
-                🎥 {d.joinLive}
+                {d.joinLive}
               </a>
             )}
           </div>
@@ -244,8 +240,8 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       </div>
 
       {/* enrollments */}
-      <div className="ptl-card">
-        <h3><span className="ico">🎓</span>{d.enrollments}</h3>
+      <div className="ptl-card" id="ptl-enrollments" tabIndex={-1}>
+        <h3><span className="ico" aria-hidden="true" />{d.enrollments}</h3>
         {enrollments.length === 0 ? (
           <div className="ptl-empty">
             {d.noEnroll}
@@ -279,7 +275,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       {/* appointments (trial / consultation meetings) */}
       {appointments.length > 0 && (
         <div className="ptl-card">
-          <h3><span className="ico">🗓️</span>{d.appointments}</h3>
+          <h3><span className="ico" aria-hidden="true" />{d.appointments}</h3>
           {appointments.map((a) => (
             <div key={a.id} className="ptl-enr">
               <div className="info">
@@ -301,8 +297,9 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       )}
 
       {/* upcoming sessions */}
-      <div className="ptl-card" id="upcoming">
-        <h3><span className="ico">📅</span>{d.upcoming}</h3>
+      <div className="ptl-card" id="ptl-upcoming" tabIndex={-1}>
+        <span id="upcoming" aria-hidden="true" />
+        <h3><span className="ico" aria-hidden="true" />{d.upcoming}</h3>
         {allUpcoming.length === 0 ? (
           <div className="ptl-empty">{d.noUpcoming}</div>
         ) : (
@@ -313,14 +310,14 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                 <span className="d">{fmtDate(lang, s.date)}</span>
                 <span className="p">
                   {progName(s.courseRun.program)} — {weekdays[s.courseRun.weekday]} {fmt(lang, s.courseRun.time)}
-                  {s.isMakeup && <span className="ptl-mk approved" style={{ marginInlineStart: 8 }}>🔁 {d.mkTag}</span>}
+                  {s.isMakeup && <span className="ptl-mk approved" style={{ marginInlineStart: 8 }}>{d.mkTag}</span>}
                   <span className="loc">
                     <ClassroomLocation location={s.courseRun.location} lang={lang} />
                   </span>
                 </span>
                 {joinUrl && (
                   <a className="ptl-live" href={joinUrl} target="_blank" rel="noopener noreferrer">
-                    🎥 {d.joinLive}
+                    {d.joinLive}
                   </a>
                 )}
               </div>
@@ -332,7 +329,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       {/* recorded classes */}
       {recorded.some((session) => safeExternalUrl(session.recordingUrl)) && (
         <div className="ptl-card">
-          <h3><span className="ico">🎬</span>{d.recordings}</h3>
+          <h3><span className="ico" aria-hidden="true" />{d.recordings}</h3>
           {recorded.map((s) => {
             const recordingUrl = safeExternalUrl(s.recordingUrl);
             if (!recordingUrl) return null;
@@ -341,7 +338,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                 <span className="d">{fmtDate(lang, s.date)}</span>
                 <span className="p">{progName(s.courseRun.program)}</span>
                 <a className="ptl-rec" href={recordingUrl} target="_blank" rel="noopener noreferrer">
-                  ▶️ {d.watchRecording}
+                  {d.watchRecording}
                 </a>
               </div>
             );
@@ -350,8 +347,8 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       )}
 
       {/* attendance history */}
-      <div className="ptl-card">
-        <h3><span className="ico">✅</span>{d.attendance}</h3>
+      <div className="ptl-card" id="ptl-attendance" tabIndex={-1}>
+        <h3><span className="ico" aria-hidden="true" />{d.attendance}</h3>
         {attendance.length === 0 ? (
           <div className="ptl-empty">{d.noAttendance}</div>
         ) : (
@@ -381,7 +378,7 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       {/* makeup requests */}
       {makeupRequests.length > 0 && (
         <div className="ptl-card">
-          <h3><span className="ico">🔁</span>{d.makeups}</h3>
+          <h3><span className="ico" aria-hidden="true" />{d.makeups}</h3>
           {makeupRequests.map((m) => (
             <div key={m.id} className="ptl-sess ptl-mk-row">
               <span className="d">{fmtDate(lang, m.session.date)}</span>
@@ -389,11 +386,11 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
                 {progName(m.session.courseRun.program)}
                 {m.makeupSession && (
                   <span className="loc">
-                    🔁 {d.mkSlot}: {fmtDate(lang, m.makeupSession.date)} — {weekdays[m.makeupSession.courseRun.weekday]} {fmt(lang, m.makeupSession.courseRun.time)}
+                    {d.mkSlot}: {fmtDate(lang, m.makeupSession.date)} — {weekdays[m.makeupSession.courseRun.weekday]} {fmt(lang, m.makeupSession.courseRun.time)}
                     {' · '}<ClassroomLocation location={m.makeupSession.courseRun.location} lang={lang} />
                   </span>
                 )}
-                {m.adminNote && <span className="loc">💬 {m.adminNote}</span>}
+                {m.adminNote && <span className="loc">{m.adminNote}</span>}
               </span>
               <span className={`ptl-mk ${m.status}`}>{mkLabel[m.status]}</span>
             </div>
@@ -402,10 +399,10 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
       )}
 
       {/* skill map */}
-      <div className="ptl-card">
-        <h3><span className="ico">🧩</span>{d.skills}</h3>
+      <div className="ptl-card" id="ptl-skills" tabIndex={-1}>
+        <h3><span className="ico" aria-hidden="true" />{d.skills}</h3>
         {programSkills.length === 0 ? (
-          <div className="ptl-empty">{d.noEnroll}</div>
+          <div className="ptl-empty">{enrollments.length === 0 ? d.noEnroll : d.noSkills}</div>
         ) : (
           programIds.map((pid) => {
             const list = programSkills.filter((sk) => sk.programId === pid);
@@ -437,14 +434,14 @@ async function PortalViewContent({ lang, familyId, selectedChild, payNotice }: {
 
       {/* badges */}
       <div className="ptl-card">
-        <h3><span className="ico">🏅</span>{d.badges}</h3>
+        <h3><span className="ico" aria-hidden="true" />{d.badges}</h3>
         {studentBadges.length === 0 ? (
           <div className="ptl-empty">{d.noBadges}</div>
         ) : (
           <div className="ptl-badges">
             {studentBadges.map((b) => (
               <div key={b.id} className="ptl-badge">
-                <div className="ico">{BADGE_ICONS[b.badge.iconKey] ?? '⭐'}</div>
+                <div className="ico">{BADGE_ICONS[b.badge.iconKey] ?? '★'}</div>
                 <div className="nm">{lang === 'ar' ? b.badge.nameAr : b.badge.nameEn}</div>
                 <div className="dt">{d.awardedOn} {fmtDate(lang, b.awardedAt)}</div>
               </div>
@@ -475,7 +472,7 @@ async function RenewalAlert({ lang, familyId, d }: { lang: Lang; familyId: numbe
   return (
     <div className={`ptl-alert ${hasDue ? 'due' : 'due_soon'}`} role="alert">
       <div className="hd">
-        <span className="ico" aria-hidden>{hasDue ? '⚠️' : '⏳'}</span>
+        <span className="ico" aria-hidden="true" />
         <span className="ttl">{hasDue ? d.alertDueTitle : d.alertDueSoonTitle}</span>
       </div>
       <div className="sub">{d.alertRenewNow}</div>
@@ -518,8 +515,8 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
   const available = await paymentAvailability();
 
   return (
-    <div className="ptl-card">
-      <h3><span className="ico">💳</span>{d.payments}</h3>
+    <div className="ptl-card" id="ptl-payments" tabIndex={-1}>
+      <h3><span className="ico" aria-hidden="true" />{d.payments}</h3>
 
       {payNotice && (
         <div
@@ -589,7 +586,7 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
             </span>
             <span className="amt">{fmt(lang, p.totalSar)} {d.sar}</span>
             <a className="rcpt" href={`/svc/account/payments/${p.id}/receipt?lang=${lang}`} target="_blank" rel="noopener">
-              🧾 {d.receipt}
+              {d.receipt}
             </a>
           </div>
         ))

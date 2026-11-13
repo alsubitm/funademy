@@ -76,6 +76,7 @@ export default function KidLessonPage() {
   const [reward, setReward] = useState<RewardData | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [loadRetryable, setLoadRetryable] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const draftLoaded = useRef(false);
   const elapsedRef = useRef(0);
@@ -84,8 +85,20 @@ export default function KidLessonPage() {
 
   useEffect(() => {
     fetch(`/svc/learn/lessons/${id}`)
-      .then((r) => {
-        if (r.status === 401 || r.status === 403) { window.location.href = path('/learn'); return null; }
+      .then(async (r) => {
+        if (r.status === 401) { window.location.href = path('/learn?reason=session'); return null; }
+        if (r.status === 403 || r.status === 404) {
+          const body = await r.json().catch(() => ({}));
+          setLoadRetryable(false);
+          setError(body.error === 'unit_locked'
+            ? t('أكمل الوحدة السابقة أولاً لفتح هذا الدرس.', 'Complete the previous unit to unlock this lesson.')
+            : body.error === 'daily_limit_reached'
+              ? t('لا يتبقى وقت كافٍ لهذا الدرس اليوم. نكمل غداً.', 'There is not enough learning time left for this lesson today. Come back tomorrow.')
+              : body.error === 'no_active_enrollment'
+                ? t('لا يوجد تسجيل نشط. اطلب من ولي الأمر مراجعة البوابة.', 'No active enrollment. Ask a parent to check the portal.')
+                : t('هذا الدرس غير متاح لهذا الملف حالياً. اختر درساً من الصفحة الرئيسية.', 'This lesson is not available for this profile right now. Choose a lesson from home.'));
+          return null;
+        }
         if (!r.ok) throw new Error(`lesson_load_${r.status}`);
         return r.json();
       })
@@ -227,7 +240,10 @@ export default function KidLessonPage() {
   if (!lesson) return (
     <div className="kid-content" style={{ padding: 40, textAlign: 'center' }} role="alert">
       {error || t('تعذر تحميل الدرس.', 'Could not load this lesson.')}
-      <div><button className="btn y" onClick={() => window.location.reload()}>{t('إعادة المحاولة', 'Try again')}</button></div>
+      <div>
+        {loadRetryable && <button className="btn y" onClick={() => window.location.reload()}>{t('إعادة المحاولة', 'Try again')}</button>}
+        <Link className="kid-btn line" href={path(`/learn/${childId}`)}>{t('العودة إلى التعلّم', 'Back to learning')}</Link>
+      </div>
     </div>
   );
 
