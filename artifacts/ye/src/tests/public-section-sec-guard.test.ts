@@ -69,6 +69,9 @@ const FILE_EXCEPTIONS = new Set<string>([
   'components/home3/FunHome.tsx',
   'components/home3/Programs.tsx',
   'components/home3/IdeaMachine.tsx',
+  // Bright Play's online section likewise owns responsive padding via
+  // .fa3 .online-course; legacy .sec mobile heading rules would override it.
+  'components/home3/OnlineCourse.tsx',
 ]);
 
 function isExcluded(rel: string): boolean {

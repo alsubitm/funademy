@@ -41,7 +41,7 @@ test.afterAll(async () => {
   await db.$disconnect();
 });
 
-test('retries a committed invitation with its original key, then gives a sibling a new seat', async ({ page, context }) => {
+test('retries a committed invitation after refresh with its original key, then gives a sibling a new seat', async ({ page, context }) => {
   await context.addCookies([{
     name: 'ye_instructor',
     value: instructorToken(instructorId),
@@ -81,10 +81,18 @@ test('retries a committed invitation with its original key, then gives a sibling
   expect(requests[0]).toMatchObject({ name: 'Retry student', email: 'guardian@example.invalid' });
   expect(requests[0].idempotencyKey).toBe(original.idempotencyKey);
 
+  // Destroy all component memory, then retry the same details in the new page.
+  await page.reload();
+  await page.getByTestId('nav-instructor-live').click();
+  await page.getByTestId(`card-live-${roomId}`).click();
+  await page.getByTestId('input-guest-name').fill('Retry student');
+  await page.getByTestId('input-guest-email').fill('guardian@example.invalid');
   await page.getByTestId('button-guest-add').click();
   await expect(page.getByTestId('input-guest-name')).toHaveValue('');
   await expect.poll(() => db.liveLabGuest.count({ where: { roomId } })).toBe(1);
   expect((await db.liveLabGuest.findFirstOrThrow({ where: { roomId } })).id).toBe(original.id);
+  await expect(page.getByTestId(`row-guest-${original.id}`)).toBeVisible();
+  expect(await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith('ye:live-invitation:')))).toEqual([]);
 
   await page.getByTestId('input-guest-name').fill('Sibling student');
   await page.getByTestId('input-guest-email').fill('guardian@example.invalid');

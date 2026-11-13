@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './instructor.css';
 import type { LiveGuest, LivePhase, LiveRoom, LiveStaffResponse } from '@/lib/live-lab-types';
+import { invitationRetry } from '@/lib/live-invitation-retry';
 
 type Lang = 'ar' | 'en';
 type Room = LiveRoom & { guests: LiveGuest[] };
@@ -61,6 +62,7 @@ const ERR: Record<string, { ar: string; en: string }> = {
   finish_lesson_first: { ar: 'أكمل الخطوة 14 أولاً.', en: 'Complete step 14 first.' },
   stale_version: { ar: 'تغيّرت الحصة من جهاز آخر. تم التحديث، أعد المحاولة.', en: 'Class changed elsewhere. Refreshed — try again.' },
   invalid_input: { ar: 'بيانات غير صالحة. راجع الحقول.', en: 'Invalid input. Check the fields.' },
+  retry_storage: { ar: 'تعذّر حفظ بيانات إعادة المحاولة في المتصفح. فعّل تخزين الجلسة ثم أعد المحاولة؛ لم تُرسل الدعوة.', en: 'Could not save retry information in this browser. Enable session storage and try again; no invitation was sent.' },
   idempotency_conflict: { ar: 'تعذّر تأكيد الدعوة بسبب اختلاف البيانات. أعد المحاولة.', en: 'This invitation key was used with different details. Retry the invitation.' },
   quiz_closed: { ar: 'الاختبار مغلق.', en: 'Quiz is closed.' },
 };
@@ -209,7 +211,7 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
   const [copied, setCopied] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
-  const guestRequest = useRef<{ signature: string; key: string } | null>(null);
+  const guestSubmitting = useRef(false);
   const roomRef = useRef(room); roomRef.current = room;
 
   const patch = async (body: Record<string, unknown>) => {
@@ -320,17 +322,28 @@ function RoomPanel({ lang, room, reload, setErr, stale }: { lang: Lang; room: Ro
           {room.phase === 'waiting' ? (
             <form className="ip-live-form" style={{ marginBottom: 8 }} onSubmit={async (e) => {
               e.preventDefault();
+              if (guestSubmitting.current) return;
+              guestSubmitting.current = true;
               const name = gName.trim();
               const email = gEmail.trim();
-              const signature = JSON.stringify([name, email]);
-              if (!guestRequest.current || guestRequest.current.signature !== signature) {
-                guestRequest.current = { signature, key: crypto.randomUUID() };
-              }
-              if (await guestCall('POST', { name, email, emailConsent, idempotencyKey: guestRequest.current.key })) {
-                guestRequest.current = null;
-                setGName('');
-                setGEmail('');
-                setEmailConsent(false);
+              try {
+                let request;
+                try {
+                  request = await invitationRetry(room.id, name, email);
+                } catch {
+                  setErr(ERR.retry_storage[lang]);
+                  return;
+                }
+                if (await guestCall('POST', { name, email, emailConsent, idempotencyKey: request.key })) {
+                  // Failure to clear storage is safe: a subsequent retry still
+                  // reuses the confirmed seat rather than creating a duplicate.
+                  try { request.complete(); } catch { /* retain safe retry key */ }
+                  setGName('');
+                  setGEmail('');
+                  setEmailConsent(false);
+                }
+              } finally {
+                guestSubmitting.current = false;
               }
             }}>
               <label>{s.gName}<input className="ip-input" required maxLength={80} value={gName} onChange={(e) => setGName(e.target.value)} data-testid="input-guest-name" /></label>

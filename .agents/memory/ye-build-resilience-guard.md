@@ -9,6 +9,7 @@ description: How the vitest suite verifies next build survives an unreachable DA
 - **Gotcha:** validation harness and the ye-tests workflow can run the suite concurrently; two builds sharing one distDir corrupt each other ("Cannot find module webpack-runtime.js"). The test takes a mkdir-based lock and retries once on that specific flake.
 - **Gotcha:** `next build` rewrites tsconfig.json include to add `<distDir>/types/**/*.ts`; commit that include entry once so test runs don't churn tracked files. Always `rm -rf` the test dist dir before and after (stale partial output corrupts builds).
 - **Gotcha:** never run a production `next build`/`next start` while the dev workflow is up without `NEXT_DIST_DIR=<throwaway>` — they share `.next` and corrupt each other (missing page modules / prerender-manifest).
+- **Gotcha:** browser-test Next servers also rewrite the tracked route-type reference in `next-env.d.ts` to their isolated output directory. Restore the normal `.next` reference before completing work. **Why:** committing a test-only path makes typechecking depend on ignored browser-test output that is absent on fresh checkouts.
 
 ## Keep production fonts independent of external CSS responses
 Bundle licensed fonts locally rather than using build-time Google Fonts downloads.

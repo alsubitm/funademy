@@ -26,3 +26,4 @@
 - [Windmill browser environment](windmill-browser-environment.md) — downloaded engines lack native libraries here; system Chromium works, not evidence of Firefox/WebKit or physical-device coverage.
 - [Windmill concurrent progress](windmill-concurrent-progress.md) — require reload after another tab saves; never merge ordered builds or resurrect resets.
 - [Nujaym mascot](nujaym-mascot.md) — Owner-supplied star-holding robot; Saudi Arabic/English chat, age-grounded recommendations and a single-glow gear challenge.
+- [Invitation retry boundary](invitation-retry-boundary.md) — refresh recovery is tab-scoped; do not deduplicate students by guardian email.
