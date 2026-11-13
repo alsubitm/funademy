@@ -32,6 +32,98 @@ const locales = [
 ] as const;
 
 for (const locale of locales) {
+  test(`${locale.name} keeps a slow reply active while chunks keep arriving`, async ({ page }) => {
+    const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
+    let complete = '';
+    let replyId = '';
+    let submitted = 0;
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.addInitScript(() => {
+      localStorage.setItem('funademy-chat-consent', 'yes');
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (...args: Parameters<typeof fetch>) => {
+        const response = await originalFetch(...args);
+        if (!String(args[0]).match(/\/svc\/chat\/conversations\/[^/]+\/messages$/)) return response;
+        const events = (await response.text()).split('\n\n').filter(Boolean);
+        args[1]?.signal?.addEventListener('abort', () => {
+          document.documentElement.dataset.chatReplyAborted = 'yes';
+        }, { once: true });
+        let delivered = 0;
+        return new Response(new ReadableStream<Uint8Array>({
+          async pull(controller) {
+            // Browser-clock time, not wall-clock sleeps: each delta and the
+            // final done event arrive 20 seconds after the preceding chunk.
+            if (delivered > 0) await new Promise(resolve => setTimeout(resolve, 20_000));
+            controller.enqueue(new TextEncoder().encode(`${events[delivered]}\n\n`));
+            delivered += 1;
+            document.documentElement.dataset.chatChunksDelivered = String(delivered);
+            if (delivered === events.length) controller.close();
+          },
+        }, { highWaterMark: 0 }), { status: response.status, headers: response.headers });
+      };
+    });
+    await page.route('**/svc/chat/conversations/*/messages', async route => {
+      submitted += 1;
+      const conversationId = new URL(route.request().url()).pathname.split('/').at(-2)!;
+      createdConversations.add(conversationId);
+      // Keep the isolated server's real saved answer and completion metadata;
+      // change only how quickly the browser receives that response.
+      const response = await route.fetch();
+      expect(response.status()).toBe(200);
+      const events = (await response.text()).split('\n\n')
+        .filter(event => event.startsWith('data:'))
+        .map(event => JSON.parse(event.slice(5)));
+      complete = events.filter(event => event.type === 'delta').map(event => event.content).join('');
+      const done = events.find(event => event.type === 'done');
+      replyId = done.messageId;
+      expect(complete.length).toBeGreaterThanOrEqual(4);
+      const size = Math.ceil(complete.length / 4);
+      const deltas = Array.from({ length: 4 }, (_, index) => ({
+        type: 'delta', content: complete.slice(index * size, (index + 1) * size),
+      }));
+      await route.fulfill({
+        response,
+        body: [...deltas, done].map(event => `data: ${JSON.stringify(event)}\n\n`).join(''),
+      });
+    });
+    await page.goto(locale.path);
+    await page.getByTestId('button-open-chat').click();
+    const start = new Date('2030-01-01T00:00:00Z');
+    await page.clock.install({ time: start });
+    await page.clock.pauseAt(new Date(start.getTime() + 1_000));
+    const composer = page.getByTestId('input-chat-message');
+    await composer.fill(prompt);
+    await page.getByTestId('button-send-chat').click();
+    const html = page.locator('html');
+    const alert = page.locator('.chat-ui__error[role="alert"]');
+    const retry = page.getByTestId('button-chat-retry');
+    await expect(html).toHaveAttribute('data-chat-chunks-delivered', '1');
+    await expect(composer).toBeDisabled();
+
+    for (let delivered = 2; delivered <= 5; delivered += 1) {
+      await page.clock.runFor(20_000);
+      await expect(html).toHaveAttribute('data-chat-chunks-delivered', String(delivered));
+      await expect(html).not.toHaveAttribute('data-chat-reply-aborted', 'yes');
+      await expect(alert).toHaveCount(0);
+      await expect(retry).toHaveCount(0);
+      if (delivered < 5) await expect(composer).toBeDisabled();
+    }
+    // At 80 seconds, every previous chunk's 30-second deadline has passed.
+    // Continued success therefore requires resetting inactivity on each read.
+    const answer = page.getByTestId(`message-chat-${replyId}`).locator(':scope > p');
+    await expect(answer).toHaveText(complete);
+    await expect(composer).toBeEnabled();
+    await page.clock.runFor(31_000);
+    await expect(answer).toHaveText(complete);
+    await expect(page.getByText(complete, { exact: true })).toHaveCount(1);
+    await expect(page.getByText(prompt, { exact: true })).toHaveCount(1);
+    await expect(page.locator('.chat-ui__message')).toHaveCount(2);
+    await expect(html).not.toHaveAttribute('data-chat-reply-aborted', 'yes');
+    await expect(alert).toHaveCount(0);
+    await expect(retry).toHaveCount(0);
+    expect(submitted).toBe(1);
+  });
+
   for (const interruption of ['truncated', 'read-error', 'stalled', 'cancelled'] as const) {
     test(`${locale.name} retries a ${interruption} reply stream without duplicating the prompt`, async ({ page }) => {
       const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
