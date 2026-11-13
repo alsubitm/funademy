@@ -220,4 +220,127 @@ for (const locale of locales) {
       expect(box!.y + box!.height).toBeLessThanOrEqual(panelBox!.y + panelBox!.height);
     }
   });
+
+  test(`${locale.name} offline notice wraps at 150% without hiding chat controls`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 740 });
+    await page.addInitScript(() => {
+      localStorage.setItem('funademy-chat-consent', 'yes');
+    });
+    await page.route('**/svc/chat/conversations', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ conversations: [], hasFamilyAccount: false }),
+    }));
+    await page.goto(locale.path);
+    await page.addStyleTag({ content: 'html { font-size: 150% !important; }' });
+    await page.getByTestId('button-open-chat').click();
+
+    const dialog = page.getByRole('dialog');
+    const offlineNotice = page.getByTestId('status-chat-offline');
+    const composer = page.getByTestId('input-chat-message');
+    const close = page.getByTestId('button-close-chat');
+    await page.context().setOffline(true);
+    await expect(offlineNotice).toContainText(locale.direction === 'rtl' ? 'غير متصل' : 'offline');
+    await expect.poll(() => offlineNotice.evaluate(el => el.clientHeight > Number.parseFloat(getComputedStyle(el).lineHeight))).toBe(true);
+    await expect.poll(() => offlineNotice.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await expect(composer).toBeVisible();
+    await expect(close).toBeVisible();
+    await expect(close).toBeEnabled();
+
+    const panelBox = await dialog.boundingBox();
+    expect(panelBox).not.toBeNull();
+    for (const control of [close, composer]) {
+      const box = await control.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(panelBox!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width);
+      expect(box!.y).toBeGreaterThanOrEqual(panelBox!.y);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(panelBox!.y + panelBox!.height);
+    }
+
+    await page.context().setOffline(false);
+    await expect(offlineNotice).toHaveCount(0);
+    await expect(composer).toBeEnabled();
+  });
+
+  test(`${locale.name} retry notice wraps at 150% without hiding chat controls`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 740 });
+    await page.addInitScript(() => {
+      localStorage.setItem('funademy-chat-consent', 'yes');
+    });
+
+    let messageAttempts = 0;
+    await page.route('**/svc/chat/conversations', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(route.request().method() === 'POST'
+        ? { conversation: { id: 'large-text-retry-conversation' } }
+        : { conversations: [], hasFamilyAccount: false }),
+    }));
+    await page.route('**/svc/chat/conversations/*/messages', route => {
+      messageAttempts += 1;
+      if (messageAttempts === 1) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'temporary_unavailable' }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: [
+          `data: ${JSON.stringify({ type: 'delta', content: locale.direction === 'rtl' ? 'عاد الاتصال، وتم إرسال رسالتك بنجاح.' : 'Your connection recovered and your message was sent successfully.' })}`,
+          '',
+          `data: ${JSON.stringify({ type: 'done', messageId: 'large-text-retry-reply' })}`,
+          '',
+          '',
+        ].join('\n'),
+      });
+    });
+
+    await page.goto(locale.path);
+    await page.addStyleTag({ content: 'html { font-size: 150% !important; }' });
+    await page.getByTestId('button-open-chat').click();
+    const dialog = page.getByRole('dialog');
+    const composer = page.getByTestId('input-chat-message');
+    const close = page.getByTestId('button-close-chat');
+    await composer.fill(locale.direction === 'rtl' ? 'أحتاج مساعدة' : 'I need help');
+    await page.getByTestId('button-send-chat').click();
+
+    const alert = page.locator('.chat-ui__error[role="alert"]');
+    const retry = page.getByTestId('button-chat-retry');
+    await expect(alert).toBeVisible();
+    await expect(retry).toBeVisible();
+    await expect.poll(() => alert.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await expect.poll(() => alert.locator('span').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await expect(composer).toBeVisible();
+    await expect(composer).toBeEnabled();
+    await expect(close).toBeVisible();
+    await expect(close).toBeEnabled();
+
+    const alertBox = await alert.boundingBox();
+    const retryBox = await retry.boundingBox();
+    const panelBox = await dialog.boundingBox();
+    expect(alertBox).not.toBeNull();
+    expect(retryBox).not.toBeNull();
+    expect(panelBox).not.toBeNull();
+    expect(retryBox!.x).toBeGreaterThanOrEqual(alertBox!.x);
+    expect(retryBox!.x + retryBox!.width).toBeLessThanOrEqual(alertBox!.x + alertBox!.width);
+    for (const control of [close, composer]) {
+      const box = await control.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(panelBox!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width);
+      expect(box!.y).toBeGreaterThanOrEqual(panelBox!.y);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(panelBox!.y + panelBox!.height);
+    }
+
+    await retry.click();
+    await expect(page.getByTestId('message-chat-large-text-retry-reply')).toContainText(
+      locale.direction === 'rtl' ? 'تم إرسال رسالتك بنجاح' : 'sent successfully',
+    );
+    await expect(alert).toHaveCount(0);
+    expect(messageAttempts).toBe(2);
+  });
 }

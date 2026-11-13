@@ -631,8 +631,8 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
               {busy && <div className="chat-ui__typing" role="status"><i /><i /><i /><span className="sr-only">{t.loading}</span></div>}
             </div>
 
-            {!online && <p className="chat-ui__notice" role="status">{t.offline}</p>}
-            {error && <div className="chat-ui__error" role="alert"><span>{error}</span>{lastDraft && <button type="button" onClick={() => void send(lastDraft, true)}>{t.retry}</button>}</div>}
+            {!online && <p className="chat-ui__notice" role="status" data-testid="status-chat-offline">{t.offline}</p>}
+            {error && <div className="chat-ui__error" role="alert"><span>{error}</span>{lastDraft && <button type="button" data-testid="button-chat-retry" onClick={() => void send(lastDraft, true)}>{t.retry}</button>}</div>}
             <form className="chat-ui__composer" onSubmit={submit}>
               <label className="sr-only" htmlFor={`chat-input-${mode}`}>{t.placeholder}</label>
               <textarea
