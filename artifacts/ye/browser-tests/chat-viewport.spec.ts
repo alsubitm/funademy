@@ -32,6 +32,99 @@ const locales = [
 ] as const;
 
 for (const locale of locales) {
+  for (const chunking of ['single-byte', 'uneven'] as const) {
+    test(`${locale.name} preserves a reply split across ${chunking} network chunks`, async ({ page }) => {
+      const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
+      let complete = '';
+      let replyId = '';
+      let submitted = 0;
+      await page.setViewportSize({ width: 390, height: 740 });
+      await page.addInitScript(({ chunking }) => {
+        localStorage.setItem('funademy-chat-consent', 'yes');
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async (...args: Parameters<typeof fetch>) => {
+          const response = await originalFetch(...args);
+          if (!String(args[0]).match(/\/svc\/chat\/conversations\/[^/]+\/messages$/)) return response;
+          const body = await response.text();
+          const encoder = new TextEncoder();
+          const bytes = encoder.encode(body);
+          const terminalStart = encoder.encode(body.slice(0, body.indexOf('data: {"type":"done"'))).length;
+          const firstMultibyte = bytes.findIndex(byte => byte >= 0xc0);
+          // Force cuts inside a UTF-8 character, the terminal event's JSON,
+          // and its final \n\n delimiter, regardless of the uneven pattern.
+          const forcedCuts = [
+            ...(firstMultibyte >= 0 ? [firstMultibyte + 1] : []),
+            terminalStart + 1, terminalStart + 12, bytes.length - 1,
+          ].sort((a, b) => a - b);
+          const sizes = chunking === 'single-byte' ? [1] : [1, 7, 2, 13, 3, 5];
+          let offset = 0;
+          let delivered = 0;
+          return new Response(new ReadableStream<Uint8Array>({
+            pull(controller) {
+              let end = Math.min(offset + sizes[delivered % sizes.length], bytes.length);
+              const cut = forcedCuts.find(boundary => boundary > offset && boundary < end);
+              if (cut !== undefined) end = cut;
+              if (end < bytes.length && (bytes[end] & 0xc0) === 0x80) {
+                document.documentElement.dataset.chatSplitUtf8 = 'yes';
+              }
+              if (end > terminalStart && end < bytes.length - 2) {
+                document.documentElement.dataset.chatSplitTerminal = 'yes';
+              }
+              controller.enqueue(bytes.slice(offset, end));
+              offset = end;
+              delivered += 1;
+              document.documentElement.dataset.chatByteChunks = String(delivered);
+              if (offset === bytes.length) {
+                document.documentElement.dataset.chatByteStreamComplete = 'yes';
+                controller.close();
+              }
+            },
+          }, { highWaterMark: 0 }), { status: response.status, headers: response.headers });
+        };
+      }, { chunking });
+      await page.route('**/svc/chat/conversations/*/messages', async route => {
+        submitted += 1;
+        createdConversations.add(new URL(route.request().url()).pathname.split('/').at(-2)!);
+        // Preserve the isolated server's real localized answer and done event;
+        // only browser-side transport boundaries change.
+        const response = await route.fetch();
+        expect(response.status()).toBe(200);
+        const body = await response.text();
+        const events = body.split('\n\n').filter(event => event.startsWith('data:'))
+          .map(event => JSON.parse(event.slice(5)));
+        complete = events.filter(event => event.type === 'delta').map(event => event.content).join('');
+        replyId = events.find(event => event.type === 'done').messageId;
+        expect(complete.length).toBeGreaterThan(0);
+        expect(complete).not.toContain('\uFFFD');
+        if (locale.direction === 'rtl') expect(complete).toMatch(/[\u0600-\u06ff]/);
+        expect(body).toContain('data: {"type":"done"');
+        expect(body.endsWith('\n\n')).toBe(true);
+        await route.fulfill({ response, body });
+      });
+      await page.goto(locale.path);
+      await page.getByTestId('button-open-chat').click();
+      const composer = page.getByTestId('input-chat-message');
+      await composer.fill(prompt);
+      await page.getByTestId('button-send-chat').click();
+
+      const html = page.locator('html');
+      await expect(html).toHaveAttribute('data-chat-byte-stream-complete', 'yes');
+      // Resolve the id only after the request handler has captured it.
+      await expect(composer).toBeEnabled();
+      await expect(page.getByTestId(`message-chat-${replyId}`).locator(':scope > p')).toHaveText(complete);
+      await expect(page.getByText(complete, { exact: true })).toHaveCount(1);
+      await expect(page.getByText(prompt, { exact: true })).toHaveCount(1);
+      await expect(page.locator('.chat-ui__message')).toHaveCount(2);
+      await expect(page.locator('.chat-ui__messages')).not.toContainText('\uFFFD');
+      await expect(page.locator('.chat-ui__error[role="alert"]')).toHaveCount(0);
+      await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+      await expect(html).toHaveAttribute('data-chat-split-terminal', 'yes');
+      if (locale.direction === 'rtl') await expect(html).toHaveAttribute('data-chat-split-utf8', 'yes');
+      expect(Number(await html.getAttribute('data-chat-byte-chunks'))).toBeGreaterThan(10);
+      expect(submitted).toBe(1);
+    });
+  }
+
   test(`${locale.name} keeps a slow reply active while chunks keep arriving`, async ({ page }) => {
     const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
     let complete = '';
