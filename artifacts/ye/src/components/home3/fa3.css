@@ -97,6 +97,14 @@ html:has(.fa3){scroll-behavior:smooth;scroll-padding-top:100px}body:has(.fa3){ba
 /* ===== Bright Play overrides (Jan 2027 online foundation) ===== */
 .fa3{--paper:#fbf7ee;--white:#fffdf7;--navy:#101a38;--blue:#7c3aed;--deep:#5b21b6;--gold:#ffca17;--sand:linear-gradient(90deg,#f7e3b2,#f2cd7e,#e5ae4a);--display:var(--font-baloo),'Baloo Bhaijaan 2',var(--font-plex-arabic),sans-serif;--body:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif}
 .fa3 .brand>span>span{color:#1c54cb}
+.fa3 .footer-panels{padding-block:8px 32px}
+.fa3 .footer-panels h2{font-size:20px;margin-bottom:16px;letter-spacing:0}
+.fa3 .footer-panels>div{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.fa3 .footer-panels a{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:54px;padding:14px;background:var(--white);border:1.5px solid var(--navy);border-radius:10px;font-size:13px;font-weight:700}
+.fa3 .footer-panels a:hover{background:#fff6d1}
+.fa3 .footer-panels a>span:last-child{color:#1c54cb;font-size:20px}
+@media(max-width:900px){.fa3 .footer-panels>div{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.fa3 .footer-panels>div{grid-template-columns:1fr}}
 [dir=rtl] .fa3{--display:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif;--body:var(--font-plex-arabic),'IBM Plex Sans Arabic',sans-serif}
 [dir=rtl] .fa3 .brand>span,[dir=rtl] .fa3 .program-card h3,[dir=rtl] .fa3 .program-dialog h2,[dir=rtl] .fa3 .contact-email,[dir=rtl] .fa3 .contact-links a[dir=ltr]{font-family:var(--font-baloo),'Baloo Bhaijaan 2',sans-serif}
 .fa3 .eyebrow{text-transform:none}

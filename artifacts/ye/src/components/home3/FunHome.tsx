@@ -89,6 +89,9 @@ export function FunHome({ lang }: { lang: Lang }) {
   const feature = lang === 'ar'
     ? [['/book', 'احجز حصة تجريبية'], ['/enroll', 'التسجيل'], ['/programs', 'البرامج'], ['/portal', 'بوابة الأهالي'], ['/learn', 'مكتبة الأنشطة'], ['/blog', 'المدونة'], ['/account', 'حسابي'], ['/contact', 'تواصل معنا']]
     : [['/book', 'Book a trial'], ['/enroll', 'Enroll'], ['/programs', 'Programs'], ['/portal', 'Parent portal'], ['/learn', 'Resource library'], ['/blog', 'Blog'], ['/account', 'My account'], ['/contact', 'Contact']];
+  const panelLinks = lang === 'ar'
+    ? [['/admin', 'لوحة الإدارة'], ['/instructor', 'لوحة المدرّب'], ['/portal', 'بوابة الأهالي'], ['/account', 'حساب العائلة'], ['/learn', 'منطقة تعلّم الطالب']]
+    : [['/admin', 'Admin panel'], ['/instructor', 'Instructor panel'], ['/portal', 'Parent portal'], ['/account', 'Family account'], ['/learn', 'Student learning']];
 
   return (
     <div className={`fa3${paused ? ' motion-paused' : ''}`} ref={rootRef}>
@@ -235,7 +238,17 @@ export function FunHome({ lang }: { lang: Lang }) {
       <footer className="site-footer section-wrap">
         <div className="footer-big" aria-hidden="true"><div>Fun<span>Ademy</span></div><b>✦</b></div>
         <nav className="footer-links" aria-label={lang === 'ar' ? 'روابط الخدمات' : 'Service links'}>
-          {feature.map(([path, label]) => <Link key={path} href={prefix(lang, path)}>{label}</Link>)}
+          {feature.filter(([path]) => !panelLinks.some(([panelPath]) => panelPath === path)).map(([path, label]) => <Link key={path} href={prefix(lang, path)}>{label}</Link>)}
+        </nav>
+        <nav className="footer-panels" aria-labelledby="footer-panels-title">
+          <h2 id="footer-panels-title">{lang === 'ar' ? 'وصول سريع' : 'Quick access'}</h2>
+          <div>
+            {panelLinks.map(([path, label]) => (
+              <Link key={path} href={path === '/admin' ? path : prefix(lang, path)} data-testid={`link-footer-${path.slice(1)}`}>
+                <span>{label}</span><span aria-hidden="true">↗</span>
+              </Link>
+            ))}
+          </div>
         </nav>
         <div className="footer-top">
           {brand}
