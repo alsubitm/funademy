@@ -223,11 +223,11 @@ function sourceFromRef(ref: string, lang: Lang): ChatSource {
   return { title: lang === 'ar' ? 'الأسئلة الشائعة' : 'Frequently asked questions', url: `${root || '/'}#faq` };
 }
 
-async function streamMessage(conversationId: string, content: string, lang: Lang): Promise<{ message: ChatMessage; action?: ChatAction; celebrate: boolean }> {
+async function streamMessage(conversationId: string, content: string, lang: Lang, idempotencyKey: string): Promise<{ message: ChatMessage; action?: ChatAction; celebrate: boolean }> {
   const response = await fetch(`/svc/chat/conversations/${encodeURIComponent(conversationId)}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({ content, idempotencyKey: crypto.randomUUID() }),
+    body: JSON.stringify({ content, idempotencyKey }),
   });
   if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
   const reader = response.body.getReader();
@@ -240,6 +240,7 @@ async function streamMessage(conversationId: string, content: string, lang: Lang
   let handoff = false;
   let celebrate = false;
   let providerUnavailable = false;
+  let completed = false;
   while (true) {
     const { done, value } = await reader.read();
     buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
@@ -253,6 +254,7 @@ async function streamMessage(conversationId: string, content: string, lang: Lang
       if (eventValue.type === 'error') throw new Error('stream_error');
       if (eventValue.type === 'delta' && typeof eventValue.content === 'string') answer += eventValue.content;
       if (eventValue.type === 'done') {
+        completed = true;
         if (typeof eventValue.messageId === 'string') messageId = eventValue.messageId;
         if (Array.isArray(eventValue.sources)) refs = sourcesFrom(eventValue.sources) || [];
         if (eventValue.handoff === true) handoff = true;
@@ -267,6 +269,9 @@ async function streamMessage(conversationId: string, content: string, lang: Lang
     }
     if (done) break;
   }
+  // EOF can arrive after a partial delta without a network error. Only the
+  // server's terminal event makes an answer safe to display as complete.
+  if (!completed) throw new Error('incomplete_stream');
   if (!answer) throw new Error('empty_stream');
   return { message: { id: messageId, role: 'assistant', content: answer, sources: refs, handoff, providerUnavailable }, action, celebrate };
 }
@@ -343,6 +348,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   const launcherRef = useRef<HTMLButtonElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingSend = useRef<{ content: string; key: string } | undefined>(undefined);
 
   const loadSessions = useCallback(async () => {
     setHistoryBusy(true);
@@ -436,6 +442,8 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   };
 
   const selectSession = async (id: string) => {
+    pendingSend.current = undefined;
+    setLastDraft('');
     setError(undefined);
     setSessionId(id);
     setHistoryBusy(true);
@@ -452,6 +460,7 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   };
 
   const startNew = () => {
+    pendingSend.current = undefined;
     setSessionId(undefined);
     setMessages([]);
     setDraft('');
@@ -477,6 +486,10 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
   const send = async (text = draft, retry = false) => {
     const clean = text.trim();
     if (!clean || busy || !online) return;
+    const attempt = retry && pendingSend.current?.content === clean
+      ? pendingSend.current
+      : { content: clean, key: crypto.randomUUID() };
+    pendingSend.current = attempt;
     setLastDraft(clean);
     setDraft('');
     setError(undefined);
@@ -495,10 +508,12 @@ export function ChatAssistant({ lang, mode = 'widget' }: { lang: Lang; mode?: 'w
         setSessionId(activeId);
         setHasAccount(isRecord(createdPayload) && createdPayload.hasFamilyAccount === true);
       }
-      const streamed = await streamMessage(activeId, clean, lang);
+      const streamed = await streamMessage(activeId, clean, lang, attempt.key);
       setMessages((current) => [...current, streamed.message]);
       if (streamed.celebrate) setGlow(Date.now());
       if (streamed.action) setPreparedActions((current) => [...current, streamed.action as ChatAction]);
+      pendingSend.current = undefined;
+      setLastDraft('');
       void loadSessions();
     } catch {
       setError(t.error);

@@ -32,3 +32,10 @@ scales the page root text to 150%, then checks long localized replies, links,
 suggestions, action cards, scrolling, and pinned controls. This is browser
 emulation only; it does not claim physical iPhone or keyboard coverage.
 Failure traces go to ignored `generated-artifacts/browser-tests`.
+
+The chat regressions also cut off a real, committed reply after a partial
+delta (both truncated EOF and a reader error), then retry with the same send
+identity. English and Arabic checks verify one saved prompt and reply after
+reloading and reopening history. Only delivery is interrupted; conversation
+creation, reply persistence, replay, and transcript loading use real handlers
+against `ye_test`.

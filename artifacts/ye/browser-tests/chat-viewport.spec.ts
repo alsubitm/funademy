@@ -1,4 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
+import { testDbUrl } from '../src/tests/test-db';
+
+const db = new PrismaClient({ datasourceUrl: testDbUrl() });
+const createdConversations = new Set<string>();
+test.afterEach(async () => {
+  const ids = [...createdConversations];
+  await db.chatAudit.deleteMany({ where: { conversationId: { in: ids } } });
+  await db.chatConversation.deleteMany({ where: { id: { in: ids } } });
+  createdConversations.clear();
+});
+test.afterAll(async () => { await db.$disconnect(); });
 
 const locales = [
   {
@@ -20,6 +32,107 @@ const locales = [
 ] as const;
 
 for (const locale of locales) {
+  for (const interruption of ['truncated', 'read-error'] as const) {
+    test(`${locale.name} retries a ${interruption} reply stream without duplicating the prompt`, async ({ page }) => {
+      const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
+      let partial = '';
+      let complete = '';
+      let replyId = '';
+      let conversationId = '';
+      const submitted: { content: string; idempotencyKey: string }[] = [];
+      await page.setViewportSize({ width: 390, height: 740 });
+      await page.addInitScript(({ interruption }) => {
+        localStorage.setItem('funademy-chat-consent', 'yes');
+        const originalFetch = window.fetch.bind(window);
+        let interrupted = false;
+        window.fetch = async (...args: Parameters<typeof fetch>) => {
+          const response = await originalFetch(...args);
+          if (interrupted || !String(args[0]).match(/\/svc\/chat\/conversations\/[^/]+\/messages$/)) return response;
+          interrupted = true;
+          const reader = response.body!.getReader();
+          let delivered = false;
+          return new Response(new ReadableStream<Uint8Array>({
+            async pull(controller) {
+              if (delivered && interruption === 'read-error') {
+                await reader.cancel();
+                controller.error(new TypeError('Connection interrupted after partial reply'));
+                return;
+              }
+              const chunk = await reader.read();
+              if (chunk.done) {
+                controller.close();
+              } else {
+                delivered = true;
+                document.documentElement.dataset.chatPartialRead = 'yes';
+                controller.enqueue(chunk.value);
+              }
+            },
+          }, { highWaterMark: 0 }), { status: response.status, headers: response.headers });
+        };
+      }, { interruption });
+      await page.route('**/svc/chat/conversations/*/messages', async route => {
+        submitted.push(route.request().postDataJSON());
+        conversationId = new URL(route.request().url()).pathname.split('/').at(-2)!;
+        createdConversations.add(conversationId);
+        if (submitted.length !== 1) return route.continue();
+        // Commit the real prompt and reply before cutting off delivery. The
+        // retry must replay that exact saved answer, not write a second pair.
+        const response = await route.fetch();
+        expect(response.status()).toBe(200);
+        const events = (await response.text()).split('\n\n')
+          .filter(event => event.startsWith('data:'))
+          .map(event => JSON.parse(event.slice(5)));
+        complete = events.find(event => event.type === 'delta').content;
+        replyId = events.find(event => event.type === 'done').messageId;
+        partial = complete.slice(0, 12);
+        await route.fulfill({
+          response,
+          body: `data: ${JSON.stringify({ type: 'delta', content: partial })}\n\n`,
+        });
+      });
+      await page.goto(locale.path);
+      await page.getByTestId('button-open-chat').click();
+      const composer = page.getByTestId('input-chat-message');
+      await composer.fill(prompt);
+      await page.getByTestId('button-send-chat').click();
+
+      // The HTTP request succeeded and a delta was consumed before interruption.
+      await expect(page.locator('html')).toHaveAttribute('data-chat-partial-read', 'yes');
+      const alert = page.locator('.chat-ui__error[role="alert"]');
+      await expect(alert).toContainText(locale.direction === 'rtl'
+        ? 'تعذر إكمال الطلب' : 'We could not complete that request');
+      await expect(page.getByTestId('button-chat-retry')).toBeEnabled();
+      await expect(composer).toBeEnabled();
+      await expect(page.locator('.chat-ui__message > p').filter({ hasText: partial })).toHaveCount(0);
+      const promptBubble = page.locator('.chat-ui__message > p').filter({ hasText: prompt });
+      await expect(promptBubble).toHaveCount(1);
+
+      await page.getByTestId('button-chat-retry').click();
+      await expect(page.getByTestId(`message-chat-${replyId}`).locator(':scope > p')).toHaveText(complete);
+      await expect(page.locator('.chat-ui__message > p').filter({ hasText: complete })).toHaveCount(1);
+      await expect(promptBubble).toHaveCount(1);
+      await expect(page.getByText(partial, { exact: true })).toHaveCount(0);
+      await expect(alert).toHaveCount(0);
+      await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+      expect(submitted).toHaveLength(2);
+      expect(submitted.map(attempt => attempt.content)).toEqual([prompt, prompt]);
+      expect(submitted[1].idempotencyKey).toBe(submitted[0].idempotencyKey);
+      const saved = await db.chatMessage.findMany({ where: { conversationId }, orderBy: { createdAt: 'asc' } });
+      expect(saved.map(message => ({ role: message.role, content: message.content }))).toEqual([
+        { role: 'user', content: prompt }, { role: 'assistant', content: complete },
+      ]);
+      expect(saved[1].id).toBe(replyId);
+
+      // Reopen from server-backed history, rather than trusting local state.
+      await page.reload();
+      await page.getByTestId('button-open-chat').click();
+      await page.getByTestId(`button-chat-session-${conversationId}`).click();
+      await expect(page.locator('.chat-ui__message > p').filter({ hasText: prompt })).toHaveCount(1);
+      await expect(page.getByTestId(`message-chat-${replyId}`).locator(':scope > p')).toHaveText(complete);
+      await expect(page.locator('.chat-ui__message')).toHaveCount(2);
+    });
+  }
+
   test(`${locale.name} chat stays reachable during emulated visual viewport changes`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 740 });
     await page.addInitScript(() => {

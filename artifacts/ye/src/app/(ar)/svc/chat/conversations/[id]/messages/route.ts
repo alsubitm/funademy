@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { allowRate, clientIp } from '@/lib/rate-limit';
@@ -60,19 +61,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
   }
-  const duplicate = await prisma.chatMessage.findFirst({
-    where: { conversationId: id, idempotencyKey: parsed.data.idempotencyKey },
-  });
-  if (duplicate) return NextResponse.json({ error: 'duplicate', messageId: duplicate.id }, { status: 409 });
-
-  const history = await prisma.chatMessage.findMany({
-    where: { conversationId: id, role: { in: ['user', 'assistant'] } },
-    select: { role: true, content: true },
-    orderBy: { createdAt: 'desc' },
-    take: 12,
-  });
-  const userMessage = await prisma.chatMessage.create({
-    data: {
+  const userMessage = await prisma.chatMessage.upsert({
+    where: { conversationId_idempotencyKey: { conversationId: id, idempotencyKey: parsed.data.idempotencyKey } },
+    update: {},
+    create: {
       conversationId: id,
       role: 'user',
       content: parsed.data.content,
@@ -80,10 +72,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       expiresAt: chatExpiry(),
     },
   });
+  if (userMessage.role !== 'user' || userMessage.content !== parsed.data.content) {
+    return NextResponse.json({ error: 'idempotency_conflict' }, { status: 409 });
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        // The request identity survives a lost stream. A transaction-scoped lock
+        // serializes generation across replicas and is released on process death.
+        // Never emit a reply before its content and terminal metadata commit.
+        const reply = await prisma.$transaction(async (tx) => {
+          const [lock] = await tx.$queryRaw<{ acquired: boolean }[]>`
+            SELECT pg_try_advisory_xact_lock(hashtextextended(${`chat-reply:${userMessage.id}`}, 0)) AS acquired
+          `;
+          if (!lock.acquired) throw new Error('reply_in_progress');
+          const saved = await tx.chatMessage.findUnique({
+            where: { conversationId_idempotencyKey: { conversationId: id, idempotencyKey: `reply:${userMessage.id}` } },
+          });
+          if (saved) {
+            const completion = await tx.chatAudit.findFirst({
+              where: { conversationId: id, event: 'reply_completed', detail: { path: ['messageId'], equals: saved.id } },
+            });
+            if (!completion?.detail) throw new Error('missing_reply_metadata');
+            return { content: saved.content, done: completion.detail };
+          }
+          const history = await tx.chatMessage.findMany({
+            where: { conversationId: id, id: { not: userMessage.id }, role: { in: ['user', 'assistant'] } },
+            select: { role: true, content: true },
+            orderBy: { createdAt: 'desc' },
+            take: 12,
+          });
         const chronologicalHistory = [...history].reverse();
         const allSources = await buildLiveKnowledge();
         const recommendation = isRecommendation(parsed.data.content, chronologicalHistory);
@@ -149,11 +168,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             : 'I only prepared the request. Review the action card and click confirm to execute it.';
         }
         if (sensitive) {
-          const alreadyOpen = await prisma.chatEscalation.findFirst({
+          const alreadyOpen = await tx.chatEscalation.findFirst({
             where: { conversationId: id, reason: 'sensitive_request', status: 'open' },
           });
           if (!alreadyOpen) {
-            await prisma.chatEscalation.create({
+            await tx.chatEscalation.create({
               data: { conversationId: id, reason: 'sensitive_request', summary: 'Sensitive request', contactMethod: conversation.contactMethod, expiresAt: chatExpiry() },
             });
           }
@@ -186,12 +205,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             id: sourceId, title: locale === 'ar' ? titleAr : titleEn,
             url: locale === 'en' ? `/en${url === '/' ? '' : url}` : url,
           }));
-        const assistant = await prisma.chatMessage.create({
-          data: { conversationId: id, role: 'assistant', content: answer, sourceRefs: refs, expiresAt: chatExpiry() },
+        const assistant = await tx.chatMessage.create({
+          data: { conversationId: id, role: 'assistant', content: answer, sourceRefs: refs, idempotencyKey: `reply:${userMessage.id}`, expiresAt: chatExpiry() },
         });
-        await prisma.chatConversation.update({ where: { id }, data: { expiresAt: chatExpiry() } });
-        controller.enqueue(sse({ type: 'delta', content: answer }));
-        controller.enqueue(sse({ type: 'done', messageId: assistant.id, userMessageId: userMessage.id, sources: refs, preparedAction, celebrate: !sensitive && answer === challenge?.text && challenge.celebrate, providerUnavailable }));
+        await tx.chatConversation.update({ where: { id }, data: { expiresAt: chatExpiry() } });
+        const done = JSON.parse(JSON.stringify({ type: 'done', messageId: assistant.id, userMessageId: userMessage.id, sources: refs, preparedAction, celebrate: !sensitive && answer === challenge?.text && challenge.celebrate, providerUnavailable })) as Prisma.JsonObject;
+        await tx.chatAudit.create({
+          data: { conversationId: id, familyId: conversation.familyId, event: 'reply_completed', detail: done, expiresAt: chatExpiry() },
+        });
+        return { content: answer, done };
+        }, { timeout: 60_000 });
+        controller.enqueue(sse({ type: 'delta', content: reply.content }));
+        controller.enqueue(sse(reply.done));
       } catch (error) {
         console.error('[chat] response failed');
         await prisma.chatAudit.create({ data: { conversationId: id, familyId: conversation.familyId, event: 'provider_failure', expiresAt: chatExpiry() } }).catch(() => {});

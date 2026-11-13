@@ -54,6 +54,9 @@ function request(path: string, method = 'POST', body?: unknown, visitor?: string
 }
 const params = (id: string) => ({ params: Promise.resolve({ id }) });
 const actionParams = (id: string, actionId: string) => ({ params: Promise.resolve({ id, actionId }) });
+function streamEvents(text: string) {
+  return text.split('\n\n').filter(event => event.startsWith('data:')).map(event => JSON.parse(event.slice(5)));
+}
 function asFamily(id: number | null) {
   if (id) cookies.set(FAMILY_COOKIE, familyToken(id));
   else cookies.delete(FAMILY_COOKIE);
@@ -353,13 +356,82 @@ describe('chat messages and action confirmation', () => {
     expect(await prisma.chatActionAudit.count({ where: { conversationId: c.id } })).toBe(0);
   });
 
-  it('returns truthful SSE error rather than a fabricated answer on provider failure', async () => {
+  it.each(['en', 'ar'])('replays the committed %s reply and metadata without adding transcript entries', async (locale) => {
+    const c = await conversation(null);
+    const input = {
+      content: locale === 'ar' ? 'مرحبا' : 'hello',
+      idempotencyKey: `reply-recovery-${RUN}-${locale}`,
+    };
+    mockAnswer.mockResolvedValue(locale === 'ar' ? 'إجابة محفوظة' : 'A saved answer');
+    const first = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input, 'visitor-token-test'), params(c.id));
+    const original = await first.text();
+    expect(original).toContain('"done"');
+    const replay = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input, 'visitor-token-test'), params(c.id));
+    expect(streamEvents(await replay.text())).toEqual(streamEvents(original));
+    expect(mockAnswer).toHaveBeenCalledTimes(1);
+    expect(await prisma.chatMessage.count({ where: { conversationId: c.id } })).toBe(2);
+    const transcript = await transcriptGET(request(`/svc/chat/conversations/${c.id}`, 'GET', undefined, 'visitor-token-test'), params(c.id));
+    expect((await transcript.json()).messages.map((message: { role: string }) => message.role)).toEqual(['user', 'assistant']);
+    const conflict = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', { ...input, content: 'different prompt' }, 'visitor-token-test'), params(c.id));
+    expect(conflict.status).toBe(409);
+  });
+
+  it('does not generate a second answer when the same send is retried while generation is running', async () => {
+    const c = await conversation(null);
+    const input = { content: 'hello', idempotencyKey: `concurrent-recovery-${RUN}` };
+    let release!: (answer: string) => void;
+    let entered!: () => void;
+    const generating = new Promise<void>(resolve => { entered = resolve; });
+    mockAnswer.mockImplementationOnce(() => {
+      entered();
+      return new Promise<string>(resolve => { release = resolve; });
+    });
+    const first = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input, 'visitor-token-test'), params(c.id));
+    await generating;
+    try {
+      const concurrent = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input, 'visitor-token-test'), params(c.id));
+      expect(await concurrent.text()).toContain('"type":"error"');
+    } finally {
+      release('Only one answer');
+    }
+    const original = await first.text();
+    const replay = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input, 'visitor-token-test'), params(c.id));
+    expect(streamEvents(await replay.text())).toEqual(streamEvents(original));
+    expect(mockAnswer).toHaveBeenCalledTimes(1);
+    expect(await prisma.chatMessage.count({ where: { conversationId: c.id } })).toBe(2);
+  });
+
+  it('replays the original prepared action rather than preparing a second one', async () => {
+    const f = await family('stream-recovery');
+    const child = await prisma.student.create({ data: { familyId: f.id, firstName: 'Child', birthYear: new Date().getFullYear() - 8 } });
+    const program = await prisma.program.create({ data: {
+      slug: `chat-stream-recovery-${RUN}`, kitCode: 'KIT-01', nameEn: 'Test', nameAr: 'اختبار', ageMin: 4, ageMax: 14, format: 'in_person', color: '#101010', level: 1,
+      taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
+    } });
+    programIds.push(program.id);
+    const slot = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', capacity: 2, seatsLeft: 2 } });
+    const c = await conversation(f.id);
+    asFamily(f.id);
+    const input = { content: `trial ${child.id} ${program.id} ${slot.id}`, idempotencyKey: `prepared-recovery-${RUN}` };
+    const first = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input), params(c.id));
+    const original = await first.text();
+    expect(original).toContain('"preparedAction":{"id":');
+    const replay = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input), params(c.id));
+    expect(streamEvents(await replay.text())).toEqual(streamEvents(original));
+    expect(await prisma.chatActionAudit.count({ where: { conversationId: c.id } })).toBe(1);
+    expect(await prisma.chatMessage.count({ where: { conversationId: c.id } })).toBe(2);
+  });
+
+  it('returns truthful SSE error and retries the original prompt after provider failure', async () => {
     const c = await conversation(null);
     mockAnswer.mockRejectedValueOnce(new Error('provider down'));
     const r = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', { content: 'hello', idempotencyKey: `msg-${RUN}-provider` }, 'visitor-token-test'), params(c.id));
     expect(r.status).toBe(200);
     expect(await r.text()).toContain('"temporarily_unavailable"');
     expect(await prisma.chatAudit.count({ where: { conversationId: c.id, event: 'provider_failure' } })).toBe(1);
+    const retry = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', { content: 'hello', idempotencyKey: `msg-${RUN}-provider` }, 'visitor-token-test'), params(c.id));
+    expect(await retry.text()).toContain('"done"');
+    expect(await prisma.chatMessage.count({ where: { conversationId: c.id } })).toBe(2);
   });
 
   it('rate-limits repeated message sends from one client', async () => {
