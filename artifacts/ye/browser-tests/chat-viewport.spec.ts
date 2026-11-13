@@ -124,6 +124,206 @@ for (const locale of locales) {
     expect(submitted).toBe(1);
   });
 
+  for (const destination of ['history', 'new-chat'] as const) {
+    for (const lateOutcome of ['reply', 'error'] as const) {
+      test(`${locale.name} isolates a late ${lateOutcome} after switching to ${destination}`, async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 740 });
+        await page.addInitScript(() => {
+          localStorage.setItem('funademy-chat-consent', 'yes');
+          const originalFetch = window.fetch.bind(window);
+          const encoder = new TextEncoder();
+          const held: {
+            controller: ReadableStreamDefaultController<Uint8Array>;
+            aborted: boolean;
+            cancelled: boolean;
+            abortCallbacks: (() => void)[];
+          }[] = [];
+          const submitted: { conversationId: string; content: string }[] = [];
+          Object.assign(window, {
+            chatSwitchHarness: {
+              submitted,
+              held,
+              async release(index: number, outcome: 'reply' | 'error') {
+                const stream = held[index];
+                if (outcome === 'error') {
+                  stream.controller.error(new TypeError('Late failure from the old conversation'));
+                } else {
+                  stream.controller.enqueue(encoder.encode(
+                    `data: ${JSON.stringify({ type: 'delta', content: index === 0 ? 'OLD REPLY MUST NOT APPEAR' : 'Destination reply' })}\n\n` +
+                    `data: ${JSON.stringify({
+                      type: 'done', messageId: `switch-reply-${index}`,
+                      ...(index === 0 ? {
+                        celebrate: true,
+                        preparedAction: { id: 'old-action', kind: 'book_trial', payload: {} },
+                      } : {}),
+                    })}\n\n`,
+                  ));
+                  stream.controller.close();
+                }
+                // Let the old send's catch/finally run while the new send is
+                // pending, then deliver its deferred abort notifications too.
+                await new Promise(resolve => setTimeout(resolve, 0));
+                stream.abortCallbacks.forEach(callback => callback());
+                await new Promise(resolve => setTimeout(resolve, 0));
+              },
+            },
+          });
+          window.fetch = async (...args: Parameters<typeof fetch>) => {
+            const match = String(args[0]).match(/\/svc\/chat\/conversations\/([^/]+)\/messages$/);
+            if (!match) return originalFetch(...args);
+            const index = held.length;
+            const signal = args[1]!.signal!;
+            const stream = {
+              controller: undefined as unknown as ReadableStreamDefaultController<Uint8Array>,
+              aborted: false,
+              cancelled: false,
+              abortCallbacks: [] as (() => void)[],
+            };
+            held.push(stream);
+            submitted.push({
+              conversationId: match[1],
+              content: JSON.parse(String(args[1]!.body)).content,
+            });
+            const addEventListener = signal.addEventListener.bind(signal);
+            addEventListener('abort', () => { stream.aborted = signal.aborted; }, { once: true });
+            if (index === 0) {
+              // Adversarial transport: abort really happens, but its consumers
+              // settle late. Without this delay the old finally always runs
+              // before the next click, leaving the request-ownership guard
+              // untested. No application internals are exposed or replaced.
+              signal.addEventListener = (type: string, callback: EventListenerOrEventListenerObject | null, options?: boolean | AddEventListenerOptions) => {
+                if (!callback) return;
+                if (type !== 'abort') return addEventListener(type, callback, options);
+                addEventListener(type, event => {
+                  stream.abortCallbacks.push(() => {
+                    if (typeof callback === 'function') callback.call(signal, event);
+                    else callback.handleEvent(event);
+                  });
+                }, options);
+              };
+            }
+            const body = new ReadableStream<Uint8Array>({
+              start(controller) {
+                stream.controller = controller;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: '' })}\n\n`));
+              },
+            }, { highWaterMark: 0 });
+            const getReader = body.getReader.bind(body);
+            Object.defineProperty(body, 'getReader', { value: () => {
+              const reader = getReader();
+              const cancel = reader.cancel.bind(reader);
+              reader.cancel = reason => {
+                // Record the cleanup call even after EOF or a stream error,
+                // when the underlying stream's cancel hook no longer runs.
+                stream.cancelled = true;
+                return cancel(reason);
+              };
+              return reader;
+            } });
+            return new Response(body, {
+              status: 200, headers: { 'Content-Type': 'text/event-stream' },
+            });
+          };
+        });
+        await page.route('**/svc/chat/conversations', route => route.fulfill({
+          status: route.request().method() === 'POST' ? 201 : 200,
+          contentType: 'application/json',
+          body: JSON.stringify(route.request().method() === 'POST'
+            ? { conversation: { id: 'fresh-conversation' } }
+            : { conversations: [
+              { id: 'source-conversation', title: 'Source conversation' },
+              { id: 'destination-conversation', title: 'Destination conversation' },
+            ], hasFamilyAccount: false }),
+        }));
+        await page.route('**/svc/chat/conversations/*', route => {
+          const id = new URL(route.request().url()).pathname.split('/').at(-1)!;
+          return route.fulfill({
+            status: 200, contentType: 'application/json',
+            body: JSON.stringify({ messages: [{
+              id: `${id}-saved`, role: 'assistant',
+              content: id === 'source-conversation' ? 'Saved source answer' : 'Saved destination answer',
+            }] }),
+          });
+        });
+        const harness = () => page.evaluate(() => {
+          const state = (window as unknown as { chatSwitchHarness: {
+            submitted: { conversationId: string; content: string }[];
+            held: { aborted: boolean; cancelled: boolean }[];
+          } }).chatSwitchHarness;
+          return { submitted: state.submitted, held: state.held.map(({ aborted, cancelled }) => ({ aborted, cancelled })) };
+        });
+        const release = (index: number, outcome: 'reply' | 'error') => page.evaluate(
+          ({ index, outcome }) => (window as unknown as { chatSwitchHarness: {
+            release: (index: number, outcome: 'reply' | 'error') => Promise<void>;
+          } }).chatSwitchHarness.release(index, outcome),
+          { index, outcome },
+        );
+
+        await page.goto(locale.path);
+        await page.getByTestId('button-open-chat').click();
+        await page.getByTestId('button-chat-session-source-conversation').click();
+        await expect(page.getByTestId('message-chat-source-conversation-saved')).toContainText('Saved source answer');
+        const composer = page.getByTestId('input-chat-message');
+        const send = page.getByTestId('button-send-chat');
+        const messages = page.locator('.chat-ui__messages');
+        const oldPrompt = 'Question in the old conversation';
+        const newPrompt = 'Question in the destination conversation';
+        await composer.fill(oldPrompt);
+        await send.click();
+        await expect.poll(async () => (await harness()).held.length).toBe(1);
+        await expect(composer).toBeDisabled();
+        await expect(messages).toHaveAttribute('aria-busy', 'true');
+
+        if (destination === 'history') {
+          await page.getByTestId('button-chat-session-destination-conversation').click();
+          await expect(page.getByTestId('message-chat-destination-conversation-saved')).toContainText('Saved destination answer');
+        } else {
+          await page.getByTestId('button-new-chat').click();
+          await expect(page.locator('[data-testid^="message-chat-"]')).toHaveCount(0);
+          await expect(page.getByTestId('text-chat-greeting')).toBeVisible();
+        }
+        await expect.poll(async () => (await harness()).held[0].aborted).toBe(true);
+        await expect(composer).toBeEnabled();
+        await expect(messages).toHaveAttribute('aria-busy', 'false');
+        await expect(page.getByText(oldPrompt, { exact: true })).toHaveCount(0);
+        await expect(page.getByText('Saved source answer', { exact: true })).toHaveCount(0);
+        await composer.fill(newPrompt);
+        await send.click();
+        await expect.poll(async () => (await harness()).held.length).toBe(2);
+        await expect(composer).toBeDisabled();
+
+        await release(0, lateOutcome);
+        await expect.poll(async () => (await harness()).held[0].cancelled).toBe(true);
+        // The cancelled send must not append messages/actions, show a retry,
+        // or clear the destination send's busy state from its finally block.
+        await expect(page.getByText('OLD REPLY MUST NOT APPEAR', { exact: true })).toHaveCount(0);
+        await expect(page.getByTestId('message-chat-switch-reply-0')).toHaveCount(0);
+        await expect(page.getByTestId('button-confirm-action-old-action')).toHaveCount(0);
+        await expect(page.locator('.chat-ui__error[role="alert"]')).toHaveCount(0);
+        await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+        await expect(composer).toBeDisabled();
+        await expect(send).toBeDisabled();
+        await expect(messages).toHaveAttribute('aria-busy', 'true');
+        await expect(page.locator('.chat-ui__typing')).toBeVisible();
+        expect((await harness()).held[1].aborted).toBe(false);
+        expect((await harness()).submitted).toEqual([
+          { conversationId: 'source-conversation', content: oldPrompt },
+          { conversationId: destination === 'history' ? 'destination-conversation' : 'fresh-conversation', content: newPrompt },
+        ]);
+
+        await release(1, 'reply');
+        await expect(page.getByTestId('message-chat-switch-reply-1')).toContainText('Destination reply');
+        await expect(composer).toBeEnabled();
+        await expect(messages).toHaveAttribute('aria-busy', 'false');
+        await expect(page.locator('.chat-ui__typing')).toHaveCount(0);
+        await expect(page.locator('.chat-ui__message > p').filter({ hasText: newPrompt })).toHaveCount(1);
+        await expect(page.locator('.chat-ui__message')).toHaveCount(destination === 'history' ? 3 : 2);
+        await expect(page.locator('.chat-ui__error[role="alert"]')).toHaveCount(0);
+        await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+      });
+    }
+  }
+
   for (const interruption of ['truncated', 'read-error', 'stalled', 'cancelled'] as const) {
     test(`${locale.name} retries a ${interruption} reply stream without duplicating the prompt`, async ({ page }) => {
       const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
