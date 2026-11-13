@@ -27,6 +27,8 @@ selection and embed URLs, not third-party video delivery or decoding.
 `chat-viewport.spec.ts` exercises the English and Arabic widget at a short
 390×740 browser viewport. It substitutes a deterministic `VisualViewport`
 event target to check resize and scroll handling, reachable composer/close
-controls, focus restoration, and reduced-motion styling. This is browser
+controls, focus restoration, and reduced-motion styling. A second scenario
+scales the page root text to 150%, then checks long localized replies, links,
+suggestions, action cards, scrolling, and pinned controls. This is browser
 emulation only; it does not claim physical iPhone or keyboard coverage.
 Failure traces go to ignored `generated-artifacts/browser-tests`.
