@@ -517,6 +517,13 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
   return (
     <div className="ptl-card" id="ptl-payments" tabIndex={-1}>
       <h3><span className="ico" aria-hidden="true" />{d.payments}</h3>
+      {payments.some(p => p.enrollmentIssue && p.status !== 'refunded') && (
+        <p role="status">
+          {lang === 'ar'
+            ? 'توجد دفعة مستلمة لم يتأكد مقعدها. تواصل مع الإدارة لمراجعة الحالة؛ لا تدفع مرة أخرى.'
+            : 'A payment was received but its seat is not confirmed. Contact the academy for review; do not pay again.'}
+        </p>
+      )}
 
       {payNotice && (
         <div

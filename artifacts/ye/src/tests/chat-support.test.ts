@@ -285,7 +285,7 @@ describe('chat messages and action confirmation', () => {
       taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
     } });
     programIds.push(program.id);
-    const slot = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', capacity: 2, seatsLeft: 2 } });
+    const slot = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 2, seatsLeft: 2 } });
     const c = await conversation(f.id);
     const input = { kind: 'book_trial' as const, studentId: child.id, programId: program.id, slotId: slot.id, idempotencyKey: `action-${RUN}-same-key` };
     const first = await prepareChatAction(c.id, f.id, input);
@@ -409,7 +409,7 @@ describe('chat messages and action confirmation', () => {
       taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
     } });
     programIds.push(program.id);
-    const slot = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', capacity: 2, seatsLeft: 2 } });
+    const slot = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 2, seatsLeft: 2 } });
     const c = await conversation(f.id);
     asFamily(f.id);
     const input = { content: `trial ${child.id} ${program.id} ${slot.id}`, idempotencyKey: `prepared-recovery-${RUN}` };
@@ -470,9 +470,9 @@ describe('retention and trial shared service safeguards', () => {
       taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
     } });
     programIds.push(program.id);
-    const full = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 0, time: '17:00', format: 'in_person', capacity: 1, seatsLeft: 0 } });
+    const full = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 0, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 1, seatsLeft: 0 } });
     await expect(createTrialBooking({ familyId: verified.id, programId: program.id, slotId: full.id, parentName: 'P', phone: '+966511111111', email: null, childFirstName: 'C', childBirthYear: new Date().getFullYear() - 8 })).rejects.toThrow('slot_full');
-    const open = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', capacity: 2, seatsLeft: 2 } });
+    const open = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 2, seatsLeft: 2 } });
     const base = { familyId: verified.id, programId: program.id, slotId: open.id, parentName: 'P', phone: '+966522222222', email: null, childFirstName: 'C' };
     await expect(createTrialBooking({ ...base, childBirthYear: new Date().getFullYear() - 4 })).rejects.toThrow('program_not_eligible');
     await createTrialBooking({ ...base, childBirthYear: new Date().getFullYear() - 8 });

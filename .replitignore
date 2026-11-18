@@ -5,3 +5,4 @@
 .local
 generated-artifacts
 artifacts/ye/.next-browser-test
+artifacts/ye/.next-audit

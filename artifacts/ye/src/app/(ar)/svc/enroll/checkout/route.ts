@@ -7,6 +7,7 @@ import { sweepStalePayments } from '@/lib/pay-core';
 import { addOneMonth } from '@/lib/billing';
 import { originFromRequest } from '@/lib/request-origin';
 import { createPaymentReturnState } from '@/lib/payment-return-state';
+import { isCityOnlyLocation } from '@/lib/classroom-location';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,10 @@ export async function POST(req: NextRequest) {
     const created = await withDbRetry(() => prisma.$transaction(async (tx) => {
       const enrollmentIds: number[] = [];
       for (const item of cart.items) {
+        // Recheck under a row lock: venue may have changed since cart pricing.
+        await tx.$queryRaw`SELECT id FROM ye_course_runs WHERE id = ${item.courseRunId} FOR UPDATE`;
+        const run = await tx.courseRun.findUnique({ where: { id: item.courseRunId } });
+        if (!run || (run.format === 'in_person' && isCityOnlyLocation(run.location))) throw new Error('venue_unconfirmed');
         const existing = await tx.enrollment.findUnique({
           where: { studentId_courseRunId: { studentId: item.studentId, courseRunId: item.courseRunId } },
         });
@@ -137,6 +142,7 @@ export async function POST(req: NextRequest) {
     outcome = created;
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';
+    if (msg === 'venue_unconfirmed') return NextResponse.json({ error: msg }, { status: 409 });
     if (msg.startsWith('run_full:')) {
       return NextResponse.json({ error: 'run_full', courseRunId: Number(msg.split(':')[1]) }, { status: 409 });
     }
@@ -251,21 +257,22 @@ export async function GET(req: NextRequest) {
 
   const payment = await withDbRetry(() => prisma.payment.findFirst({
     where: { id: paymentId, familyId, kind: 'enrollment' },
-    include: { items: true },
+    include: { items: { include: { enrollment: { select: { studentId: true, courseRunId: true } } } } },
   }), { operation: 'checkout-status-read' });
   if (!payment) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
   return NextResponse.json({
     status: payment.status,
-    paid: payment.status === 'paid',
+    paid: payment.status === 'paid' && !payment.enrollmentIssue,
+    enrollmentUnconfirmed: Boolean(payment.enrollmentIssue),
     simulated: payment.simulated,
     reference: payment.reference,
     provider: payment.provider,
     totalSar: payment.totalSar,
     discountSar: payment.discountSar,
     items: payment.items.map((i) => ({
-      studentId: i.enrollmentId ?? i.id,
-      courseRunId: i.id,
+      studentId: i.enrollment?.studentId ?? null,
+      courseRunId: i.enrollment?.courseRunId ?? null,
       studentName: i.studentName,
       programNameAr: i.programAr,
       programNameEn: i.programEn,

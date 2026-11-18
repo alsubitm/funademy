@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getFamilyId } from '@/lib/family-auth';
+import { isCityOnlyLocation } from '@/lib/classroom-location';
 import { CART_COOKIE, CART_COOKIE_OPTIONS, encodeCart, priceCart, readCart } from '@/lib/cart';
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
   ]);
   if (!student) return NextResponse.json({ error: 'student_not_found' }, { status: 404 });
   if (!run) return NextResponse.json({ error: 'run_not_found' }, { status: 404 });
+  if (run.format === 'in_person' && isCityOnlyLocation(run.location)) return NextResponse.json({ error: 'venue_unconfirmed' }, { status: 409 });
   if (run.seatsLeft <= 0) return NextResponse.json({ error: 'run_full' }, { status: 409 });
   if (existing) return NextResponse.json({ error: 'already_enrolled' }, { status: 409 });
   const normalizePhone = (value: string) => {

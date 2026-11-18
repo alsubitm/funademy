@@ -9,6 +9,11 @@ description: How the ye vitest suite isolates its database, and a pitfall when r
 - Gotcha: registering a validation command can rewrite the `.replit` run-button `Project` workflow to run only the validation. Check `.replit` afterward and remove any injected `Project` wrapper so the run button keeps launching the app.
 - **Id-recycling trap:** a suite that setvals a serial sequence DOWN makes later runs recycle ids; FK-less referrer rows (missed by TRUNCATE CASCADE) then match recycled ids in time-window lookups, causing phantom cross-run behavior. Suites lowering sequences must wipe FK-less referrers in afterAll and park the sequence high.
 
+## Deployment mode can leak into isolated tests
+Normalize deployment-mode flags in isolated test workers; production cases must opt in explicitly, independently of sandbox provider credentials.
+**Why:** an inherited production mode made simulation-based regression fixtures fail despite using the correct isolated database and fake credentials.
+**How to apply:** test database isolation does not imply environment isolation. Keep production rejection cases explicit and never weaken production guards to make fixtures pass.
+
 ## Browser regression boundary
 Use isolated test-only signed sessions for curriculum browser regressions, not live admin credentials or SMS sign-in.
 **Why:** these regressions target saved editor state and learner rendering, not authentication delivery; real credentials introduce unnecessary exposure and provider side effects.

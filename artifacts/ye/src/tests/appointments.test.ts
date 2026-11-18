@@ -262,7 +262,7 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
       },
     });
     const slot = await prisma.scheduleSlot.create({
-      data: { programId: program.id, weekday: 0, time: '17:00', format: 'in_person', capacity: 12, seatsLeft: 12 },
+      data: { programId: program.id, weekday: 0, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 12, seatsLeft: 12 },
     });
     return { program, slot };
   }
@@ -281,28 +281,17 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
   });
 
   it.each([null, '', '   ', 'Riyadh', 'الرياض', '  rIyAdH  '])(
-    'labels the city map honestly when the configured venue is %j',
+    'blocks unconfirmed venues without reserving seats or sending invitations: %j',
     async (location) => {
       const { program, slot } = await createProgramWithSlot();
       await prisma.scheduleSlot.update({ where: { id: slot.id }, data: { location } });
 
-      const result = await createTrialBooking({
+      await expect(createTrialBooking({
         ...bookingBody(program.id, slot.id), familyId: auth.familyId,
-      });
-
-      expect(result.calendarDegraded).toBe(false);
-      expect(mockCreate).toHaveBeenCalledTimes(1);
-      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
-        inPerson: true,
-        location: 'Riyadh, Saudi Arabia',
-        description: [
-          'حصة تجريبية حضورية في الرياض',
-          `البرنامج: ${program.nameAr} / ${program.nameEn}`,
-          'الرياض — حضوري. تواصل معنا لتأكيد المقر الدقيق قبل الحضور.',
-          'خريطة المدينة وليست موقع المقر: https://www.google.com/maps/search/?api=1&query=Riyadh%2C%20Saudi%20Arabia',
-        ].join('\n'),
-      }));
-      expect(mockCreate.mock.calls[0][0].description).not.toContain('البحث عن المقر في الخرائط');
+      })).rejects.toThrow('venue_unconfirmed');
+      expect(mockCreate).not.toHaveBeenCalled();
+      expect((await prisma.scheduleSlot.findUniqueOrThrow({ where: { id: slot.id } })).seatsLeft).toBe(12);
+      expect(await prisma.booking.count({ where: { slotId: slot.id } })).toBe(0);
     },
   );
 
@@ -364,7 +353,7 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
   it('atomically limits a verified phone across changing children, slots and submitted phones', async () => {
     const { program, slot } = await createProgramWithSlot();
     const other = await prisma.scheduleSlot.create({
-      data: { programId: program.id, weekday: 2, time: '18:00', format: 'in_person', capacity: 12, seatsLeft: 12 },
+      data: { programId: program.id, weekday: 2, time: '18:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 12, seatsLeft: 12 },
     });
     const outcomes = await Promise.allSettled(Array.from({ length: 8 }, (_, i) =>
       createTrialBooking({

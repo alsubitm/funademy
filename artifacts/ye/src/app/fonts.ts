@@ -3,10 +3,12 @@ import localFont from 'next/font/local';
 // Source fonts and their OFL licenses are bundled in src/fonts.
 // Publishing must never require Google CSS/font downloads.
 export const baloo = localFont({
+  preload: false,
   src: '../fonts/BalooBhaijaan2-Variable.ttf',
   weight: '400 800', display: 'swap', variable: '--font-baloo',
 });
 export const plexArabic = localFont({
+  preload: false,
   src: [
     { path: '../fonts/IBMPlexSansArabic-Light.ttf', weight: '300' },
     { path: '../fonts/IBMPlexSansArabic-Regular.ttf', weight: '400' },
@@ -17,6 +19,7 @@ export const plexArabic = localFont({
   display: 'swap', variable: '--font-plex-arabic',
 });
 export const plexMono = localFont({
+  preload: false,
   src: [
     { path: '../fonts/IBMPlexMono-Regular.ttf', weight: '400' },
     { path: '../fonts/IBMPlexMono-Medium.ttf', weight: '500' },
@@ -26,10 +29,12 @@ export const plexMono = localFont({
   display: 'swap', variable: '--font-plex-mono',
 });
 export const spaceGrotesk = localFont({
+  preload: false,
   src: '../fonts/SpaceGrotesk-Variable.ttf',
   weight: '500 700', display: 'swap', variable: '--font-v3-display',
 });
 export const manrope = localFont({
+  preload: false,
   src: '../fonts/Manrope-Variable.ttf',
   weight: '400 800', display: 'swap', variable: '--font-v3-body',
 });

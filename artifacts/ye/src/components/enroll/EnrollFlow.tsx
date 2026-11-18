@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { enrollDict } from '@/app/(ar)/enroll/dict';
 import { ClassroomLocation } from '@/components/ClassroomLocation';
+import { isCityOnlyLocation } from '@/lib/classroom-location';
 import { arabicDigits, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 
 type Lang = 'ar' | 'en';
@@ -18,6 +19,8 @@ type Run = {
   location: string | null;
   seatsLeft: number;
   monthlyPriceSar: number;
+  startDate: string;
+  endDate: string;
 };
 type CartItem = {
   studentId: number;
@@ -43,6 +46,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
   const accountHref = lang === 'ar' ? '/account' : '/en/account';
 
   const [loading, setLoading] = useState(true);
+  const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [authed, setAuthed] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
@@ -62,13 +66,16 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
     (async () => {
       // Returning from a live payment redirect?
       const params = new URLSearchParams(window.location.search);
+      setSelectedRunId(Number(params.get('run')) || null);
       const paidId = params.get('paid');
       if (params.get('payfail')) setError('payment_failed');
       if (params.get('paypending')) setError('payment_pending');
+      if (params.get('payreview')) setError('payment_review');
       if (paidId) {
         const doneRes = await fetch(`/svc/enroll/checkout?paymentId=${encodeURIComponent(paidId)}`, { cache: 'no-store' });
         if (doneRes.ok) {
           const dp = await doneRes.json();
+          if (dp.enrollmentUnconfirmed) setError('payment_review');
           if (dp.paid) setDone(dp);
         }
       }
@@ -100,7 +107,10 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
       }
       if (runsRes.ok) setRuns((await runsRes.json()).runs);
       setLoading(false);
-    })();
+    })().catch(() => {
+      setError('generic');
+      setLoading(false);
+    });
   }, []);
 
   const year = new Date().getFullYear();
@@ -109,12 +119,13 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
   const eligibleRuns = useMemo(() => {
     if (!selectedChild) return [];
     const age = year - selectedChild.birthYear;
-    const list = runs.filter((r) => age >= r.program.ageMin && age <= r.program.ageMax);
+    const list = runs.filter((r) => age >= r.program.ageMin && age <= r.program.ageMax)
+      .sort((a, b) => Number(b.id === selectedRunId) - Number(a.id === selectedRunId));
     // preselected program first
     return preselectProgramSlug
       ? [...list].sort((a, b) => Number(b.program.slug === preselectProgramSlug) - Number(a.program.slug === preselectProgramSlug))
       : list;
-  }, [runs, selectedChild, preselectProgramSlug, year]);
+  }, [runs, selectedChild, preselectProgramSlug, year, selectedRunId]);
 
   async function addToCart(courseRunId: number) {
     if (!childId) return;
@@ -171,7 +182,28 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
 
   if (!authed) {
     return (
-      <div className="enr-box" style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center' }}>
+      <div className="enr-box" style={{ maxWidth: 900, margin: '40px auto 0' }}>
+        <h2 style={{ fontSize: 26 }}>{lang === 'ar' ? 'المجموعات والأسعار الحالية' : 'Current groups and prices'}</h2>
+        <p>{lang === 'ar' ? 'تصفّح دون تسجيل الدخول. يلزم حساب العائلة لاختيار الطفل وإتمام التسجيل.' : 'Browse without signing in. A family account is needed to select a child and enroll.'}</p>
+        {error && <p role="alert">{errMsg(error)}</p>}
+        {!runs.length && <p role="status">{lang === 'ar' ? 'لا توجد مجموعات متاحة للتسجيل حاليًا. تواصل معنا لمعرفة المستجدات.' : 'No groups are currently available for enrollment. Contact us for updates.'}</p>}
+        {runs.map(r => {
+          const unconfirmed = r.format === 'in_person' && (!r.location?.trim() || /^(riyadh|الرياض)$/i.test(r.location.trim()));
+          const next = `${lang === 'ar' ? '' : '/en'}/enroll?program=${encodeURIComponent(r.program.slug)}&run=${r.id}`;
+          return <article key={r.id} className="enr-run" style={{ marginBlock: 16, flexWrap: 'wrap' }}>
+            <div className="r-main">
+              <h3>{r.program.nameEn}</h3>
+              <p>{r.format === 'online' ? (lang === 'ar' ? 'عبر الإنترنت' : 'Online') : (lang === 'ar' ? 'حضوري' : 'In person')} · {weekdays[r.weekday]} {r.time} ({lang === 'ar' ? 'بتوقيت الرياض' : 'Riyadh time'})</p>
+              <p>{new Date(r.startDate).toLocaleDateString(lang === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', { timeZone: 'Asia/Riyadh' })} – {new Date(r.endDate).toLocaleDateString(lang === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', { timeZone: 'Asia/Riyadh' })}</p>
+              {r.format === 'in_person' && <ClassroomLocation location={r.location} lang={lang} />}
+              <p>{fmt(lang, r.monthlyPriceSar)} {d.perMonth}</p>
+              <p>{lang === 'ar' ? 'تفاصيل الضريبة، مدة وعدد الحصص، الأدوات وشروط التجديد: تُؤكَّد مع الإدارة قبل الدفع.' : 'Tax details, session count and duration, kits and renewal terms: confirm with the academy before paying.'}</p>
+              {unconfirmed ? <p>{lang === 'ar' ? 'المقر قيد التأكيد — التسجيل غير متاح لهذه المجموعة.' : 'Venue to be confirmed — enrollment unavailable for this group.'}</p>
+                : r.seatsLeft <= 0 ? <p>{d.full}</p>
+                : <a className="acct-btn" style={{ width: 'auto', display: 'inline-flex' }} href={`${accountHref}?next=${encodeURIComponent(next)}`}>{d.goLogin}</a>}
+            </div>
+          </article>;
+        })}
         <p style={{ marginBottom: 16 }}>{d.loginNeeded}</p>
         <a className="acct-btn" style={{ width: 'auto', textDecoration: 'none' }} href={accountHref}>
           {d.goLogin}
@@ -199,7 +231,9 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
               <div className="c-prog">
                 {lang === 'ar' ? it.programNameAr : it.programNameEn}
                 {it.weekday != null ? ` — ${weekdays[it.weekday]} ${it.time ?? ''}` : ''}
-                <div><ClassroomLocation location={runs.find((r) => r.id === it.courseRunId)?.location} lang={lang} /></div>
+                <div>{runs.find(r => r.id === it.courseRunId)?.format === 'online'
+                  ? (lang === 'ar' ? 'عبر الإنترنت' : 'Online')
+                  : runs.some(r => r.id === it.courseRunId) && <ClassroomLocation location={runs.find((r) => r.id === it.courseRunId)?.location} lang={lang} />}</div>
               </div>
             </div>
             <div className="c-price">
@@ -262,7 +296,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
                       <div className="r-name">{r.program.nameEn}</div>
                       <div className="r-meta">
                         {(lang === 'ar' ? r.titleAr : r.titleEn) ?? ''} · {weekdays[r.weekday]} {r.time}
-                        {' · '}<ClassroomLocation location={r.location} lang={lang} />
+                        {' · '}{r.format === 'online' ? (lang === 'ar' ? 'عبر الإنترنت' : 'Online') : <ClassroomLocation location={r.location} lang={lang} />}
                       </div>
                       <div className={`r-seats ${r.seatsLeft <= 3 ? 'low' : ''}`}>
                         {full ? d.full : `${fmt(lang, r.seatsLeft)} ${d.seats}`}
@@ -275,7 +309,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
                       <button
                         className="acct-btn"
                         style={{ width: 'auto', fontSize: 13, padding: '8px 16px', marginTop: 6 }}
-                        disabled={busy || full || inCart}
+                        disabled={busy || full || inCart || (r.format === 'in_person' && isCityOnlyLocation(r.location))}
                         onClick={() => addToCart(r.id)}
                       >
                         {busy ? d.adding : d.addToCart}

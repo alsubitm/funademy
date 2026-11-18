@@ -45,8 +45,23 @@ export function providerLive(provider: PaymentProvider): boolean {
 
 /** Published deployment — same gating pattern as outboxActive() in xapiOutbox.ts. */
 export function productionDeployment(): boolean {
-  return process.env.REPLIT_DEPLOYMENT === '1';
+  return process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1' || process.env.REPLIT_ENVIRONMENT === 'production';
 }
+
+export function simulationAllowed(): boolean {
+  return !productionDeployment() && process.env.PAYMENT_SANDBOX === '1';
+}
+
+/** Decimal SAR -> integer halalas, rejecting excess precision and malformed amounts. */
+export function sarMinorUnits(value: unknown): number | null {
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  const text = String(value);
+  if (!/^\d+(\.\d{1,2})?$/.test(text)) return null;
+  const [whole, fraction = ''] = text.split('.');
+  const amount = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+  return Number.isSafeInteger(amount) ? amount : null;
+}
+export type ExpectedSettlement = { amountSar: number; currency: string };
 
 /* ---- Tamara payment-types availability (cached) ----
  * A live Tamara token is NOT enough: the merchant account must have at least
@@ -97,7 +112,7 @@ export async function tamaraPaymentTypesAvailable(): Promise<boolean | null> {
  *   merchant account to have payment types enabled.
  */
 export async function paymentAvailability(): Promise<{ moyasar: boolean; tamara: boolean }> {
-  const prod = productionDeployment();
+  const prod = !simulationAllowed();
   const moyasar = moyasarLive() || !prod;
   let tamara: boolean;
   if (tamaraLive()) {
@@ -139,7 +154,7 @@ export async function createPayment(
   }
 
   if (!providerLive(provider) || !opts) {
-    if (productionDeployment()) {
+    if (!simulationAllowed()) {
       // NEVER simulate on the published site — a visitor must not finish
       // checkout without real money collected (incident 2026-08-12).
       console.error(`[payments] createPayment ${provider} refused: provider not configured in production`);
@@ -214,11 +229,12 @@ export async function reconcilePaymentCreation(
 export type VerifyResult = 'paid' | 'pending' | 'failed';
 
 /** Ask the provider for the authoritative payment status. */
-export async function verifyPayment(provider: PaymentProvider, reference: string): Promise<VerifyResult> {
-  if (reference.startsWith('SIM-')) return 'paid';
+export async function verifyPayment(provider: PaymentProvider, reference: string, expected?: ExpectedSettlement): Promise<VerifyResult> {
+  if (reference.startsWith('SIM-')) return simulationAllowed() ? 'paid' : 'pending';
+  if (!expected || expected.currency !== 'SAR' || !sarMinorUnits(expected.amountSar)) return 'pending';
   if (!providerLive(provider)) return 'pending'; // can't verify without credentials — never fail blindly
   try {
-    return provider === 'tamara' ? await verifyTamara(reference) : await verifyMoyasar(reference);
+    return provider === 'tamara' ? await verifyTamara(reference, expected) : await verifyMoyasar(reference, expected);
   } catch (e) {
     console.error(`[payments] verifyPayment ${provider} ${reference} error:`, e);
     return 'pending'; // transient error — retry later, do not release seats
@@ -252,7 +268,9 @@ export async function refundPayment(
   reference: string,
   amountSar: number,
 ): Promise<RefundResult> {
-  if (reference.startsWith('SIM-')) return { ok: true }; // simulated — no real charge
+  if (reference.startsWith('SIM-')) return simulationAllowed()
+    ? { ok: true }
+    : { ok: false, error: 'simulation_forbidden', indeterminate: false };
   if (!providerLive(provider)) return { ok: false, error: 'provider_not_configured', indeterminate: false };
   try {
     return provider === 'tamara'
@@ -294,7 +312,7 @@ async function createMoyasarInvoice(
   });
   const data = (await res.json().catch(() => ({}))) as { id?: string; url?: string; message?: string };
   if (!res.ok || !data.id || !data.url) {
-    console.error('[payments] Moyasar invoice error:', res.status, data);
+    console.error('[payments] Moyasar invoice error:', res.status);
     return res.ok || res.status >= 500 || res.status === 408 || res.status === 429
       ? { status: 'indeterminate', provider, error: 'provider_status_unknown', reference: data.id }
       : { status: 'failed', provider, error: 'provider_error' };
@@ -302,15 +320,22 @@ async function createMoyasarInvoice(
   return { status: 'redirect', reference: data.id, redirectUrl: data.url, provider, amountSar };
 }
 
-async function verifyMoyasar(invoiceId: string): Promise<VerifyResult> {
+async function verifyMoyasar(invoiceId: string, expected: ExpectedSettlement): Promise<VerifyResult> {
   const res = await fetch(`${MOYASAR_BASE()}/v1/invoices/${encodeURIComponent(invoiceId)}`, {
     headers: { Authorization: moyasarAuth() },
     cache: 'no-store',
   });
   if (res.status === 404) return 'failed';
-  const data = (await res.json()) as { status?: string };
+  const data = (await res.json()) as { status?: string; amount?: number; currency?: string; payments?: { status?: string; amount?: number; captured?: number; refunded?: number; currency?: string }[] };
   if (!res.ok) throw new Error(`moyasar_verify_${res.status}`);
-  if (data.status === 'paid') return 'paid';
+  if (data.status === 'paid') {
+    const amount = sarMinorUnits(expected.amountSar);
+    if (data.amount !== amount || data.currency !== expected.currency) return 'pending';
+    // A paid invoice alone is insufficient: verify a settled payment attempt.
+    return data.payments?.some(p => p.currency === expected.currency && p.amount === amount &&
+      p.refunded === 0 && ((p.status === 'paid' && (p.captured === 0 || p.captured === amount)) ||
+      (p.status === 'captured' && p.captured === amount))) ? 'paid' : 'pending';
+  }
   if (data.status === 'expired' || data.status === 'canceled' || data.status === 'voided' || data.status === 'failed') return 'failed';
   return 'pending';
 }
@@ -327,7 +352,7 @@ async function refundMoyasar(invoiceId: string): Promise<RefundResult> {
     });
     inv = (await invRes.json()) as typeof inv;
     if (!invRes.ok) {
-      console.error('[payments] Moyasar refund: invoice lookup failed:', invRes.status, inv);
+      console.error('[payments] Moyasar refund: invoice lookup failed:', invRes.status);
       return { ok: false, error: 'provider_error', indeterminate: false };
     }
   } catch (e) {
@@ -339,7 +364,7 @@ async function refundMoyasar(invoiceId: string): Promise<RefundResult> {
     // Nothing settled behind this invoice, or already refunded at the provider.
     const refunded = inv.payments?.find((p) => p.status === 'refunded');
     if (refunded) return { ok: true }; // already refunded upstream — safe to record
-    console.error('[payments] Moyasar refund: no paid payment on invoice', invoiceId, inv.payments);
+    console.error('[payments] Moyasar refund: no settled payment on invoice');
     return { ok: false, error: 'no_paid_payment', indeterminate: false };
   }
 
@@ -354,10 +379,10 @@ async function refundMoyasar(invoiceId: string): Promise<RefundResult> {
     if (res.ok && (data.status === 'refunded' || !data.status)) return { ok: true };
     if (res.status >= 400 && res.status < 500) {
       // Definitive rejection — Moyasar refused before executing anything.
-      console.error('[payments] Moyasar refund rejected:', res.status, data);
+      console.error('[payments] Moyasar refund rejected:', res.status);
       return { ok: false, error: 'provider_error', indeterminate: false };
     }
-    console.error('[payments] Moyasar refund ambiguous response:', res.status, data);
+    console.error('[payments] Moyasar refund ambiguous response:', res.status);
   } catch (e) {
     console.error('[payments] Moyasar refund network error (outcome unknown):', e);
   }
@@ -444,7 +469,7 @@ async function createTamaraCheckout(
   });
   const data = (await res.json().catch(() => ({}))) as { order_id?: string; checkout_url?: string; message?: string };
   if (!res.ok || !data.order_id || !data.checkout_url) {
-    console.error('[payments] Tamara checkout error:', res.status, data);
+    console.error('[payments] Tamara checkout error:', res.status);
     return res.ok || res.status >= 500 || res.status === 408 || res.status === 429
       ? { status: 'indeterminate', provider: 'tamara', error: 'provider_status_unknown', reference: data.order_id }
       : { status: 'failed', provider: 'tamara', error: 'provider_error' };
@@ -468,15 +493,15 @@ async function refundTamara(orderId: string, amountSar: number): Promise<RefundR
     if (res.status === 409) {
       // 409 usually means "already refunded", but don't take the provider's
       // word for it — reconcile against the order's actual refunded amount.
-      console.error('[payments] Tamara refund 409, reconciling:', body);
+      console.error('[payments] Tamara refund 409, reconciling');
       return reconcileTamaraRefund(orderId, amountSar, /*definitiveOnUnrefunded*/ true);
     }
     if (res.status >= 400 && res.status < 500) {
       // Definitive pre-execution rejection — nothing was refunded.
-      console.error('[payments] Tamara refund rejected:', res.status, body);
+      console.error('[payments] Tamara refund rejected:', res.status);
       return { ok: false, error: 'provider_error', indeterminate: false };
     }
-    console.error('[payments] Tamara refund ambiguous response:', res.status, body);
+    console.error('[payments] Tamara refund ambiguous response:', res.status);
   } catch (e) {
     console.error('[payments] Tamara refund network error (outcome unknown):', e);
   }
@@ -517,18 +542,22 @@ async function reconcileTamaraRefund(
   return { ok: false, error: 'refund_status_unknown', indeterminate: true };
 }
 
-async function verifyTamara(orderId: string): Promise<VerifyResult> {
+async function verifyTamara(orderId: string, expected: ExpectedSettlement, allowCapture = true): Promise<VerifyResult> {
   const res = await fetch(`${TAMARA_BASE()}/orders/${encodeURIComponent(orderId)}`, {
     headers: tamaraHeaders(),
     cache: 'no-store',
   });
   if (res.status === 404) return 'failed';
-  const data = (await res.json()) as { status?: string; total_amount?: { amount: number } };
+  const data = (await res.json()) as { status?: string; total_amount?: { amount: number; currency: string }; captured_amount?: { amount: number; currency: string }; refunded_amount?: { amount: number; currency: string } };
   if (!res.ok) throw new Error(`tamara_verify_${res.status}`);
   const status = (data.status || '').toLowerCase();
 
-  // fully_captured (or partially_captured) = money is in hand, no more action needed.
-  if (status === 'fully_captured' || status === 'partially_captured') return 'paid';
+  const matches = (money?: { amount: number; currency: string }) =>
+    money?.currency === expected.currency && sarMinorUnits(money.amount) === sarMinorUnits(expected.amountSar);
+  if (!matches(data.total_amount)) return 'pending';
+  if (status === 'fully_captured') return matches(data.captured_amount) &&
+    data.refunded_amount?.currency === expected.currency && sarMinorUnits(data.refunded_amount.amount) === 0 ? 'paid' : 'pending';
+  if (status === 'partially_captured' || !allowCapture) return 'pending';
 
   if (status === 'approved') {
     // Approved orders must be authorised to secure the funds.
@@ -538,18 +567,18 @@ async function verifyTamara(orderId: string): Promise<VerifyResult> {
     });
     if (!auth.ok && auth.status !== 409) {
       // 409 = already authorised elsewhere; anything else → still pending.
-      console.error('[payments] Tamara authorise error:', auth.status, await auth.text().catch(() => ''));
+      console.error('[payments] Tamara authorise error:', auth.status);
       return 'pending';
     }
     // After authorise, capture. If capture fails, leave pending for retry.
-    const captured = await captureTamara(orderId, data.total_amount?.amount);
-    return captured ? 'paid' : 'pending';
+    await captureTamara(orderId, expected.amountSar);
+    return verifyTamara(orderId, expected, false);
   }
 
   if (status === 'authorised') {
     // Already authorised — move straight to capture.
-    const captured = await captureTamara(orderId, data.total_amount?.amount);
-    return captured ? 'paid' : 'pending';
+    await captureTamara(orderId, expected.amountSar);
+    return verifyTamara(orderId, expected, false);
   }
 
   if (status === 'declined' || status === 'expired' || status === 'canceled') return 'failed';
@@ -579,8 +608,9 @@ async function captureTamara(orderId: string, amount?: number): Promise<boolean>
         shipping_info: { shipped_at: new Date().toISOString(), shipping_company: 'N/A' },
       }),
     });
-    if (res.ok || res.status === 409) return true; // 409 = already captured
-    console.error('[payments] Tamara capture error:', res.status, await res.text().catch(() => ''));
+    if (res.ok) return true; // Caller always re-reads authoritative settlement.
+    if (res.status === 409) return false;
+    console.error('[payments] Tamara capture error:', res.status);
     return false;
   } catch (e) {
     console.error('[payments] Tamara capture network error:', e);

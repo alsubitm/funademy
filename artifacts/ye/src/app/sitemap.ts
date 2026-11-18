@@ -18,27 +18,13 @@ const PROGRAM_SLUGS_FALLBACK = [
   'algoc',
 ];
 
-// Representative last-edited dates for genuinely static pages.
-const STATIC_DATES: Record<string, Date> = {
-  '/': new Date('2025-01-01'),
-  '/en': new Date('2025-01-01'),
-  '/watanona': new Date('2025-01-01'),
-  '/en/watanona': new Date('2025-01-01'),
-  '/book': new Date('2025-03-01'),
-  '/en/book': new Date('2025-03-01'),
-  '/contact': new Date('2025-01-01'),
-  '/en/contact': new Date('2025-01-01'),
-  '/blog': new Date('2025-01-01'),
-  '/en/blog': new Date('2025-01-01'),
-  '/enroll': new Date('2025-03-01'),
-  '/en/enroll': new Date('2025-03-01'),
-  '/consult': new Date('2025-01-01'),
-  '/en/consult': new Date('2025-01-01'),
-  '/privacy': new Date('2024-06-01'),
-  '/en/privacy': new Date('2024-06-01'),
-  '/terms': new Date('2024-06-01'),
-  '/en/terms': new Date('2024-06-01'),
-};
+// No authoritative content revision dates exist for these pages: omit lastmod.
+const STATIC_PATHS = [
+  '/', '/en', '/programs', '/en/programs', '/watanona', '/en/watanona',
+  '/book', '/en/book', '/contact', '/en/contact', '/blog', '/en/blog',
+  '/enroll', '/en/enroll', '/consult', '/en/consult',
+  '/privacy', '/en/privacy', '/terms', '/en/terms',
+];
 
 function priority(p: string): number {
   if (p === '/') return 1.0;
@@ -71,26 +57,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     'sitemap:programs',
   );
 
-  const staticEntries: MetadataRoute.Sitemap = Object.entries(STATIC_DATES).map(
-    ([p, lastModified]) => ({
+  const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.map(
+    (p) => ({
       url: `${base}${p}`,
-      lastModified,
       changeFrequency: p === '/' || p === '/en' ? 'weekly' : 'monthly',
       priority: priority(p),
     }),
   );
 
-  const programLastMod = new Date('2025-01-01');
   const programEntries: MetadataRoute.Sitemap = programs.flatMap(({ slug }) => [
     {
       url: `${base}/programs/${slug}`,
-      lastModified: programLastMod,
       changeFrequency: 'monthly' as const,
       priority: priority(`/programs/${slug}`),
     },
     {
       url: `${base}/en/programs/${slug}`,
-      lastModified: programLastMod,
       changeFrequency: 'monthly' as const,
       priority: priority(`/en/programs/${slug}`),
     },

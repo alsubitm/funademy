@@ -123,7 +123,7 @@ describe('placing bricks', () => {
   it('places a signed message brick → goes to pending, not on the wall', async () => {
     cookieJar.clear();
     const res = await place(
-      { message: `أحب وطني ${RUN}`, authorName: 'خالد', color: '#FFCA17' },
+      { message: `أحب وطني ${RUN}`, authorName: 'خالد', color: '#FFCA17', publicConsent: true },
       freshIp(),
     );
     expect(res.status).toBe(200);
@@ -132,7 +132,8 @@ describe('placing bricks', () => {
     const brick = await prisma.watanBrick.findFirst({ where: { message: `أحب وطني ${RUN}` } });
     expect(brick).not.toBeNull();
     expect(brick!.status).toBe('pending');
-    expect(brick!.authorName).toBe('خالد');
+    expect(brick!.authorName).toBe('FunAdemy');
+    expect(brick!.publicConsentAt).not.toBeNull();
     expect(brick!.color).toBe('#FFCA17');
 
     const wall = (await (await bricksGET()).json()).wall as { message: string }[];
@@ -141,19 +142,19 @@ describe('placing bricks', () => {
 
   it('rejects invalid input: message too long or missing name', async () => {
     cookieJar.clear();
-    const tooLong = await place({ message: 'أ'.repeat(121), authorName: 'خالد' }, freshIp());
+    const tooLong = await place({ message: 'أ'.repeat(121), publicConsent: true }, freshIp());
     expect(tooLong.status).toBe(400);
     const noName = await place({ message: `بدون اسم ${RUN}` }, freshIp());
     expect(noName.status).toBe(400);
   });
 
-  it('links the brick to a child with a valid family session (name defaults to child)', async () => {
+  it('links the brick privately without storing the child’s name as public author', async () => {
     asFamily(familyA.id);
-    const res = await place({ message: `مكعب طفلي ${RUN}`, studentId: studentA.id }, freshIp());
+    const res = await place({ message: `مكعب طفلي ${RUN}`, studentId: studentA.id, publicConsent: true }, freshIp());
     expect(res.status).toBe(200);
     const brick = await prisma.watanBrick.findFirst({ where: { message: `مكعب طفلي ${RUN}` } });
     expect(brick!.studentId).toBe(studentA.id);
-    expect(brick!.authorName).toBe(studentA.firstName.slice(0, 30));
+    expect(brick!.authorName).toBe('FunAdemy');
   });
 
   it('rejects linking another family’s child (403)', async () => {
@@ -193,8 +194,8 @@ describe('moderation → wall', () => {
     cookieJar.clear();
     const approveMsg = `للنشر ${RUN}`;
     const rejectMsg = `للرفض ${RUN}`;
-    expect((await place({ message: approveMsg, authorName: 'ريم' }, freshIp())).status).toBe(200);
-    expect((await place({ message: rejectMsg, authorName: 'ريم' }, freshIp())).status).toBe(200);
+    expect((await place({ message: approveMsg, authorName: 'ريم', publicConsent: true }, freshIp())).status).toBe(200);
+    expect((await place({ message: rejectMsg, authorName: 'ريم', publicConsent: true }, freshIp())).status).toBe(200);
 
     const toApprove = await prisma.watanBrick.findFirst({ where: { message: approveMsg } });
     const toReject = await prisma.watanBrick.findFirst({ where: { message: rejectMsg } });
@@ -218,8 +219,9 @@ describe('moderation → wall', () => {
     expect((await patch(toApprove!.id, 'approved')).status).toBe(200);
     expect((await patch(toReject!.id, 'rejected')).status).toBe(200);
 
-    const wall = (await (await bricksGET()).json()).wall as { message: string }[];
+    const wall = (await (await bricksGET()).json()).wall as { message: string; authorName: string }[];
     expect(wall.some((b) => b.message === approveMsg)).toBe(true);
+    expect(wall.find(b => b.message === approveMsg)?.authorName).toBe('FunAdemy');
     expect(wall.some((b) => b.message === rejectMsg)).toBe(false);
   });
 

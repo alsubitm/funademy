@@ -16,6 +16,7 @@ async function main() {
       ...env, NODE_ENV: 'development', DATABASE_URL: databaseUrl,
       SESSION_SECRET: 'browser-regression-only-secret',
       ADMIN_PASSWORD: 'browser-regression-only-password',
+      PAYMENT_SANDBOX: '1', // Explicit simulation, only on this provider-free development server.
       NEXT_DIST_DIR: '.next-browser-test',
       NEXT_TELEMETRY_DISABLED: '1',
     },

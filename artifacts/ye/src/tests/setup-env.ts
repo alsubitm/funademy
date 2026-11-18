@@ -6,6 +6,11 @@ import { testDbUrl } from './test-db';
 
 // testDbUrl() fails closed unless the resolved URL targets the ye_test DB.
 process.env.DATABASE_URL = testDbUrl();
+process.env.PAYMENT_SANDBOX = '1';
+// Isolated tests must not inherit deployment mode; production cases opt in explicitly.
+Object.assign(process.env, { NODE_ENV: 'test' });
+delete process.env.REPLIT_DEPLOYMENT;
+process.env.REPLIT_ENVIRONMENT = 'development';
 
 // Provider secrets must NEVER reach test workers: with the live-by-presence
 // pattern (payments, SMS) a present key makes library code call the REAL

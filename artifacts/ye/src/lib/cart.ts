@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
+import { isCityOnlyLocation } from '@/lib/classroom-location';
 
 /**
  * Enrollment cart — items live in a signed httpOnly cookie tied to the family
@@ -120,6 +121,7 @@ export async function priceCart(familyId: number, items: CartItem[]): Promise<Pr
     const s = sMap.get(it.studentId);
     const r = rMap.get(it.courseRunId);
     if (!s || !r) return [];
+    if (r.format === 'in_person' && isCityOnlyLocation(r.location)) return [];
     const trial = it.trialBookingId ? bMap.get(it.trialBookingId) : null;
     if (
       it.trialBookingId &&

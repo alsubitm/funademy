@@ -427,6 +427,8 @@ CREATE TABLE "ye_payments" (
     "discountSar" INTEGER NOT NULL DEFAULT 0,
     "totalSar" INTEGER NOT NULL,
     "simulated" BOOLEAN NOT NULL DEFAULT true,
+    "enrollmentIssue" TEXT,
+    "enrollmentIssueAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_payments_pkey" PRIMARY KEY ("id")
@@ -526,6 +528,7 @@ CREATE TABLE "ye_student_badges" (
 
 -- CreateTable
 CREATE TABLE "ye_watan_bricks" (
+    "publicConsentAt" TIMESTAMP(3),
     "id" SERIAL NOT NULL,
     "studentId" INTEGER,
     "authorName" TEXT NOT NULL,

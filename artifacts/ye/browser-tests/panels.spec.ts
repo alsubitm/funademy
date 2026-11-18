@@ -137,7 +137,7 @@ test('admin filters, section history, all phone destinations and failed loads', 
   await expect(page.getByTestId('input-runs-search')).toBeVisible();
   await page.screenshot({ path: '../../generated-artifacts/panels-evidence/admin-phone-runs.png' });
   const adminPhone = await overflowReport(page);
-  if (adminPhone.scrollWidth > adminPhone.viewport + 1) console.log('ADMIN_PHONE_OVERFLOW', JSON.stringify(adminPhone));
+  expect(adminPhone.scrollWidth).toBeLessThanOrEqual(adminPhone.viewport + 1);
   await page.getByTestId('input-runs-search').fill('no-match-at-all');
   await expect(page.getByTestId('empty-runs-filtered')).toBeVisible();
   await page.getByTestId('button-runs-clear-empty').click();
@@ -212,7 +212,7 @@ for (const base of ['', '/en']) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: `../../generated-artifacts/panels-evidence/portal-phone-${base || 'ar'}.png` });
     const portalPhone = await overflowReport(page);
-    if (portalPhone.scrollWidth > portalPhone.viewport + 1) console.log('PORTAL_PHONE_OVERFLOW', JSON.stringify(portalPhone));
+    expect(portalPhone.scrollWidth).toBeLessThanOrEqual(portalPhone.viewport + 1);
     await page.getByTestId('link-portal-learning-chooser').click();
     await expect(page).toHaveURL(`${origin}${base}/learn`);
     for (const id of children) await expect(page.getByTestId(`card-learn-profile-${id}`)).toBeVisible();

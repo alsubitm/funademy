@@ -24,7 +24,7 @@ import { prisma, withDbRetry } from '@/lib/db';
  * REFUND REQUIRED alert.
  */
 
-export type FinalizeOutcome = 'paid' | 'pending' | 'failed' | 'not_found';
+export type FinalizeOutcome = 'paid' | 'review_required' | 'pending' | 'failed' | 'not_found';
 
 export async function finalizePayment(paymentId: number): Promise<FinalizeOutcome> {
   const payment = await withDbRetry(
@@ -32,7 +32,12 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
     { operation: 'payment-finalize-read' },
   );
   if (!payment) return 'not_found';
-  if (payment.status === 'paid') return 'paid';
+  // Never trust a previously simulated success just because its DB status is paid.
+  if (payment.simulated || payment.reference.startsWith('SIM-')) {
+    const verdict = await verifyPayment(payment.provider as PaymentProvider, payment.reference, { amountSar: payment.totalSar, currency: 'SAR' });
+    if (verdict !== 'paid') return 'pending';
+  }
+  if (payment.status === 'paid') return payment.enrollmentIssue ? 'review_required' : 'paid';
   if (payment.status === 'failed') return 'failed';
   // Expired payments can still be reconciled if the provider later confirms paid.
   const isExpired = payment.status === 'expired';
@@ -62,21 +67,24 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
     }
   }
 
-  const verdict = await verifyPayment(payment.provider as PaymentProvider, providerReference);
+  const verdict = await verifyPayment(payment.provider as PaymentProvider, providerReference, { amountSar: payment.totalSar, currency: 'SAR' });
 
   if (verdict === 'pending') return 'pending';
 
   if (verdict === 'failed') {
     // Mark terminal failed (idempotent — covers both initiated and expired).
     await withDbRetry(() => prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM ye_payments WHERE id = ${paymentId} FOR UPDATE`;
+      const current = await tx.payment.findUnique({ where: { id: paymentId }, include: { items: true } });
+      if (!current || current.reference !== providerReference) return;
       const claimed = await tx.payment.updateMany({
         where: { id: paymentId, status: { in: ['initiated', 'expired'] } },
         data: { status: 'failed' },
       });
       if (claimed.count === 0) return;
-      if (payment.kind === 'enrollment') {
+      if (current.kind === 'enrollment') {
         await tx.paymentItem.updateMany({ where: { paymentId }, data: { trialBookingId: null } });
-        if (!isExpired) await _cancelEnrollmentsInTx(tx, payment.items);
+        await _cancelEnrollmentsInTx(tx, current.items);
       }
     }), { operation: 'payment-finalize-failed', kind: 'transaction' });
     return 'failed';
@@ -84,25 +92,35 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
 
   // Provider says paid — settle exactly once.
   const now = new Date();
-  await withDbRetry(() => prisma.$transaction(async (tx) => {
+  return withDbRetry(() => prisma.$transaction(async (tx): Promise<FinalizeOutcome> => {
+    await tx.$queryRaw`SELECT id FROM ye_payments WHERE id = ${paymentId} FOR UPDATE`;
+    const current = await tx.payment.findUnique({ where: { id: paymentId }, include: { items: true } });
+    if (!current) return 'not_found';
+    if (current.status === 'paid') return current.enrollmentIssue ? 'review_required' : 'paid';
+    if (current.reference !== providerReference || current.totalSar !== payment.totalSar) return 'pending';
+    const freshPayment = current;
     const claimed = await tx.payment.updateMany({
       where: { id: paymentId, status: { in: ['initiated', 'expired'] } },
       data: { status: 'paid' },
     });
-    if (claimed.count === 0) return; // another request already settled it
+    if (claimed.count === 0) return 'pending';
+    let issue: string | null = null;
 
-    if (payment.kind === 'enrollment') {
-      for (const item of payment.items) {
-        if (item.enrollmentId == null) continue;
+    if (freshPayment.kind === 'enrollment') {
+      for (const item of freshPayment.items) {
+        if (item.enrollmentId == null) { issue = 'enrollment_missing'; continue; }
 
+        await tx.$queryRaw`SELECT id FROM ye_enrollments WHERE id = ${item.enrollmentId} FOR UPDATE`;
         const enr = await tx.enrollment.findUnique({ where: { id: item.enrollmentId } });
         if (!enr) {
+          issue = 'enrollment_missing';
           // Should not happen (cancelled, not deleted), but log for safety.
           console.error(`[payments] REFUND REQUIRED: payment ${paymentId} settled but enrollment ${item.enrollmentId} not found`);
           continue;
         }
 
-        if (isExpired) {
+        if (enr.status === 'active') continue;
+        if (enr.status === 'cancelled') {
           // Seats were released on timeout. Try to reclaim a seat for this run.
           const reseated = await tx.courseRun.updateMany({
             where: { id: enr.courseRunId, active: true, seatsLeft: { gt: 0 } },
@@ -114,33 +132,38 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
               data: { status: 'active', startedAt: now, paidThrough: item.periodEnd },
             });
           } else {
+            issue = 'payment_received_enrollment_unconfirmed';
             // Run is full — keep enrollment as cancelled, flag for manual refund.
             console.error(
               `[payments] REFUND REQUIRED: payment ${paymentId} settled after timeout but run ${enr.courseRunId} is full — enrollment ${enr.id} remains cancelled`,
             );
           }
-        } else {
+        } else if (enr.status === 'pending' && freshPayment.status === 'initiated') {
           await tx.enrollment.update({
             where: { id: enr.id },
             data: { status: 'active', startedAt: now, paidThrough: item.periodEnd },
           });
-        }
+        } else { issue = 'enrollment_state_conflict'; }
       }
     } else {
       // renewal — recompute the covered period from the CURRENT paidThrough.
-      for (const item of payment.items) {
-        if (item.enrollmentId == null) continue;
+      for (const item of freshPayment.items) {
+        if (item.enrollmentId == null) { issue = 'enrollment_missing'; continue; }
+        await tx.$queryRaw`SELECT id FROM ye_enrollments WHERE id = ${item.enrollmentId} FOR UPDATE`;
         const enr = await tx.enrollment.findUnique({ where: { id: item.enrollmentId } });
-        if (!enr) continue;
+        if (!enr || enr.status !== 'active') { issue = 'enrollment_state_conflict'; continue; }
         const base = enr.paidThrough && enr.paidThrough > now ? enr.paidThrough : now;
         const periodEnd = addOneMonth(base);
         await tx.enrollment.update({ where: { id: enr.id }, data: { paidThrough: periodEnd } });
         await tx.paymentItem.update({ where: { id: item.id }, data: { periodStart: base, periodEnd } });
       }
     }
+    if (issue) {
+      await tx.payment.update({ where: { id: paymentId }, data: { enrollmentIssue: issue, enrollmentIssueAt: now } });
+      return 'review_required';
+    }
+    return 'paid';
   }), { operation: 'payment-finalize-paid', kind: 'transaction' });
-
-  return 'paid';
 }
 
 /**
@@ -224,11 +247,11 @@ export async function sweepStalePayments(
           payment.reference = creation.reference;
         }
       }
-      const verdict = await verifyPayment(payment.provider as PaymentProvider, payment.reference);
+      const verdict = await verifyPayment(payment.provider as PaymentProvider, payment.reference, { amountSar: payment.totalSar, currency: 'SAR' });
 
       if (verdict === 'paid') {
-        await finalizePayment(payment.id);
-        settled++;
+        const outcome = await finalizePayment(payment.id);
+        if (outcome === 'paid' || outcome === 'review_required') settled++;
       } else if (verdict === 'failed') {
         await withDbRetry(() => prisma.$transaction(async (tx) => {
           const claimed = await tx.payment.updateMany({

@@ -540,6 +540,8 @@ model Payment {
   discountSar Int             @default(0)
   totalSar    Int
   simulated   Boolean         @default(true)
+  enrollmentIssue String?
+  enrollmentIssueAt DateTime?
   createdAt   DateTime        @default(now())
   items       PaymentItem[]
 
@@ -709,6 +711,7 @@ model StudentBadge {
 // ————————————————————————— Phase 1: Watan Bricks —————————————————————————
 
 model WatanBrick {
+  publicConsentAt DateTime?
   id         Int         @id @default(autoincrement())
   student    Student?    @relation(fields: [studentId], references: [id], onDelete: SetNull)
   studentId  Int?

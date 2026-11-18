@@ -52,4 +52,5 @@ Thumbs.db
 
 artifacts/ye/.next/
 artifacts/ye/.next-browser-test/
+artifacts/ye/.next-audit/
 /generated-artifacts/
