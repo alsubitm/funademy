@@ -6,7 +6,8 @@ import { dayKey, fmtDate } from './types';
 import { statusLabel, WINDMILL_STAGES, type Strings } from './strings';
 import { AttendanceEditor } from './AttendanceEditor';
 
-export type NoteState = { draft: string; base: string; status: 'idle' | 'saving' | 'saved' | 'error'; error?: string; savedAt?: string };
+import type { NoteState } from './note-state';
+export type { NoteState } from './note-state';
 
 export function Icon({ d, size = 20 }: { d: string; size?: number }) {
   return (
@@ -248,9 +249,10 @@ export function Roster({ data, lang, s, onAttendanceSaved, runCtx, onRun }: { da
   );
 }
 
-export function Notes({ data, lang, s, notes, setDraft, save, readOnly, runCtx, onRun }: {
+export function Notes({ data, lang, s, notes, setDraft, save, resolve, readOnly, runCtx, onRun }: {
   data: Dashboard; lang: Lang; s: Strings; notes: Record<number, NoteState>; readOnly: boolean;
   setDraft: (id: number, v: string) => void; save: (id: number) => void;
+  resolve: (id: number, useLatest: boolean) => void;
 } & Ctx) {
   const f = useFilters(data.runs, { runCtx, onRun });
   const [when, setWhen] = useState<'upcoming' | 'past'>('upcoming');
@@ -267,7 +269,7 @@ export function Notes({ data, lang, s, notes, setDraft, save, readOnly, runCtx, 
           </select>
         </FilterBar>
         {list.length === 0 ? <Empty id="notes" title={s.noSessions} /> : list.map((x) => {
-          const n = notes[x.session.id] ?? { draft: x.session.preparationNote, base: x.session.preparationNote, status: 'idle' as const };
+          const n: NoteState = notes[x.session.id] ?? { draft: x.session.preparationNote, base: x.session.preparationNote, version: x.session.preparationNoteVersion, status: 'idle' };
           const dirty = n.draft !== n.base;
           const tooLong = n.draft.length > 5000;
           return (
@@ -280,6 +282,16 @@ export function Notes({ data, lang, s, notes, setDraft, save, readOnly, runCtx, 
               </div>
               <textarea id={`note-${x.session.id}`} className="ip-textarea" value={n.draft} readOnly={readOnly} maxLength={readOnly ? undefined : 5200}
                 onChange={(e) => setDraft(x.session.id, e.target.value)} data-testid={`input-note-${x.session.id}`} />
+              {!readOnly && n.conflict && <div className="ip-error" role="alert" data-testid={`conflict-note-${x.session.id}`}>
+                <p>{s.noteConflict}</p>
+                <label htmlFor={`latest-note-${x.session.id}`}>{s.latestNote}</label>
+                <textarea id={`latest-note-${x.session.id}`} className="ip-textarea" readOnly value={n.conflict.text}
+                  data-testid={`latest-note-${x.session.id}`} />
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button className="ip-btn line" onClick={() => resolve(x.session.id, true)} data-testid={`button-latest-note-${x.session.id}`}>{s.useLatestNote}</button>
+                  <button className="ip-btn" onClick={() => resolve(x.session.id, false)} data-testid={`button-keep-note-${x.session.id}`}>{s.keepNoteDraft}</button>
+                </div>
+              </div>}
               <div className="ip-save-row">
                 <span className="mono" style={{ color: tooLong ? 'var(--bad)' : undefined }}>{n.draft.length}/5000</span>
                 <span role={n.status === 'error' ? 'alert' : 'status'} aria-live="polite" data-testid={`status-note-${x.session.id}`} data-state={n.status === 'saved' && dirty ? 'dirty' : dirty && n.status === 'idle' ? 'dirty' : n.status}>
@@ -290,8 +302,8 @@ export function Notes({ data, lang, s, notes, setDraft, save, readOnly, runCtx, 
                 </span>
                 {!readOnly && (
                   <span style={{ display: 'flex', gap: 8 }}>
-                    <button className="ip-btn line" disabled={!dirty || n.status === 'saving'} onClick={() => setDraft(x.session.id, n.base)} data-testid={`button-revert-note-${x.session.id}`}>{s.discard}</button>
-                    <button className="ip-btn" disabled={!dirty || tooLong || n.status === 'saving'} onClick={() => save(x.session.id)} data-testid={`button-save-note-${x.session.id}`}>{n.status === 'saving' ? s.saving : s.save}</button>
+                    <button className="ip-btn line" disabled={!dirty || !!n.conflict || n.status === 'saving'} onClick={() => setDraft(x.session.id, n.base)} data-testid={`button-revert-note-${x.session.id}`}>{s.discard}</button>
+                    <button className="ip-btn" disabled={!dirty || !!n.conflict || tooLong || n.status === 'saving'} onClick={() => save(x.session.id)} data-testid={`button-save-note-${x.session.id}`}>{n.status === 'saving' ? s.saving : s.save}</button>
                   </span>
                 )}
               </div>

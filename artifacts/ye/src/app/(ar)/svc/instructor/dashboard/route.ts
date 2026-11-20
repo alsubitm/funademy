@@ -23,7 +23,7 @@ export async function GET() {
           id: true, date: true, status: true, note: true,
           attendance: { select: { studentId: true, status: true } },
           instructorNotes: {
-            where: { instructorId: instructor?.id ?? -1 }, select: { text: true },
+            where: { instructorId: instructor?.id ?? -1 }, select: { text: true, updatedAt: true },
           },
         } },
       },
@@ -40,6 +40,7 @@ export async function GET() {
           id: session.id, date: session.date, status: session.status, note: session.note,
           attendance: session.attendance.filter(a => run.enrollments.some(e => e.student.id === a.studentId)),
           preparationNote: session.instructorNotes[0]?.text || '',
+          preparationNoteVersion: session.instructorNotes[0]?.updatedAt ?? null,
         })),
       })),
     }, { headers: { 'Cache-Control': 'private, no-store' } });

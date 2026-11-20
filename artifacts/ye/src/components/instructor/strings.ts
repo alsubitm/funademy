@@ -17,6 +17,9 @@ const ar = {
   sessionsCount: 'جلسات', noSessions: 'لا توجد جلسات تطابق التصفية.', sessionNote: 'ملاحظة الجلسة',
   prepLabel: 'ملاحظة التحضير الخاصة', prepHint: 'خاصة بك ولا تظهر للأهالي. حتى 5000 حرف.', save: 'حفظ', saving: 'جارٍ الحفظ…', saved: 'حُفظت', unsaved: 'تغييرات غير محفوظة', saveFailed: 'فشل الحفظ', discard: 'تراجع', savedAt: 'آخر حفظ',
   noteForbidden: 'لا يمكنك تعديل هذه الجلسة.', noteTooLong: 'الملاحظة أطول من 5000 حرف.',
+  noteConflict: 'حُفظت نسخة أخرى من ملاحظتك على جهاز آخر. مسودتك محفوظة أعلاه. قارنها بالنسخة المحفوظة أدناه قبل المتابعة.',
+  latestNote: 'آخر نسخة محفوظة', useLatestNote: 'استخدام النسخة المحفوظة', keepNoteDraft: 'الاحتفاظ بمسودتي للحفظ التالي',
+  replaceNoteDraft: 'هل تريد استبدال مسودتك بالنسخة المحفوظة؟ ستفقد تغييراتك غير المحفوظة.',
   libTitle: 'BC.013 — ابنِ طاحونة الهواء', libLead: 'رفيق رقمي لدليل البناء المطبوع في Bricks Challenge. أربع عشرة محطة تطابق صفحات الدليل، لا دروس إضافية.',
   howTo: 'كيف تستخدمه في الحصة',
   tips: [
@@ -53,6 +56,9 @@ const en: typeof ar = {
   sessionsCount: 'sessions', noSessions: 'No sessions match this filter.', sessionNote: 'Session note',
   prepLabel: 'Private preparation note', prepHint: 'Only visible to you, never to families. Up to 5000 characters.', save: 'Save', saving: 'Saving…', saved: 'Saved', unsaved: 'Unsaved changes', saveFailed: 'Save failed', discard: 'Revert', savedAt: 'Last saved',
   noteForbidden: 'You cannot edit this session.', noteTooLong: 'Note is longer than 5000 characters.',
+  noteConflict: 'Your note was saved on another device. Your draft is kept above. Compare it with the saved version below before continuing.',
+  latestNote: 'Latest saved version', useLatestNote: 'Use saved version', keepNoteDraft: 'Keep my draft for next save',
+  replaceNoteDraft: 'Replace your draft with the saved version? Your unsaved changes will be lost.',
   libTitle: 'BC.013 — Build the Windmill', libLead: 'Digital companion to the printed Bricks Challenge build guide. Fourteen stages that match the guide pages — not extra lessons.',
   howTo: 'Using it in class',
   tips: [

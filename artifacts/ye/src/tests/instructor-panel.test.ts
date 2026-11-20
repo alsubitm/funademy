@@ -105,12 +105,65 @@ describe('instructor access and teaching data', () => {
   });
   it('saves notes only for assigned sessions and keeps them private between instructors', async () => {
     teacher();
-    expect((await note(request({ sessionId, text: 'Prepare the Windmill kit' }))).status).toBe(200);
-    expect((await note(request({ sessionId: otherSessionId, text: 'No access' }))).status).toBe(403);
+    expect((await note(request({ sessionId, text: 'Prepare the Windmill kit', expectedVersion: null }))).status).toBe(200);
+    expect((await note(request({ sessionId: otherSessionId, text: 'No access', expectedVersion: null }))).status).toBe(403);
     expect((await note(request({ sessionId, text: 'x'.repeat(5001) }))).status).toBe(400);
     expect((await (await dashboard()).json()).runs[0].sessions[0].preparationNote).toBe('Prepare the Windmill kit');
     jar.set(INSTRUCTOR_COOKIE, instructorToken(secondId, 1));
     expect((await (await dashboard()).json()).runs[0].sessions[0].preparationNote).toBe('');
+  });
+  it('rejects missing/invalid versions and keeps admin preview read-only', async () => {
+    teacher();
+    for (const expectedVersion of [undefined, 1, '', 'not-a-version']) {
+      expect((await note(request({ sessionId, text: 'unsafe', expectedVersion }))).status).toBe(400);
+    }
+    jar.clear(); jar.set(ADMIN_COOKIE, adminToken());
+    expect((await note(request({ sessionId, text: 'admin edit', expectedVersion: null }))).status).toBe(401);
+    const data = await (await dashboard()).json();
+    expect(data.viewer.role).toBe('admin');
+    expect(data.runs.every((r: { sessions: { preparationNote: string; preparationNoteVersion: string | null }[] }) =>
+      r.sessions.every(s => s.preparationNote === '' && s.preparationNoteVersion === null))).toBe(true);
+  });
+  it('serializes concurrent creation and updates, returning the current private note on conflict', async () => {
+    teacher();
+    await prisma.instructorNote.deleteMany({ where: { instructorId: teacherId } });
+    const write = (text: string, expectedVersion: string | null) => note(request({ sessionId, text, expectedVersion }));
+    const creations = await Promise.all([write('device A', null), write('device B', null)]);
+    expect(creations.map(r => r.status).sort()).toEqual([200, 409]);
+    const first = await creations.find(r => r.status === 200)!.json();
+    const conflictResponse = creations.find(r => r.status === 409)!;
+    expect(conflictResponse.headers.get('cache-control')).toContain('no-store');
+    expect(await conflictResponse.json()).toEqual({ error: 'conflict', current: { text: first.text, version: first.version } });
+    const saves = await Promise.all([write('  newer A  ', first.version), write('newer B', first.version)]);
+    expect(saves.map(r => r.status).sort()).toEqual([200, 409]);
+    const latest = await saves.find(r => r.status === 200)!.json();
+    expect(latest.version > first.version).toBe(true);
+    expect(latest.text).toBe(latest.text.trim());
+    expect((await write('stale device', first.version)).status).toBe(409);
+    const loaded = (await (await dashboard()).json()).runs[0].sessions[0];
+    expect(loaded.preparationNote).toBe(latest.text);
+    expect(loaded.preparationNoteVersion).toBe(latest.version);
+    // Deliberate resolution uses the compared version, and blank notes still
+    // have a version (clearing text must not reset concurrency protection).
+    const cleared = await (await write('', latest.version)).json();
+    expect(cleared.version > latest.version).toBe(true);
+    expect((await write('stale after clear', null)).status).toBe(409);
+    await prisma.instructorAssignment.create({ data: { instructorId: secondId, courseRunId: runId } });
+    try {
+      jar.set(INSTRUCTOR_COOKIE, instructorToken(secondId, 1));
+      const other = await write('other teacher private note', null);
+      expect(other.status).toBe(200);
+      const otherVersion = (await other.json()).version;
+      const otherConflict = await (await write('stale other teacher', null)).json();
+      expect(otherConflict.current.text).toBe('other teacher private note');
+      teacher();
+      expect((await write('cross-owner token', otherVersion)).status).toBe(409);
+      const own = (await (await dashboard()).json()).runs[0].sessions[0];
+      expect(own.preparationNote).toBe('');
+      expect(own.preparationNoteVersion).toBe(cleared.version);
+    } finally {
+      await prisma.instructorAssignment.delete({ where: { instructorId_courseRunId: { instructorId: secondId, courseRunId: runId } } });
+    }
   });
   it('rejects cross-origin mutation and tampered tokens; logout expires the cookie', async () => {
     const req = new Request('http://localhost/svc/instructor/session', {
