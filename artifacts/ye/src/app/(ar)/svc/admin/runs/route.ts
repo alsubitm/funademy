@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '../guard';
+import { listPage, pageRows, runFilter } from '@/lib/admin-list-query';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,17 +35,47 @@ function weeklyDates(start: Date, end: Date, weekday: number, time: string): Dat
   return dates;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const denied = await requireAdmin();
   if (denied) return denied;
-  const runs = await prisma.courseRun.findMany({
-    include: {
-      program: { select: { id: true, nameAr: true, color: true } },
-      _count: { select: { sessions: true, enrollments: { where: { status: { in: ['active', 'pending'] } } } } },
-    },
-    orderBy: [{ active: 'desc' }, { startDate: 'desc' }, { programId: 'asc' }],
-  });
-  return NextResponse.json({ runs });
+  // The progress selector needs every active run, but not full records/roster counts.
+  if (req.nextUrl.searchParams.get('options') === '1') {
+    const runs = await prisma.courseRun.findMany({
+      where: { active: true },
+      select: { id: true, titleAr: true, time: true, program: { select: { id: true, nameAr: true } } },
+      orderBy: { id: 'desc' },
+    });
+    return NextResponse.json({ runs });
+  }
+  let page;
+  let where;
+  try {
+    page = listPage(req.nextUrl.searchParams);
+    where = runFilter(req.nextUrl.searchParams);
+  } catch {
+    return NextResponse.json({ error: 'invalid_query' }, { status: 400 });
+  }
+  const result = await prisma.$transaction(async (tx) => {
+    const rows = await tx.courseRun.findMany({
+      where: { AND: [where, { id: page.id }] },
+      take: page.take,
+      include: {
+        program: { select: { id: true, nameAr: true, color: true } },
+        _count: { select: { sessions: true, enrollments: { where: { status: { in: ['active', 'pending'] } } } } },
+      },
+      orderBy: page.orderBy,
+    });
+    const runs = pageRows(rows, page);
+    const [total, matching, previous, next] = await Promise.all([
+      tx.courseRun.count(), tx.courseRun.count({ where }),
+      tx.courseRun.findFirst({ where: { AND: [where, { id: { gt: runs[0]?.id ?? page.edge ?? 0 } }] }, select: { id: true } }),
+      tx.courseRun.findFirst({ where: { AND: [where, { id: { lt: runs.at(-1)?.id ?? page.edge ?? 0 } }] }, select: { id: true } }),
+    ]);
+    return { runs, pagination: { total, matching,
+      previousCursor: previous ? `prev:${runs[0]?.id ?? page.edge}` : null,
+      nextCursor: next ? `next:${runs.at(-1)?.id ?? page.edge}` : null } };
+  }, { isolationLevel: 'RepeatableRead' });
+  return NextResponse.json(result);
 }
 
 /** Create a run and auto-generate its weekly ClassSessions. */

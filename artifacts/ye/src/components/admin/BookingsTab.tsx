@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useAdminSearch, pick, setAdminParams } from './useAdminQuery';
+import { useEffect, useState } from 'react';
+import { adminListQuery, emptyPagination, useAdminList, useAdminSearch, pick, setAdminParams, type AdminPagination } from './useAdminQuery';
+import { AdminPaging } from './AdminPaging';
 
 const B_STATUS = ['all', 'new', 'contacted', 'enrolled', 'converted'] as const;
 const B_OWNER = ['all', 'assigned', 'unassigned'] as const;
@@ -13,15 +14,6 @@ type Metrics = {
   attendanceRatePct: number;
   bookingConversionPct: number;
   attendedConversionPct: number;
-};
-
-const emptyMetrics: Metrics = {
-  total: 0,
-  attended: 0,
-  enrolled: 0,
-  attendanceRatePct: 0,
-  bookingConversionPct: 0,
-  attendedConversionPct: 0,
 };
 
 const fmtDate = (value: string | null) =>
@@ -42,57 +34,29 @@ const communicationLabel = (item: any) => {
 };
 
 export function BookingsTab() {
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState<Metrics>(emptyMetrics);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
   const params = useAdminSearch();
+  const { data, loading, error: loadError, refresh: fetchBookings } = useAdminList<{
+    bookings: any[]; metrics: Metrics; programs: { id: number; nameAr: string }[]; pagination: AdminPagination;
+  }>('/svc/admin/bookings', adminListQuery(params, 'b'));
+  const bookings = data?.bookings ?? [];
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const pagination = data?.pagination ?? emptyPagination;
+  const [programOptions, setProgramOptions] = useState<[string, string][]>([]);
+  useEffect(() => {
+    if (data) {
+      setProgramOptions(data.programs.map((p) => [String(p.id), p.nameAr]));
+      setMetrics(data.metrics);
+    }
+  }, [data]);
   const q = params.get('bq') ?? '';
   const fStatus = pick(params, 'bstatus', B_STATUS, 'all');
   const fOwner = pick(params, 'bowner', B_OWNER, 'all');
-  const programOptions = useMemo(() => {
-    const m = new Map<string, string>();
-    bookings.forEach((b) => b.program && m.set(String(b.program.id), b.program.nameAr));
-    return [...m.entries()];
-  }, [bookings]);
   const rawProgram = params.get('bprogram') ?? 'all';
-  const fProgram = rawProgram === 'all' || programOptions.some(([id]) => id === rawProgram) ? rawProgram : 'all';
+  const fProgram = rawProgram;
   const filtersOn = !!q.trim() || fStatus !== 'all' || fOwner !== 'all' || fProgram !== 'all';
-  const visible = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return bookings.filter((b) => {
-      if (fStatus === 'converted' ? !b.converted : fStatus !== 'all' && (b.converted || b.status !== fStatus)) return false;
-      if (fProgram !== 'all' && String(b.program?.id) !== fProgram) return false;
-      const owner = String(b.assignedTo ?? '').trim();
-      if (fOwner === 'assigned' && !owner) return false;
-      if (fOwner === 'unassigned' && owner) return false;
-      if (needle && ![b.childFirstName, b.parentName, b.phone, b.email, owner, b.program?.nameAr, b.program?.nameEn]
-        .some((v) => String(v ?? '').toLowerCase().includes(needle))) return false;
-      return true;
-    });
-  }, [bookings, q, fStatus, fOwner, fProgram]);
+  const visible = bookings;
   const clearFilters = () => setAdminParams({ bq: null, bstatus: null, bowner: null, bprogram: null });
-
-  const fetchBookings = async () => {
-    try {
-      const res = await fetch('/svc/admin/bookings', { cache: 'no-store' });
-      if (res.status === 401) return window.location.reload();
-      if (!res.ok) throw new Error('load');
-      const data = await res.json();
-      setBookings(data.bookings || []);
-      setMetrics(data.metrics || emptyMetrics);
-      setLoadError(false);
-    } catch {
-      setLoadError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchBookings();
-  }, []);
 
   const update = async (id: number, patch: Record<string, unknown>) => {
     setSavingId(id);
@@ -106,30 +70,11 @@ export function BookingsTab() {
     return res.ok;
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4" aria-busy="true" data-testid="status-bookings-loading">
-        <div className="adm-skel" style={{ height: 120 }} />
-        <div className="adm-skel" style={{ height: 64 }} />
-        <div className="adm-skel" style={{ height: 180 }} />
-      </div>
-    );
-  }
-  if (loadError && bookings.length === 0) {
-    return (
-      <div className="adm-state err" role="alert" data-testid="status-bookings-error">
-        <b>تعذّر تحميل الحجوزات.</b>
-        <p>لم تتغير أي بيانات. تحقق من الاتصال ثم أعد المحاولة.</p>
-        <button type="button" className="adm-btn" onClick={() => { setLoading(true); void fetchBookings(); }} data-testid="button-bookings-retry">إعادة المحاولة</button>
-      </div>
-    );
-  }
-
   const cards = [
-    ['الحجوزات', metrics.total, 'كل الحجوزات التجريبية'],
-    ['الحضور', `${metrics.attendanceRatePct}%`, `${metrics.attended} حضروا`],
-    ['تحويل الحجز', `${metrics.bookingConversionPct}%`, `${metrics.enrolled} اشتراكات مدفوعة`],
-    ['تحويل الحاضرين', `${metrics.attendedConversionPct}%`, 'من الحضور إلى اشتراك'],
+    ['الحجوزات', metrics?.total ?? '—', 'كل الحجوزات التجريبية'],
+    ['الحضور', metrics ? `${metrics.attendanceRatePct}%` : '—', metrics ? `${metrics.attended} حضروا` : 'جارٍ تحميل المؤشرات'],
+    ['تحويل الحجز', metrics ? `${metrics.bookingConversionPct}%` : '—', metrics ? `${metrics.enrolled} اشتراكات مدفوعة` : 'جارٍ تحميل المؤشرات'],
+    ['تحويل الحاضرين', metrics ? `${metrics.attendedConversionPct}%` : '—', 'من الحضور إلى اشتراك'],
   ];
 
   return (
@@ -160,7 +105,7 @@ export function BookingsTab() {
       <div className="adm-filters" role="search" aria-label="تصفية الحجوزات">
         <label className="adm-field grow">
           <span>بحث</span>
-          <input type="search" value={q} placeholder="اسم الطفل أو ولي الأمر أو الجوال أو المسؤول"
+          <input type="search" value={q} maxLength={200} placeholder="اسم الطفل أو ولي الأمر أو الجوال أو المسؤول"
             onChange={(e) => setAdminParams({ bq: e.target.value })} data-testid="input-bookings-search" />
         </label>
         <label className="adm-field">
@@ -189,11 +134,12 @@ export function BookingsTab() {
           </select>
         </label>
         <div className="adm-count" role="status" aria-live="polite" data-testid="text-bookings-count">
-          {visible.length} من {bookings.length} حجز
+          {loadError ? 'تعذّر تحديث الأعداد' : loading ? 'جارٍ التحميل…' : `${pagination.matching} من ${pagination.total} حجز · المعروض ${visible.length}`}
         </div>
         {filtersOn && <button type="button" className="adm-btn line" onClick={clearFilters} data-testid="button-bookings-clear">مسح التصفية</button>}
       </div>
-      {loadError && <div className="adm-state err" role="alert" data-testid="status-bookings-refresh-error">تعذّر تحديث القائمة؛ المعروض آخر نسخة محمّلة. <button type="button" className="adm-link" onClick={() => void fetchBookings()}>إعادة المحاولة</button></div>}
+      <AdminPaging page={pagination} prefix="b" busy={loading && !loadError} refresh={() => void fetchBookings()} />
+      {loadError && <div className="adm-state err" role="alert" data-testid={data ? 'status-bookings-refresh-error' : 'status-bookings-error'}>تعذّر تحديث القائمة؛ المعروض إن وجد آخر نسخة محمّلة. <button type="button" className="adm-link" onClick={() => void fetchBookings()}>إعادة المحاولة</button></div>}
 
       <div className="space-y-4">
         {visible.map((b) => (
@@ -272,10 +218,10 @@ export function BookingsTab() {
             </div>
           </article>
         ))}
-        {bookings.length === 0 && <div className="adm-state" data-testid="empty-bookings">لا توجد حجوزات تجريبية بعد.</div>}
-        {bookings.length > 0 && visible.length === 0 && (
+        {!loading && !loadError && pagination.total === 0 && <div className="adm-state" data-testid="empty-bookings">لا توجد حجوزات تجريبية بعد.</div>}
+        {!loading && !loadError && pagination.total > 0 && visible.length === 0 && (
           <div className="adm-state" data-testid="empty-bookings-filtered">
-            <b>لا توجد حجوزات تطابق التصفية.</b>
+            <b>لا توجد حجوزات في هذه الصفحة.</b>
             <button type="button" className="adm-btn line" onClick={clearFilters} data-testid="button-bookings-clear-empty">مسح التصفية</button>
           </div>
         )}

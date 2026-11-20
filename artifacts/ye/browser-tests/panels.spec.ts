@@ -141,7 +141,7 @@ test('admin filters, section history, all phone destinations and failed loads', 
   await page.getByTestId('input-runs-search').fill('no-match-at-all');
   await expect(page.getByTestId('empty-runs-filtered')).toBeVisible();
   await page.getByTestId('button-runs-clear-empty').click();
-  await page.route('**/svc/admin/bookings', r => r.fulfill({ status: 503, json: { error: 'test_failure' } }));
+  await page.route('**/svc/admin/bookings?*', r => r.fulfill({ status: 503, json: { error: 'test_failure' } }));
   await page.goto('/admin');
   await expect(page.getByTestId('status-bookings-error')).toBeVisible();
   await expect(page.getByTestId('empty-bookings')).toHaveCount(0);

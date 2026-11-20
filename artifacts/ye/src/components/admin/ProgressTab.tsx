@@ -15,10 +15,10 @@ export function ProgressTab() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch('/svc/admin/runs');
+      const res = await fetch('/svc/admin/runs?options=1');
       if (res.status === 401) { window.location.reload(); return; }
       const data = await res.json();
-      setRuns((data.runs || []).filter((r: any) => r.active));
+      setRuns(data.runs || []);
       setLoading(false);
     })();
   }, []);

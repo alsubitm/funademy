@@ -28,3 +28,4 @@
 - [Nujaym mascot](nujaym-mascot.md) — Owner-supplied star-holding robot; Saudi Arabic/English chat, age-grounded recommendations and a single-glow gear challenge.
 - [Chat retry identity](chat-retry-identity.md) — interrupted delivery is the same conversation turn; replay saved answers and actions, and verify reopened history.
 - [Invitation retry boundary](invitation-retry-boundary.md) — refresh recovery is tab-scoped; do not deduplicate students by guardian email.
+- [Admin paging semantics](admin-paging-semantics.md) — immutable newest-added ordering avoids shifts from date/status edits; counts are live, not frozen snapshots.
