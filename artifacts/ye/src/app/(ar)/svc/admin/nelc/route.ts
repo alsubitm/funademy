@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
-import { getAdminPassword } from '@/lib/auth';
+import { verifyAdminStepUp, stepUpError } from '@/lib/admin-step-up';
 import { requireAdmin } from '../guard';
 import {
   buildJourneyStatements,
@@ -559,8 +559,10 @@ export async function POST(req: NextRequest) {
   // all stay in the DB) and never a fake success (status becomes 'voided',
   // not 'sent'). Step-up password required; sent rows can never be voided.
   if (action === 'outbox_void') {
-    if (String(body.password ?? '') !== getAdminPassword()) {
-      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    const stepUp = await verifyAdminStepUp(body.password);
+    if (stepUp !== 'ok') {
+      const { body: errorBody, status } = stepUpError(stepUp);
+      return NextResponse.json(errorBody, { status });
     }
     const statementId = String(body.statementId ?? '');
     if (!UUID_RE.test(statementId)) {
@@ -599,8 +601,10 @@ export async function POST(req: NextRequest) {
   if (action === 'outbox_prepare') {
     // STEP-UP AUTHORIZATION: the response hands the PRODUCTION LRS credential
     // to the browser — same accepted-risk rationale as the staging relay.
-    if (String(body.password ?? '') !== getAdminPassword()) {
-      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    const stepUp = await verifyAdminStepUp(body.password);
+    if (stepUp !== 'ok') {
+      const { body: errorBody, status } = stepUpError(stepUp);
+      return NextResponse.json(errorBody, { status });
     }
     // REAL learner data leaves ONLY from the published deployment — no typed
     // override here (unlike the staging test journey): there is no legitimate
@@ -711,8 +715,10 @@ export async function POST(req: NextRequest) {
     // STEP-UP AUTHORIZATION: this response hands the LRS Basic credential to
     // the browser, so a session cookie alone is not enough — the owner must
     // re-enter the admin password for every prepared run.
-    if (String(body.password ?? '') !== getAdminPassword()) {
-      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    const stepUp = await verifyAdminStepUp(body.password);
+    if (stepUp !== 'ok') {
+      const { body: errorBody, status } = stepUpError(stepUp);
+      return NextResponse.json(errorBody, { status });
     }
     // SEQ003 duplicate guard — policy in findPriorJourneySignal.
     if (body.confirmDuplicate !== true) {
@@ -759,8 +765,10 @@ export async function POST(req: NextRequest) {
   if (action === 'check') {
     // STEP-UP AUTHORIZATION: same rationale as `prepare` — the response
     // hands the LRS Basic credential to the browser.
-    if (String(body.password ?? '') !== getAdminPassword()) {
-      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    const stepUp = await verifyAdminStepUp(body.password);
+    if (stepUp !== 'ok') {
+      const { body: errorBody, status } = stepUpError(stepUp);
+      return NextResponse.json(errorBody, { status });
     }
     const checkId = randomUUID();
     await prisma.xapiPreparedRun.deleteMany({
@@ -792,8 +800,10 @@ export async function POST(req: NextRequest) {
   if (action === 'precheck') {
     // STEP-UP AUTHORIZATION: same rationale as `prepare`/`check` — the
     // response hands the LRS Basic credential to the browser.
-    if (String(body.password ?? '') !== getAdminPassword()) {
-      return NextResponse.json({ error: 'reauth_failed' }, { status: 401 });
+    const stepUp = await verifyAdminStepUp(body.password);
+    if (stepUp !== 'ok') {
+      const { body: errorBody, status } = stepUpError(stepUp);
+      return NextResponse.json(errorBody, { status });
     }
     // Deliberately record-free (unlike `check`): nothing is sent and nothing
     // can be consumed later, so there is no prepared-run row to create or

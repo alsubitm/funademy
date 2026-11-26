@@ -3,6 +3,7 @@ import { loadProgramPricing } from '@/lib/program-pricing';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
+import { withTrialSeats } from '@/lib/trial-capacity';
 import { notFound } from 'next/navigation';
 import { siteUrl, ogImageUrl } from '@/lib/site-url';
 import { ProgramDetail } from '@/app/(ar)/programs/[slug]/ProgramDetail';
@@ -61,6 +62,7 @@ export default async function ProgramPageEn(props: { params: Promise<{ slug: str
   }), null, 'program-en:page');
 
   if (!program) notFound();
+  program.slots = await safeQuery(() => withTrialSeats(program.slots), program.slots, 'program:trialSeats');
   const pricingRuns = await loadProgramPricing(program.id);
 
   const allProgs = await safeQuery(() => prisma.program.findMany({ orderBy: { position: 'asc' } }), [], 'program-en:siblings');

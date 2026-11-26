@@ -557,7 +557,9 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
                 </div>
                 <div className="ptl-sub-side">
                   <span className={`ptl-tag sub-${st}`}>{stateLabel[st]}</span>
-                  <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} live={{ moyasar: moyasarLive(), tamara: tamaraLive() }} available={available} />
+                  {e.status === 'active' && (
+                    <RenewButton lang={lang} enrollmentId={e.id} amountSar={amount} live={{ moyasar: moyasarLive(), tamara: tamaraLive() }} available={available} />
+                  )}
                 </div>
               </div>
             );
