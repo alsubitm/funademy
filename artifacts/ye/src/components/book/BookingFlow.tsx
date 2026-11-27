@@ -5,7 +5,7 @@ import { bookDict } from '@/app/(ar)/book/dict';
 import { waLink, WEEKDAYS_AR, WEEKDAYS_EN } from '@/lib/constants';
 import { getSavedAge, saveAge } from '@/lib/savedAge';
 import { AccountFlow } from '@/components/account/AccountFlow';
-import { classroomLocation } from '@/lib/classroom-location';
+import { classroomLocation, isCityOnlyLocation } from '@/lib/classroom-location';
 import { ClassroomLocation } from '@/components/ClassroomLocation';
 import '@/app/(ar)/account/page.css';
 
@@ -82,6 +82,11 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
     }
     if (step === 2 && !slotId) {
       setError(d.valError);
+      return;
+    }
+    const chosen = slots.find(s => s.id === slotId);
+    if (step === 2 && (!chosen || chosen.seatsLeft <= 0 || (chosen.format === 'in_person' && isCityOnlyLocation(chosen.location)))) {
+      setError(lang === 'ar' ? 'الموعد أو المقر غير متاح للتأكيد بعد.' : 'This time or venue is not yet available for confirmation.');
       return;
     }
     setStep((s) => (s + 1) as 1 | 2 | 3 | 4);
@@ -181,7 +186,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
           <div className="icon">🎉</div>
           <h3>{d.successTitle}</h3>
           <p>{d.successDesc}</p>
-          <p><ClassroomLocation location={slots.find((s) => s.id === slotId)?.location} lang={lang} /></p>
+          <p>{slots.find(s => s.id === slotId)?.format === 'online' ? d.online : <ClassroomLocation location={slots.find((s) => s.id === slotId)?.location} lang={lang} />}</p>
           {appointment ? (
             <div className="appt-box" style={{ margin: '16px 0', padding: '14px', border: '1px solid var(--line)', borderRadius: '12px', textAlign: 'start' }}>
               <p style={{ margin: '4px 0' }}>
@@ -270,7 +275,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
 
                 {step === 2 && (
           <div className="slot-list">
-            <p><ClassroomLocation location={slots.find((s) => s.id === slotId)?.location} lang={lang} /></p>
+            <p>{slots.find(s => s.id === slotId)?.format === 'online' ? d.online : <ClassroomLocation location={slots.find((s) => s.id === slotId)?.location} lang={lang} />}</p>
             {filteredSlots.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--mut)' }}>
                 <p>{d.noSlots}</p>
@@ -282,6 +287,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
             {filteredSlots.map((s) => {
               const isFull = s.seatsLeft <= 0;
               const isSelected = s.id === slotId;
+              const unconfirmed = s.format === 'in_person' && isCityOnlyLocation(s.location);
               const fmtLabel = s.format === 'online' ? d.online : d.inPerson;
               const slotInfo = (
                 <>
@@ -289,17 +295,17 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
                     <div className="slot-time">{weekdays[s.weekday]} — {s.time}</div>
                     <div className="slot-meta">
                       <span className={`slot-fmt ${s.format}`}>{fmtLabel}</span>
-                      <span>📍 {classroomLocation(s.location, lang)}</span>
+                      <span>{s.format === 'online' ? d.online : `📍 ${classroomLocation(s.location, lang)}`}</span>
                     </div>
                   </div>
                   <div className="slot-action">
                     <div className="slot-seats">
-                      {isFull ? d.fullSlot : <><b>{s.seatsLeft}</b> {d.seatsLeft}</>}
+                      {unconfirmed ? (lang === 'ar' ? 'المقر غير مؤكّد' : 'Venue unconfirmed') : isFull ? d.fullSlot : <><b>{s.seatsLeft}</b> {d.seatsLeft}</>}
                     </div>
                   </div>
                 </>
               );
-              if (isFull) {
+              if (isFull || unconfirmed) {
                 return (
                   <div key={s.id} className="slot-item full">
                     {slotInfo}

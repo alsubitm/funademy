@@ -75,6 +75,8 @@ const FILE_EXCEPTIONS = new Set<string>([
 ]);
 
 function isExcluded(rel: string): boolean {
+  // Route groups do not change a URL or make an internal panel public.
+  rel = rel.replace(/\/\([^/]+\)/g, '');
   return (
     FILE_EXCEPTIONS.has(rel) ||
     EXCLUDED_PREFIXES.some((p) => rel === p || rel.startsWith(p + '/'))

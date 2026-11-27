@@ -108,8 +108,8 @@ describe('migrateYeSchemaToPublic', () => {
     // This mirrors the real publish sequence: the publish schema diff (here:
     // global-setup's db push) already created every public table/enum/FK, so
     // the DDL replay must recognize them all as duplicates — the only
-    // statement that "runs" is the idempotent CREATE SCHEMA IF NOT EXISTS.
-    if ('ddlCreated' in res) expect(res.ddlCreated).toBe(1);
+    // statements that "run" are the idempotent CREATE SCHEMA/EXTENSION IF NOT EXISTS.
+    if ('ddlCreated' in res) expect(res.ddlCreated).toBe(2);
 
     // Shared public campaign table survived with its live data intact.
     const counterAfter = await prisma.campaignCounter.findUniqueOrThrow({ where: { key: 'watan-bricks' } });

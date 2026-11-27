@@ -11,13 +11,13 @@ export async function GET() {
   const [count, wall] = await Promise.all([
     getBrickCount(),
     prisma.watanBrick.findMany({
-      where: { status: 'approved' },
+      where: { status: 'approved', publicConsentAt: { not: null } },
       orderBy: { createdAt: 'desc' },
       take: 60,
       select: { id: true, authorName: true, color: true, message: true },
     }),
   ]);
-  return NextResponse.json({ count, wall });
+  return NextResponse.json({ count, wall: wall.map(brick => ({ ...brick, authorName: 'FunAdemy' })) });
 }
 
 // Brand palette only (blue / gold / cyan / sand) — never rainbow colors.
@@ -56,9 +56,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (body && String(body.message ?? '').trim()) {
+    if (body.publicConsent !== true) return NextResponse.json({ error: 'public_consent_required' }, { status: 400 });
     const message = String(body.message).trim();
     const color = BRICK_COLORS.includes(String(body.color)) ? String(body.color) : BRICK_COLORS[0];
-    const authorName = (String(body.authorName ?? '').trim() || linkedStudent?.firstName || '').slice(0, 30);
+    const authorName = 'FunAdemy';
 
     if (!authorName || message.length > 120) {
       return NextResponse.json({ error: 'validation' }, { status: 400 });
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
     `;
     if (inserted.length === 0) return null;
     if (brick) {
-      await tx.watanBrick.create({ data: brick });
+      await tx.watanBrick.create({ data: { ...brick, publicConsentAt: new Date() } });
     }
     const rows = await tx.$queryRaw<{ count: number }[]>`
       INSERT INTO public.campaign_counters (key, count) VALUES ('watan-bricks', 1)

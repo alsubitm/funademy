@@ -1,14 +1,26 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import { testDbUrl } from '../src/tests/test-db';
 
 const db = new PrismaClient({ datasourceUrl: testDbUrl() });
 const createdConversations = new Set<string>();
+const createdRateKeys = new Set<string>();
+test.beforeEach(async ({ page }) => {
+  // Real handlers enforce durable IP quotas. Isolate each browser scenario
+  // so adding cases or rerunning this file cannot exhaust another test's limit.
+  const ip = `fd00:${randomBytes(14).toString('hex').match(/.{4}/g)!.join(':')}`;
+  createdRateKeys.add(`chat:create:${ip}`);
+  createdRateKeys.add(`chat:send:${ip}`);
+  await page.setExtraHTTPHeaders({ 'x-forwarded-for': ip });
+});
 test.afterEach(async () => {
   const ids = [...createdConversations];
   await db.chatAudit.deleteMany({ where: { conversationId: { in: ids } } });
   await db.chatConversation.deleteMany({ where: { id: { in: ids } } });
   createdConversations.clear();
+  await db.rateLimitHit.deleteMany({ where: { key: { in: [...createdRateKeys] } } });
+  createdRateKeys.clear();
 });
 test.afterAll(async () => { await db.$disconnect(); });
 
@@ -32,7 +44,392 @@ const locales = [
 ] as const;
 
 for (const locale of locales) {
-  for (const interruption of ['truncated', 'read-error'] as const) {
+  for (const chunking of ['single-byte', 'uneven'] as const) {
+    test(`${locale.name} preserves a reply split across ${chunking} network chunks`, async ({ page }) => {
+      const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
+      let complete = '';
+      let replyId = '';
+      let submitted = 0;
+      await page.setViewportSize({ width: 390, height: 740 });
+      await page.addInitScript(({ chunking }) => {
+        localStorage.setItem('funademy-chat-consent', 'yes');
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async (...args: Parameters<typeof fetch>) => {
+          const response = await originalFetch(...args);
+          if (!String(args[0]).match(/\/svc\/chat\/conversations\/[^/]+\/messages$/)) return response;
+          const body = await response.text();
+          const encoder = new TextEncoder();
+          const bytes = encoder.encode(body);
+          const terminalStart = encoder.encode(body.slice(0, body.indexOf('data: {"type":"done"'))).length;
+          const firstMultibyte = bytes.findIndex(byte => byte >= 0xc0);
+          // Force cuts inside a UTF-8 character, the terminal event's JSON,
+          // and its final \n\n delimiter, regardless of the uneven pattern.
+          const forcedCuts = [
+            ...(firstMultibyte >= 0 ? [firstMultibyte + 1] : []),
+            terminalStart + 1, terminalStart + 12, bytes.length - 1,
+          ].sort((a, b) => a - b);
+          const sizes = chunking === 'single-byte' ? [1] : [1, 7, 2, 13, 3, 5];
+          let offset = 0;
+          let delivered = 0;
+          return new Response(new ReadableStream<Uint8Array>({
+            pull(controller) {
+              let end = Math.min(offset + sizes[delivered % sizes.length], bytes.length);
+              const cut = forcedCuts.find(boundary => boundary > offset && boundary < end);
+              if (cut !== undefined) end = cut;
+              if (end < bytes.length && (bytes[end] & 0xc0) === 0x80) {
+                document.documentElement.dataset.chatSplitUtf8 = 'yes';
+              }
+              if (end > terminalStart && end < bytes.length - 2) {
+                document.documentElement.dataset.chatSplitTerminal = 'yes';
+              }
+              controller.enqueue(bytes.slice(offset, end));
+              offset = end;
+              delivered += 1;
+              document.documentElement.dataset.chatByteChunks = String(delivered);
+              if (offset === bytes.length) {
+                document.documentElement.dataset.chatByteStreamComplete = 'yes';
+                controller.close();
+              }
+            },
+          }, { highWaterMark: 0 }), { status: response.status, headers: response.headers });
+        };
+      }, { chunking });
+      await page.route('**/svc/chat/conversations/*/messages', async route => {
+        submitted += 1;
+        createdConversations.add(new URL(route.request().url()).pathname.split('/').at(-2)!);
+        // Preserve the isolated server's real localized answer and done event;
+        // only browser-side transport boundaries change.
+        const response = await route.fetch();
+        expect(response.status()).toBe(200);
+        const body = await response.text();
+        const events = body.split('\n\n').filter(event => event.startsWith('data:'))
+          .map(event => JSON.parse(event.slice(5)));
+        complete = events.filter(event => event.type === 'delta').map(event => event.content).join('');
+        replyId = events.find(event => event.type === 'done').messageId;
+        expect(complete.length).toBeGreaterThan(0);
+        expect(complete).not.toContain('\uFFFD');
+        if (locale.direction === 'rtl') expect(complete).toMatch(/[\u0600-\u06ff]/);
+        expect(body).toContain('data: {"type":"done"');
+        expect(body.endsWith('\n\n')).toBe(true);
+        await route.fulfill({ response, body });
+      });
+      await page.goto(locale.path);
+      await page.getByTestId('button-open-chat').click();
+      const composer = page.getByTestId('input-chat-message');
+      await composer.fill(prompt);
+      await page.getByTestId('button-send-chat').click();
+
+      const html = page.locator('html');
+      await expect(html).toHaveAttribute('data-chat-byte-stream-complete', 'yes');
+      // Resolve the id only after the request handler has captured it.
+      await expect(composer).toBeEnabled();
+      await expect(page.getByTestId(`message-chat-${replyId}`).locator(':scope > p')).toHaveText(complete);
+      await expect(page.getByText(complete, { exact: true })).toHaveCount(1);
+      await expect(page.getByText(prompt, { exact: true })).toHaveCount(1);
+      await expect(page.locator('.chat-ui__message')).toHaveCount(2);
+      await expect(page.locator('.chat-ui__messages')).not.toContainText('\uFFFD');
+      await expect(page.locator('.chat-ui__error[role="alert"]')).toHaveCount(0);
+      await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+      await expect(html).toHaveAttribute('data-chat-split-terminal', 'yes');
+      if (locale.direction === 'rtl') await expect(html).toHaveAttribute('data-chat-split-utf8', 'yes');
+      expect(Number(await html.getAttribute('data-chat-byte-chunks'))).toBeGreaterThan(10);
+      expect(submitted).toBe(1);
+    });
+  }
+
+  test(`${locale.name} keeps a slow reply active while chunks keep arriving`, async ({ page }) => {
+    const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
+    let complete = '';
+    let replyId = '';
+    let submitted = 0;
+    await page.setViewportSize({ width: 390, height: 740 });
+    await page.addInitScript(() => {
+      localStorage.setItem('funademy-chat-consent', 'yes');
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (...args: Parameters<typeof fetch>) => {
+        const response = await originalFetch(...args);
+        if (!String(args[0]).match(/\/svc\/chat\/conversations\/[^/]+\/messages$/)) return response;
+        const events = (await response.text()).split('\n\n').filter(Boolean);
+        args[1]?.signal?.addEventListener('abort', () => {
+          document.documentElement.dataset.chatReplyAborted = 'yes';
+        }, { once: true });
+        let delivered = 0;
+        return new Response(new ReadableStream<Uint8Array>({
+          async pull(controller) {
+            // Browser-clock time, not wall-clock sleeps: each delta and the
+            // final done event arrive 20 seconds after the preceding chunk.
+            if (delivered > 0) await new Promise(resolve => setTimeout(resolve, 20_000));
+            controller.enqueue(new TextEncoder().encode(`${events[delivered]}\n\n`));
+            delivered += 1;
+            document.documentElement.dataset.chatChunksDelivered = String(delivered);
+            if (delivered === events.length) controller.close();
+          },
+        }, { highWaterMark: 0 }), { status: response.status, headers: response.headers });
+      };
+    });
+    await page.route('**/svc/chat/conversations/*/messages', async route => {
+      submitted += 1;
+      const conversationId = new URL(route.request().url()).pathname.split('/').at(-2)!;
+      createdConversations.add(conversationId);
+      // Keep the isolated server's real saved answer and completion metadata;
+      // change only how quickly the browser receives that response.
+      const response = await route.fetch();
+      expect(response.status()).toBe(200);
+      const events = (await response.text()).split('\n\n')
+        .filter(event => event.startsWith('data:'))
+        .map(event => JSON.parse(event.slice(5)));
+      complete = events.filter(event => event.type === 'delta').map(event => event.content).join('');
+      const done = events.find(event => event.type === 'done');
+      replyId = done.messageId;
+      expect(complete.length).toBeGreaterThanOrEqual(4);
+      const size = Math.ceil(complete.length / 4);
+      const deltas = Array.from({ length: 4 }, (_, index) => ({
+        type: 'delta', content: complete.slice(index * size, (index + 1) * size),
+      }));
+      await route.fulfill({
+        response,
+        body: [...deltas, done].map(event => `data: ${JSON.stringify(event)}\n\n`).join(''),
+      });
+    });
+    await page.goto(locale.path);
+    await page.getByTestId('button-open-chat').click();
+    const start = new Date('2030-01-01T00:00:00Z');
+    await page.clock.install({ time: start });
+    await page.clock.pauseAt(new Date(start.getTime() + 1_000));
+    const composer = page.getByTestId('input-chat-message');
+    await composer.fill(prompt);
+    await page.getByTestId('button-send-chat').click();
+    const html = page.locator('html');
+    const alert = page.locator('.chat-ui__error[role="alert"]');
+    const retry = page.getByTestId('button-chat-retry');
+    await expect(html).toHaveAttribute('data-chat-chunks-delivered', '1');
+    await expect(composer).toBeDisabled();
+
+    for (let delivered = 2; delivered <= 5; delivered += 1) {
+      await page.clock.runFor(20_000);
+      await expect(html).toHaveAttribute('data-chat-chunks-delivered', String(delivered));
+      await expect(html).not.toHaveAttribute('data-chat-reply-aborted', 'yes');
+      await expect(alert).toHaveCount(0);
+      await expect(retry).toHaveCount(0);
+      if (delivered < 5) await expect(composer).toBeDisabled();
+    }
+    // At 80 seconds, every previous chunk's 30-second deadline has passed.
+    // Continued success therefore requires resetting inactivity on each read.
+    const answer = page.getByTestId(`message-chat-${replyId}`).locator(':scope > p');
+    await expect(answer).toHaveText(complete);
+    await expect(composer).toBeEnabled();
+    await page.clock.runFor(31_000);
+    await expect(answer).toHaveText(complete);
+    await expect(page.getByText(complete, { exact: true })).toHaveCount(1);
+    await expect(page.getByText(prompt, { exact: true })).toHaveCount(1);
+    await expect(page.locator('.chat-ui__message')).toHaveCount(2);
+    await expect(html).not.toHaveAttribute('data-chat-reply-aborted', 'yes');
+    await expect(alert).toHaveCount(0);
+    await expect(retry).toHaveCount(0);
+    expect(submitted).toBe(1);
+  });
+
+  for (const destination of ['history', 'new-chat'] as const) {
+    for (const lateOutcome of ['reply', 'error'] as const) {
+      test(`${locale.name} isolates a late ${lateOutcome} after switching to ${destination}`, async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 740 });
+        await page.addInitScript(() => {
+          localStorage.setItem('funademy-chat-consent', 'yes');
+          const originalFetch = window.fetch.bind(window);
+          const encoder = new TextEncoder();
+          const held: {
+            controller: ReadableStreamDefaultController<Uint8Array>;
+            aborted: boolean;
+            cancelled: boolean;
+            abortCallbacks: (() => void)[];
+          }[] = [];
+          const submitted: { conversationId: string; content: string }[] = [];
+          Object.assign(window, {
+            chatSwitchHarness: {
+              submitted,
+              held,
+              async release(index: number, outcome: 'reply' | 'error') {
+                const stream = held[index];
+                if (outcome === 'error') {
+                  stream.controller.error(new TypeError('Late failure from the old conversation'));
+                } else {
+                  stream.controller.enqueue(encoder.encode(
+                    `data: ${JSON.stringify({ type: 'delta', content: index === 0 ? 'OLD REPLY MUST NOT APPEAR' : 'Destination reply' })}\n\n` +
+                    `data: ${JSON.stringify({
+                      type: 'done', messageId: `switch-reply-${index}`,
+                      ...(index === 0 ? {
+                        celebrate: true,
+                        preparedAction: { id: 'old-action', kind: 'book_trial', payload: {} },
+                      } : {}),
+                    })}\n\n`,
+                  ));
+                  stream.controller.close();
+                }
+                // Let the old send's catch/finally run while the new send is
+                // pending, then deliver its deferred abort notifications too.
+                await new Promise(resolve => setTimeout(resolve, 0));
+                stream.abortCallbacks.forEach(callback => callback());
+                await new Promise(resolve => setTimeout(resolve, 0));
+              },
+            },
+          });
+          window.fetch = async (...args: Parameters<typeof fetch>) => {
+            const match = String(args[0]).match(/\/svc\/chat\/conversations\/([^/]+)\/messages$/);
+            if (!match) return originalFetch(...args);
+            const index = held.length;
+            const signal = args[1]!.signal!;
+            const stream = {
+              controller: undefined as unknown as ReadableStreamDefaultController<Uint8Array>,
+              aborted: false,
+              cancelled: false,
+              abortCallbacks: [] as (() => void)[],
+            };
+            held.push(stream);
+            submitted.push({
+              conversationId: match[1],
+              content: JSON.parse(String(args[1]!.body)).content,
+            });
+            const addEventListener = signal.addEventListener.bind(signal);
+            addEventListener('abort', () => { stream.aborted = signal.aborted; }, { once: true });
+            if (index === 0) {
+              // Adversarial transport: abort really happens, but its consumers
+              // settle late. Without this delay the old finally always runs
+              // before the next click, leaving the request-ownership guard
+              // untested. No application internals are exposed or replaced.
+              signal.addEventListener = (type: string, callback: EventListenerOrEventListenerObject | null, options?: boolean | AddEventListenerOptions) => {
+                if (!callback) return;
+                if (type !== 'abort') return addEventListener(type, callback, options);
+                addEventListener(type, event => {
+                  stream.abortCallbacks.push(() => {
+                    if (typeof callback === 'function') callback.call(signal, event);
+                    else callback.handleEvent(event);
+                  });
+                }, options);
+              };
+            }
+            const body = new ReadableStream<Uint8Array>({
+              start(controller) {
+                stream.controller = controller;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: '' })}\n\n`));
+              },
+            }, { highWaterMark: 0 });
+            const getReader = body.getReader.bind(body);
+            Object.defineProperty(body, 'getReader', { value: () => {
+              const reader = getReader();
+              const cancel = reader.cancel.bind(reader);
+              reader.cancel = reason => {
+                // Record the cleanup call even after EOF or a stream error,
+                // when the underlying stream's cancel hook no longer runs.
+                stream.cancelled = true;
+                return cancel(reason);
+              };
+              return reader;
+            } });
+            return new Response(body, {
+              status: 200, headers: { 'Content-Type': 'text/event-stream' },
+            });
+          };
+        });
+        await page.route('**/svc/chat/conversations', route => route.fulfill({
+          status: route.request().method() === 'POST' ? 201 : 200,
+          contentType: 'application/json',
+          body: JSON.stringify(route.request().method() === 'POST'
+            ? { conversation: { id: 'fresh-conversation' } }
+            : { conversations: [
+              { id: 'source-conversation', title: 'Source conversation' },
+              { id: 'destination-conversation', title: 'Destination conversation' },
+            ], hasFamilyAccount: false }),
+        }));
+        await page.route('**/svc/chat/conversations/*', route => {
+          const id = new URL(route.request().url()).pathname.split('/').at(-1)!;
+          return route.fulfill({
+            status: 200, contentType: 'application/json',
+            body: JSON.stringify({ messages: [{
+              id: `${id}-saved`, role: 'assistant',
+              content: id === 'source-conversation' ? 'Saved source answer' : 'Saved destination answer',
+            }] }),
+          });
+        });
+        const harness = () => page.evaluate(() => {
+          const state = (window as unknown as { chatSwitchHarness: {
+            submitted: { conversationId: string; content: string }[];
+            held: { aborted: boolean; cancelled: boolean }[];
+          } }).chatSwitchHarness;
+          return { submitted: state.submitted, held: state.held.map(({ aborted, cancelled }) => ({ aborted, cancelled })) };
+        });
+        const release = (index: number, outcome: 'reply' | 'error') => page.evaluate(
+          ({ index, outcome }) => (window as unknown as { chatSwitchHarness: {
+            release: (index: number, outcome: 'reply' | 'error') => Promise<void>;
+          } }).chatSwitchHarness.release(index, outcome),
+          { index, outcome },
+        );
+
+        await page.goto(locale.path);
+        await page.getByTestId('button-open-chat').click();
+        await page.getByTestId('button-chat-session-source-conversation').click();
+        await expect(page.getByTestId('message-chat-source-conversation-saved')).toContainText('Saved source answer');
+        const composer = page.getByTestId('input-chat-message');
+        const send = page.getByTestId('button-send-chat');
+        const messages = page.locator('.chat-ui__messages');
+        const oldPrompt = 'Question in the old conversation';
+        const newPrompt = 'Question in the destination conversation';
+        await composer.fill(oldPrompt);
+        await send.click();
+        await expect.poll(async () => (await harness()).held.length).toBe(1);
+        await expect(composer).toBeDisabled();
+        await expect(messages).toHaveAttribute('aria-busy', 'true');
+
+        if (destination === 'history') {
+          await page.getByTestId('button-chat-session-destination-conversation').click();
+          await expect(page.getByTestId('message-chat-destination-conversation-saved')).toContainText('Saved destination answer');
+        } else {
+          await page.getByTestId('button-new-chat').click();
+          await expect(page.locator('[data-testid^="message-chat-"]')).toHaveCount(0);
+          await expect(page.getByTestId('text-chat-greeting')).toBeVisible();
+        }
+        await expect.poll(async () => (await harness()).held[0].aborted).toBe(true);
+        await expect(composer).toBeEnabled();
+        await expect(messages).toHaveAttribute('aria-busy', 'false');
+        await expect(page.getByText(oldPrompt, { exact: true })).toHaveCount(0);
+        await expect(page.getByText('Saved source answer', { exact: true })).toHaveCount(0);
+        await composer.fill(newPrompt);
+        await send.click();
+        await expect.poll(async () => (await harness()).held.length).toBe(2);
+        await expect(composer).toBeDisabled();
+
+        await release(0, lateOutcome);
+        await expect.poll(async () => (await harness()).held[0].cancelled).toBe(true);
+        // The cancelled send must not append messages/actions, show a retry,
+        // or clear the destination send's busy state from its finally block.
+        await expect(page.getByText('OLD REPLY MUST NOT APPEAR', { exact: true })).toHaveCount(0);
+        await expect(page.getByTestId('message-chat-switch-reply-0')).toHaveCount(0);
+        await expect(page.getByTestId('button-confirm-action-old-action')).toHaveCount(0);
+        await expect(page.locator('.chat-ui__error[role="alert"]')).toHaveCount(0);
+        await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+        await expect(composer).toBeDisabled();
+        await expect(send).toBeDisabled();
+        await expect(messages).toHaveAttribute('aria-busy', 'true');
+        await expect(page.locator('.chat-ui__typing')).toBeVisible();
+        expect((await harness()).held[1].aborted).toBe(false);
+        expect((await harness()).submitted).toEqual([
+          { conversationId: 'source-conversation', content: oldPrompt },
+          { conversationId: destination === 'history' ? 'destination-conversation' : 'fresh-conversation', content: newPrompt },
+        ]);
+
+        await release(1, 'reply');
+        await expect(page.getByTestId('message-chat-switch-reply-1')).toContainText('Destination reply');
+        await expect(composer).toBeEnabled();
+        await expect(messages).toHaveAttribute('aria-busy', 'false');
+        await expect(page.locator('.chat-ui__typing')).toHaveCount(0);
+        await expect(page.locator('.chat-ui__message > p').filter({ hasText: newPrompt })).toHaveCount(1);
+        await expect(page.locator('.chat-ui__message')).toHaveCount(destination === 'history' ? 3 : 2);
+        await expect(page.locator('.chat-ui__error[role="alert"]')).toHaveCount(0);
+        await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+      });
+    }
+  }
+
+  for (const interruption of ['truncated', 'read-error', 'stalled', 'stalled-after-chunks', 'cancelled'] as const) {
     test(`${locale.name} retries a ${interruption} reply stream without duplicating the prompt`, async ({ page }) => {
       const prompt = locale.direction === 'rtl' ? 'ساعدني أختار برنامج لطفلي' : 'Help me choose a program for my child';
       let partial = '';
@@ -49,16 +446,41 @@ for (const locale of locales) {
           const response = await originalFetch(...args);
           if (interrupted || !String(args[0]).match(/\/svc\/chat\/conversations\/[^/]+\/messages$/)) return response;
           interrupted = true;
-          const reader = response.body!.getReader();
+          const delayedEvents = interruption === 'stalled-after-chunks'
+            ? (await response.text()).split('\n\n').filter(Boolean) : null;
+          const reader = delayedEvents ? null : response.body!.getReader();
+          args[1]?.signal?.addEventListener('abort', () => {
+            document.documentElement.dataset.chatReplyAborted = 'yes';
+          }, { once: true });
           let delivered = false;
+          let deliveredChunks = 0;
           return new Response(new ReadableStream<Uint8Array>({
             async pull(controller) {
+              if (delayedEvents) {
+                if (deliveredChunks === delayedEvents.length) {
+                  // Never send EOF or done: only the inactivity deadline can
+                  // release the composer after the last healthy delta.
+                  await new Promise(() => {});
+                  return;
+                }
+                if (deliveredChunks > 0) await new Promise(resolve => setTimeout(resolve, 20_000));
+                controller.enqueue(new TextEncoder().encode(`${delayedEvents[deliveredChunks]}\n\n`));
+                deliveredChunks += 1;
+                document.documentElement.dataset.chatChunksDelivered = String(deliveredChunks);
+                document.documentElement.dataset.chatPartialRead = 'yes';
+                return;
+              }
+              if (delivered && (interruption === 'stalled' || interruption === 'cancelled')) {
+                // Leave the connection open forever after the first delta.
+                await new Promise(() => {});
+                return;
+              }
               if (delivered && interruption === 'read-error') {
-                await reader.cancel();
+                await reader!.cancel();
                 controller.error(new TypeError('Connection interrupted after partial reply'));
                 return;
               }
-              const chunk = await reader.read();
+              const chunk = await reader!.read();
               if (chunk.done) {
                 controller.close();
               } else {
@@ -66,6 +488,10 @@ for (const locale of locales) {
                 document.documentElement.dataset.chatPartialRead = 'yes';
                 controller.enqueue(chunk.value);
               }
+            },
+            cancel() {
+              document.documentElement.dataset.chatReaderCancelled = 'yes';
+              return reader?.cancel();
             },
           }, { highWaterMark: 0 }), { status: response.status, headers: response.headers });
         };
@@ -84,14 +510,29 @@ for (const locale of locales) {
           .map(event => JSON.parse(event.slice(5)));
         complete = events.find(event => event.type === 'delta').content;
         replyId = events.find(event => event.type === 'done').messageId;
-        partial = complete.slice(0, 12);
+        partial = complete.slice(0, interruption === 'stalled-after-chunks' ? 48 : 12);
+        const size = Math.ceil(partial.length / 4);
+        const deltas = interruption === 'stalled-after-chunks'
+          ? Array.from({ length: 4 }, (_, index) => ({
+            type: 'delta', content: partial.slice(index * size, (index + 1) * size),
+          }))
+          : [{ type: 'delta', content: partial }];
+        if (interruption === 'stalled-after-chunks') {
+          expect(partial.length).toBeGreaterThanOrEqual(4);
+          expect(partial).not.toBe(complete);
+        }
         await route.fulfill({
           response,
-          body: `data: ${JSON.stringify({ type: 'delta', content: partial })}\n\n`,
+          body: deltas.map(event => `data: ${JSON.stringify(event)}\n\n`).join(''),
         });
       });
       await page.goto(locale.path);
       await page.getByTestId('button-open-chat').click();
+      const start = new Date('2030-01-01T00:00:00Z');
+      await page.clock.install({ time: start });
+      if (interruption === 'stalled-after-chunks') {
+        await page.clock.pauseAt(new Date(start.getTime() + 1_000));
+      }
       const composer = page.getByTestId('input-chat-message');
       await composer.fill(prompt);
       await page.getByTestId('button-send-chat').click();
@@ -99,6 +540,54 @@ for (const locale of locales) {
       // The HTTP request succeeded and a delta was consumed before interruption.
       await expect(page.locator('html')).toHaveAttribute('data-chat-partial-read', 'yes');
       const alert = page.locator('.chat-ui__error[role="alert"]');
+      if (interruption === 'stalled-after-chunks') {
+        const html = page.locator('html');
+        const expectActive = async () => {
+          await expect(composer).toBeDisabled();
+          await expect(alert).toHaveCount(0);
+          await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+          await expect(html).not.toHaveAttribute('data-chat-reply-aborted', 'yes');
+          await expect(html).not.toHaveAttribute('data-chat-reader-cancelled', 'yes');
+        };
+        await expect(html).toHaveAttribute('data-chat-chunks-delivered', '1');
+        await expectActive();
+        for (let delivered = 2; delivered <= 4; delivered += 1) {
+          await page.clock.runFor(20_000);
+          await expect(html).toHaveAttribute('data-chat-chunks-delivered', String(delivered));
+          await expectActive();
+        }
+        // At t=89.999s all earlier deadlines have passed, but the latest
+        // delta (t=60s) must still have its full 30-second activity window.
+        await page.clock.runFor(29_999);
+        await expectActive();
+        expect(submitted).toHaveLength(1);
+        await page.clock.runFor(2);
+        await expect(html).toHaveAttribute('data-chat-reply-aborted', 'yes');
+        await expect(html).toHaveAttribute('data-chat-reader-cancelled', 'yes');
+        await expect(html).toHaveAttribute('data-chat-chunks-delivered', '4');
+      }
+      if (interruption === 'stalled' || interruption === 'cancelled') {
+        await expect(composer).toBeDisabled();
+        await expect(alert).toHaveCount(0);
+        if (interruption === 'cancelled') {
+          await page.getByTestId('button-close-chat').click();
+          await page.getByTestId('button-open-chat').click();
+          await page.clock.runFor(31_000);
+          await expect(page.locator('html')).toHaveAttribute('data-chat-reply-aborted', 'yes');
+          await expect(page.locator('html')).toHaveAttribute('data-chat-reader-cancelled', 'yes');
+          await expect(alert).toHaveCount(0);
+          await expect(page.getByTestId('button-chat-retry')).toHaveCount(0);
+          await expect(composer).toBeEnabled();
+          expect(submitted).toHaveLength(1);
+          return;
+        }
+        await page.clock.runFor(29_000);
+        await expect(composer).toBeDisabled();
+        await expect(alert).toHaveCount(0);
+        await page.clock.runFor(1_001);
+        await expect(page.locator('html')).toHaveAttribute('data-chat-reply-aborted', 'yes');
+        await expect(page.locator('html')).toHaveAttribute('data-chat-reader-cancelled', 'yes');
+      }
       await expect(alert).toContainText(locale.direction === 'rtl'
         ? 'تعذر إكمال الطلب' : 'We could not complete that request');
       await expect(page.getByTestId('button-chat-retry')).toBeEnabled();

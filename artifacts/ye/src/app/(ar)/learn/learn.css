@@ -531,3 +531,46 @@
 .learn-nid-edit { display: flex; flex-direction: column; gap: 6px; }
 .learn-nid-edit input { max-width: 220px; }
 .learn-nid-actions { display: flex; gap: 8px; }
+
+/* ===== Bright Play learner experience (task 278) ===== */
+.learn-landing,.kid-shell{--kp:#6B3FD1;--kp-d:#5129B0;--ky:#FFCA17;--ky-s:#FFF1B8;--kn:#101A38;--ks:#E8DCC4;--ks-s:#F5EDDD;--kpaper:#FFFBF2;--kcard:#FFFEFA;background:var(--kpaper);color:var(--kn);min-height:100dvh}
+.learn-landing :focus-visible,.kid-shell :focus-visible{outline:3px solid var(--kp);outline-offset:3px;border-radius:12px}
+.learn-child-card,.learn-add-card{background:var(--kcard);border:2px solid var(--ks);border-radius:24px}
+.learn-add-card:hover{border-color:var(--kp)}
+.learn-gate-icon{width:56px;height:56px;margin:0 auto 10px;border-radius:18px;background:var(--ky);box-shadow:0 0 0 6px var(--ky-s)}
+.learn-notice{max-width:720px;margin:0 auto 18px;padding:12px 16px;border-radius:16px;background:var(--ky-s);border:1px solid #F2D27A;font-weight:700;text-align:center}
+.learn-notice.soft{background:var(--kcard);border-color:var(--ks);font-weight:600}
+.kid-topbar{background:var(--kcard)!important;color:var(--kn)!important;border-bottom:2px solid var(--ks)}
+.kid-topbar .kid-search-btn{display:grid;place-items:center;min-width:44px;min-height:44px;border-radius:14px;border:2px solid var(--ks);background:var(--kpaper);color:var(--kp);cursor:pointer}
+.kid-topbar-streak{background:var(--ky-s)!important;color:var(--kn);font-weight:800}
+.kid-topbar-xp{color:var(--kp);font-weight:800;opacity:1}
+.kid-hello{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center;background:var(--kcard);border:2px solid var(--ks);border-radius:24px;padding:16px 18px;margin:4px 0 14px}
+.kid-hello-avatar{font-size:44px;width:64px;height:64px;display:grid;place-items:center;border-radius:20px;background:var(--ky-s)}
+.kid-hello h1{font-family:var(--font-display);font-size:24px;font-weight:800;margin:0}
+.kid-hello-band{color:var(--kp);font-weight:700;font-size:14px}
+.kid-hello-stats{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 0}
+.kid-hello-stats div{background:var(--kpaper);border:1px solid var(--ks);border-radius:16px;padding:8px;text-align:center}
+.kid-hello-stats dt{font-size:12px;color:#5A5F7A;font-weight:700}
+.kid-hello-stats dd{margin:0;font-family:var(--font-mono,monospace);font-size:22px;font-weight:800;color:var(--kn)}
+.kid-limit{background:var(--kcard);border:2px solid var(--ks);border-radius:20px;padding:12px 16px;margin-bottom:14px}
+.kid-limit.done{background:var(--ky-s);border-color:#F2D27A}
+.kid-limit-row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.kid-limit p{margin:8px 0 0;font-size:14px}
+.kid-limit-bar{height:10px;border-radius:999px;background:var(--ks-s);margin-top:8px;overflow:hidden}
+.kid-limit-bar span{display:block;height:100%;background:var(--kp);border-radius:inherit}
+.kid-continue-card{border-radius:24px;box-shadow:inset 0 0 0 3px rgba(16,26,56,.12)}
+.kid-subjects-title{font-family:var(--font-display);font-size:20px;font-weight:800;margin:18px 0 10px}
+.kid-note{background:var(--kcard);border:2px dashed var(--ks);border-radius:20px;padding:18px;text-align:center;font-weight:600;margin-bottom:14px}
+.kid-recovery{max-width:520px;margin:32px auto;background:var(--kcard);border:2px solid var(--ks);border-radius:28px;padding:28px 22px;text-align:center}
+.kid-recovery-mark{width:52px;height:52px;margin:0 auto 12px;border-radius:16px;background:var(--ky);box-shadow:0 0 0 6px var(--ky-s)}
+.kid-recovery h2{font-family:var(--font-display);font-size:22px;margin:0 0 8px}
+.kid-recovery p{margin:0 0 18px;color:#4A4F6A;line-height:1.7}
+.kid-recovery-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.kid-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:10px 22px;border-radius:999px;background:var(--kp);color:#FFFDF8;font-weight:800;font-size:16px;text-decoration:none;border:0;cursor:pointer;font-family:inherit}
+.kid-btn:hover{background:var(--kp-d)}
+.kid-btn.line{background:transparent;color:var(--kn);border:2px solid var(--ks)}
+.kid-skel{border-radius:20px;background:linear-gradient(90deg,var(--ks-s),#FBF6EB,var(--ks-s));background-size:200% 100%;animation:kidSk 1.3s linear infinite}
+@keyframes kidSk{to{background-position:-200% 0}}
+.kid-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.kid-parent-gate-icon{width:48px;height:48px;margin:0 auto;border-radius:14px;background:var(--kn)}
+@media(prefers-reduced-motion:reduce){.kid-skel{animation:none}.kid-subject-card,.kid-subject-card:hover{transition:none;transform:none}}

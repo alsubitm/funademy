@@ -20,6 +20,11 @@ export function AccountFlow({ lang, onAuthenticated }: { lang: Lang; onAuthentic
   const d = accountDict[lang];
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
+  const [enrollmentReturn, setEnrollmentReturn] = useState<string | null>(null);
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (next && /^\/(?:en\/)?enroll(?:\?|$)/.test(next) && !next.includes('\\')) setEnrollmentReturn(next);
+  }, []);
 
   // login state
   const [step, setStep] = useState<'phone' | 'code'>('phone');
@@ -186,6 +191,9 @@ export function AccountFlow({ lang, onAuthenticated }: { lang: Lang; onAuthentic
     const year = new Date().getFullYear();
     return (
       <div className="acct-box">
+        {enrollmentReturn && <a className="acct-btn" href={enrollmentReturn}>
+          {lang === 'ar' ? 'متابعة التسجيل في المجموعة المختارة' : 'Continue with your selected group'}
+        </a>}
         <div className="acct-head">
           <div>
             <h2>

@@ -34,6 +34,7 @@ type PaymentRow = {
   phone: string;
   students: string[];
   attentionRequired: boolean;
+  enrollmentIssue?: string | null;
 };
 
 export function PaymentsTab() {
@@ -124,7 +125,9 @@ export function PaymentsTab() {
               </div>
               {p.attentionRequired && (
                 <div className="rounded-xl border border-[#F3C3C0] bg-[#FDECEC] px-4 py-3 text-sm font-bold text-[#B3261E]">
-                  تنبيه: تعذّر تأكيد إنشاء عملية الدفع أو حفظ مرجعها. لا تُعد المحاولة قبل مراجعة مزود الدفع؛ ستتم المصالحة تلقائياً.
+                  {p.enrollmentIssue
+                    ? 'دفعة مستلمة دون تأكيد المقعد. راجع التسجيل وتوفّر المقاعد واتخذ قرارًا موثقًا؛ لا تطلب دفعًا جديدًا ولا تسترجع المبلغ تلقائيًا.'
+                    : 'تنبيه: تعذّر تأكيد إنشاء عملية الدفع أو حفظ مرجعها. لا تُعد المحاولة قبل مراجعة مزود الدفع؛ ستتم المصالحة تلقائياً.'}
                 </div>
               )}
               {p.status === 'paid' && (

@@ -6,13 +6,16 @@ const mocks = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
   bookings: vi.fn(),
   appointments: vi.fn(),
+  count: vi.fn(),
 }));
-vi.mock('@/lib/db', () => ({
-  prisma: {
-    booking: { findMany: mocks.bookings },
+vi.mock('@/lib/db', () => {
+  const prisma = {
+    booking: { findMany: mocks.bookings, count: mocks.count, findFirst: vi.fn(async () => null) },
     appointment: { findMany: mocks.appointments },
-  },
-}));
+    program: { findMany: vi.fn(async () => []) },
+  };
+  return { prisma: { ...prisma, $transaction: (fn: (tx: typeof prisma) => unknown) => fn(prisma) } };
+});
 vi.mock('@/app/(ar)/svc/admin/guard', () => ({ requireAdmin: mocks.requireAdmin }));
 import { GET } from '@/app/(ar)/svc/admin/bookings/route';
 
@@ -53,6 +56,7 @@ describe('admin booking export', () => {
     mocks.requireAdmin.mockResolvedValue(null);
     mocks.bookings.mockResolvedValue([stored]);
     mocks.appointments.mockResolvedValue([]);
+    mocks.count.mockResolvedValue(1);
   });
 
   it('neutralizes stored values in the actual CSV response', async () => {

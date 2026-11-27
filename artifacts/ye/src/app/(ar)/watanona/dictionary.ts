@@ -52,7 +52,7 @@ export const watanonaDict = {
 
     exhibKick: 'المعرض الختامي',
     exhibTitle: 'معرض "وطننا الصغير"',
-    exhibDesc: 'انضم إلينا يوم 23 سبتمبر للكشف عن أضخم خريطة للمملكة مبنية بأيادي أطفال الرياض.',
+    exhibDesc: 'الموعد المخطط لمعرض Mini Watan: 23 سبتمبر 2027. تأكيد المقر والوقت والتفاصيل النهائية من الإدارة قبل الحضور.',
     exhibBtn: 'احجز تذكرتك مجاناً',
 
     sponsorsKick: 'رعاة الحملة',
@@ -119,7 +119,7 @@ export const watanonaDict = {
 
     exhibKick: 'Grand Exhibition',
     exhibTitle: '"Mini Watan" Exhibition',
-    exhibDesc: 'Join us on Sep 23 as we unveil the massive Kingdom map built by the kids of Riyadh.',
+    exhibDesc: 'Planned Mini Watan exhibition: 23 September 2027. Confirm the venue, time and final details with the academy before attending.',
     exhibBtn: 'Book Free Ticket',
 
     sponsorsKick: 'Sponsorships',

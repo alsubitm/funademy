@@ -8,7 +8,10 @@ export async function POST(req: Request) {
     const instructor = await currentInstructor();
     if (!instructor) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     const body = await req.json();
-    if (!Number.isSafeInteger(body.sessionId) || typeof body.text !== 'string' || body.text.length > 5000) {
+    if (!Number.isSafeInteger(body.sessionId) || typeof body.text !== 'string' || body.text.length > 5000 ||
+      !(body.expectedVersion === null || (typeof body.expectedVersion === 'string' &&
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(body.expectedVersion) &&
+        Number.isFinite(Date.parse(body.expectedVersion))))) {
       return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
     }
     const result = await prisma.$transaction(async tx => {
@@ -21,13 +24,25 @@ export async function POST(req: Request) {
         courseRun: { instructorAssignments: { some: { instructorId: instructor.id } } },
       }, select: { id: true } });
       if (!session) return null;
-      return tx.instructorNote.upsert({
-        where: { instructorId_sessionId: { instructorId: instructor.id, sessionId: session.id } },
-        create: { instructorId: instructor.id, sessionId: session.id, text: body.text.trim() },
-        update: { text: body.text.trim() }, select: { updatedAt: true },
+      const where = { instructorId_sessionId: { instructorId: instructor.id, sessionId: session.id } };
+      const current = await tx.instructorNote.findUnique({ where });
+      if ((current?.updatedAt.toISOString() ?? null) !== body.expectedVersion) {
+        return { conflict: true as const, current: { text: current?.text ?? '', version: current?.updatedAt.toISOString() ?? null } };
+      }
+      // The instructor row lock also serializes first creation. Advance by at
+      // least 1ms so even two writes in the same clock tick get distinct tokens.
+      const updatedAt = new Date(Math.max(Date.now(), (current?.updatedAt.getTime() ?? 0) + 1));
+      const saved = await tx.instructorNote.upsert({
+        where,
+        create: { instructorId: instructor.id, sessionId: session.id, text: body.text.trim(), updatedAt },
+        update: { text: body.text.trim(), updatedAt }, select: { updatedAt: true, text: true },
       });
+      return { conflict: false as const, ...saved };
     });
     if (!result) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-    return NextResponse.json({ ok: true, updatedAt: result.updatedAt }, { headers: { 'Cache-Control': 'no-store' } });
+    if (result.conflict) return NextResponse.json({ error: 'conflict', current: result.current }, {
+      status: 409, headers: { 'Cache-Control': 'private, no-store' },
+    });
+    return NextResponse.json({ ok: true, text: result.text, version: result.updatedAt, updatedAt: result.updatedAt }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch { return NextResponse.json({ error: 'service_unavailable' }, { status: 503 }); }
 }

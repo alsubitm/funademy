@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
   if (payment.kind === 'enrollment') {
     const url = new URL(`${base}/enroll`, req.nextUrl);
     if (outcome === 'paid') url.searchParams.set('paid', String(payment.id));
+    else if (outcome === 'review_required') url.searchParams.set('payreview', String(payment.id));
     else if (outcome === 'pending') url.searchParams.set('paypending', String(payment.id));
     else url.searchParams.set('payfail', '1');
     const res = NextResponse.redirect(url);
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
   // renewal → back to the portal
   const url = new URL(`${base}/portal`, req.nextUrl);
   if (outcome === 'paid') url.searchParams.set('paid', '1');
+  else if (outcome === 'review_required') url.searchParams.set('payreview', String(payment.id));
   else if (outcome === 'pending') url.searchParams.set('paypending', '1');
   else url.searchParams.set('payfail', '1');
   return NextResponse.redirect(url);

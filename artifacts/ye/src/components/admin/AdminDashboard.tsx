@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAdminSearch, pick, setAdminParams } from './useAdminQuery';
+
+export const ADMIN_TABS = ['kpis', 'runs', 'instructors', 'payments', 'progress', 'makeup', 'bookings', 'slots', 'content', 'blog', 'bricks', 'curriculum', 'nelc', 'support'] as const;
 import { BookingsTab } from './BookingsTab';
 import { SlotsTab } from './SlotsTab';
 import { ContentTab } from './ContentTab';
@@ -18,7 +21,27 @@ import { SupportTab } from './SupportTab';
 import { InstructorsTab } from './InstructorsTab';
 
 export function AdminDashboard({ programs }: { programs: any[] }) {
-  const [activeTab, setActiveTab] = useState('bookings');
+  const params = useAdminSearch();
+  const activeTab = pick(params, 'tab', ADMIN_TABS, 'bookings');
+  const [drawer, setDrawer] = useState(false);
+  useEffect(() => {
+    if (!drawer) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setDrawer(false);
+        document.querySelector<HTMLButtonElement>('[data-testid="button-admin-menu"]')?.focus();
+      }
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [drawer]);
+  const selectTab = (id: string) => {
+    setDrawer(false);
+    if (id !== activeTab) {
+      setAdminParams({ tab: id === 'bookings' ? null : id }, 'push');
+      window.scrollTo({ top: 0 });
+    }
+  };
   
   const handleLogout = async () => {
     await fetch('/svc/admin/login', { method: 'DELETE' });
@@ -98,90 +121,87 @@ export function AdminDashboard({ programs }: { programs: any[] }) {
     },
   ];
 
+  const groups: { id: string; label: string; ids: string[] }[] = [
+    { id: 'ops', label: 'العمليات', ids: ['bookings', 'runs', 'makeup', 'payments', 'instructors'] },
+    { id: 'learning', label: 'التعلّم', ids: ['progress', 'curriculum', 'nelc', 'content'] },
+    { id: 'site', label: 'الموقع والتقارير', ids: ['kpis', 'slots', 'blog', 'bricks', 'support'] },
+  ];
+  const byId = new Map(tabs.map((t) => [t.id, t]));
+  const current = byId.get(activeTab)!;
+
+  const navList = (where: 'side' | 'drawer') => groups.map((g) => (
+    <div key={g.id} className="adm-group" role="group" aria-labelledby={`adm-g-${where}-${g.id}`}>
+      <div id={`adm-g-${where}-${g.id}`} className="adm-group-label">{g.label}</div>
+      {g.ids.map((id) => {
+        const t = byId.get(id)!;
+        const on = activeTab === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            aria-current={on ? 'page' : undefined}
+            onClick={() => selectTab(id)}
+            className="adm-nav-btn"
+            data-testid={`${where === 'side' ? 'nav' : 'drawer'}-admin-${id}`}
+          >
+            <span className="adm-nav-ico" aria-hidden="true">{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  ));
+
   return (
-    <div className="admin-wrap">
-      {/* DESKTOP SIDEBAR */}
-      <aside className="admin-sidebar shadow-2xl">
-        <div className="p-8 border-b border-white/10 relative z-10">
-          <div className="mb-6 flex flex-col items-center justify-center gap-3">
-            <div className="w-16 h-16 bg-[#1C54CB] rounded-2xl flex items-center justify-center shadow-lg border border-white/10">
-              <KiteMark size={40} dark full={false} />
-            </div>
-            <Wordmark
-              lang="ar"
-              style={{ fontSize: 24, color: '#fff', '--wm-fun': '#FFCA17', '--wm-ademy': '#fff' } as React.CSSProperties}
-            />
-            <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-[#22DAFF] font-mono font-bold tracking-widest uppercase border border-[#22DAFF]/30 shadow-[0_0_10px_rgba(34,218,255,0.2)]">
-              Mission Control
-            </div>
+    <div className="admin-wrap adm-bp">
+      <a href="#admin-main" className="adm-skip">تخطَّ إلى المحتوى</a>
+      <aside className="admin-sidebar" aria-label="أقسام لوحة الإدارة">
+        <div className="adm-brand">
+          <div className="adm-brand-mark"><KiteMark size={30} dark full={false} /></div>
+          <div>
+            <Wordmark lang="ar" style={{ fontSize: 20, color: '#101A38', '--wm-fun': '#6B3FD1', '--wm-ademy': '#101A38' } as React.CSSProperties} />
+            <div className="adm-brand-sub">لوحة الإدارة</div>
           </div>
         </div>
-        
-        <nav className="flex-1 p-4 space-y-2 relative z-10">
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-display font-bold text-lg transition-all ${
-                activeTab === t.id 
-                  ? 'bg-[#FFCA17] text-[#101A38] shadow-[0_4px_12px_rgba(255,202,23,0.2)] scale-[1.02]' 
-                  : 'text-[#9FC0FF] hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <span className={activeTab === t.id ? 'opacity-100' : 'opacity-70'}>{t.icon}</span>
-              <span>{t.label}</span>
-            </button>
-          ))}
-        </nav>
-        
-        <div className="p-6 border-t border-white/10 relative z-10">
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-[#FFCA17]/70 hover:bg-white/5 hover:text-[#FFCA17] rounded-xl transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            تسجيل الخروج
-          </button>
+        <nav className="adm-nav">{navList('side')}</nav>
+        <div className="adm-side-foot">
+          <button type="button" onClick={handleLogout} className="adm-logout" data-testid="button-admin-logout">تسجيل الخروج</button>
         </div>
       </aside>
-      
-      {/* MOBILE BOTTOM NAV */}
-      <nav className="mobile-bottom-nav">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`flex flex-col items-center justify-center gap-1.5 w-16 relative z-10 transition-transform ${
-              activeTab === t.id ? 'text-[#FFCA17] scale-110' : 'text-[#5F6B92]'
-            }`}
-          >
-            {activeTab === t.id && (
-              <div className="absolute -top-3 w-10 h-1 bg-[#FFCA17] rounded-b-lg shadow-[0_2px_8px_rgba(255,202,23,0.5)]"></div>
-            )}
-            <span className={activeTab === t.id ? 'opacity-100' : 'opacity-70'}>{t.icon}</span>
-            <span className="text-[10px] font-bold font-display">{t.label}</span>
-          </button>
-        ))}
-      </nav>
-      
-      <main className="admin-content">
-        {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between mb-8 pb-4 border-b border-[#DFE5F2]">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-[#1C54CB] rounded-xl flex items-center justify-center shadow-md">
-              <KiteMark size={24} dark full={false} />
-            </div>
-            <div>
-              <Wordmark lang="ar" style={{ fontSize: 18, color: '#101A38', '--wm-fun': '#FFCA17', '--wm-ademy': '#101A38' } as React.CSSProperties} />
-              <div className="text-[10px] text-[#5F6B92] font-mono tracking-wider">MISSION CONTROL</div>
-            </div>
+
+      <main className="admin-content" id="admin-main">
+        <div className="adm-mobile-bar">
+          <div className="adm-brand-mark sm"><KiteMark size={22} dark full={false} /></div>
+          <div className="adm-mobile-title">
+            <small>لوحة الإدارة</small>
+            <b data-testid="text-admin-current-mobile">{current.label}</b>
           </div>
-          <button onClick={handleLogout} aria-label="تسجيل الخروج" className="w-10 h-10 flex items-center justify-center bg-white border border-[#DFE5F2] rounded-xl text-[#5F6B92] shadow-sm">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <button
+            type="button"
+            className="adm-drawer-btn"
+            aria-expanded={drawer}
+            aria-controls="adm-drawer"
+            onClick={() => setDrawer((v) => !v)}
+            data-testid="button-admin-menu"
+          >
+            {drawer ? 'إغلاق' : 'الأقسام'}
           </button>
         </div>
+        {drawer && (
+          <div id="adm-drawer" className="adm-drawer" data-testid="panel-admin-drawer"
+            onKeyDown={(e) => { if (e.key === 'Escape') setDrawer(false); }}>
+            <nav aria-label="أقسام لوحة الإدارة">{navList('drawer')}</nav>
+            <button type="button" onClick={handleLogout} className="adm-logout" data-testid="button-admin-logout-mobile">تسجيل الخروج</button>
+          </div>
+        )}
 
-        <div className="max-w-7xl mx-auto">
+        <div className="adm-crumb" data-testid="text-admin-current">
+          <span>{groups.find((g) => g.ids.includes(activeTab))?.label}</span>
+          <span aria-hidden="true">/</span>
+          <b>{current.label}</b>
+        </div>
+
+        <div className="max-w-7xl mx-auto adm-view" key={activeTab}>
           {activeTab === 'kpis' && <KpisTab />}
           {activeTab === 'runs' && <RunsTab programs={programs} />}
           {activeTab === 'instructors' && <InstructorsTab />}

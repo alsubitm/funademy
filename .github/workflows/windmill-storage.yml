@@ -1,0 +1,51 @@
+name: Windmill storage warnings
+
+on:
+  pull_request:
+    paths:
+      - 'artifacts/windmill/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/windmill-storage.yml'
+  push:
+    paths:
+      - 'artifacts/windmill/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/windmill-storage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  storage-warnings:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install lesson dependencies
+        run: pnpm install --frozen-lockfile --filter @workspace/windmill...
+      - name: Install version-matched browsers and native libraries
+        run: pnpm --filter @workspace/windmill exec playwright install --with-deps chromium firefox webkit
+      - name: Check save warnings in all six configured projects
+        run: pnpm --filter @workspace/windmill test:browser:storage
+      - name: Retain browser report and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windmill-storage-results
+          path: generated-artifacts/windmill/
+          if-no-files-found: warn
+          retention-days: 14

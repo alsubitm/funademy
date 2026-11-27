@@ -226,3 +226,34 @@
 .ptl-next .bd .mt { font-size: 13px; color: var(--mut); margin-top: 4px; font-weight: 600; }
 .ptl-live.lg { font-size: 14px; padding: 10px 22px; box-shadow: 0 4px 14px rgba(28, 84, 203, 0.35); }
 .ptl-next-empty { font-size: 13.5px; color: var(--mut); font-weight: 600; margin: 8px 0 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* ===== Bright Play family portal (task 278) ===== */
+.ptl-pg{--blue:#6B3FD1;--blue-deep:#5129B0;--bpp:#6B3FD1;--bpp-d:#5129B0;--bpy:#FFCA17;--bpy-s:#FFF1B8;--bpn:#101A38;--bps:#E8DCC4;--bps-s:#F5EDDD;background:#FFFBF2}
+.ptl-pg .ptl-card{min-width:0;overflow-wrap:anywhere}
+.ptl-pg .info,.ptl-pg .ptl-sess .p{min-width:0}
+.ptl-pg .ptl-learn > div{min-width:0;flex-basis:220px}
+.ptl-pg .ptl-secnav{min-width:0;max-width:100%}
+.ptl-pg :focus-visible{outline:3px solid var(--bpp);outline-offset:2px;border-radius:10px}
+.ptl-pg .ptl-card{background:#FFFEFA;border-color:var(--bps);scroll-margin-top:90px}
+.ptl-pg .ptl-kid{border-color:var(--bps);color:var(--bpn)}
+.ptl-pg .ptl-kid.sel{background:var(--bpp);border-color:var(--bpp);color:#FFFDF8}
+.ptl-pg .ptl-card > h3 .ico{width:10px;height:10px;border-radius:3px;background:var(--bpy);display:inline-block;box-shadow:0 0 0 3px var(--bpy-s)}
+.ptl-secnav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0 18px;position:sticky;top:8px;z-index:5;background:rgba(255,251,242,.94);padding:6px;border:1px solid var(--bps);border-radius:16px}
+.ptl-secnav a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;border-radius:12px;text-decoration:none;color:var(--bpn);font-weight:700;font-size:13px;text-align:center;min-height:48px;justify-content:center}
+.ptl-secnav a b{font-family:var(--font-mono,monospace);font-size:12px;color:var(--bpp)}
+.ptl-secnav a:hover{background:var(--bps-s)}
+.ptl-secnav a[aria-current]{background:var(--bpy-s)}
+.ptl-learn{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-inline-start:6px solid var(--bpy)!important}
+.ptl-learn > div{flex:1 1 260px}
+.ptl-learn-t{font-weight:800;font-size:17px;color:var(--bpn)}
+.ptl-learn p{margin:4px 0 0;font-size:14px;color:#5A5F7A;line-height:1.6}
+.ptl-learn-go{display:inline-flex;align-items:center;min-height:44px;padding:10px 20px;border-radius:999px;background:var(--bpp);color:#FFFDF8;font-weight:800;text-decoration:none}
+.ptl-learn-go:hover{background:var(--bpp-d)}
+@media(max-width:640px){.ptl-secnav{grid-template-columns:repeat(5,minmax(84px,1fr));overflow-x:auto;position:static}}
+/* The shared footer's intrinsic grid overflows Arabic phone pages. Limit this
+   correction to portal routes; public-page presentation remains unchanged. */
+@media(max-width:640px){
+  body:has(.ptl-pg) .site-footer .fgrid{grid-template-columns:minmax(0,1fr);gap:24px}
+  body:has(.ptl-pg) .site-footer .fgrid>*{min-width:0;overflow-wrap:anywhere}
+}
+@media(prefers-reduced-motion:no-preference){html:has(.ptl-pg){scroll-behavior:smooth}}

@@ -20,20 +20,20 @@ export async function GET() {
 
   const child = await prisma.lrnChild.findFirst({
     where: { id: kidSession.childId, familyId },
-    include: { completions: { select: { lessonId: true } } },
+    include: { firstCompletions: { select: { lessonId: true } } },
   });
   if (!child) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  const completedIds = new Set(child.completions.map((c) => c.lessonId));
+  const completedIds = new Set(child.firstCompletions.map((c) => c.lessonId));
 
   // Find next lesson to continue in child's band (first published, not yet completed)
-  const nextLesson = await prisma.lrnLesson.findFirst({
+  const remainingLessons = await prisma.lrnLesson.findMany({
     where: {
       status: 'published',
       unit: { band: child.band, status: 'published' },
       id: { notIn: completedIds.size > 0 ? [...completedIds] : [-1] },
     },
-    orderBy: [{ unit: { position: 'asc' } }, { position: 'asc' }],
+    orderBy: [{ unit: { position: 'asc' } }, { position: 'asc' }, { id: 'asc' }],
     include: { unit: { include: { subject: true } } },
   });
 
@@ -86,8 +86,18 @@ export async function GET() {
   // Consistent with enforcement: limit is exceeded when consumed + next would exceed,
   // but here we report the raw consumed total for display; dailyLimitReached means
   // no further lessons can be started today.
-  const dailyLimitReached =
-    child.dailyLimitMinutes !== null && todayMinutes >= child.dailyLimitMinutes;
+  // Recommend only a lesson the server guard would allow: a shorter lesson
+  // in another subject can still fit, but never skip an unfinished prior unit.
+  const availableLessons = remainingLessons.filter(lesson =>
+    !remainingLessons.some(prior =>
+      prior.unit.subjectId === lesson.unit.subjectId &&
+      prior.unit.position < lesson.unit.position));
+  const nextLesson = availableLessons.find(lesson =>
+    child.dailyLimitMinutes === null ||
+    todayMinutes + lesson.durationMinutes <= child.dailyLimitMinutes);
+  const dailyLimitReached = child.dailyLimitMinutes !== null &&
+    (todayMinutes >= child.dailyLimitMinutes ||
+      (availableLessons.length > 0 && !nextLesson));
 
   return NextResponse.json({
     child: serializeChild(child),

@@ -33,6 +33,22 @@ suggestions, action cards, scrolling, and pinned controls. This is browser
 emulation only; it does not claim physical iPhone or keyboard coverage.
 Failure traces go to ignored `generated-artifacts/browser-tests`.
 
+## Four-panel regressions
+
+Run `pnpm --filter @workspace/ye exec playwright test browser-tests/panels.spec.ts`
+with the same isolated server and provider-free environment described above.
+The fixtures include two same-name course students and two separate same-name
+learning profiles. Tests cover admin URL/history/filter/reset/error states and
+all mobile destinations; instructor class handoffs, attendance failures, private
+note save failures and draft-safe refresh; Arabic/English child-preserving portal
+links, wrong/right PIN selection, unavailable lessons, parent-exit gates, and
+learner session/enrollment/network recovery. Only deliberate failure responses
+are intercepted; successful writes use the real authenticated services.
+
+Browser evidence uses Chromium at desktop 1280×720, tablet 768×1024 and phone
+390×844. This is viewport emulation, not physical-device, Safari or Firefox
+coverage. Screenshots are saved in ignored `generated-artifacts/panels-evidence`.
+
 The chat regressions also cut off a real, committed reply after a partial
 delta (both truncated EOF and a reader error), then retry with the same send
 identity. English and Arabic checks verify one saved prompt and reply after

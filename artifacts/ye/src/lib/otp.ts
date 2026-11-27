@@ -58,6 +58,7 @@ export async function requestOtp(phone: string): Promise<OtpRequestResult> {
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recent = await tx.otpCode.count({ where: { phone, createdAt: { gte: hourAgo } } });
     if (recent >= MAX_REQUESTS_PER_HOUR) return null;
+    await tx.otpCode.updateMany({ where: { phone, consumed: false }, data: { consumed: true } });
     return tx.otpCode.create({
       data: { phone, codeHash: hashCode(phone, code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
     });
@@ -116,12 +117,14 @@ export async function verifyOtpInTx(
   code: string,
   opts: { consume: boolean } = { consume: true },
 ): Promise<OtpVerifyResult> {
+  // Serialize issuance and verification, including failed attempts, for this recipient.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`otp:${phone}`}))`;
   const record = await tx.otpCode.findFirst({
-    where: { phone, consumed: false },
-    orderBy: { createdAt: 'desc' },
+    where: { phone },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
   });
-  if (!record) return 'invalid';
-  if (record.expiresAt < new Date()) return 'expired';
+  if (!record || record.consumed) return 'invalid';
+  if (record.expiresAt <= new Date()) return 'expired';
   if (record.attempts >= MAX_VERIFY_ATTEMPTS) return 'too_many_attempts';
 
   if (record.codeHash !== hashCode(phone, code)) {
@@ -129,7 +132,11 @@ export async function verifyOtpInTx(
     return 'invalid';
   }
   if (opts.consume) {
-    await tx.otpCode.update({ where: { id: record.id }, data: { consumed: true } });
+    const claimed = await tx.otpCode.updateMany({
+      where: { id: record.id, consumed: false, expiresAt: { gt: new Date() }, attempts: { lt: MAX_VERIFY_ATTEMPTS } },
+      data: { consumed: true },
+    });
+    if (claimed.count !== 1) return 'invalid';
   }
   return 'ok';
 }

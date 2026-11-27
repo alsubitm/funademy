@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test src/tests/*.test.ts",
     "test:browser": "playwright test",
+    "test:browser:storage": "playwright test tests/browser/lesson.spec.ts --grep \"storage notice:\"",
     "test:browser:install": "playwright install chromium firefox webkit"
   },
   "devDependencies": {

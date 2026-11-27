@@ -31,7 +31,7 @@ beforeAll(async () => {
   const run = await prisma.courseRun.create({
     data: {
       programId, titleEn: 'Run', titleAr: 'دورة', startDate: new Date(now - 86_400_000),
-      endDate: new Date(now + 90 * 86_400_000), weekday: 2, time: '17:00', format: 'in_person',
+      endDate: new Date(now + 90 * 86_400_000), weekday: 2, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre, Al Olaya, Riyadh',
       capacity: 12, seatsLeft: 12, monthlyPriceSar: 1375,
     },
   });

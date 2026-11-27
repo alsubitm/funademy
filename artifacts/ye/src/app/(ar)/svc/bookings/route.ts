@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     if (code === 'unauthorized') return NextResponse.json({ error: code }, { status: 401 });
     if (code === 'trial_limit') return NextResponse.json({ error: code }, { status: 429 });
     if (code === 'slot_not_found') return NextResponse.json({ error: code }, { status: 404 });
-    if (['slot_full', 'already_booked', 'program_not_eligible'].includes(code)) {
+    if (['slot_full', 'already_booked', 'program_not_eligible', 'venue_unconfirmed'].includes(code)) {
       return NextResponse.json({ error: code }, { status: 409 });
     }
     console.error('[booking] trial booking failed', e);

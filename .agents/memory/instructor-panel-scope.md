@@ -26,3 +26,9 @@ Provision instructor accounts in the environment where the user will sign in; a 
 **Why:** An account successfully tested in Preview was absent from the production database after publishing, causing the live login to report invalid credentials.
 
 **How to apply:** Check account existence in the intended environment without selecting password hashes. For live provisioning, use the existing authenticated admin API, not production SQL writes or automatic startup seeding, and verify the live instructor login before confirming access.
+
+Refreshing private preparation notes must not silently advance an unsaved draft's concurrency baseline. Teachers must explicitly compare and choose before rebasing a conflicting draft.
+
+**Why:** Preserving draft text alone is insufficient: accepting a newer server version during refresh would allow a later save to silently overwrite another device's changes.
+
+**How to apply:** Keep the draft's original expected version until the teacher resolves the conflict. Clearing a note is a versioned edit, not a return to an uncreated note.

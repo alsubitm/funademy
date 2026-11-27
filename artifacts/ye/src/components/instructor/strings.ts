@@ -17,6 +17,9 @@ const ar = {
   sessionsCount: 'جلسات', noSessions: 'لا توجد جلسات تطابق التصفية.', sessionNote: 'ملاحظة الجلسة',
   prepLabel: 'ملاحظة التحضير الخاصة', prepHint: 'خاصة بك ولا تظهر للأهالي. حتى 5000 حرف.', save: 'حفظ', saving: 'جارٍ الحفظ…', saved: 'حُفظت', unsaved: 'تغييرات غير محفوظة', saveFailed: 'فشل الحفظ', discard: 'تراجع', savedAt: 'آخر حفظ',
   noteForbidden: 'لا يمكنك تعديل هذه الجلسة.', noteTooLong: 'الملاحظة أطول من 5000 حرف.',
+  noteConflict: 'حُفظت نسخة أخرى من ملاحظتك على جهاز آخر. مسودتك محفوظة أعلاه. قارنها بالنسخة المحفوظة أدناه قبل المتابعة.',
+  latestNote: 'آخر نسخة محفوظة', useLatestNote: 'استخدام النسخة المحفوظة', keepNoteDraft: 'الاحتفاظ بمسودتي للحفظ التالي',
+  replaceNoteDraft: 'هل تريد استبدال مسودتك بالنسخة المحفوظة؟ ستفقد تغييراتك غير المحفوظة.',
   libTitle: 'BC.013 — ابنِ طاحونة الهواء', libLead: 'رفيق رقمي لدليل البناء المطبوع في Bricks Challenge. أربع عشرة محطة تطابق صفحات الدليل، لا دروس إضافية.',
   howTo: 'كيف تستخدمه في الحصة',
   tips: [
@@ -31,6 +34,8 @@ const ar = {
   labNote: 'المختبر يعمل دون تسجيل دخول، والتقدم محفوظ محلياً على هذا الجهاز ومستقل عن حسابك.',
   profile: 'الملف الشخصي', name: 'الاسم', role: 'الدور', roleInstructor: 'مدرّب', roleAdmin: 'مدير (معاينة)',
   contactAdmin: 'لتعديل الاسم أو البريد أو الإسنادات أو لاستعادة الوصول عند نسيان كلمة المرور تواصل مع إدارة FunAdemy. لا تُرسل كلمة المرور في رسائل.',
+  refresh: 'تحديث البيانات', refreshing: 'جارٍ التحديث…', refreshed: 'تم التحديث', refreshFailed: 'تعذّر التحديث — المعروض آخر نسخة محمّلة', draftsKept: 'مسوداتك غير المحفوظة محفوظة على هذه الصفحة',
+  openClass: 'الطلاب والحضور', classContext: 'الفصل المحدد', classMissing: 'الفصل المطلوب غير مُسند إليك أو لم يعد متاحاً — نعرض كل الدفعات.',
   leaveWarn: 'لديك تغييرات غير محفوظة. هل تريد المغادرة؟', menu: 'القائمة', today: 'اليوم', status: { scheduled: 'مجدولة', completed: 'مكتملة', cancelled: 'ملغاة', present: 'حاضر', absent: 'غائب', late: 'متأخر', excused: 'بعذر', active: 'نشط', enrolled: 'مسجّل', waitlisted: 'قائمة انتظار', withdrawn: 'منسحب' } as Record<string, string>,
 };
 
@@ -51,6 +56,9 @@ const en: typeof ar = {
   sessionsCount: 'sessions', noSessions: 'No sessions match this filter.', sessionNote: 'Session note',
   prepLabel: 'Private preparation note', prepHint: 'Only visible to you, never to families. Up to 5000 characters.', save: 'Save', saving: 'Saving…', saved: 'Saved', unsaved: 'Unsaved changes', saveFailed: 'Save failed', discard: 'Revert', savedAt: 'Last saved',
   noteForbidden: 'You cannot edit this session.', noteTooLong: 'Note is longer than 5000 characters.',
+  noteConflict: 'Your note was saved on another device. Your draft is kept above. Compare it with the saved version below before continuing.',
+  latestNote: 'Latest saved version', useLatestNote: 'Use saved version', keepNoteDraft: 'Keep my draft for next save',
+  replaceNoteDraft: 'Replace your draft with the saved version? Your unsaved changes will be lost.',
   libTitle: 'BC.013 — Build the Windmill', libLead: 'Digital companion to the printed Bricks Challenge build guide. Fourteen stages that match the guide pages — not extra lessons.',
   howTo: 'Using it in class',
   tips: [
@@ -65,6 +73,8 @@ const en: typeof ar = {
   labNote: 'The lab needs no sign in. Progress is saved locally on this device, independent of your account.',
   profile: 'Profile', name: 'Name', role: 'Role', roleInstructor: 'Instructor', roleAdmin: 'Administrator (preview)',
   contactAdmin: 'To change your name, email or assignments, or recover access if you forget your password, contact FunAdemy administration. Never send your password in messages.',
+  refresh: 'Refresh data', refreshing: 'Refreshing…', refreshed: 'Updated', refreshFailed: 'Refresh failed — showing the last loaded data', draftsKept: 'Your unsaved drafts are kept on this page',
+  openClass: 'Students & attendance', classContext: 'Selected class', classMissing: 'That class is not assigned to you or is no longer available — showing all runs.',
   leaveWarn: 'You have unsaved changes. Leave anyway?', menu: 'Menu', today: 'Today', status: { scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled', present: 'Present', absent: 'Absent', late: 'Late', excused: 'Excused', active: 'Active', enrolled: 'Enrolled', waitlisted: 'Waitlisted', withdrawn: 'Withdrawn' },
 };
 

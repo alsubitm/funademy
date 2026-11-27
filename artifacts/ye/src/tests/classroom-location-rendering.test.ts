@@ -116,7 +116,7 @@ describe.each(['ar', 'en'] as const)('classroom location rendering (%s)', (lang)
         step, 1, 12, null, 'Parent', '', 'Child', '2018', '', true, null, '', true,
       ]);
       expect(html).toContain(step === 2 ? 'slot-list' : 'success-box');
-      if (step === 2) expect(html).toContain('class="slot-item sel"');
+      if (step === 2) expect(html).toContain(location === venue ? 'class="slot-item sel"' : 'class="slot-item full"');
       checkLocation(html, lang, location);
       if (step === 4) expect(html).not.toContain('Wrong venue');
     });
@@ -128,7 +128,7 @@ describe.each(['ar', 'en'] as const)('classroom location rendering (%s)', (lang)
           programNameAr: program.nameAr, programNameEn: program.nameEn, totalSar: 100 }],
       } : null;
       const html = renderClient(createElement(EnrollFlow, { lang }), [
-        false, true, [student], [run('Wrong venue', 11), run(location)],
+        false, null, true, [student], [run('Wrong venue', 11), run(location)],
         { items: [], subtotalSar: 0, discountSar: 0, totalSar: 0 },
         1, 'moyasar_mada', false, null, done,
       ]);

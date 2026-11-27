@@ -29,8 +29,10 @@ export async function createTrialBooking(input: TrialInput) {
           const child = await tx.student.findFirst({ where: { id: input.studentId, familyId: input.familyId, firstName: input.childFirstName, birthYear: input.childBirthYear } });
           if (!child) throw new Error('student_not_owned');
         }
+        await tx.$queryRaw`SELECT id FROM ye_schedule_slots WHERE id = ${input.slotId} FOR UPDATE`;
         const slot = await tx.scheduleSlot.findUnique({ where: { id: input.slotId }, include: { program: true } });
         if (!slot || slot.programId !== input.programId || !slot.active) throw new Error('slot_not_found');
+        if (slot.format === 'in_person' && isCityOnlyLocation(slot.location)) throw new Error('venue_unconfirmed');
         const age = new Date().getFullYear() - input.childBirthYear;
         if (age < slot.program.ageMin || age > slot.program.ageMax) throw new Error('program_not_eligible');
         const trialStartsAt = input.trialStartsAt ?? nextOccurrence(slot.weekday, slot.time);
@@ -74,7 +76,7 @@ export async function createTrialBooking(input: TrialInput) {
   try {
     const { booking, slot } = created;
     const existing = await prisma.appointment.findFirst({
-      where: { kind: 'trial', programId: input.programId, startsAt: booking.trialStartsAt!, status: 'scheduled', calendarEventId: { not: null }, meetUrl: null },
+      where: { kind: 'trial', programId: input.programId, startsAt: booking.trialStartsAt!, status: 'scheduled', calendarEventId: { not: null }, meetUrl: slot.format === 'online' ? { not: null } : null },
     });
     let meet: { eventId: string; meetUrl: string | null };
     if (existing?.calendarEventId) {
@@ -85,9 +87,9 @@ export async function createTrialBooking(input: TrialInput) {
     } else {
       meet = await createMeetEvent({
         summary: `حصة تجريبية FunAdemy — ${slot.program.nameAr}`,
-        description: `حصة تجريبية حضورية في الرياض\nالبرنامج: ${slot.program.nameAr} / ${slot.program.nameEn}\n${classroomLocation(slot.location, 'ar')}\n${isCityOnlyLocation(slot.location) ? 'خريطة المدينة وليست موقع المقر' : 'البحث عن المقر في الخرائط'}: ${classroomMapUrl(slot.location)}`,
-        inPerson: true,
-        location: isCityOnlyLocation(slot.location) ? 'Riyadh, Saudi Arabia' : slot.location,
+        description: slot.format === 'online' ? `حصة تجريبية عبر الإنترنت — ${slot.program.nameEn}` : `حصة تجريبية حضورية في الرياض\nالبرنامج: ${slot.program.nameAr} / ${slot.program.nameEn}\n${classroomLocation(slot.location, 'ar')}\nالبحث عن المقر في الخرائط: ${classroomMapUrl(slot.location)}`,
+        inPerson: slot.format !== 'online',
+        location: slot.format === 'online' ? undefined : slot.location,
         startsAt: booking.trialStartsAt!, durationMin: CATALOG[slot.program.slug]?.lessonMin ?? 45, attendeeEmail: input.email,
       });
     }

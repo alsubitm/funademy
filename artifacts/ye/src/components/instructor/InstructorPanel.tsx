@@ -8,6 +8,7 @@ import { t } from './strings';
 import { PasswordChange } from './PasswordChange';
 import { LiveSessions } from './LiveSessions';
 import { Icon, ICONS, Lab, Notes, Overview, Resources, Roster, Schedule, type NoteState } from './InstructorViews';
+import { refreshNote } from './note-state';
 
 const TABS = ['overview', 'schedule', 'roster', 'notes', 'resources', 'lab', 'live', 'settings'] as const;
 type Tab = (typeof TABS)[number];
@@ -71,34 +72,67 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
   const [state, setState] = useState<'loading' | 'auth' | 'error' | 'ready'>('loading');
   const [data, setData] = useState<Dashboard | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
+  const [runCtx, setRunCtx] = useState<number | null>(null);
+  const [refresh, setRefresh] = useState<{ state: 'idle' | 'refreshing' | 'done' | 'failed'; at?: string }>({ state: 'idle' });
+  const dataRef = useRef<Dashboard | null>(null);
+  const draftOwner = useRef<string | null>(null);
+  const viewerGeneration = useRef(0);
+  dataRef.current = data;
   const [labMounted, setLabMounted] = useState(false);
   const [authNotice, setAuthNotice] = useState('');
   const [notes, setNotes] = useState<Record<number, NoteState>>({});
 
   const load = useCallback(async () => {
-    setState('loading');
+    const isRefresh = !!dataRef.current;
+    if (isRefresh) setRefresh({ state: 'refreshing' }); else setState('loading');
     try {
       const res = await fetch('/svc/instructor/dashboard', { cache: 'no-store', credentials: 'include' });
-      if (res.status === 401) { setState('auth'); return; }
+      if (res.status === 401) { setData(null); setRefresh({ state: 'idle' }); setState('auth'); return; }
       if (!res.ok) throw new Error('load');
       const d: Dashboard = await res.json();
+      // Drafts survive reauthentication only for the same viewer. A different
+      // instructor must never inherit private notes on a shared device.
+      const viewerKey = `${d.viewer.role}:${d.viewer.id}`;
+      const sameViewer = draftOwner.current === viewerKey;
+      if (!sameViewer) viewerGeneration.current++;
+      draftOwner.current = viewerKey;
       setData(d);
       setNotes((prev) => {
         const next: Record<number, NoteState> = {};
         d.runs.forEach((r) => r.sessions.forEach((x) => {
-          const p = prev[x.id];
-          next[x.id] = p && p.draft !== p.base ? { ...p, base: x.preparationNote } : { draft: x.preparationNote, base: x.preparationNote, status: p?.status === 'saved' ? 'saved' : 'idle', savedAt: p?.savedAt };
+          const p = sameViewer ? prev[x.id] : undefined;
+          next[x.id] = refreshNote(p, { text: x.preparationNote, version: x.preparationNoteVersion });
         }));
         return next;
       });
       setState('ready');
-    } catch { setState('error'); }
+      if (isRefresh) setRefresh({ state: 'done', at: new Date().toISOString() });
+    } catch {
+      // Keep the last good data (and every unsaved draft) on a failed refresh.
+      if (isRefresh) { setRefresh({ state: 'failed' }); setState('ready'); } else setState('error');
+    }
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  // URL-backed view (?view=) and class context (?run=); unknown values fall back safely.
+  useEffect(() => {
+    const sync = () => {
+      const sp = new URLSearchParams(window.location.search);
+      const v = sp.get('view');
+      const next = (TABS as readonly string[]).includes(v ?? '') ? (v as Tab) : 'overview';
+      const r = Number(sp.get('run'));
+      if (next === 'lab') setLabMounted(true);
+      setTab(next);
+      setRunCtx(Number.isInteger(r) && r > 0 ? r : null);
+    };
+    sync();
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
+
   const notesRef = useRef(notes);
   notesRef.current = notes;
-  const anyDirty = Object.values(notes).some((n) => n.draft !== n.base);
+  const anyDirty = Object.values(notes).some((n) => n.draft !== n.base || !!n.conflict);
   useEffect(() => {
     if (!anyDirty) return;
     const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
@@ -112,36 +146,78 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
     setNotes((p) => ({ ...p, [id]: { ...(p[id] ?? { base: '', status: 'idle' }), draft: v, status: p[id]?.status === 'error' ? 'idle' : (p[id]?.status ?? 'idle'), error: undefined } as NoteState }));
   }, []);
 
+  const resolve = (id: number, useLatest: boolean) => {
+    if (useLatest && !window.confirm(s.replaceNoteDraft)) return;
+    setNotes(p => {
+      const n = p[id];
+      if (!n?.conflict) return p;
+      return { ...p, [id]: { ...n, base: n.conflict.text, version: n.conflict.version,
+        draft: useLatest ? n.conflict.text : n.draft, conflict: undefined, status: 'idle', error: undefined } };
+    });
+  };
+
   const save = useCallback(async (id: number) => {
-    const text = notesRef.current[id]?.draft ?? '';
+    const n = notesRef.current[id];
+    if (!n || n.status === 'saving' || n.conflict || isAdmin) return;
+    const text = n.draft;
+    const owner = draftOwner.current;
+    const generation = viewerGeneration.current;
+    const stillOwner = () => owner === draftOwner.current && generation === viewerGeneration.current;
+    const updateNote = (update: (current: NoteState) => NoteState) =>
+      setNotes(p => stillOwner() && p[id] ? { ...p, [id]: update(p[id]) } : p);
     setNotes((p) => ({ ...p, [id]: { ...p[id], status: 'saving', error: undefined } }));
     try {
-      const res = await fetch('/svc/instructor/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ sessionId: id, text }) });
-      if (res.status === 401) { setState('auth'); return; }
+      const res = await fetch('/svc/instructor/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ sessionId: id, text, expectedVersion: n.version }) });
+      if (!stillOwner()) return;
+      if (res.status === 401) {
+        updateNote(current => ({ ...current, status: 'error', error: s.saveFailed }));
+        setData(null); setState('auth'); return;
+      }
+      if (res.status === 409) {
+        const j = await res.json();
+        if (typeof j.current?.text !== 'string' ||
+          !(j.current.version === null || typeof j.current.version === 'string')) throw new Error('invalid_conflict');
+        updateNote(current => ({ ...current, status: 'conflict', conflict: j.current }));
+        return;
+      }
       if (!res.ok) {
         const code = await readError(res);
         const msg = res.status === 403 || code === 'forbidden' ? s.noteForbidden : /long|max|length/i.test(code) ? s.noteTooLong : s.saveFailed;
-        setNotes((p) => ({ ...p, [id]: { ...p[id], status: 'error', error: msg } }));
+        updateNote(current => ({ ...current, status: 'error', error: msg }));
         return;
       }
-      const j = await res.json().catch(() => ({}));
-      setNotes((p) => ({ ...p, [id]: { ...p[id], base: text, status: 'saved', savedAt: j?.updatedAt ?? new Date().toISOString() } }));
+      const j = await res.json();
+      if (typeof j.text !== 'string' || typeof j.version !== 'string') throw new Error('invalid_response');
+      updateNote(current => ({ ...current, draft: current.draft === text ? j.text : current.draft,
+        base: j.text, version: j.version, conflict: undefined, status: 'saved', savedAt: j.updatedAt }));
     } catch {
-      setNotes((p) => ({ ...p, [id]: { ...p[id], status: 'error', error: s.saveFailed } }));
+      updateNote(current => ({ ...current, status: 'error', error: s.saveFailed }));
     }
-  }, [s]);
+  }, [s, isAdmin]);
 
-  const go = (next: string) => {
-    const n = next as Tab;
+  const writeUrl = (view: Tab, run: number | null, mode: 'push' | 'replace') => {
+    const url = new URL(window.location.href);
+    if (view === 'overview') url.searchParams.delete('view'); else url.searchParams.set('view', view);
+    if (run && ['schedule', 'roster', 'notes'].includes(view)) url.searchParams.set('run', String(run)); else url.searchParams.delete('run');
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history[mode === 'push' ? 'pushState' : 'replaceState'](window.history.state, '', next);
+  };
+  const go = (next: string, runId?: number | null) => {
+    const n = (TABS as readonly string[]).includes(next) ? (next as Tab) : 'overview';
+    const r = runId === undefined ? (['schedule', 'roster', 'notes'].includes(n) ? runCtx : null) : runId;
     if (n === 'lab') setLabMounted(true);
     setTab(n);
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+    setRunCtx(r);
+    writeUrl(n, r, 'push');
+    window.scrollTo({ top: 0 });
   };
+  const changeRun = (runId: number | null) => { setRunCtx(runId); writeUrl(tab, runId, 'replace'); };
 
   const logout = async () => {
     if (anyDirty && !window.confirm(s.leaveWarn)) return;
     await fetch('/svc/instructor/session', { method: 'DELETE', credentials: 'include' }).catch(() => undefined);
-    setData(null); setNotes({}); setLabMounted(false); setTab('overview'); setState('auth');
+    draftOwner.current = null; viewerGeneration.current++;
+    setData(null); setNotes({}); setLabMounted(false); setTab('overview'); setRunCtx(null); setRefresh({ state: 'idle' }); setState('auth');
   };
 
   if (state === 'loading' && !data) return <Skeleton />;
@@ -194,17 +270,27 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
             <span>{s.adminPreview}</span><a href={adminHref}>{s.backAdmin}</a>
           </div>
         )}
-        {state === 'loading' && <div className="ip-skel" style={{ height: 4, marginBottom: 12 }} />}
+        <div className="ip-refresh" data-testid="bar-instructor-refresh">
+          <span role={refresh.state === 'failed' ? 'alert' : 'status'} aria-live="polite" data-testid="status-instructor-refresh" data-state={refresh.state}>
+            {refresh.state === 'refreshing' && <span className="ip-state" style={{ color: 'var(--blue)' }}>{s.refreshing}</span>}
+            {refresh.state === 'done' && <span className="ip-state" style={{ color: 'var(--ok)' }}>{s.refreshed}{refresh.at ? ` · ${new Intl.DateTimeFormat(lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB', { timeStyle: 'short', timeZone: 'Asia/Riyadh' }).format(new Date(refresh.at))}` : ''}</span>}
+            {refresh.state === 'failed' && <span className="ip-state" style={{ color: 'var(--bad)' }}>{s.refreshFailed}</span>}
+            {anyDirty && refresh.state !== 'refreshing' && <span className="ip-state" style={{ color: 'var(--warn)', marginInlineStart: 10 }} data-testid="status-instructor-drafts">{s.draftsKept}</span>}
+          </span>
+          <button className="ip-btn line sm" onClick={() => void load()} disabled={refresh.state === 'refreshing'} data-testid="button-instructor-refresh">
+            <Icon d={ICONS.reload} size={16} />{refresh.state === 'refreshing' ? s.refreshing : s.refresh}
+          </button>
+        </div>
         {tab === 'overview' && <Overview data={data} lang={lang} s={s} notes={notes} go={go} />}
-        {tab === 'schedule' && <Schedule data={data} lang={lang} s={s} />}
-        {tab === 'roster' && <Roster data={data} lang={lang} s={s} onAttendanceSaved={(sessionId, studentId, status) => {
+        {tab === 'schedule' && <Schedule data={data} lang={lang} s={s} runCtx={runCtx} onRun={changeRun} />}
+        {tab === 'roster' && <Roster data={data} lang={lang} s={s} runCtx={runCtx} onRun={changeRun} onAttendanceSaved={(sessionId, studentId, status) => {
           setData(prev => prev && ({ ...prev, runs: prev.runs.map(run => ({
             ...run, sessions: run.sessions.map(session => session.id !== sessionId ? session : {
               ...session, attendance: [...session.attendance.filter(a => a.studentId !== studentId), { studentId, status }],
             }),
           })) }));
         }} />}
-        {tab === 'notes' && <Notes data={data} lang={lang} s={s} notes={notes} setDraft={setDraft} save={save} readOnly={isAdmin} />}
+        {tab === 'notes' && <Notes data={data} lang={lang} s={s} runCtx={runCtx} onRun={changeRun} notes={notes} setDraft={setDraft} save={save} resolve={resolve} readOnly={isAdmin} />}
         {tab === 'resources' && <Resources lang={lang} s={s} go={go} />}
         {labMounted && <Lab s={s} visible={tab === 'lab'} />}
         {tab === 'live' && <LiveSessions lang={lang} admin={isAdmin} />}
@@ -227,6 +313,7 @@ export function InstructorPanel({ lang }: { lang: Lang }) {
             {!isAdmin && <PasswordChange lang={lang}
               beforeSubmit={() => !anyDirty || window.confirm(s.leaveWarn)}
               onSignedOut={(changed) => {
+                draftOwner.current = null; viewerGeneration.current++;
                 setData(null); setNotes({}); setLabMounted(false); setTab('overview');
                 setAuthNotice(changed
                   ? (lang === 'ar' ? 'تم تغيير كلمة المرور وإنهاء جميع جلساتك. سجّل الدخول بكلمة المرور الجديدة.' : 'Password changed. All sessions have ended. Sign in with your new password.')

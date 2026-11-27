@@ -56,6 +56,26 @@ const asFamily = (id: number | null) => {
   else cookieJar.set(FAMILY_COOKIE, familyToken(id));
 };
 
+describe('unconfirmed venue checkout boundary', () => {
+  it('rejects a stale signed cart without reserving seats or creating a payment', async () => {
+    asFamily(familyA.id);
+    const previous = await prisma.courseRun.findUniqueOrThrow({ where: { id: runId } });
+    const count = await prisma.payment.count({ where: { familyId: familyA.id } });
+    try {
+      await prisma.courseRun.update({ where: { id: runId }, data: { location: null } });
+      cookieJar.set(CART_COOKIE, encodeCart(familyA.id, [{ studentId: studentA1.id, courseRunId: runId }]));
+      const res = await checkoutPOST(jsonReq('/svc/enroll/checkout', 'POST', { provider: 'moyasar_mada' }));
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe('cart_empty');
+      expect(await prisma.payment.count({ where: { familyId: familyA.id } })).toBe(count);
+      expect((await prisma.courseRun.findUniqueOrThrow({ where: { id: runId } })).seatsLeft).toBe(previous.seatsLeft);
+    } finally {
+      await prisma.courseRun.update({ where: { id: runId }, data: { location: previous.location } });
+      cookieJar.delete(CART_COOKIE);
+    }
+  });
+});
+
 const receipt = (id: number | string, lang?: string) =>
   receiptGET(
     new NextRequest(`http://test.local/svc/account/payments/${id}/receipt${lang ? `?lang=${lang}` : ''}`),
@@ -109,6 +129,7 @@ beforeAll(async () => {
       weekday: 0,
       time: '17:00',
       format: 'in_person',
+      location: 'Synthetic Test Centre',
       capacity: 12,
       seatsLeft: 12,
       monthlyPriceSar: BASE_SAR,
@@ -383,7 +404,7 @@ describe('Tamara settlement: authorization vs capture', () => {
     vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
       const url = typeof input === 'string' ? input : (input as Request).url;
       if (url.includes('/orders/')) {
-        return new Response(JSON.stringify({ status: 'fully_captured', total_amount: { amount: BASE_SAR, currency: 'SAR' } }), { status: 200 });
+        return new Response(JSON.stringify({ status: 'fully_captured', total_amount: { amount: BASE_SAR, currency: 'SAR' }, captured_amount: { amount: BASE_SAR, currency: 'SAR' }, refunded_amount: { amount: 0, currency: 'SAR' } }), { status: 200 });
       }
       // capture should NOT be called for fully_captured; fail loudly if it is.
       if (url.includes('/payments/capture')) {
@@ -537,7 +558,7 @@ describe('stale payment sweep', () => {
 
     // Provider now says paid (family completed payment on another device/window).
     vi.spyOn(global, 'fetch').mockImplementation(async () =>
-      new Response(JSON.stringify({ status: 'paid' }), { status: 200 }),
+      new Response(JSON.stringify({ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR', payments: [{ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR', captured: 0, refunded: 0 }] }), { status: 200 }),
     );
 
     const outcome = await finalizePayment(sweepPaymentId);
@@ -613,6 +634,61 @@ describe('stale payment sweep', () => {
 // Webhook security: authentication + provider binding
 // ────────────────────────────────────────────────────────────
 import { createHmac as nodeCreateHmac } from 'crypto';
+
+describe('audit: settlement racing with expiry and final-seat allocation', () => {
+  it('persists review required rather than activating an unreserved enrollment', async () => {
+    const now = new Date();
+    const run = await prisma.courseRun.create({ data: {
+      programId, startDate: now, endDate: addOneMonth(now), weekday: 0, time: '17:00',
+      format: 'online', capacity: 1, seatsLeft: 0, monthlyPriceSar: BASE_SAR,
+    } });
+    const enr = await prisma.enrollment.create({ data: {
+      studentId: studentA1.id, courseRunId: run.id, status: 'pending', monthlyPriceSar: BASE_SAR,
+    } });
+    const payment = await prisma.payment.create({ data: {
+      familyId: familyA.id, kind: 'enrollment', provider: 'moyasar_mada', reference: `audit-race-${RUN}`,
+      status: 'initiated', simulated: false, subtotalSar: BASE_SAR, totalSar: BASE_SAR,
+      createdAt: new Date(Date.now() - 7200000),
+      items: { create: { enrollmentId: enr.id, studentName: 'Synthetic', programAr: 'اختبار', programEn: 'Test',
+        periodStart: now, periodEnd: addOneMonth(now), baseSar: BASE_SAR, totalSar: BASE_SAR } },
+    } });
+    let resume!: () => void;
+    let started!: () => void;
+    const paused = new Promise<void>(r => { resume = r; });
+    const checking = new Promise<void>(r => { started = r; });
+    let calls = 0;
+    vi.stubEnv('MOYASAR_SECRET_KEY', 'synthetic-test-key');
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      if (++calls === 1) {
+        started(); await paused;
+        return new Response(JSON.stringify({ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR',
+          payments: [{ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR', captured: 0, refunded: 0 }] }));
+      }
+      return new Response(JSON.stringify({ status: 'initiated' }));
+    });
+    const settling = finalizePayment(payment.id);
+    try {
+      await checking;
+      await sweepStalePayments();
+      expect((await prisma.enrollment.findUniqueOrThrow({ where: { id: enr.id } })).status).toBe('cancelled');
+      await prisma.$transaction(async tx => {
+        await tx.courseRun.update({ where: { id: run.id }, data: { seatsLeft: { decrement: 1 } } });
+        await tx.enrollment.create({ data: { studentId: studentB1.id, courseRunId: run.id, status: 'active', monthlyPriceSar: BASE_SAR } });
+      });
+      resume();
+      expect(await settling).toBe('review_required');
+      expect(await finalizePayment(payment.id)).toBe('review_required');
+      expect((await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } })).enrollmentIssue).toBe('payment_received_enrollment_unconfirmed');
+      expect((await prisma.courseRun.findUniqueOrThrow({ where: { id: run.id } })).seatsLeft).toBe(0);
+      expect(await prisma.enrollment.count({ where: { courseRunId: run.id, status: 'active' } })).toBe(1);
+    } finally {
+      resume(); await settling;
+      vi.restoreAllMocks(); vi.unstubAllEnvs();
+      await prisma.payment.delete({ where: { id: payment.id } });
+      await prisma.courseRun.delete({ where: { id: run.id } });
+    }
+  });
+});
 
 describe('webhook security', () => {
   // Import webhook handlers inline so their module reads updated env vars.
@@ -1103,6 +1179,7 @@ describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
         weekday: 3,
         time: '18:00',
         format: 'in_person',
+        location: 'Synthetic Test Centre',
         capacity: 5,
         seatsLeft: 5,
         monthlyPriceSar: BASE_SAR,
@@ -1249,7 +1326,7 @@ describe('production fail-closed (REPLIT_DEPLOYMENT=1)', () => {
         return new Response(JSON.stringify({ invoices: [{ id: 'inv_save_lost' }] }), { status: 200 });
       }
       if (url.endsWith('/v1/invoices/inv_save_lost')) {
-        return new Response(JSON.stringify({ status: 'paid' }), { status: 200 });
+        return new Response(JSON.stringify({ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR', payments: [{ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR', captured: 0, refunded: 0 }] }), { status: 200 });
       }
       return new Response('{}', { status: 404 });
     });
@@ -1517,7 +1594,7 @@ describe('hosted payment return route', () => {
     cookieJar.clear();
     vi.stubEnv('MOYASAR_SECRET_KEY', 'sk_test_fake');
     fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ status: 'paid' }), { status: 200 }),
+      new Response(JSON.stringify({ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR', payments: [{ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR', captured: 0, refunded: 0 }] }), { status: 200 }),
     );
     // Call through: exercise real provider verification and database settlement.
     settlementSpy = vi.spyOn(payCore, 'finalizePayment');
@@ -1562,7 +1639,7 @@ describe('hosted payment return route', () => {
   it.each(cases)('$kind / $outcome / $session cookie / $lang', async ({ kind, outcome, session, lang }) => {
     await prisma.payment.update({ where: { id: paymentId }, data: { kind } });
     asFamily(session === 'owner' ? familyA.id : session === 'other' ? familyB.id : null);
-    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ status: outcome }), { status: 200 }));
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ status: outcome, amount: BASE_SAR * 100, currency: 'SAR', payments: [{ status: outcome, amount: BASE_SAR * 100, currency: 'SAR', captured: 0, refunded: 0 }] }), { status: 200 }));
     const res = await paymentReturnGET(returnRequest(createPaymentReturnState(paymentId, familyA.id), lang));
     const flag = outcome === 'paid' ? 'paid' : outcome === 'pending' ? 'paypending' : 'payfail';
     const value = kind === 'enrollment' && outcome !== 'failed' ? paymentId : 1;
@@ -1707,5 +1784,99 @@ describe('receipt', () => {
     const en = await receipt(checkoutPaymentId, 'en');
     expect(en.status).toBe(200);
     expect(await en.text()).toContain('Payment receipt');
+  });
+});
+
+describe('late failure of an expired payment', () => {
+  afterEach(() => { vi.restoreAllMocks(); delete process.env.MOYASAR_SECRET_KEY; });
+
+  it('does not cancel a newer checkout that reused the released enrollment row', async () => {
+    const now = new Date();
+    const run = await prisma.courseRun.create({
+      data: {
+        programId, startDate: now, endDate: new Date(now.getTime() + 90 * 86400_000), weekday: 2, time: '11:00',
+        format: 'in_person', location: 'Synthetic venue, Al Olaya, Riyadh', capacity: 1, seatsLeft: 0, monthlyPriceSar: BASE_SAR,
+      },
+    });
+    const enrollment = await prisma.enrollment.create({
+      data: { studentId: studentB1.id, courseRunId: run.id, status: 'pending', monthlyPriceSar: BASE_SAR },
+    });
+    const item = () => ({
+      enrollmentId: enrollment.id, studentName: 'نوف', programAr: 'برنامج', programEn: 'Program',
+      periodStart: now, periodEnd: addOneMonth(now), baseSar: BASE_SAR, discountPct: 0, totalSar: BASE_SAR,
+    });
+    const common = { familyId: familyB.id, kind: 'enrollment' as const, provider: 'moyasar_mada', subtotalSar: BASE_SAR, discountSar: 0, totalSar: BASE_SAR, simulated: false };
+    const oldPayment = await prisma.payment.create({
+      data: { ...common, reference: `old-attempt-${RUN}`, status: 'initiated', items: { create: [item()] } },
+    });
+    // Attempt A expires: the hold is released (seat returned, row cancelled).
+    await prisma.payment.update({ where: { id: oldPayment.id }, data: { status: 'expired' } });
+    await prisma.enrollment.update({ where: { id: enrollment.id }, data: { status: 'cancelled' } });
+    await prisma.courseRun.update({ where: { id: run.id }, data: { seatsLeft: 1 } });
+    // Attempt B reclaims the same cancelled row, exactly as checkout does.
+    await prisma.enrollment.update({ where: { id: enrollment.id }, data: { status: 'pending' } });
+    await prisma.courseRun.update({ where: { id: run.id }, data: { seatsLeft: 0 } });
+    const newPayment = await prisma.payment.create({
+      data: { ...common, reference: `new-attempt-${RUN}`, status: 'initiated', items: { create: [item()] } },
+    });
+
+    // A delayed provider failure for attempt A arrives.
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+    vi.spyOn(global, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ status: 'failed' }), { status: 200 }));
+    expect(await finalizePayment(oldPayment.id)).toBe('failed');
+
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: oldPayment.id } })).status).toBe('failed');
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: newPayment.id } })).status).toBe('initiated');
+    expect((await prisma.enrollment.findUniqueOrThrow({ where: { id: enrollment.id } })).status).toBe('pending');
+    expect((await prisma.courseRun.findUniqueOrThrow({ where: { id: run.id } })).seatsLeft).toBe(0);
+  });
+});
+
+describe('late success of an expired payment after a retry already paid', () => {
+  afterEach(() => { vi.restoreAllMocks(); delete process.env.MOYASAR_SECRET_KEY; });
+
+  it('flags the duplicate charge for review without changing the retry coverage or seats', async () => {
+    const now = new Date();
+    const run = await prisma.courseRun.create({
+      data: {
+        programId, startDate: now, endDate: new Date(now.getTime() + 90 * 86400_000), weekday: 3, time: '12:00',
+        format: 'in_person', location: 'Synthetic venue, Al Olaya, Riyadh', capacity: 1, seatsLeft: 0, monthlyPriceSar: BASE_SAR,
+      },
+    });
+    const paidThrough = addOneMonth(now);
+    const enrollment = await prisma.enrollment.create({
+      data: { studentId: studentA2.id, courseRunId: run.id, status: 'active', startedAt: now, paidThrough, monthlyPriceSar: BASE_SAR },
+    });
+    const item = () => ({
+      enrollmentId: enrollment.id, studentName: 'ريم', programAr: 'برنامج', programEn: 'Program',
+      periodStart: now, periodEnd: paidThrough, baseSar: BASE_SAR, discountPct: 0, totalSar: BASE_SAR,
+    });
+    const common = { familyId: familyA.id, kind: 'enrollment' as const, provider: 'moyasar_mada', subtotalSar: BASE_SAR, discountSar: 0, totalSar: BASE_SAR, simulated: false };
+    // Attempt A expired earlier; retry B reused the same row and has already been paid.
+    const oldPayment = await prisma.payment.create({
+      data: { ...common, reference: `late-paid-old-${RUN}`, status: 'expired', items: { create: [item()] } },
+    });
+    const retry = await prisma.payment.create({
+      data: { ...common, reference: `late-paid-new-${RUN}`, status: 'paid', items: { create: [item()] } },
+    });
+
+    process.env.MOYASAR_SECRET_KEY = 'sk_test_fake';
+    vi.spyOn(global, 'fetch').mockImplementation(async () => new Response(JSON.stringify({
+      status: 'paid', amount: BASE_SAR * 100, currency: 'SAR',
+      payments: [{ status: 'paid', amount: BASE_SAR * 100, currency: 'SAR', captured: 0, refunded: 0 }],
+    }), { status: 200 }));
+    expect(await finalizePayment(oldPayment.id)).toBe('review_required');
+
+    const settled = await prisma.payment.findUniqueOrThrow({ where: { id: oldPayment.id } });
+    expect(settled.status).toBe('paid');
+    expect(settled.enrollmentIssue).toBe('duplicate_payment_enrollment_already_active');
+    expect(settled.enrollmentIssueAt).not.toBeNull();
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: retry.id } })).enrollmentIssue).toBeNull();
+    const after = await prisma.enrollment.findUniqueOrThrow({ where: { id: enrollment.id } });
+    expect(after.status).toBe('active');
+    expect(after.paidThrough?.getTime()).toBe(paidThrough.getTime());
+    expect((await prisma.courseRun.findUniqueOrThrow({ where: { id: run.id } })).seatsLeft).toBe(0);
+    // A repeated callback stays a review case rather than becoming a success.
+    expect(await finalizePayment(oldPayment.id)).toBe('review_required');
   });
 });

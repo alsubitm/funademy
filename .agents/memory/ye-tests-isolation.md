@@ -3,16 +3,30 @@ name: YE test DB isolation & validation workflow gotcha
 description: How the ye vitest suite isolates its database, and a pitfall when registering validation commands.
 ---
 
-- The ye vitest suite (src/tests/) provisions a disposable `ye_test` database in globalSetup (create DB + prisma db push + manual `public.campaign_counters` table, since that table is intentionally not in schema.prisma). `setup-env.ts` overrides DATABASE_URL before test imports; `test-db.ts` fails closed unless the DB name is exactly `ye_test`.
+- Keep integration and browser regressions on the fail-closed `ye_test` database, never the shared development database.
 - **Why:** code review rejects any test suite that mutates the shared dev DB or shared campaign counter; `db push --accept-data-loss` against the wrong URL is destructive.
 - **How to apply:** new DB-backed test suites should reuse this pattern (globalSetup + setupFiles env override + fail-closed name check).
 - Gotcha: registering a validation command can rewrite the `.replit` run-button `Project` workflow to run only the validation. Check `.replit` afterward and remove any injected `Project` wrapper so the run button keeps launching the app.
 - **Id-recycling trap:** a suite that setvals a serial sequence DOWN makes later runs recycle ids; FK-less referrer rows (missed by TRUNCATE CASCADE) then match recycled ids in time-window lookups, causing phantom cross-run behavior. Suites lowering sequences must wipe FK-less referrers in afterAll and park the sequence high.
 
+## Deployment mode can leak into isolated tests
+Normalize deployment-mode flags in isolated test workers; production cases must opt in explicitly, independently of sandbox provider credentials.
+**Why:** an inherited production mode made simulation-based regression fixtures fail despite using the correct isolated database and fake credentials.
+**How to apply:** test database isolation does not imply environment isolation. Keep production rejection cases explicit and never weaken production guards to make fixtures pass.
+
 ## Browser regression boundary
 Use isolated test-only signed sessions for curriculum browser regressions, not live admin credentials or SMS sign-in.
 **Why:** these regressions target saved editor state and learner rendering, not authentication delivery; real credentials introduce unnecessary exposure and provider side effects.
 **How to apply:** keep actual authorization guards and first-party API/database requests intact. Stub only external player documents and describe the assertion as player selection, not proof that a provider streams the video.
+
+## Browser clocks do not age server quotas
+Tests that advance the browser clock must still isolate the real server's caller
+quota per scenario and clean up only their own rate-limit records.
+**Why:** browser time travel leaves PostgreSQL rate-limit timestamps unchanged.
+Sequential cases and repeated runs can exhaust a shared caller's quota before
+the stream scenario starts, producing misleading timeout failures.
+**How to apply:** give each isolated browser case a unique synthetic forwarded
+address. Preserve the real limiter; do not disable it or clear unrelated counters.
 
 ## Provider secrets must be stripped in setup-env (incident 2026-08-12)
 With the live-by-presence pattern, adding a provider key to the workspace made

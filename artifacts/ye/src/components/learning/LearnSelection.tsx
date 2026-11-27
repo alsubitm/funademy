@@ -18,12 +18,12 @@ export default async function LearnSelection({ english = false }: { english?: bo
 
   return <main className="learn-landing" dir={english ? 'ltr' : 'rtl'} lang={english ? 'en' : 'ar'}>
     <div className="learn-header">
-      <Link href={`${prefix}/portal`} className="learn-back">{t('← بوابة الأهالي', '← Parent portal')}</Link>
-      <h1 className="learn-title">{t('مكتبة الأنشطة 🎓', 'Resource library 🎓')}</h1>
-      <p className="learn-subtitle">{t('اختر طفلاً للبدء', 'Choose a child to get started')}</p>
+      <Link href={`${prefix}/portal`} className="learn-back" data-testid="link-learn-portal">{t('← بوابة الأهالي', '← Parent portal')}</Link>
+      <h1 className="learn-title">{t('مكتبة الأنشطة', 'Resource library')}</h1>
+      <p className="learn-subtitle">{t('اختر ملف التعلّم ثم أدخل رمز PIN الخاص به', 'Choose a learning profile, then enter its PIN')}</p>
     </div>
-    {!enrolled ? <div className="learn-gate">
-      <div className="learn-gate-icon">🔒</div>
+    {!enrolled ? <div className="learn-gate" data-testid="status-learn-no-enrollment">
+      <div className="learn-gate-icon" aria-hidden="true" />
       <h2>{t('منصة التعلّم للعائلات المسجّلة', 'Learning for enrolled families')}</h2>
       <p>{t('يجب أن يكون لديكم تسجيل نشط في أي دورة للوصول إلى محتوى التعلّم.', 'Your family needs an active course enrollment to access learning content.')}</p>
       <Link href={`${prefix}/enroll`} className="btn y">{t('سجّل الآن', 'Enroll now')}</Link>

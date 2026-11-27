@@ -34,7 +34,7 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
             <a href={`${home}#our-way`}>{d.navPath}</a>
             <Link href={lang === 'ar' ? '/programs' : '/en/programs'}>{d.navPrograms}</Link>
             <a href={`${home}#play`}>{d.navWorkshop}</a>
-            <a href={`${home}#contact`}>{d.navPricing}</a>
+            <Link href={lang === 'ar' ? '/enroll' : '/en/enroll'}>{d.navPricing}</Link>
             <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
             <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
             <LangSwitcher lang={lang} />
@@ -54,7 +54,7 @@ export function SiteHeader({ lang }: { lang: 'ar' | 'en' }) {
                 <a href={`${home}#our-way`}>{d.navPath}</a>
                 <Link href={lang === 'ar' ? '/programs' : '/en/programs'}>{d.navPrograms}</Link>
                 <a href={`${home}#play`}>{d.navWorkshop}</a>
-                <a href={`${home}#contact`}>{d.navPricing}</a>
+                <Link href={lang === 'ar' ? '/enroll' : '/en/enroll'}>{d.navPricing}</Link>
                 <Link href={lang === 'ar' ? '/blog' : '/en/blog'}>{d.navBlog}</Link>
                 <Link href={lang === 'ar' ? '/portal' : '/en/portal'}>{d.navPortal}</Link>
                 <Link className="btn y" href={lang === 'ar' ? '/book' : '/en/book'}>{d.navTrial}</Link>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { csvCell } from '@/lib/csv';
 import { requireAdmin } from '../guard';
+import { bookingFilter, listPage, pageRows, paidTrial } from '@/lib/admin-list-query';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,10 +10,39 @@ export async function GET(req: NextRequest) {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  const bookings = await prisma.booking.findMany({
-    include: { program: true, slot: true, communications: true, conversionItem: { include: { payment: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  const csv = req.nextUrl.searchParams.get('format') === 'csv';
+  let page;
+  let where;
+  try {
+    page = listPage(csv ? new URLSearchParams() : req.nextUrl.searchParams);
+    where = csv ? {} : bookingFilter(req.nextUrl.searchParams);
+  } catch {
+    return NextResponse.json({ error: 'invalid_query' }, { status: 400 });
+  }
+  const result = await prisma.$transaction(async (tx) => {
+    const rows = await tx.booking.findMany({
+      where: { AND: [where, ...(csv ? [] : [{ id: page.id }])] },
+      include: { program: true, slot: true, communications: true, conversionItem: { include: { payment: true } } },
+      orderBy: csv ? { id: 'desc' } : page.orderBy,
+      ...(csv ? {} : { take: page.take }),
+    });
+    const bookings = pageRows(rows, page);
+    if (csv) return { bookings };
+    const [total, matching, attended, enrolled, attendedAndEnrolled, programs, previous, next] = await Promise.all([
+      tx.booking.count(),
+      tx.booking.count({ where }),
+      tx.booking.count({ where: { trialAttendance: 'present' } }),
+      tx.booking.count({ where: paidTrial }),
+      tx.booking.count({ where: { AND: [paidTrial, { trialAttendance: 'present' }] } }),
+      tx.program.findMany({ where: { bookings: { some: {} } }, select: { id: true, nameAr: true }, orderBy: { id: 'asc' } }),
+      tx.booking.findFirst({ where: { AND: [where, { id: { gt: bookings[0]?.id ?? page.edge ?? 0 } }] }, select: { id: true } }),
+      tx.booking.findFirst({ where: { AND: [where, { id: { lt: bookings.at(-1)?.id ?? page.edge ?? 0 } }] }, select: { id: true } }),
+    ]);
+    return { bookings, total, matching, attended, enrolled, attendedAndEnrolled, programs,
+      previousCursor: previous ? `prev:${bookings[0]?.id ?? page.edge}` : null,
+      nextCursor: next ? `next:${bookings.at(-1)?.id ?? page.edge}` : null };
+  }, { isolationLevel: 'RepeatableRead' });
+  const { bookings } = result;
   const appointments = await prisma.appointment.findMany({
     where: { bookingId: { in: bookings.map((booking) => booking.id) }, kind: 'trial' },
     orderBy: { createdAt: 'desc' },
@@ -101,12 +131,11 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const total = rowsWithPipeline.length;
-  const attended = rowsWithPipeline.filter((b) => b.trialAttendance === 'present').length;
-  const enrolled = rowsWithPipeline.filter((b) => b.converted).length;
-  const attendedAndEnrolled = rowsWithPipeline.filter((b) => b.trialAttendance === 'present' && b.converted).length;
+  const { total = 0, attended = 0, enrolled = 0, attendedAndEnrolled = 0 } = result;
   return NextResponse.json({
     bookings: rowsWithPipeline,
+    programs: result.programs,
+    pagination: { total, matching: result.matching, previousCursor: result.previousCursor, nextCursor: result.nextCursor },
     metrics: {
       total,
       attended,

@@ -8,6 +8,7 @@ export interface InstructorDashboardData {
       id: number; date: string; status: string; note: string | null;
       attendance: { studentId: number; status: string }[];
       preparationNote: string;
+      preparationNoteVersion: string | null;
     }[];
   }[];
 }

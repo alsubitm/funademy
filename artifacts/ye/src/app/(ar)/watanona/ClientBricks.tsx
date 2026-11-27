@@ -26,8 +26,8 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
 
   // Placement form
   const [color, setColor] = useState(BRICK_COLORS[1]);
-  const [authorName, setAuthorName] = useState('');
   const [message, setMessage] = useState('');
+  const [publicConsent, setPublicConsent] = useState(false);
   const [pendingNote, setPendingNote] = useState(false);
 
   // Logged-in family children (optional link)
@@ -62,7 +62,7 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
     setLoading(true);
 
     try {
-      const hasMsg = message.trim() && (authorName.trim() || childId !== null);
+      const hasMsg = message.trim();
       const res = await fetch('/svc/bricks', {
         method: 'POST',
         ...(hasMsg
@@ -71,8 +71,8 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
               body: JSON.stringify({
                 color,
                 message: message.trim().slice(0, 120),
+                publicConsent,
                 ...(childId !== null ? { studentId: childId } : {}),
-                ...(authorName.trim() ? { authorName: authorName.trim() } : {}),
               }),
             }
           : {}),
@@ -92,7 +92,7 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
         setVisualBricks(prev => [...prev, { id: newId, fresh: true }].slice(-300));
         if (data.pendingReview) {
           setPendingNote(true);
-          setAuthorName('');
+          setPublicConsent(false);
           setMessage('');
         }
       } else {
@@ -182,20 +182,9 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
                 {children.map((c) => <option key={c.id} value={c.id}>{c.firstName}</option>)}
               </select>
             </>
-          ) : (
-            <>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)' }}>{d.wallNameLbl}</label>
-              <input
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                maxLength={30}
-                placeholder={d.wallNamePh}
-                style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(159,192,255,0.3)', background: 'rgba(255,255,255,0.06)', color: 'inherit', fontFamily: 'inherit' }}
-              />
-            </>
-          )}
+          ) : null}
 
-          {(authorName.trim() || childId !== null) && (
+          {(
             <>
               <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)' }}>{d.wallMsgLbl}</label>
               <input
@@ -212,10 +201,18 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
         <button
           className="btn-brick"
           onClick={placeBrick}
-          disabled={loading || remaining === 0}
+          disabled={loading || remaining === 0 || (!!message.trim() && !publicConsent)}
         >
           {d.wallPlaceBtn}
         </button>
+        {!!message.trim() && <label style={{ display: 'block', maxWidth: 460, margin: '16px auto', textAlign: 'start' }}>
+          <input type="checkbox" checked={publicConsent} onChange={e => setPublicConsent(e.target.checked)} />{' '}
+          {lang === 'ar'
+            ? 'بصفتي ولي الأمر، أوافق على ظهور الرسالة للعامة بعد مراجعتها، دون عرض اسم الطفل. لن أكتب بيانات شخصية في الرسالة. يمكن طلب سحبها عبر صفحة التواصل.'
+            : 'As the parent, I agree to publish this message after moderation, without the child’s name. I will not include personal details. Removal can be requested through Contact.'}
+          {' '}<a href={lang === 'ar' ? '/privacy' : '/en/privacy'}>{lang === 'ar' ? 'الخصوصية' : 'Privacy'}</a>
+          {' · '}<a href={lang === 'ar' ? '/contact' : '/en/contact'}>{lang === 'ar' ? 'التواصل' : 'Contact'}</a>
+        </label>}
 
         {pendingNote && (
           <div style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: 'var(--color-gold)' }}>{d.wallPendingNote}</div>

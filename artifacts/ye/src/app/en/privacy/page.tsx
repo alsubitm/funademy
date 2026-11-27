@@ -58,6 +58,10 @@ export default function PrivacyPageEn() {
         <li>Answering questions through the assistant, and carrying out an action only after showing a clear confirmation card and receiving your confirmation.</li>
       </ul>
 
+      <h2>Public Watanona wall</h2>
+      <p>Optional messages require parental consent and moderation before publication. The child's name is not displayed; the author is shown as FunAdemy. Do not include personal details in the message. Request removal using the contact details below. Older submissions without recorded publication consent are not shown publicly.</p>
+      <h2>AI assistant</h2>
+      <p>Assistant messages are sent to an OpenAI model through Replit AI to generate answers, not processed exclusively within this website. Do not send sensitive personal information or unnecessary child details. Chat records have expiry dates; physical deletion may be delayed until cleanup runs. Contact us about retention and deletion. Processing locations and provider terms require academy review; we do not promise Saudi-only processing.</p>
       <h2>Children's data protection</h2>
       <p>
         The resource library is designed so children never enter personal contact details. Kids sign in

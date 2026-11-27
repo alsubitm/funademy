@@ -238,6 +238,8 @@ export function FunHome({ lang }: { lang: Lang }) {
       <footer className="site-footer section-wrap">
         <div className="footer-big" aria-hidden="true"><div>Fun<span>Ademy</span></div><b>✦</b></div>
         <nav className="footer-links" aria-label={lang === 'ar' ? 'روابط الخدمات' : 'Service links'}>
+          <Link href={prefix(lang, '/privacy')}>{lang === 'ar' ? 'الخصوصية' : 'Privacy'}</Link>
+          <Link href={prefix(lang, '/terms')}>{lang === 'ar' ? 'الشروط والأحكام' : 'Terms'}</Link>
           {feature.filter(([path]) => !panelLinks.some(([panelPath]) => panelPath === path)).map(([path, label]) => <Link key={path} href={prefix(lang, path)}>{label}</Link>)}
         </nav>
         <nav className="footer-panels" aria-labelledby="footer-panels-title">

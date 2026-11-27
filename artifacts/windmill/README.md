@@ -140,7 +140,46 @@ Reports, failure screenshots and traces go under ignored
 Typechecking includes the suite and its configuration; existing `test` still runs
 the separate pure-engine Node tests.
 
-### Verified environment and limits (2026-11-04)
+### Save-warning release check
+
+Run the focused regressions on Ubuntu 24.04 with Node 22 and pnpm 10.26.1:
+
+```bash
+pnpm install --frozen-lockfile --filter @workspace/windmill...
+pnpm --filter @workspace/windmill exec playwright install --with-deps chromium firefox webkit
+pnpm --filter @workspace/windmill test:browser:storage
+# To repeat only the previously unverified engines, including touch:
+pnpm --filter @workspace/windmill test:browser:storage --project=firefox --project=firefox-touch --project=webkit --project=webkit-touch
+```
+
+The focused command selects the existing `storage notice:` tests, not a separate
+copy. It keeps all six configured projects by default: 48 cases covering blocked
+storage access, failed writes, malformed JSON and stale saves, in Arabic and
+English, at desktop and touch-emulated sizes. No skips or retries are added.
+The existing local-only request guard and anonymous contexts remain enabled.
+No production URL, credentials, personal data or cloud progress are needed.
+
+`.github/workflows/windmill-storage.yml` runs this check on Ubuntu 24.04 for
+relevant pushes and pull requests, and can be triggered manually. It installs
+the native libraries and browser versions matching the lockfile and uploads the
+HTML report plus failure traces/screenshots for 14 days, even after a test failure.
+Use a green **Windmill storage warnings / storage-warnings** run for the exact
+release revision as the release evidence; downloading browsers or listing tests
+is not a pass.
+
+**Verified on 2026-11-13:** all **48 cases passed** on GitHub Actions Ubuntu
+24.04, with version-matched browsers and native libraries installed. Every
+configured project ran: Chromium, Firefox and WebKit, desktop and touch.
+There were no skipped storage-notice cases. See the
+[successful run](https://github.com/alsubitm/funademy/actions/runs/43350358402)
+and [verification record](tests/browser/STORAGE-CHECK.md).
+The workflow is available for review in
+[the test pull request](https://github.com/alsubitm/funademy/pull/1).
+This workspace still cannot launch downloaded Firefox/WebKit locally; the
+successful verification used the supported remote runner instead.
+WebKit coverage is not installed Safari or physical iPhone/iPad coverage.
+
+### Earlier browser results (2026-11-04)
 
 - System Chromium: **19 passed**, one intentional touch-project pointer-drag skip
   (touch placement is tested using taps instead). Command in this Replit:
@@ -189,6 +228,6 @@ and final pruning followed by a working offline reload.
 - This is a guided, stage-set assembly, not a free-form CAD or collision/torque simulator.
 - The original SVG is a readable schematic based on the guide, not an exact 3D replica. Tooth counts are illustrative as explained above.
 - Touch placement uses tap-select then tap-target; mouse and pen also support dragging.
-- Physical iOS/Android devices, Safari and Firefox have not been verified. Classroom timing and teaching effectiveness require a supervised pilot.
+- Physical iOS/Android devices and installed Safari have not been verified. Firefox and WebKit storage-warning regressions passed on the supported runner; this does not establish coverage of every classroom flow. Classroom timing and teaching effectiveness require a supervised pilot.
 - New parts or model geometry require new original SVG layers; reusable lesson controls and engine remain unchanged.
 - Recommended next lesson: an approved wheeled-vehicle activity contrasting gear reduction with wheel speed. Obtain its approved guide before authoring it; no particular Young Engineers lesson code is assumed.

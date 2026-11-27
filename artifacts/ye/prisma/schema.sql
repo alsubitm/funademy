@@ -1,6 +1,9 @@
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
+-- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
 -- CreateEnum
 CREATE TYPE "ye_format" AS ENUM ('online', 'in_person');
 
@@ -427,6 +430,8 @@ CREATE TABLE "ye_payments" (
     "discountSar" INTEGER NOT NULL DEFAULT 0,
     "totalSar" INTEGER NOT NULL,
     "simulated" BOOLEAN NOT NULL DEFAULT true,
+    "enrollmentIssue" TEXT,
+    "enrollmentIssueAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_payments_pkey" PRIMARY KEY ("id")
@@ -526,6 +531,7 @@ CREATE TABLE "ye_student_badges" (
 
 -- CreateTable
 CREATE TABLE "ye_watan_bricks" (
+    "publicConsentAt" TIMESTAMP(3),
     "id" SERIAL NOT NULL,
     "studentId" INTEGER,
     "authorName" TEXT NOT NULL,
@@ -868,10 +874,37 @@ CREATE UNIQUE INDEX "ye_instructor_notes_instructorId_sessionId_key" ON "ye_inst
 CREATE UNIQUE INDEX "ye_programs_slug_key" ON "ye_programs"("slug");
 
 -- CreateIndex
+CREATE INDEX "ye_programs_nameAr_idx" ON "ye_programs" USING GIN ("nameAr" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "ye_programs_nameEn_idx" ON "ye_programs" USING GIN ("nameEn" gin_trgm_ops);
+
+-- CreateIndex
 CREATE INDEX "ye_bookings_trialStartsAt_idx" ON "ye_bookings"("trialStartsAt");
 
 -- CreateIndex
 CREATE INDEX "ye_bookings_followUpAt_idx" ON "ye_bookings"("followUpAt");
+
+-- CreateIndex
+CREATE INDEX "ye_bookings_status_id_idx" ON "ye_bookings"("status", "id");
+
+-- CreateIndex
+CREATE INDEX "ye_bookings_programId_id_idx" ON "ye_bookings"("programId", "id");
+
+-- CreateIndex
+CREATE INDEX "ye_bookings_childFirstName_idx" ON "ye_bookings" USING GIN ("childFirstName" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "ye_bookings_parentName_idx" ON "ye_bookings" USING GIN ("parentName" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "ye_bookings_phone_idx" ON "ye_bookings" USING GIN ("phone" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "ye_bookings_email_idx" ON "ye_bookings" USING GIN ("email" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "ye_bookings_assignedTo_idx" ON "ye_bookings" USING GIN ("assignedTo" gin_trgm_ops);
 
 -- CreateIndex
 CREATE INDEX "ye_trial_communications_status_dueAt_idx" ON "ye_trial_communications"("status", "dueAt");
@@ -938,6 +971,24 @@ CREATE INDEX "ye_otp_codes_phone_createdAt_idx" ON "ye_otp_codes"("phone", "crea
 
 -- CreateIndex
 CREATE INDEX "ye_course_runs_programId_active_idx" ON "ye_course_runs"("programId", "active");
+
+-- CreateIndex
+CREATE INDEX "ye_course_runs_active_id_idx" ON "ye_course_runs"("active", "id");
+
+-- CreateIndex
+CREATE INDEX "ye_course_runs_programId_id_idx" ON "ye_course_runs"("programId", "id");
+
+-- CreateIndex
+CREATE INDEX "ye_course_runs_seatsLeft_id_idx" ON "ye_course_runs"("seatsLeft", "id");
+
+-- CreateIndex
+CREATE INDEX "ye_course_runs_titleAr_idx" ON "ye_course_runs" USING GIN ("titleAr" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "ye_course_runs_location_idx" ON "ye_course_runs" USING GIN ("location" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "ye_course_runs_time_idx" ON "ye_course_runs" USING GIN ("time" gin_trgm_ops);
 
 -- CreateIndex
 CREATE INDEX "ye_class_sessions_courseRunId_date_idx" ON "ye_class_sessions"("courseRunId", "date");
