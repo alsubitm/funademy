@@ -30,3 +30,4 @@
 - [Invitation retry boundary](invitation-retry-boundary.md) — refresh recovery is tab-scoped; do not deduplicate students by guardian email.
 - [Admin paging semantics](admin-paging-semantics.md) — immutable newest-added ordering avoids shifts from date/status edits; counts are live, not frozen snapshots.
 - [Next.js manual history updates](next-history-state.md) — pass fresh state to pushState/replaceState; reusing Next's state skips router sync and later wipes URL filters.
+- [Publish skips extensions](publish-extensions.md) — pg_trgm etc. must be enabled in prod SQL console before publish; db/production-objects.sql holds it.
