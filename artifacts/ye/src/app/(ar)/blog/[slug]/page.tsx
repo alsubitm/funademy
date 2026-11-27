@@ -96,11 +96,6 @@ export default async function BlogPostPage(props: { params: Promise<{ slug: stri
         inLanguage: 'ar',
         author: [
           {
-            '@type': 'Person',
-            name: 'فريق فناديمي',
-            url: base,
-          },
-          {
             '@type': 'Organization',
             '@id': `${base}/#organization`,
             name: 'FunAdemy',

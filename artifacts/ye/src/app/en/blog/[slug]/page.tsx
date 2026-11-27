@@ -99,11 +99,6 @@ export default async function BlogPostPageEn(props: { params: Promise<{ slug: st
         inLanguage: 'en',
         author: [
           {
-            '@type': 'Person',
-            name: 'FunAdemy Team',
-            url: base,
-          },
-          {
             '@type': 'Organization',
             '@id': `${base}/#organization`,
             name: 'FunAdemy',

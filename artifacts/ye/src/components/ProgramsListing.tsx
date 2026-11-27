@@ -4,6 +4,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { CATALOG, FIELDS } from '@/lib/catalog';
+import { siteUrl } from '@/lib/site-url';
 
 type Program = {
   id: number;
@@ -50,8 +51,37 @@ export function ProgramsListing({
     }))
     .filter((g) => g.items.length > 0);
 
+  // Use the rendered groups, not all database rows, in the same display order.
+  const visiblePrograms = groups.flatMap((group) => group.items);
+  const base = siteUrl();
+  const listSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    '@id': `${base}${p('/programs')}#courses`,
+    url: `${base}${p('/programs')}`,
+    itemListOrder: 'https://schema.org/ItemListOrderAscending',
+    numberOfItems: visiblePrograms.length,
+    itemListElement: visiblePrograms.map((program, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'Course',
+        '@id': `${base}${p(`/programs/${program.slug}`)}`,
+        url: `${base}${p(`/programs/${program.slug}`)}`,
+        // Official program names are displayed in English in both catalogs.
+        name: program.nameEn,
+      },
+    })),
+  };
+
   return (
     <>
+      {visiblePrograms.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(listSchema).replace(/</g, '\\u003c') }}
+        />
+      )}
       <SiteHeader lang={lang} />
       <SandStripe />
       <main id="main-content">
