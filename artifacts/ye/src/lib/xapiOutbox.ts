@@ -87,12 +87,15 @@ const insertRows = async (
   rows: BuiltStatement[],
 ): Promise<number> => {
   for (const r of rows) {
+    const object = r.statement.object as { id?: unknown } | undefined;
+    if (typeof object?.id !== 'string') throw new Error('Outbox statement has no activity IRI');
     await tx.xapiOutbox.create({
       data: {
         childId: who.childId ?? null,
         studentId: who.studentId ?? null,
         nationalId,
         courseIri,
+        objectId: object.id,
         verb: r.verb,
         statementId: r.statementId,
         statement: r.statement as Prisma.InputJsonValue,
@@ -315,7 +318,13 @@ const hasAttended = async (tx: Tx, nationalId: string, sessionIri: string): Prom
       where: {
         nationalId,
         verb: 'attended',
-        statement: { path: ['object', 'id'], equals: sessionIri },
+        OR: [
+          { objectId: sessionIri },
+          // Old append-only statements must still deduplicate after the
+          // additive schema change. The compound index narrows this fallback
+          // to this learner's legacy attendance, never the whole outbox.
+          { objectId: null, statement: { path: ['object', 'id'], equals: sessionIri } },
+        ],
       },
       select: { id: true },
     }),

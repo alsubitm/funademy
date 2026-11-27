@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { Metadata } from 'next';
 import { siteUrl } from '@/lib/site-url';
-import { prisma, withDbRetry } from '@/lib/db';
+import { getBlogIndex } from '@/lib/blog-index';
 import { safeQuery } from '@/lib/safe-query';
 import { BlogList } from '@/components/blog/BlogList';
 
@@ -39,13 +39,7 @@ export function generateMetadata(): Metadata {
 
 export default async function BlogPageEn() {
   const posts = await safeQuery(
-    () => withDbRetry(
-      () => prisma.blogPost.findMany({
-        where: { published: true },
-        orderBy: { publishedAt: 'desc' },
-      }),
-      { operation: 'blog-en:index', kind: 'read' },
-    ),
+    getBlogIndex,
     null,
     'blog-en:index',
   );

@@ -10,6 +10,7 @@ description: How dev/prod database schemas are managed (Prisma public schema, gu
 - **Publishes build the MAIN branch.** Task-branch changes (code AND dev-DB state) are invisible to publish until the task merges. Never ask the user to publish expecting unmerged changes.
 - "Overwrite data" publish is NOT a reliable dev→prod DB copy; don't rely on it for schema cutovers.
 - **Build-time rule:** publish builds run `next build` against the PROD database, before any schema apply. A statically prerendered page that queries the DB fails the whole build if its table is missing in prod — keep DB-reading pages `force-dynamic` unless their tables are long-stable in prod.
+- **Caching without build DB access:** `revalidate = 300` on a static listing route still prerenders it during `next build`; lack of `generateStaticParams` only defers dynamic segments. Use a dynamic page with a tagged data cache when the build must not query the DB, and invalidate the tag from every writer. **Why:** caching must not reintroduce publish-time schema/connection dependencies.
 - Orphan-table trap: publish re-creates in prod any table present in dev-public, and drops prod tables missing from dev-public. Clean up in DEV first, then let publish handle prod.
 
 **Why:** prod silently drifted many tables behind dev while publishes "succeeded" (models lived in a non-public schema); runtime features 500'd in prod and eventually a build-time DB query against a missing prod table broke publishing entirely.

@@ -795,6 +795,7 @@ CREATE TABLE "ye_xapi_outbox" (
     "studentId" INTEGER,
     "nationalId" TEXT NOT NULL,
     "courseIri" TEXT NOT NULL,
+    "objectId" TEXT,
     "verb" TEXT NOT NULL,
     "statementId" TEXT NOT NULL,
     "statement" JSONB NOT NULL,
@@ -1003,10 +1004,16 @@ CREATE UNIQUE INDEX "ye_enrollments_studentId_courseRunId_key" ON "ye_enrollment
 CREATE INDEX "ye_payments_familyId_createdAt_idx" ON "ye_payments"("familyId", "createdAt");
 
 -- CreateIndex
+CREATE INDEX "ye_payments_status_createdAt_idx" ON "ye_payments"("status", "createdAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_payment_items_trialBookingId_key" ON "ye_payment_items"("trialBookingId");
 
 -- CreateIndex
 CREATE INDEX "ye_payment_items_paymentId_idx" ON "ye_payment_items"("paymentId");
+
+-- CreateIndex
+CREATE INDEX "ye_payment_items_enrollmentId_idx" ON "ye_payment_items"("enrollmentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ye_attendance_sessionId_studentId_key" ON "ye_attendance"("sessionId", "studentId");
@@ -1052,6 +1059,9 @@ CREATE INDEX "ye_appointments_phone_idx" ON "ye_appointments"("phone");
 
 -- CreateIndex
 CREATE INDEX "ye_appointments_startsAt_idx" ON "ye_appointments"("startsAt");
+
+-- CreateIndex
+CREATE INDEX "ye_appointments_bookingId_idx" ON "ye_appointments"("bookingId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ye_blog_posts_slug_key" ON "ye_blog_posts"("slug");
@@ -1105,13 +1115,19 @@ CREATE INDEX "ye_xapi_outbox_childId_idx" ON "ye_xapi_outbox"("childId");
 CREATE INDEX "ye_xapi_outbox_studentId_idx" ON "ye_xapi_outbox"("studentId");
 
 -- CreateIndex
+CREATE INDEX "ye_xapi_outbox_nationalId_courseIri_verb_idx" ON "ye_xapi_outbox"("nationalId", "courseIri", "verb");
+
+-- CreateIndex
+CREATE INDEX "ye_xapi_outbox_nationalId_verb_objectId_idx" ON "ye_xapi_outbox"("nationalId", "verb", "objectId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_xapi_outbox_flush_runs_runId_key" ON "ye_xapi_outbox_flush_runs"("runId");
 
 -- CreateIndex
 CREATE INDEX "ye_xapi_outbox_flush_runs_expiresAt_idx" ON "ye_xapi_outbox_flush_runs"("expiresAt");
 
 -- CreateIndex
-CREATE INDEX "ye_rate_limit_hits_key_at_idx" ON "ye_rate_limit_hits"("key", "at");
+CREATE INDEX "ye_rate_limit_hits_key_at_idx" ON "ye_rate_limit_hits"("key" text_pattern_ops, "at");
 
 -- CreateIndex
 CREATE INDEX "ye_rate_limit_hits_at_idx" ON "ye_rate_limit_hits"("at");

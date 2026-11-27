@@ -31,10 +31,16 @@ export async function GET() {
     where: {
       status: 'published',
       unit: { band: child.band, status: 'published' },
-      id: { notIn: completedIds.size > 0 ? [...completedIds] : [-1] },
+      firstCompletions: { none: { childId: child.id } },
     },
     orderBy: [{ unit: { position: 'asc' } }, { position: 'asc' }, { id: 'asc' }],
-    include: { unit: { include: { subject: true } } },
+    select: {
+      id: true, titleAr: true, titleEn: true, durationMinutes: true,
+      unit: { select: {
+        subjectId: true, position: true,
+        subject: { select: { nameAr: true, nameEn: true, color: true, icon: true } },
+      } },
+    },
   });
 
   // Subjects with progress
@@ -88,10 +94,13 @@ export async function GET() {
   // no further lessons can be started today.
   // Recommend only a lesson the server guard would allow: a shorter lesson
   // in another subject can still fit, but never skip an unfinished prior unit.
+  const firstUnitBySubject = new Map<number, number>();
+  for (const lesson of remainingLessons) {
+    const { subjectId, position } = lesson.unit;
+    firstUnitBySubject.set(subjectId, Math.min(firstUnitBySubject.get(subjectId) ?? position, position));
+  }
   const availableLessons = remainingLessons.filter(lesson =>
-    !remainingLessons.some(prior =>
-      prior.unit.subjectId === lesson.unit.subjectId &&
-      prior.unit.position < lesson.unit.position));
+    lesson.unit.position === firstUnitBySubject.get(lesson.unit.subjectId));
   const nextLesson = availableLessons.find(lesson =>
     child.dailyLimitMinutes === null ||
     todayMinutes + lesson.durationMinutes <= child.dailyLimitMinutes);

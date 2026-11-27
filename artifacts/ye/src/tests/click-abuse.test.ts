@@ -71,6 +71,29 @@ describe('bounded public click tracking', () => {
     cleanup.mockRestore();
     limiterCleanup.mockRestore();
   });
+  it('drains a backlog larger than one batch without deleting live quota windows', async () => {
+    const now = new Date();
+    const prefix = `batch-retention-${now.getTime()}`;
+    const clickBoundary = new Date(now.getTime() - 60_000);
+    const dayBoundary = new Date(now.getTime() - 86400_000);
+    await prisma.rateLimitHit.createMany({ data: [
+      ...Array.from({ length: 5001 }, () => ({
+        key: `clicks:${prefix}`, at: new Date(clickBoundary.getTime() - 1),
+      })),
+      { key: `${prefix}:expired`, at: new Date(dayBoundary.getTime() - 1) },
+      { key: `clicks:${prefix}:boundary`, at: clickBoundary },
+      { key: `${prefix}:boundary`, at: dayBoundary },
+    ] });
+    try {
+      await sweepAbuseRetention(now);
+      const rows = await prisma.rateLimitHit.findMany({ where: { key: { contains: prefix } } });
+      expect(rows.map(row => row.key).sort()).toEqual([
+        `clicks:${prefix}:boundary`, `${prefix}:boundary`,
+      ].sort());
+    } finally {
+      await prisma.rateLimitHit.deleteMany({ where: { key: { contains: prefix } } });
+    }
+  });
   it('the real limiter does no retention scans or inserts once a quota is exhausted', async () => {
     const { allowRate: realAllowRate } = await vi.importActual<typeof import('@/lib/rate-limit')>('@/lib/rate-limit');
     const key = `clicks:exhausted:${Date.now()}`;

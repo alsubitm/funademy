@@ -241,6 +241,24 @@ describe('attendance marks enqueue statements', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+describe('indexed attendance compatibility', () => {
+  it('stores an activity IRI and still deduplicates old rows without one', async () => {
+    const rows = await rowsForStudent(studentAId);
+    const attendance = rows.find(row => row.verb === 'attended')!;
+    expect(attendance.objectId).toBe((attendance.statement as { object: { id: string } }).object.id);
+    const before = rows.length;
+    await prisma.xapiOutbox.update({ where: { id: attendance.id }, data: { objectId: null } });
+    try {
+      expect((await mark(session1Id, studentAId, 'present')).status).toBe(200);
+      expect(await rowsForStudent(studentAId)).toHaveLength(before);
+    } finally {
+      await prisma.xapiOutbox.update({
+        where: { id: attendance.id }, data: { objectId: attendance.objectId },
+      });
+    }
+  });
+});
+
 describe('account children routes — national ID', () => {
   beforeEach(() => asFamily(familyId));
 

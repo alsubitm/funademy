@@ -30,6 +30,8 @@ import { FAMILY_COOKIE, familyToken } from '@/lib/family-auth';
 import { KID_COOKIE, kidToken, hashPin } from '@/lib/kid-auth';
 import { GET as lessonGET } from '@/app/(ar)/svc/learn/lessons/[id]/route';
 import { GET as searchGET } from '@/app/(ar)/svc/learn/search/route';
+import { GET as subjectsGET } from '@/app/(ar)/svc/learn/subjects/route';
+import { GET as homeGET } from '@/app/(ar)/svc/learn/home/route';
 import { GET as unitsGET } from '@/app/(ar)/svc/learn/subjects/[slug]/units/route';
 import { POST as completePOST } from '@/app/(ar)/svc/learn/lessons/[id]/complete/route';
 import { previousRiyadhDateKey, riyadhDateKey, riyadhDayStart } from '@/lib/riyadh-time';
@@ -533,6 +535,46 @@ describe('POST /svc/learn/lessons/:id/complete — XP idempotency', () => {
     // Confirm DB XP hasn't changed either
     const childAfter = await prisma.lrnChild.findUnique({ where: { id: childId } });
     expect(childAfter!.xp).toBe(xpBefore);
+  });
+
+  it('uses first-completion summaries even with a large replay history', async () => {
+    clearAll();
+    asFamily(familyId);
+    asKid(familyId, childId);
+    await prisma.lrnCompletion.createMany({
+      data: Array.from({ length: 1000 }, () => ({
+        childId, lessonId: lesson1aId, score: 100,
+      })),
+    });
+    const attemptsRead = vi.spyOn(prisma.lrnCompletion, 'findMany');
+    const attemptsCount = vi.spyOn(prisma.lrnCompletion, 'count');
+    const lessonsRead = vi.spyOn(prisma.lrnLesson, 'findMany');
+    try {
+      const subjects = await subjectsGET(jsonReq('/svc/learn/subjects'));
+      expect(subjects.status).toBe(200);
+      const subject = (await subjects.json()).find((s: { id: number }) => s.id === subjectId);
+      expect(subject.progressPercent).toBeGreaterThan(0);
+      expect(subject.progressPercent).toBeLessThan(100);
+      const search = await searchGET(jsonReq(`/svc/learn/search?q=${encodeURIComponent('Lesson A')}`));
+      expect((await search.json()).find((l: { id: number }) => l.id === lesson1aId)?.completed).toBe(true);
+      const lesson = await lessonGET(jsonReq(`/svc/learn/lessons/${lesson1aId}`), params(lesson1aId));
+      expect((await lesson.json()).completed).toBe(true);
+      const home = await homeGET();
+      expect(home.status).toBe(200);
+      const homeBody = await home.json();
+      expect(homeBody.continueLesson?.lessonId).not.toBe(lesson1aId);
+      const remainingQuery = lessonsRead.mock.calls.find(([query]) =>
+        query?.where && 'firstCompletions' in query.where)?.[0];
+      expect(remainingQuery?.where).not.toHaveProperty('id');
+      expect(remainingQuery?.select).not.toHaveProperty('descAr');
+      expect(remainingQuery?.select).not.toHaveProperty('videoUrl');
+      expect(attemptsRead).not.toHaveBeenCalled();
+      expect(attemptsCount).not.toHaveBeenCalled();
+    } finally {
+      attemptsRead.mockRestore();
+      attemptsCount.mockRestore();
+      lessonsRead.mockRestore();
+    }
   });
 
   it('returns 403 for a locked lesson (unit 2) even if authenticated', async () => {

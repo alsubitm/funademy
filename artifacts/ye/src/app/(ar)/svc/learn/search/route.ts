@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? '';
   if (!q) return NextResponse.json([]);
 
-  const completions = await prisma.lrnCompletion.findMany({
+  const completions = await prisma.lrnFirstCompletion.findMany({
     where: { childId: child.id },
     select: { lessonId: true },
   });
