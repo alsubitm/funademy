@@ -6,10 +6,11 @@ import { ConsultFlow } from '@/components/consult/ConsultFlow';
 import { consultDict } from './dict';
 import '../book/page.css';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _consultBase = siteUrl();
-export const metadata = {
-  title: 'حجز موعد استشارة | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'حجز موعد استشارة',
   description: 'احجز موعد استشارة مجانية عبر Google Meet لمساعدتك في اختيار البرنامج الأنسب لطفلك.',
   openGraph: {
     type: 'website',
@@ -33,7 +34,7 @@ export const metadata = {
       'x-default': `${_consultBase}/consult`,
     },
   },
-};
+}, 'ar');
 
 export default function ConsultPage() {
   const d = consultDict.ar;

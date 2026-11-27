@@ -5,6 +5,7 @@ import { prisma, withDbRetry } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
 import { BlogArticle, BlogArticleUnavailable } from '@/components/blog/BlogArticle';
 import { siteUrl, ogImageUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
@@ -21,8 +22,8 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const ogImage = ogImageUrl(post.coverImageUrl);
   const title = post.titleEn || post.titleAr;
   const description = post.excerptEn || post.excerptAr;
-  return {
-    title: `${title} | FunAdemy`,
+  return buildPageMetadata({
+    title,
     description,
     alternates: {
       canonical: `${base}/en/blog/${slug}`,
@@ -48,7 +49,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
       description: description ?? undefined,
       images: [ogImage],
     },
-  };
+  }, 'en');
 }
 
 export default async function BlogPostPageEn(props: { params: Promise<{ slug: string }> }) {

@@ -7,10 +7,11 @@ import { contactDict } from './dict';
 import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constants';
 import './page.css';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _contactBase = siteUrl();
-export const metadata = {
-  title: 'تواصل معنا | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'تواصل معنا',
   description:
     'تواصل مع فريق FunAdemy عبر واتساب أو الهاتف أو البريد الإلكتروني. نجيب على استفساراتك حول برامج STEM للأطفال من ٤ إلى ١٨ سنة في الرياض.',
   openGraph: {
@@ -35,7 +36,7 @@ export const metadata = {
       'x-default': `${_contactBase}/contact`,
     },
   },
-};
+}, 'ar');
 
 export default function ContactPage() {
   const d = contactDict.ar;

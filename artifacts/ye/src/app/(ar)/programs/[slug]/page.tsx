@@ -7,6 +7,7 @@ import { withTrialSeats } from '@/lib/trial-capacity';
 import { notFound } from 'next/navigation';
 import { ProgramDetail } from './ProgramDetail';
 import { siteUrl, ogImageUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
@@ -14,8 +15,9 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!program) return {};
   const base = siteUrl();
   const ogImage = ogImageUrl(program.coverImageUrl);
-  return {
-    title: `${program.nameEn} | FunAdemy`,
+  const title = `برنامج ${program.nameAr?.trim() || program.nameEn}`;
+  return buildPageMetadata({
+    title,
     description: program.taglineAr,
     alternates: {
       canonical: `${base}/programs/${slug}`,
@@ -28,18 +30,18 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     openGraph: {
       type: 'website',
       locale: 'ar_SA',
-      title: `${program.nameEn} — FunAdemy`,
+      title: `${title} — FunAdemy`,
       description: program.taglineAr ?? undefined,
-      images: [{ url: ogImage, width: 1200, height: 630, alt: program.nameEn }],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: 'summary_large_image',
       site: '@funademy',
-      title: `${program.nameEn} — FunAdemy`,
+      title: `${title} — FunAdemy`,
       description: program.taglineAr ?? undefined,
       images: [ogImage],
     },
-  };
+  }, 'ar');
 }
 
 export async function generateStaticParams() {

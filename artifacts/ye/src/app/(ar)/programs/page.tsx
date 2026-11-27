@@ -3,12 +3,13 @@ import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 import { ProgramsListing } from '@/components/ProgramsListing';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
-  return {
-    title: 'برامجنا المعتمدة | FunAdemy',
+  return buildPageMetadata({
+    title: 'برامجنا المعتمدة',
     description:
       'ثلاثة مجالات تعليمية وسبعة برامج معتمدة من e² Young Engineers للأعمار ٤–١٨. هندسة، برمجة، وروبوتات حضورياً في الرياض.',
     alternates: {
@@ -27,7 +28,7 @@ export function generateMetadata(): Metadata {
         'ثلاثة مجالات تعليمية وسبعة برامج معتمدة من e² Young Engineers للأعمار ٤–١٨.',
       images: [{ url: `${base}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy Programs' }],
     },
-  };
+  }, 'ar');
 }
 
 export default async function ProgramsPage() {

@@ -6,6 +6,7 @@ import { safeQuery } from '@/lib/safe-query';
 import { withTrialSeats } from '@/lib/trial-capacity';
 import { notFound } from 'next/navigation';
 import { siteUrl, ogImageUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 import { ProgramDetail } from '@/app/(ar)/programs/[slug]/ProgramDetail';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -14,8 +15,8 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!program) return {};
   const base = siteUrl();
   const ogImage = ogImageUrl(program.coverImageUrl);
-  return {
-    title: `${program.nameEn} | FunAdemy`,
+  return buildPageMetadata({
+    title: program.nameEn,
     description: program.taglineEn,
     alternates: {
       canonical: `${base}/en/programs/${slug}`,
@@ -39,7 +40,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
       description: program.taglineEn ?? undefined,
       images: [ogImage],
     },
-  };
+  }, 'en');
 }
 
 export async function generateStaticParams() {

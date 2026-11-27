@@ -6,10 +6,11 @@ import { ConsultFlow } from '@/components/consult/ConsultFlow';
 import { consultDict } from '@/app/(ar)/consult/dict';
 import '../../(ar)/book/page.css';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _consultBase = siteUrl();
-export const metadata = {
-  title: 'Book a Consultation | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'Book a Consultation',
   description: 'Book a free Google Meet consultation to help choose the right program for your child.',
   openGraph: {
     type: 'website',
@@ -33,7 +34,7 @@ export const metadata = {
       'x-default': `${_consultBase}/consult`,
     },
   },
-};
+}, 'en');
 
 export default function ConsultPageEn() {
   const d = consultDict.en;

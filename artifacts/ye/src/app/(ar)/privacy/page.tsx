@@ -1,10 +1,11 @@
 import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _privacyBase = siteUrl();
-export const metadata = {
-  title: 'سياسة الخصوصية | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'سياسة الخصوصية',
   description:
     'تعرّف على كيفية جمع منصة FunAdemy لبيانات العائلات والأطفال وحمايتها واستخدامها، وفق نظام حماية البيانات الشخصية السعودي.',
   openGraph: {
@@ -29,7 +30,7 @@ export const metadata = {
       'x-default': `${_privacyBase}/privacy`,
     },
   },
-};
+}, 'ar');
 
 export default function PrivacyPage() {
   return (

@@ -1,11 +1,12 @@
 export const revalidate = 300;
 import type { Metadata } from 'next';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
   const ogImage = `${base}/og-default.jpg`;
-  return {
+  return buildPageMetadata({
     title: { absolute: 'FunAdemy | حصص هندسة وبرمجة مباشرة أونلاين للأطفال في الرياض' },
     description:
       'FunAdemy تجهّز دورة أونلاين مباشرة مع مدرّب لشهر يناير 2027: مغامرات في الهندسة والبرمجة والروبوتات لأطفال الرياض ضمن مجموعات صغيرة. للمجموعات والأسعار الحالية زر صفحة التسجيل.',
@@ -33,7 +34,7 @@ export function generateMetadata(): Metadata {
         'en-SA': `${base}/en`,
       },
     },
-  };
+  }, 'ar');
 }
 
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';

@@ -1,10 +1,11 @@
 export const revalidate = 300;
 import type { Metadata } from 'next';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
-  return {
+  return buildPageMetadata({
     title: { absolute: 'FunAdemy | Live online engineering classes for children in Riyadh' },
     description:
       'FunAdemy is preparing a live, tutor-led online course for January 2027: small-group engineering, coding and robotics adventures for Riyadh families. See the enrolment page for current groups and prices.',
@@ -16,7 +17,7 @@ export function generateMetadata(): Metadata {
         'en-SA': `${base}/en`,
       },
     },
-  };
+  }, 'en');
 }
 
 import { WhatsAppFloat } from '@/components/WhatsAppFloat';

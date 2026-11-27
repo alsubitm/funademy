@@ -4,14 +4,15 @@ export const dynamic = 'force-dynamic';
 import { Metadata } from 'next';
 import { siteUrl } from '@/lib/site-url';
 import { getBlogIndex } from '@/lib/blog-index';
+import { buildPageMetadata } from '@/lib/page-metadata';
 import { safeQuery } from '@/lib/safe-query';
 import { BlogList } from '@/components/blog/BlogList';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
   const ogImage = `${base}/og-default.jpg`;
-  return {
-    title: 'مدونة فناديمي | تعليم STEM وهندسة الأطفال بالرياض',
+  return buildPageMetadata({
+    title: 'المدونة | تعليم STEM وهندسة الأطفال بالرياض',
     description: 'مقالات ونصائح للأهالي حول تعليم STEM وهندسة الأطفال بالليغو® في الرياض. أفكار وأنشطة لتنمية مهارات أطفالك مع FunAdemy.',
     alternates: {
       canonical: `${base}/blog`,
@@ -34,7 +35,7 @@ export function generateMetadata(): Metadata {
       description: 'مقالات ونصائح للأهالي حول تعليم STEM وهندسة الأطفال بالليغو® في الرياض.',
       images: [ogImage],
     },
-  };
+  }, 'ar');
 }
 
 export default async function BlogPage() {

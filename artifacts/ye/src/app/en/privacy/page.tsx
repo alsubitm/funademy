@@ -1,10 +1,11 @@
 import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _privacyBase = siteUrl();
-export const metadata = {
-  title: 'Privacy Policy | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'Privacy Policy',
   description:
     'Learn how FunAdemy collects, protects and uses family and child data in line with the Saudi Personal Data Protection Law (PDPL).',
   openGraph: {
@@ -29,7 +30,7 @@ export const metadata = {
       'x-default': `${_privacyBase}/privacy`,
     },
   },
-};
+}, 'en');
 
 export default function PrivacyPageEn() {
   return (

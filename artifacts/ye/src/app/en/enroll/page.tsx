@@ -6,10 +6,11 @@ import { enrollDict } from '@/app/(ar)/enroll/dict';
 import '@/app/(ar)/account/page.css';
 import '@/app/(ar)/enroll/page.css';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _enrollBase = siteUrl();
-export const metadata = {
-  title: 'Monthly Enrollment | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'Monthly Enrollment',
   description:
     'Enroll your children in FunAdemy monthly STEM programs — LEGO® engineering, coding and robotics in Riyadh. Automatic 10% sibling discount. In person for ages 4–18.',
   openGraph: {
@@ -34,7 +35,7 @@ export const metadata = {
       'x-default': `${_enrollBase}/enroll`,
     },
   },
-};
+}, 'en');
 
 export default async function EnrollPageEn({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;

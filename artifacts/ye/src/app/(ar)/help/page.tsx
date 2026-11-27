@@ -4,15 +4,16 @@ import { SandStripe } from '@/components/SandStripe';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: 'المساعدة والمحادثة',
   description: 'تحدث مع مساعد فناديمي عن البرامج والمواعيد والحجز، أو انتقل إلى فريقنا عبر واتساب.',
   alternates: {
     canonical: `${siteUrl()}/help`,
     languages: { 'ar-SA': `${siteUrl()}/help`, 'en-SA': `${siteUrl()}/en/help` },
   },
-};
+}, 'ar');
 
 export default function HelpPage() {
   return (

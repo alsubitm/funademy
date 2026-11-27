@@ -10,10 +10,11 @@ import { BookingFlow } from '@/components/book/BookingFlow';
 import { bookDict } from './dict';
 import './page.css';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _bookBase = siteUrl();
-export const metadata = {
-  title: 'حجز حصة تجريبية | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'حجز حصة تجريبية',
   description:
     'سجّل طفلك في حصة تجريبية مجانية مع FunAdemy ليعيش تجربة بناء نماذج LEGO® متحركة. برامج STEM للأطفال من ٤ إلى ١٨ سنة — حصص حضورية في الرياض.',
   openGraph: {
@@ -38,7 +39,7 @@ export const metadata = {
       'x-default': `${_bookBase}/book`,
     },
   },
-};
+}, 'ar');
 
 export default async function BookPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
