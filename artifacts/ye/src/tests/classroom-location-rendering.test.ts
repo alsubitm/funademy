@@ -25,7 +25,7 @@ vi.mock('@/lib/db', () => ({
   isTransientDatabaseError: () => false,
   prisma: Object.fromEntries([
     'student', 'enrollment', 'attendance', 'studentSkill', 'makeupRequest',
-    'studentBadge', 'skill', 'family', 'appointment', 'payment',
+    'studentBadge', 'skill', 'family', 'appointment', 'payment', 'kitShipment',
   ].map((name) => [name, { findMany: vi.fn(), findUnique: vi.fn() }])),
 }));
 vi.mock('@/lib/portal-sessions', () => ({ portalSessions: vi.fn(), joinUrlFor: () => null }));

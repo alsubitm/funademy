@@ -12,7 +12,7 @@ vi.mock('@/lib/db', () => ({ prisma: { courseRun: { findMany } } }));
 const run = (id: number, monthlyPriceSar: number): ProgramPricingRun => ({
   id, monthlyPriceSar, titleAr: `دورة ${id}`, titleEn: `Run ${id}`,
   startDate: new Date('2026-12-01T00:00:00Z'),
-  weekday: 2, time: '17:00', format: 'online', location: null,
+  weekday: 2, time: '17:00', format: 'online', location: null, kitFeeSar: 0,
 });
 const render = (runs: ProgramPricingRun[] | null, lang: 'ar' | 'en') =>
   renderToStaticMarkup(createElement(ProgramPricing, { runs, lang }));

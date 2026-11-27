@@ -131,7 +131,9 @@ export type CreatePaymentOptions = {
   /** Customer details (required by Tamara). */
   consumer: { name: string; phone: string; email?: string | null };
   /** Receipt line descriptions (used by Tamara's itemized checkout). */
-  lines?: { name: string; totalSar: number }[];
+  lines?: { name: string; totalSar: number; physical?: boolean }[];
+  /** Kit delivery address (Tamara needs a real shipping address for physical goods). */
+  shippingAddress?: { name: string; phone: string; city: string; line1: string };
 };
 
 export type PaymentResult =
@@ -433,7 +435,7 @@ async function createTamaraCheckout(
   const money = (v: number) => ({ amount: Math.round(v * 100) / 100, currency: 'SAR' });
   const items = (opts.lines?.length ? opts.lines : [{ name: description, totalSar: amountSar }]).map((l, i) => ({
     reference_id: `${opts.orderRef}-${i + 1}`,
-    type: 'Digital',
+    type: l.physical ? 'Physical' : 'Digital',
     name: l.name.slice(0, 255),
     sku: `FUNADEMY-${i + 1}`,
     quantity: 1,
@@ -456,7 +458,15 @@ async function createTamaraCheckout(
         phone_number: opts.consumer.phone,
         email: opts.consumer.email || 'noreply@funademy.sa',
       },
-      shipping_address: { first_name: first, last_name: last, line1: 'Riyadh', city: 'Riyadh', country_code: 'SA' },
+      shipping_address: opts.shippingAddress
+        ? (() => {
+            const ship = splitName(opts.shippingAddress.name);
+            return {
+              first_name: ship.first, last_name: ship.last, line1: opts.shippingAddress.line1.slice(0, 255),
+              city: opts.shippingAddress.city.slice(0, 100), country_code: 'SA', phone_number: opts.shippingAddress.phone,
+            };
+          })()
+        : { first_name: first, last_name: last, line1: 'Riyadh', city: 'Riyadh', country_code: 'SA' },
       tax_amount: money(0),
       shipping_amount: money(0),
       merchant_url: {

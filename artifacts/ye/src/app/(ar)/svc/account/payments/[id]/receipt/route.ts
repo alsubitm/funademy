@@ -47,12 +47,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   };
   const fd = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+  // The kit (online enrollments) is shown as its own line; totalSar includes it.
   const rows = payment.items.map((i) => `
     <tr>
       <td>${esc(i.studentName)} — ${esc(ar ? i.programAr : i.programEn)}${i.discountPct > 0 ? `<br><small>${ar ? `خصم أشقاء ${i.discountPct}٪` : `${i.discountPct}% sibling discount`}</small>` : ''}</td>
       <td dir="ltr">${fd(i.periodStart)} → ${fd(i.periodEnd)}</td>
-      <td dir="ltr">${i.totalSar}</td>
-    </tr>`).join('');
+      <td dir="ltr">${i.totalSar - i.kitFeeSar}</td>
+    </tr>${i.kitFeeSar > 0 ? `
+    <tr>
+      <td>${ar ? 'الطقم الهندسي (مرة واحدة، يشمل التوصيل)' : 'Engineering kit (one-time, delivery included)'} — ${esc(i.studentName)}</td>
+      <td></td>
+      <td dir="ltr">${i.kitFeeSar}</td>
+    </tr>` : ''}`).join('');
 
   const html = `<!doctype html>
 <html lang="${lang}" dir="${ar ? 'rtl' : 'ltr'}">

@@ -26,6 +26,13 @@ export function ProgramPricing({ runs, lang }: {
               <div className="amt">
                 {digits(run.monthlyPriceSar)} <small>{d.pricingMonthly}</small>
               </div>
+              {run.format === 'online' && run.kitFeeSar > 0 && (
+                <div className="note" data-kit-fee={run.kitFeeSar}>
+                  {isAr
+                    ? `+ ${digits(run.kitFeeSar)} ريال للطقم الهندسي مرة واحدة مع الشهر الأول (يشمل التوصيل)`
+                    : `+ ${run.kitFeeSar} SAR one-time engineering kit with the first month (delivery included)`}
+                </div>
+              )}
             </div>
           ))}
           <div className="note">{d.pricingFamily}</div>

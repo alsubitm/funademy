@@ -88,6 +88,8 @@ export async function POST(req: NextRequest) {
   const weekday = Number(b?.weekday);
   const capacity = Number(b?.capacity);
   const monthlyPriceSar = Number(b?.monthlyPriceSar ?? 1380);
+  // One-time kit fee for online runs (owner-editable; the admin form suggests 570).
+  const kitFeeSar = Number(b?.kitFeeSar ?? 0);
   const time = String(b?.time ?? '');
   const format = String(b?.format ?? '');
   const startDate = new Date(String(b?.startDate ?? ''));
@@ -101,6 +103,7 @@ export async function POST(req: NextRequest) {
     !['in_person', 'online'].includes(format) ||
     !(capacity >= 1 && capacity <= 100) ||
     !(monthlyPriceSar >= 0) ||
+    !(Number.isInteger(kitFeeSar) && kitFeeSar >= 0 && kitFeeSar <= 10000) ||
     isNaN(startDate.getTime()) ||
     isNaN(endDate.getTime()) ||
     endDate < startDate
@@ -130,6 +133,7 @@ export async function POST(req: NextRequest) {
       capacity,
       seatsLeft: capacity,
       monthlyPriceSar,
+      kitFeeSar: format === 'online' ? kitFeeSar : 0,
       meetingUrl: format === 'online' ? meetingUrl : null,
       sessions: { createMany: { data: dates.map((date) => ({ date })) } },
     },
@@ -164,6 +168,11 @@ export async function PATCH(req: NextRequest) {
     const p = Number(b.monthlyPriceSar);
     if (!(Number.isInteger(p) && p >= 0)) return NextResponse.json({ error: 'validation' }, { status: 400 });
     data.monthlyPriceSar = p;
+  }
+  if (b?.kitFeeSar !== undefined) {
+    const k = Number(b.kitFeeSar);
+    if (!(Number.isInteger(k) && k >= 0 && k <= 10000)) return NextResponse.json({ error: 'validation' }, { status: 400 });
+    data.kitFeeSar = k;
   }
 
   let cap: number | null = null;
