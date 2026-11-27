@@ -63,7 +63,7 @@ export function Programs({ lang, onEnquire }: { lang: Lang; onEnquire: (p: Progr
               <img src={p.image} alt={curriculum ? (p.photo ? curriculum.illustrationAlt : curriculum.modelImageAlt)[lang] : ''} loading="lazy" width={800} height={660} />
             </div>
             <p className="card-category">{t(p.categoryKey)}</p>
-            <h3>{p.name}</h3>
+            <h3><Link href={prefix(lang, `/programs/${p.detailSlug}`)} data-testid={`link-program-${p.id}`}>{p.name}</Link></h3>
             <p className="card-description">{p.short[lang]}</p>
             <button className="card-link" type="button" aria-label={`${t('cardCta')} — ${p.name}`} data-testid={`button-program-${p.id}`} onClick={(e) => open(p, e.currentTarget)}>
               <span>{t('cardCta')}</span><span aria-hidden="true">↗</span>

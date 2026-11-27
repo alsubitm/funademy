@@ -153,7 +153,7 @@ export async function WatanonaPage({ lang }: { lang: 'ar' | 'en' }) {
       <section className="sec" style={{ textAlign: 'center' }}>
         <div className="wrap">
           <h2 style={{ marginBottom: '30px', color: 'var(--color-bp)' }}>{d.enrollTitle}</h2>
-          <Link href="/book" className="btn b" style={{ fontSize: '20px', padding: '20px 40px' }}>
+          <Link href={lang === 'en' ? '/en/book' : '/book'} className="btn b" style={{ fontSize: '20px', padding: '20px 40px' }}>
             {d.enrollBtn}
           </Link>
         </div>

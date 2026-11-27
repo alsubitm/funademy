@@ -197,7 +197,7 @@ export function FunHome({ lang }: { lang: Lang }) {
           </div>
         </section>
 
-        <section className="faq section-wrap">
+        <section id="faq" className="faq section-wrap">
           <div className="faq-heading"><p className="eyebrow">{t('faqEyebrow')}</p><h2>{t('faqTitle')}</h2></div>
           <div className="faq-list">
             {([1, 2, 3, 4] as const).map((n) => (
