@@ -38,14 +38,41 @@ function weeklyDates(start: Date, end: Date, weekday: number, time: string): Dat
 export async function GET(req: NextRequest) {
   const denied = await requireAdmin();
   if (denied) return denied;
-  // The progress selector needs every active run, but not full records/roster counts.
+  // Progress selector: server-searched, keyset-paged active runs with selector fields only.
+  // `rid` resolves one run by exact ID (e.g. "#123") so any older run stays reachable.
   if (req.nextUrl.searchParams.get('options') === '1') {
-    const runs = await prisma.courseRun.findMany({
-      where: { active: true },
-      select: { id: true, titleAr: true, time: true, program: { select: { id: true, nameAr: true } } },
+    const params = new URLSearchParams(req.nextUrl.searchParams);
+    params.set('rstate', 'active');
+    params.delete('rprogram'); params.delete('rseats');
+    if (!params.has('limit')) params.set('limit', '20');
+    let page;
+    let where;
+    try {
+      page = listPage(params);
+      if (page.direction !== 'next') throw new Error('invalid_cursor');
+      const raw = (params.get('rq') ?? '').trim();
+      const exactId = /^#?([1-9]\d{0,9})$/.exec(raw);
+      where = runFilter(params);
+      if (exactId && Number(exactId[1]) <= 2147483647) {
+        where = { OR: [where, { active: true, id: Number(exactId[1]) }] };
+      }
+    } catch {
+      return NextResponse.json({ error: 'invalid_query' }, { status: 400 });
+    }
+    const rows = await prisma.courseRun.findMany({
+      where: { AND: [where, { id: page.id }] },
+      take: page.take + 1,
+      select: {
+        id: true, titleAr: true, time: true, startDate: true,
+        program: { select: { id: true, nameAr: true } },
+      },
       orderBy: { id: 'desc' },
     });
-    return NextResponse.json({ runs });
+    const runs = rows.slice(0, page.take);
+    return NextResponse.json({
+      runs,
+      nextCursor: rows.length > page.take ? `next:${runs.at(-1)!.id}` : null,
+    });
   }
   let page;
   let where;

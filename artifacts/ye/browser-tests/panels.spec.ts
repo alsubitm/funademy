@@ -148,6 +148,50 @@ test('admin filters, section history, all phone destinations and failed loads', 
   expect(adminPhone.scrollWidth <= adminPhone.viewport + 1).toBe(true);
 });
 
+test('progress selector finds an older class beyond the first page and hands off its roster', async ({ page, context }) => {
+  const extra = [];
+  for (let i = 0; i < 25; i++) extra.push((await db.courseRun.create({ data: {
+    programId, titleAr: `${prefix}-newer-${i}`, startDate: new Date(), endDate: new Date(),
+    weekday: 0, time: '19:00', format: 'online',
+  } })).id);
+  try {
+    await auth(context, 'admin');
+    await page.goto('/admin?tab=progress');
+    const picker = page.getByTestId('input-progress-run');
+    await expect(picker).toHaveAttribute('role', 'combobox');
+    await picker.click();
+    await picker.fill(prefix);
+    await expect(page.getByTestId(`option-progress-run-${extra.at(-1)}`)).toBeVisible();
+    await expect(page.getByTestId('list-progress-runs').getByRole('option')).toHaveCount(20);
+    await expect(page.getByTestId(`option-progress-run-${courseId}`)).toHaveCount(0);
+    await expect(page.getByTestId(`option-progress-run-${fullCourseId}`)).toHaveCount(0);
+    await page.getByTestId('button-progress-runs-more').click();
+    await expect(page.getByTestId('list-progress-runs').getByRole('option')).toHaveCount(26);
+    await expect(page.getByTestId('button-progress-runs-more')).toHaveCount(0);
+    await expect(page.getByTestId(`option-progress-run-${courseId}`)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(picker).toHaveAttribute('aria-expanded', 'false');
+    // Server search + keyboard selection
+    await picker.fill(`${prefix}-available`);
+    await expect(page.getByTestId('list-progress-runs').getByRole('option')).toHaveCount(1);
+    await expect(picker).toHaveAttribute('aria-activedescendant', /.+/);
+    await picker.press('Enter');
+    await expect(picker).toHaveValue(new RegExp(`#${courseId}$`));
+    const student = page.getByTestId('select-progress-student');
+    await expect(student.locator(`option[value="${students[0]}"]`)).toHaveCount(1);
+    await student.selectOption(String(students[0]));
+    await expect(page.getByText(`مهارات Same name — ${prefix}`)).toBeVisible();
+    // Searching again leaves the chosen class identity intact until a new pick.
+    await picker.fill('no-match-at-all');
+    await expect(page.getByTestId('list-progress-runs').getByRole('option')).toHaveCount(0);
+    await picker.press('Escape');
+    await expect(picker).toHaveValue(new RegExp(`#${courseId}$`));
+    await expect(page.getByText(`مهارات Same name — ${prefix}`)).toBeVisible();
+  } finally {
+    await db.courseRun.deleteMany({ where: { id: { in: extra } } });
+  }
+});
+
 test('instructor class handoff, draft-safe refresh, failed save and attendance', async ({ page, context }) => {
   await auth(context, 'instructor');
   expect((await context.request.get('/svc/admin/bookings')).status()).toBe(401);

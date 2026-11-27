@@ -1,40 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
+import { RunPicker, type RunOption } from './RunPicker';
 
 const BADGE_ICONS: Record<string, string> = { star: '⭐', gear: '⚙️', rocket: '🚀', crown: '👑', bolt: '⚡', kite: '🪁' };
 
 export function ProgressTab() {
-  const [runs, setRuns] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [runId, setRunId] = useState<number | null>(null);
+  // The selected run is kept as its own object so search/paging never loses its identity.
+  const [selectedRun, setSelectedRun] = useState<RunOption | null>(null);
   const [roster, setRoster] = useState<any[]>([]);
+  const [rosterState, setRosterState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [student, setStudent] = useState<any | null>(null);
   const [skills, setSkills] = useState<any[]>([]);
   const [badges, setBadges] = useState<any[]>([]);
+  const runRef = useRef<number | null>(null);
+  const studentRef = useRef<number | null>(null);
+  const runId = selectedRun?.id ?? null;
 
-  useEffect(() => {
-    (async () => {
-      const res = await fetch('/svc/admin/runs?options=1');
-      if (res.status === 401) { window.location.reload(); return; }
-      const data = await res.json();
-      setRuns(data.runs || []);
-      setLoading(false);
-    })();
-  }, []);
-
-  const selectedRun = runs.find((r) => r.id === runId) ?? null;
-
-  const pickRun = async (id: number) => {
-    setRunId(id);
+  const pickRun = async (run: RunOption) => {
+    runRef.current = run.id;
+    studentRef.current = null;
+    setSelectedRun(run);
     setStudent(null);
-    const res = await fetch(`/svc/admin/roster?runId=${id}`);
-    if (res.ok) setRoster((await res.json()).roster || []);
+    setRoster([]);
+    setRosterState('loading');
+    const res = await fetch(`/svc/admin/roster?runId=${run.id}`);
+    if (res.status === 401) { window.location.reload(); return; }
+    if (runRef.current !== run.id) return; // a later pick superseded this one
+    if (!res.ok) { setRosterState('error'); return; }
+    setRoster((await res.json()).roster || []);
+    setRosterState('idle');
   };
 
   const pickStudent = async (s: any) => {
+    const run = selectedRun;
+    if (!run) return;
+    studentRef.current = s.id;
     setStudent(s);
-    const res = await fetch(`/svc/admin/progress?studentId=${s.id}&programId=${selectedRun.program.id}`);
+    const res = await fetch(`/svc/admin/progress?studentId=${s.id}&programId=${run.program.id}`);
+    if (runRef.current !== run.id || studentRef.current !== s.id) return;
     if (res.ok) {
       const data = await res.json();
       setSkills(data.skills || []);
@@ -62,29 +66,18 @@ export function ProgressTab() {
     if (!res.ok) pickStudent(student);
   };
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <div className="w-8 h-8 border-4 border-[#DFE5F2] border-t-[#1C54CB] rounded-full animate-spin"></div>
-      <div className="text-[#5F6B92] font-bold font-mono tracking-widest text-sm uppercase">LOADING...</div>
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 sm:p-8 rounded-[24px] shadow-[0_8px_30px_rgba(7,17,42,0.04)] border border-[#DFE5F2]">
         <h2 className="text-3xl font-display font-bold text-[#101A38]">المهارات والأوسمة</h2>
         <p className="text-sm text-[#5F6B92] mt-1 font-medium">اختر الدفعة ثم الطالب لتوثيق تقدمه — يظهر مباشرة في بوابة الأهالي</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+          <RunPicker value={selectedRun} onChange={pickRun} />
           <div>
-            <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">الدفعة</label>
-            <select value={runId ?? ''} onChange={(e) => pickRun(Number(e.target.value))} className="input-hq">
-              <option value="" disabled>اختر دفعة…</option>
-              {runs.map((r) => <option key={r.id} value={r.id}>{r.program?.nameAr} — {r.titleAr || r.time}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">الطالب</label>
+            <label htmlFor="progress-student" className="block text-[13px] font-bold text-[#5F6B92] mb-2">الطالب</label>
             <select
+              id="progress-student"
+              data-testid="select-progress-student"
               value={student?.id ?? ''}
               onChange={(e) => {
                 const r = roster.find((x) => x.student.id === Number(e.target.value));
@@ -93,7 +86,7 @@ export function ProgressTab() {
               className="input-hq"
               disabled={!runId}
             >
-              <option value="" disabled>{runId ? (roster.length ? 'اختر طالباً…' : 'لا يوجد مسجلون') : 'اختر الدفعة أولاً'}</option>
+              <option value="" disabled>{!runId ? 'اختر الدفعة أولاً' : rosterState === 'loading' ? 'جارٍ التحميل…' : rosterState === 'error' ? 'تعذّر تحميل الطلاب' : roster.length ? 'اختر طالباً…' : 'لا يوجد مسجلون'}</option>
               {roster.map((r) => <option key={r.student.id} value={r.student.id}>{r.student.firstName} ({r.student.parentName || r.student.phone})</option>)}
             </select>
           </div>

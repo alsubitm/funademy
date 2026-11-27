@@ -42,7 +42,9 @@ learning profiles. Tests cover admin URL/history/filter/reset/error states and
 all mobile destinations; instructor class handoffs, attendance failures, private
 note save failures and draft-safe refresh; Arabic/English child-preserving portal
 links, wrong/right PIN selection, unavailable lessons, parent-exit gates, and
-learner session/enrollment/network recovery. Only deliberate failure responses
+learner session/enrollment/network recovery; and the admin progress class
+picker paging/searching to an older class beyond the first server page, then
+loading its roster and student progress. Only deliberate failure responses
 are intercepted; successful writes use the real authenticated services.
 
 Browser evidence uses Chromium at desktop 1280×720, tablet 768×1024 and phone
