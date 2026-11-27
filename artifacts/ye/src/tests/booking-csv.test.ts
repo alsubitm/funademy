@@ -83,4 +83,27 @@ describe('admin booking export', () => {
     expect(response.status).toBe(401);
     expect(mocks.bookings).not.toHaveBeenCalled();
   });
+
+  it('stops reading bookings when the download is interrupted', async () => {
+    const chunk = (from: number) => Array.from({ length: 500 }, (_, i) => ({ ...stored, id: from - i }));
+    mocks.bookings.mockImplementation(async ({ where }: any) => chunk(where?.id?.lt ? where.id.lt - 1 : 5000));
+    const response = await GET(new NextRequest('http://test.local/svc/admin/bookings?format=csv'));
+    const reader = response.body!.getReader();
+    await reader.read(); // header
+    await reader.read(); // first chunk
+    await reader.cancel();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const calls = mocks.bookings.mock.calls.length;
+    expect(calls).toBeLessThanOrEqual(2);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(mocks.bookings.mock.calls.length).toBe(calls);
+  });
+
+  it('fails the download instead of delivering a truncated file when a chunk read fails', async () => {
+    mocks.bookings
+      .mockResolvedValueOnce(Array.from({ length: 500 }, (_, i) => ({ ...stored, id: 1000 - i })))
+      .mockRejectedValueOnce(new Error('connection lost'));
+    const response = await GET(new NextRequest('http://test.local/svc/admin/bookings?format=csv'));
+    await expect(response.text()).rejects.toThrow('connection lost');
+  });
 });
