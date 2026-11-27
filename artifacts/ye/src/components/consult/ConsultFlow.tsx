@@ -31,6 +31,11 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
   const [error, setError] = useState('');
   const [confirmed, setConfirmed] = useState<Confirmed | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [validationAttempted, setValidationAttempted] = useState(false);
+  const fieldErrorProps = (invalid: boolean) => ({
+    'aria-invalid': validationAttempted && invalid || undefined,
+    'aria-describedby': validationAttempted && invalid && error ? 'consult-error' : undefined,
+  });
 
   const loadSlots = () => {
     fetch('/svc/appointments/availability')
@@ -54,6 +59,7 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
 
   const onSubmit = () => {
     setError('');
+    setValidationAttempted(true);
     const cleanPhone = phone.replace(/[\s-]/g, '');
     if (!startsAt || !parentName || !/^(\+?966|0)?5\d{8}$/.test(cleanPhone)) {
       setError(d.valError);
@@ -119,10 +125,11 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
         {days.size > 0 && (
           <>
             <h3 style={{ marginTop: 0 }}>{d.pickDay}</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div role="group" aria-label={d.pickDay} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {[...days.entries()].map(([key, info]) => (
                 <button
                   key={key}
+                  aria-pressed={dayKey === key}
                   className={`btn ${dayKey === key ? 'y' : 'ghost'}`}
                   style={{ minWidth: '86px', ...(dayKey === key ? {} : { color: 'var(--ink)', borderColor: 'var(--line)' }) }}
                   onClick={() => { setDayKey(key); setStartsAt(null); }}
@@ -135,11 +142,11 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
             {dayKey && (
               <>
                 <h3>{d.pickTime}</h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <div role="group" aria-label={d.pickTime} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {(days.get(dayKey)?.times ?? []).map((iso) => {
                     const p = riyadhParts(iso);
                     return (
-                      <button key={iso} className={`btn ${startsAt === iso ? 'y' : 'ghost'}`} style={startsAt === iso ? undefined : { color: 'var(--ink)', borderColor: 'var(--line)' }} onClick={() => setStartsAt(iso)} dir="ltr">
+                      <button key={iso} aria-pressed={startsAt === iso} className={`btn ${startsAt === iso ? 'y' : 'ghost'}`} style={startsAt === iso ? undefined : { color: 'var(--ink)', borderColor: 'var(--line)' }} onClick={() => setStartsAt(iso)} dir="ltr">
                         {p.time} {ampm(p.pm)}
                       </button>
                     );
@@ -154,11 +161,11 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
                 <div className="form-grid">
                   <div className="f-group">
                     <label htmlFor="consult-parent-name">{d.parentName}</label>
-                    <input id="consult-parent-name" type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} disabled={isPending} />
+                    <input id="consult-parent-name" {...fieldErrorProps(!parentName)} type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} disabled={isPending} />
                   </div>
                   <div className="f-group">
                     <label htmlFor="consult-mobile">{d.mobile}</label>
-                    <input id="consult-mobile" type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isPending} />
+                    <input id="consult-mobile" {...fieldErrorProps(!/^(\+?966|0)?5\d{8}$/.test(phone.replace(/[\s-]/g, '')))} type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isPending} />
                   </div>
                   <div className="f-group">
                     <label htmlFor="consult-email">{d.email}</label>
@@ -179,7 +186,7 @@ export function ConsultFlow({ lang }: { lang: 'ar' | 'en' }) {
             )}
           </>
         )}
-        {error && <p style={{ color: 'var(--red, #c0392b)', marginTop: '12px' }}>{error}</p>}
+        <div id="consult-error" role="alert" aria-atomic="true" style={error ? { color: 'var(--red, #c0392b)', marginTop: '12px' } : undefined}>{error}</div>
       </div>
     </div>
   );

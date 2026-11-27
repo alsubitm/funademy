@@ -1,10 +1,11 @@
 import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _termsBase = siteUrl();
-export const metadata = {
-  title: 'الشروط والأحكام | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'الشروط والأحكام',
   description:
     'اطّلع على شروط استخدام منصة FunAdemy وسياسات الحجز والدفع والاسترداد والدعم الفني. برامج STEM للأطفال في الرياض بموجب الأنظمة السعودية.',
   openGraph: {
@@ -29,7 +30,7 @@ export const metadata = {
       'x-default': `${_termsBase}/terms`,
     },
   },
-};
+}, 'ar');
 
 export default function TermsPage() {
   return (

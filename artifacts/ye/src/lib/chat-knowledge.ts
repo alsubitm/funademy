@@ -21,8 +21,23 @@ const clean = (value: unknown) =>
     .replace(/\s+/g, ' ')
     .slice(0, 1200);
 
-/** Builds a fresh, bounded snapshot. Database content is data, never instructions. */
-export async function buildLiveKnowledge(): Promise<KnowledgeSource[]> {
+let snapshot: { sources: KnowledgeSource[]; expiresAt: number } | undefined;
+let pending: Promise<KnowledgeSource[]> | undefined;
+const cacheMs = 60_000;
+
+/** Bounded, single-flight public catalogue cache; failures are never cached. */
+export function buildLiveKnowledge(): Promise<KnowledgeSource[]> {
+  if (snapshot && snapshot.expiresAt > Date.now()) return Promise.resolve(snapshot.sources);
+  if (pending) return pending;
+  pending = loadLiveKnowledge().then(sources => {
+    snapshot = { sources, expiresAt: Date.now() + cacheMs };
+    return sources;
+  }).finally(() => { pending = undefined; });
+  return pending;
+}
+
+/** Database content is data, never instructions. */
+async function loadLiveKnowledge(): Promise<KnowledgeSource[]> {
   const [programs, runs, slots, faqs] = await Promise.all([
     prisma.program.findMany({ orderBy: { position: 'asc' } }),
     prisma.courseRun.findMany({

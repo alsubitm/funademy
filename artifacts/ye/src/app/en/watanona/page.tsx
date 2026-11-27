@@ -3,10 +3,11 @@ import { Metadata } from 'next';
 import { WatanonaPage } from '../../(ar)/watanona/WatanonaPage';
 
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 import { EXHIBITION_DATE_ISO } from '@/lib/constants';
 const _siteUrl = siteUrl();
-export const metadata: Metadata = {
-  title: 'Our Children Build Our Homeland | FunAdemy',
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Our Children Build Our Homeland',
   description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day by FunAdemy.',
   alternates: {
     canonical: `${siteUrl()}/en/watanona`,
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     description: 'Join us in building the largest LEGO® map of the Kingdom. A national initiative for Saudi National Day.',
     images: [`${_siteUrl}/og-default.jpg`],
   },
-};
+}, 'en');
 
 const _base = siteUrl();
 const campaignSchemaEn = {

@@ -31,8 +31,9 @@ export async function GET(
       exercise.optionsEn = labels.find(label => label.id === exercise.id)?.optionsEn ?? exercise.optionsEn;
     }
   }
-  const completionCount = await prisma.lrnCompletion.count({
-    where: { childId: child.id, lessonId },
+  const completion = await prisma.lrnFirstCompletion.findUnique({
+    where: { childId_lessonId: { childId: child.id, lessonId } },
+    select: { id: true },
   });
 
   return NextResponse.json({
@@ -48,7 +49,7 @@ export async function GET(
     videoTypeEn: lesson.videoTypeEn,
     durationMinutes: lesson.durationMinutes,
     isFreeSample: lesson.isFreeSample,
-    completed: completionCount > 0,
+    completed: completion !== null,
     subjectId: lesson.unit.subject.id,
     subjectNameAr: lesson.unit.subject.nameAr,
     subjectNameEn: lesson.unit.subject.nameEn,

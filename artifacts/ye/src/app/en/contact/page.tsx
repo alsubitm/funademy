@@ -7,10 +7,11 @@ import { contactDict } from '@/app/(ar)/contact/dict';
 import { PHONE_DISPLAY, EMAIL, LICENSE_NO, WHATSAPP_NUMBER } from '@/lib/constants';
 import '@/app/(ar)/contact/page.css';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _contactBase = siteUrl();
-export const metadata = {
-  title: 'Contact Us | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'Contact Us',
   description:
     'Reach the FunAdemy — Young Engineers Riyadh — team via WhatsApp, phone or email. We answer your questions about STEM programs for kids aged 4–18 in Riyadh.',
   openGraph: {
@@ -35,7 +36,7 @@ export const metadata = {
       'x-default': `${_contactBase}/contact`,
     },
   },
-};
+}, 'en');
 
 export default function ContactPageEn() {
   const d = contactDict.en;

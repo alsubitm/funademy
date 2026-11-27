@@ -61,6 +61,7 @@ function freshPhone(): string {
 // Clear the durable rate-limit table so previous test runs cannot cause 429s.
 beforeAll(async () => {
   await prisma.rateLimitHit.deleteMany({});
+  await prisma.rateLimitWindow.deleteMany({});
 });
 
 let verifiedPhone = '';
@@ -504,16 +505,14 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
   it('recovers the real booking flow after the database aborts the seat transaction', async () => {
     const { program, slot } = await createProgramWithSlot();
     const body = bookingBody(program.id, slot.id);
-    const originalTransaction = prisma.$transaction.bind(prisma);
     const transaction = vi
       .spyOn(prisma, '$transaction')
-      .mockImplementationOnce(originalTransaction)
       .mockRejectedValueOnce(new Error('57P01 terminating connection due to administrator command'));
 
     const res = await bookingsPOST(jsonReq('/svc/bookings', body));
     expect(res.status).toBe(201);
     const json = await res.json();
-    expect(transaction).toHaveBeenCalledTimes(3); // rate-limit + failed booking + retry
+    expect(transaction).toHaveBeenCalledTimes(2); // failed booking + retry; limiter is one SQL statement
     transaction.mockRestore();
 
     expect(await prisma.booking.count({

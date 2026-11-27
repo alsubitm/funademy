@@ -6,10 +6,11 @@ import { enrollDict } from './dict';
 import '@/app/(ar)/account/page.css';
 import './page.css';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _enrollBase = siteUrl();
-export const metadata = {
-  title: 'التسجيل الشهري | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'التسجيل الشهري',
   description:
     'سجّل أطفالك في برامج FunAdemy الشهرية لتعلم STEM والهندسة والروبوتكس بالليغو® في الرياض. خصم ١٠٪ تلقائي للأشقاء — حصص حضورية للأطفال من ٤ إلى ١٨ سنة.',
   openGraph: {
@@ -34,7 +35,7 @@ export const metadata = {
       'x-default': `${_enrollBase}/enroll`,
     },
   },
-};
+}, 'ar');
 
 export default async function EnrollPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;

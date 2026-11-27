@@ -35,6 +35,7 @@ beforeEach(() => { login(); vi.mocked(syncLiveCalendar).mockResolvedValue({ meet
 afterAll(async () => {
   await prisma.instructor.deleteMany({ where: { id: { in: [teacher, other] } } });
   await prisma.rateLimitHit.deleteMany({ where: { key: { in: [`live-create:${teacher}`, `live-create:${other}`, `live-calendar:${teacher}`] } } });
+  await prisma.rateLimitWindow.deleteMany({ where: { key: { in: [`live-create:${teacher}`, `live-create:${other}`, `live-calendar:${teacher}`] } } });
   vi.unstubAllEnvs();
 });
 

@@ -3,10 +3,11 @@ import { Metadata } from 'next';
 import { WatanonaPage } from './WatanonaPage';
 
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 import { EXHIBITION_DATE_ISO } from '@/lib/constants';
 const _siteUrl = siteUrl();
-export const metadata: Metadata = {
-  title: 'أطفالنا يبنون وطننا | FunAdemy',
+export const metadata: Metadata = buildPageMetadata({
+  title: 'أطفالنا يبنون وطننا',
   description: 'شارك معنا في أضخم خريطة للمملكة مبنية بمكعبات ليغو®. مبادرة وطنية بمناسبة اليوم الوطني من FunAdemy.',
   alternates: {
     canonical: `${siteUrl()}/watanona`,
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     description: 'شارك معنا في أضخم خريطة للمملكة مبنية بمكعبات ليغو®. مبادرة وطنية بمناسبة اليوم الوطني.',
     images: [`${_siteUrl}/og-default.jpg`],
   },
-};
+}, 'ar');
 
 const _base = siteUrl();
 const campaignSchemaAr = {

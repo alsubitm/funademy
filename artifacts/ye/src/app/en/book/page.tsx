@@ -10,10 +10,11 @@ import { BookingFlow } from '@/components/book/BookingFlow';
 import { bookDict } from '@/app/(ar)/book/dict';
 import '@/app/(ar)/book/page.css';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _bookBase = siteUrl();
-export const metadata = {
-  title: 'Book a Trial | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'Book a Trial',
   description:
     'Register your child for a free trial class with Young Engineers Riyadh and experience building moving LEGO® models. STEM programs for kids aged 4–18 — in person in Riyadh.',
   openGraph: {
@@ -38,7 +39,7 @@ export const metadata = {
       'x-default': `${_bookBase}/book`,
     },
   },
-};
+}, 'en');
 
 export default async function BookPageEn({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;

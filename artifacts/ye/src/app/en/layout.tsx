@@ -1,5 +1,6 @@
 import { baloo, plexArabic, plexMono, spaceGrotesk, manrope, notoArabic } from '../fonts';
 import { siteUrl } from '@/lib/site-url';
+import { buildSocialMetadata } from '@/lib/page-metadata';
 import { PHONE_DISPLAY } from '@/lib/constants';
 import '../globals.css';
 import '../v3.css';
@@ -7,7 +8,6 @@ import type { Metadata, Viewport } from 'next';
 import { PublicChatMount } from '@/components/chat/PublicChatMount';
 
 const SITE_URL = siteUrl();
-const OG_IMAGE = `${SITE_URL}/og-default.jpg`;
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -21,25 +21,13 @@ export const metadata: Metadata = {
     template: '%s | FunAdemy',
   },
   description:
-    'STEM education through moving LEGO® models for children ages 4–18 in Riyadh. In-person classes. e² Young Engineers, Falcon Eye license.',
-  openGraph: {
-    siteName: 'FunAdemy',
-    type: 'website',
-    locale: 'en_US',
-    url: `${SITE_URL}/en`,
+    'Engineering, coding and robotics education for children in Riyadh with e² Young Engineers. See enrolment for current groups and prices.',
+  ...buildSocialMetadata({
+    canonical: `${SITE_URL}/en`,
     title: 'FunAdemy — Where Fun Meets Academy',
     description:
-      'STEM education through moving LEGO® models for children ages 4–18. In-person classes in Riyadh.',
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'FunAdemy' }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@funademy',
-    title: 'FunAdemy — Where Fun Meets Academy',
-    description:
-      'STEM education through moving LEGO® models for children ages 4–18.',
-    images: [OG_IMAGE],
-  },
+      'Engineering, coding and robotics education for children in Riyadh with e² Young Engineers. See enrolment for current groups and prices.',
+  }, 'en'),
 };
 
 export default function EnglishRootLayout({ children }: { children: React.ReactNode }) {

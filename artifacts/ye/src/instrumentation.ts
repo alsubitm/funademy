@@ -64,7 +64,26 @@ export async function register() {
     }
   }
 
+  let sweeping = false;
   const runSweep = async () => {
+    // A large backlog may span timer ticks. Let its committed batches finish
+    // rather than starting another copy of all maintenance in this process.
+    if (sweeping) return;
+    sweeping = true;
+    try {
+      await runMaintenance();
+    } finally {
+      sweeping = false;
+    }
+  };
+
+  const runMaintenance = async () => {
+    try {
+      const { purgeExpiredChat } = await import('@/lib/chat-retention');
+      await purgeExpiredChat();
+    } catch (e) {
+      console.error('[chat-retention] periodic cleanup failed:', e);
+    }
     try {
       const { sweepAbuseRetention } = await import('@/lib/abuse-retention');
       await sweepAbuseRetention();

@@ -11,34 +11,37 @@ export async function GET() {
   const familyId = await getFamilyId();
   if (!familyId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const enrolled = await familyHasActiveEnrollment(familyId);
+  const sessionPromise = getKidSession();
+  const [enrolled, kidSession, child] = await Promise.all([
+    familyHasActiveEnrollment(familyId), sessionPromise,
+    sessionPromise.then(session => session?.familyId === familyId ? prisma.lrnChild.findFirst({
+      where: { id: session.childId, familyId },
+      include: { firstCompletions: { select: { lessonId: true } } },
+    }) : null),
+  ]);
   if (!enrolled) return NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 });
-
-  const kidSession = await getKidSession();
   if (!kidSession || kidSession.familyId !== familyId)
     return NextResponse.json({ error: 'no_kid_selected' }, { status: 401 });
-
-  const child = await prisma.lrnChild.findFirst({
-    where: { id: kidSession.childId, familyId },
-    include: { firstCompletions: { select: { lessonId: true } } },
-  });
   if (!child) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
   const completedIds = new Set(child.firstCompletions.map((c) => c.lessonId));
 
   // Find next lesson to continue in child's band (first published, not yet completed)
-  const remainingLessons = await prisma.lrnLesson.findMany({
+  const [remainingLessons, subjects, todayLessonCompletions] = await Promise.all([prisma.lrnLesson.findMany({
     where: {
       status: 'published',
       unit: { band: child.band, status: 'published' },
-      id: { notIn: completedIds.size > 0 ? [...completedIds] : [-1] },
+      firstCompletions: { none: { childId: child.id } },
     },
     orderBy: [{ unit: { position: 'asc' } }, { position: 'asc' }, { id: 'asc' }],
-    include: { unit: { include: { subject: true } } },
-  });
-
-  // Subjects with progress
-  const subjects = await prisma.lrnSubject.findMany({
+    select: {
+      id: true, titleAr: true, titleEn: true, durationMinutes: true,
+      unit: { select: {
+        subjectId: true, position: true,
+        subject: { select: { nameAr: true, nameEn: true, color: true, icon: true } },
+      } },
+    },
+  }), prisma.lrnSubject.findMany({
     orderBy: { position: 'asc' },
     include: {
       units: {
@@ -51,7 +54,10 @@ export async function GET() {
         },
       },
     },
-  });
+  }), prisma.lrnFirstCompletion.findMany({
+    where: { childId: child.id, claimedAt: { gte: riyadhDayStart() } },
+    include: { lesson: { select: { durationMinutes: true } } },
+  })]);
 
   const subjectData = subjects
     .filter((s) => s.units.length > 0)
@@ -74,11 +80,6 @@ export async function GET() {
 
   // Today's usage — first completions only, using the Riyadh day boundary.
   // Replays never inflate the daily-use display.
-  const todayStart = riyadhDayStart();
-  const todayLessonCompletions = await prisma.lrnFirstCompletion.findMany({
-    where: { childId: child.id, claimedAt: { gte: todayStart } },
-    include: { lesson: { select: { durationMinutes: true } } },
-  });
   const todayMinutes = todayLessonCompletions.reduce(
     (sum, c) => sum + c.lesson.durationMinutes,
     0,
@@ -88,10 +89,13 @@ export async function GET() {
   // no further lessons can be started today.
   // Recommend only a lesson the server guard would allow: a shorter lesson
   // in another subject can still fit, but never skip an unfinished prior unit.
+  const firstUnitBySubject = new Map<number, number>();
+  for (const lesson of remainingLessons) {
+    const { subjectId, position } = lesson.unit;
+    firstUnitBySubject.set(subjectId, Math.min(firstUnitBySubject.get(subjectId) ?? position, position));
+  }
   const availableLessons = remainingLessons.filter(lesson =>
-    !remainingLessons.some(prior =>
-      prior.unit.subjectId === lesson.unit.subjectId &&
-      prior.unit.position < lesson.unit.position));
+    lesson.unit.position === firstUnitBySubject.get(lesson.unit.subjectId));
   const nextLesson = availableLessons.find(lesson =>
     child.dailyLimitMinutes === null ||
     todayMinutes + lesson.durationMinutes <= child.dailyLimitMinutes);

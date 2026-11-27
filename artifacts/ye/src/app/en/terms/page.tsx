@@ -1,10 +1,11 @@
 import { LegalShell } from '@/components/legal/LegalShell';
 import { EMAIL, PHONE_DISPLAY, WHATSAPP_NUMBER } from '@/lib/constants';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 const _termsBase = siteUrl();
-export const metadata = {
-  title: 'Terms & Conditions | FunAdemy',
+export const metadata = buildPageMetadata({
+  title: 'Terms & Conditions',
   description:
     'Read the FunAdemy terms of use, booking, payment, refund and support policies. STEM programs for kids in Riyadh governed by Saudi law.',
   openGraph: {
@@ -29,7 +30,7 @@ export const metadata = {
       'x-default': `${_termsBase}/terms`,
     },
   },
-};
+}, 'en');
 
 export default function TermsPageEn() {
   return (

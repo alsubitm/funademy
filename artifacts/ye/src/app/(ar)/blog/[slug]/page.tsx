@@ -5,6 +5,7 @@ import { prisma, withDbRetry } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
 import { BlogArticle, BlogArticleUnavailable } from '@/components/blog/BlogArticle';
 import { siteUrl, ogImageUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
@@ -19,7 +20,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!post || !post.published) return {};
   const base = siteUrl();
   const ogImage = ogImageUrl(post.coverImageUrl);
-  return {
+  return buildPageMetadata({
     title: post.titleAr,
     description: post.excerptAr,
     alternates: {
@@ -46,7 +47,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
       description: post.excerptAr ?? undefined,
       images: [ogImage],
     },
-  };
+  }, 'ar');
 }
 
 export default async function BlogPostPage(props: { params: Promise<{ slug: string }> }) {
@@ -95,11 +96,6 @@ export default async function BlogPostPage(props: { params: Promise<{ slug: stri
         dateModified: post.updatedAt?.toISOString() ?? post.createdAt.toISOString(),
         inLanguage: 'ar',
         author: [
-          {
-            '@type': 'Person',
-            name: 'فريق فناديمي',
-            url: base,
-          },
           {
             '@type': 'Organization',
             '@id': `${base}/#organization`,

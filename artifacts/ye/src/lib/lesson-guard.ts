@@ -36,41 +36,40 @@ export type GuardResult =
   | { ok: true; familyId: number; child: LrnChild; lesson: LessonWithDetails }
   | { ok: false; response: NextResponse };
 
-export async function requireLessonAccess(lessonId: number): Promise<GuardResult> {
+export async function requireLessonAccess(lessonId: number, options: { skipDailyLimit?: boolean } = {}): Promise<GuardResult> {
   // 1. Family session
   const familyId = await getFamilyId();
   if (!familyId)
     return { ok: false, response: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) };
 
   // 2. Active enrollment
-  const enrolled = await familyHasActiveEnrollment(familyId);
-  if (!enrolled)
-    return { ok: false, response: NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 }) };
-
-  // 3. Kid session tied to this family
   const kidSession = await getKidSession();
-  if (!kidSession || kidSession.familyId !== familyId)
-    return { ok: false, response: NextResponse.json({ error: 'no_kid_selected' }, { status: 401 }) };
-
-  // 4. Child owned by family
-  const child = await prisma.lrnChild.findFirst({
-    where: { id: kidSession.childId, familyId },
-  });
-  if (!child)
-    return { ok: false, response: NextResponse.json({ error: 'no_kid_selected' }, { status: 401 }) };
-
-  // 5. Lesson published, unit published, unit band matches child's band
-  const lesson = await prisma.lrnLesson.findFirst({
-    where: {
-      id: lessonId,
-      status: 'published',
-      unit: { status: 'published', band: child.band },
-    },
+  const validSelection = kidSession?.familyId === familyId;
+  // Enrollment, ownership and the published lesson are independent reads.
+  // Preserve the original error precedence and never return lesson data until
+  // all authorization and band checks have passed.
+  const [enrolled, child, candidate] = await Promise.all([
+    familyHasActiveEnrollment(familyId),
+    validSelection ? prisma.lrnChild.findFirst({
+      where: { id: kidSession.childId, familyId },
+    }) : Promise.resolve(null),
+    validSelection ? prisma.lrnLesson.findFirst({
+    where: { id: lessonId, status: 'published', unit: { status: 'published' } },
     include: {
       unit: { include: { subject: true } },
       exercises: { orderBy: { position: 'asc' } },
     },
-  });
+    }) : Promise.resolve(null),
+  ]);
+  if (!enrolled)
+    return { ok: false, response: NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 }) };
+  if (!validSelection)
+    return { ok: false, response: NextResponse.json({ error: 'no_kid_selected' }, { status: 401 }) };
+  if (!child)
+    return { ok: false, response: NextResponse.json({ error: 'no_kid_selected' }, { status: 401 }) };
+
+  // 5. Lesson published, unit published, unit band matches child's band
+  const lesson = candidate?.unit.band === child.band ? candidate : null;
   if (!lesson)
     return { ok: false, response: NextResponse.json({ error: 'not_found' }, { status: 404 }) };
 
@@ -78,7 +77,8 @@ export async function requireLessonAccess(lessonId: number): Promise<GuardResult
   //    subject must be fully first-completed (LrnFirstCompletion) by this child.
   //    We deliberately use LrnFirstCompletion — the durable progression claim —
   //    so repeat/zero-score attempts do NOT count as unit completion.
-  const priorUnits = await prisma.lrnUnit.findMany({
+  const checkDailyLimit = !options.skipDailyLimit && child.dailyLimitMinutes !== null;
+  const [priorUnits, firstCompletions, todayCompletions] = await Promise.all([prisma.lrnUnit.findMany({
     where: {
       subjectId: lesson.unit.subjectId,
       band: child.band,
@@ -92,18 +92,16 @@ export async function requireLessonAccess(lessonId: number): Promise<GuardResult
       },
     },
     orderBy: { position: 'asc' },
-  });
+  }), prisma.lrnFirstCompletion.findMany({
+    where: { childId: child.id }, select: { lessonId: true },
+  }), checkDailyLimit ? prisma.lrnFirstCompletion.findMany({
+    where: { childId: child.id, claimedAt: { gte: riyadhDayStart() } },
+    include: { lesson: { select: { durationMinutes: true } } },
+  }) : Promise.resolve([])]);
+  const firstCompletedIds = new Set(firstCompletions.map(c => c.lessonId));
 
   if (priorUnits.length > 0) {
     // Use LrnFirstCompletion as the source of truth for progression.
-    const firstCompletedIds = new Set(
-      (
-        await prisma.lrnFirstCompletion.findMany({
-          where: { childId: child.id },
-          select: { lessonId: true },
-        })
-      ).map((c) => c.lessonId),
-    );
 
     for (const unit of priorUnits) {
       const allDone = unit.lessons.every((l) => firstCompletedIds.has(l.id));
@@ -116,16 +114,8 @@ export async function requireLessonAccess(lessonId: number): Promise<GuardResult
   }
 
   // 7. Daily limit uses first-completion claims and the Riyadh day boundary.
-  if (child.dailyLimitMinutes !== null) {
-    const todayStart = riyadhDayStart();
-    const alreadyCompleted = await prisma.lrnFirstCompletion.findUnique({
-      where: { childId_lessonId: { childId: child.id, lessonId } },
-      select: { id: true },
-    });
-    const todayCompletions = await prisma.lrnFirstCompletion.findMany({
-      where: { childId: child.id, claimedAt: { gte: todayStart } },
-      include: { lesson: { select: { durationMinutes: true } } },
-    });
+  if (checkDailyLimit && child.dailyLimitMinutes !== null) {
+    const alreadyCompleted = firstCompletedIds.has(lessonId);
     const consumedMinutes = todayCompletions.reduce(
       (sum, c) => sum + c.lesson.durationMinutes,
       0,

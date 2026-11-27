@@ -10,6 +10,7 @@
  * payments.test.ts).
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 // ——— mocked cookie store (next/headers) ———
 const cookieJar = new Map<string, string>();

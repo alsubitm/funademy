@@ -3,12 +3,13 @@ import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
 import { siteUrl } from '@/lib/site-url';
+import { buildPageMetadata } from '@/lib/page-metadata';
 import { ProgramsListing } from '@/components/ProgramsListing';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
-  return {
-    title: 'Our Programs | FunAdemy',
+  return buildPageMetadata({
+    title: 'Our Programs',
     description:
       'Three educational fields, seven e² Young Engineers certified programs for ages 4–18. Engineering, coding, and robotics in person in Riyadh.',
     alternates: {
@@ -27,7 +28,7 @@ export function generateMetadata(): Metadata {
         'Three educational fields, seven e² Young Engineers certified programs for ages 4–18.',
       images: [{ url: `${base}/og-default.jpg`, width: 1200, height: 630, alt: 'FunAdemy Programs' }],
     },
-  };
+  }, 'en');
 }
 
 export default async function ProgramsPageEn() {

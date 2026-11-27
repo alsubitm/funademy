@@ -35,6 +35,7 @@ import { POST as actionsPOST } from '@/app/(ar)/svc/chat/conversations/[id]/acti
 import { POST as confirmPOST } from '@/app/(ar)/svc/chat/conversations/[id]/actions/[actionId]/confirm/route';
 import { POST as executePOST } from '@/app/(ar)/svc/chat/conversations/[id]/actions/[actionId]/execute/route';
 import { purgeExpiredChat } from '@/lib/chat-retention';
+import { claimChatReply, commitChatReply, releaseChatReply } from '@/lib/chat-reply';
 
 const RUN = `chat-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 const familyIds: number[] = [];
@@ -94,6 +95,7 @@ afterAll(async () => {
   await prisma.program.deleteMany({ where: { id: { in: programIds } } });
   await prisma.family.deleteMany({ where: { id: { in: familyIds } } });
   await prisma.rateLimitHit.deleteMany({ where: { key: { in: rateKeys } } });
+  await prisma.rateLimitWindow.deleteMany({ where: { key: { in: rateKeys } } });
   await prisma.$disconnect();
 });
 
@@ -391,11 +393,23 @@ describe('chat messages and action confirmation', () => {
     const input = { content: 'hello', idempotencyKey: `concurrent-recovery-${RUN}` };
     let release!: (answer: string) => void;
     let entered!: () => void;
+    let activeTransactions = 0;
     const generating = new Promise<void>(resolve => { entered = resolve; });
     mockAnswer.mockImplementationOnce(() => {
+      // Only the short claim transaction has run; its connection is released
+      // before the external provider is entered.
+      expect(transaction).toHaveBeenCalledTimes(1);
+      expect(activeTransactions).toBe(0);
       entered();
       return new Promise<string>(resolve => { release = resolve; });
     });
+    const originalTransaction = prisma.$transaction.bind(prisma);
+    const transaction = vi.spyOn(prisma, '$transaction').mockImplementation((
+      (...args: Parameters<typeof prisma.$transaction>) => {
+        activeTransactions++;
+        return originalTransaction(...args).finally(() => { activeTransactions--; });
+      }
+    ) as typeof prisma.$transaction);
     const first = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input, 'visitor-token-test'), params(c.id));
     await generating;
     try {
@@ -405,10 +419,36 @@ describe('chat messages and action confirmation', () => {
       release('Only one answer');
     }
     const original = await first.text();
+    transaction.mockRestore();
     const replay = await messagesPOST(request(`/svc/chat/conversations/${c.id}/messages`, 'POST', input, 'visitor-token-test'), params(c.id));
     expect(streamEvents(await replay.text())).toEqual(streamEvents(original));
     expect(mockAnswer).toHaveBeenCalledTimes(1);
     expect(await prisma.chatMessage.count({ where: { conversationId: c.id } })).toBe(2);
+  });
+
+  it('recovers an expired generation lease and fences the abandoned worker', async () => {
+    const c = await conversation(null);
+    const user = await prisma.chatMessage.create({ data: {
+      conversationId: c.id, role: 'user', content: 'hello', expiresAt: chatExpiry(),
+    } });
+    const first = await claimChatReply(c.id, user.id);
+    expect(first.token).toBeTruthy();
+    await expect(claimChatReply(c.id, user.id)).rejects.toThrow('reply_in_progress');
+    await prisma.chatMessage.update({ where: { id: user.id }, data: { replyLeaseUntil: new Date(0) } });
+    const second = await claimChatReply(c.id, user.id);
+    expect(second.token).not.toBe(first.token);
+    const input = {
+      conversationId: c.id, userMessageId: user.id, familyId: null, content: 'Recovered answer',
+      refs: [], done: { type: 'done', userMessageId: user.id }, expiresAt: chatExpiry(),
+    };
+    await expect(commitChatReply({ ...input, token: first.token! })).rejects.toThrow('reply_lease_lost');
+    await releaseChatReply(user.id, first.token!);
+    const saved = await commitChatReply({ ...input, token: second.token! });
+    expect(saved.content).toBe('Recovered answer');
+    const replay = await claimChatReply(c.id, user.id);
+    expect(replay.saved).toEqual(saved);
+    expect(await prisma.chatMessage.count({ where: { conversationId: c.id, role: 'assistant' } })).toBe(1);
+    expect(await prisma.chatAudit.count({ where: { conversationId: c.id, event: 'reply_completed' } })).toBe(1);
   });
 
   it('replays the original prepared action rather than preparing a second one', async () => {

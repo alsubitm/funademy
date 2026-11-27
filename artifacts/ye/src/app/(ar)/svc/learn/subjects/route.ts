@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   let completedIds = new Set<number>();
   if (child) {
-    const completions = await prisma.lrnCompletion.findMany({
+    const completions = await prisma.lrnFirstCompletion.findMany({
       where: { childId: child.id },
       select: { lessonId: true },
     });

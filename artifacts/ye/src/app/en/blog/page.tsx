@@ -3,15 +3,16 @@ export const dynamic = 'force-dynamic';
 
 import { Metadata } from 'next';
 import { siteUrl } from '@/lib/site-url';
-import { prisma, withDbRetry } from '@/lib/db';
+import { getBlogIndex } from '@/lib/blog-index';
+import { buildPageMetadata } from '@/lib/page-metadata';
 import { safeQuery } from '@/lib/safe-query';
 import { BlogList } from '@/components/blog/BlogList';
 
 export function generateMetadata(): Metadata {
   const base = siteUrl();
   const ogImage = `${base}/og-default.jpg`;
-  return {
-    title: 'FunAdemy Blog | STEM & Engineering Tips for Kids in Riyadh',
+  return buildPageMetadata({
+    title: 'Blog | STEM & Engineering Tips for Riyadh Parents',
     description: "Articles and tips for parents on STEM education and LEGO® engineering for kids in Riyadh. Activities and ideas to build your child's skills with FunAdemy.",
     alternates: {
       canonical: `${base}/en/blog`,
@@ -34,18 +35,12 @@ export function generateMetadata(): Metadata {
       description: "Articles and tips for parents on STEM education and LEGO® engineering for kids in Riyadh.",
       images: [ogImage],
     },
-  };
+  }, 'en');
 }
 
 export default async function BlogPageEn() {
   const posts = await safeQuery(
-    () => withDbRetry(
-      () => prisma.blogPost.findMany({
-        where: { published: true },
-        orderBy: { publishedAt: 'desc' },
-      }),
-      { operation: 'blog-en:index', kind: 'read' },
-    ),
+    getBlogIndex,
     null,
     'blog-en:index',
   );

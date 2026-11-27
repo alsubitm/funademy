@@ -70,7 +70,7 @@ describe('program tuition uses enrollment course-run prices', () => {
       const src = readFileSync(new URL(`../app/${page}/page.tsx`, import.meta.url), 'utf8');
       expect(src).toContain('loadProgramPricing(program.id)');
       expect(src).toContain('pricingRuns={pricingRuns}');
-      expect(src).toContain('revalidate = 0');
+      expect(src).toContain('revalidate = 60');
     });
   }
 });

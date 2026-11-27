@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { BLOG_INDEX_TAG } from '@/lib/blog-index';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '../guard';
 
@@ -9,6 +10,7 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const FIELDS = ['titleAr', 'titleEn', 'excerptAr', 'excerptEn', 'contentAr', 'contentEn', 'coverEmoji', 'published'] as const;
 
 function revalidateBlog(slug?: string) {
+  revalidateTag(BLOG_INDEX_TAG);
   revalidatePath('/blog');
   revalidatePath('/en/blog');
   if (slug) {

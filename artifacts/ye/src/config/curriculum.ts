@@ -14,6 +14,8 @@ export type Localised = { en: string; ar: string };
 
 export type Program = {
   id: string;
+  /** Public program route slug; card IDs may differ and must stay stable. */
+  detailSlug: string;
   name: string;
   category: 'building' | 'coding' | 'robotics' | string;
   categoryKey: 'catEarly' | 'catBuild' | 'catCode' | 'catRobot';
@@ -44,6 +46,7 @@ export type CurriculumConfig = {
 const programs: Program[] = [
  {
   "id": "big-builders",
+  "detailSlug": "big-builders",
   "name": "Big Builders",
   "category": "building",
   "categoryKey": "catEarly",
@@ -73,6 +76,7 @@ const programs: Program[] = [
  },
  {
   "id": "smartivo",
+  "detailSlug": "smartivo",
   "name": "Smartivo",
   "category": "coding",
   "categoryKey": "catEarly",
@@ -102,6 +106,7 @@ const programs: Program[] = [
  },
  {
   "id": "bricks",
+  "detailSlug": "bricks-challenge",
   "name": "Bricks Challenge",
   "category": "building",
   "categoryKey": "catBuild",
@@ -131,6 +136,7 @@ const programs: Program[] = [
  },
  {
   "id": "algoplay",
+  "detailSlug": "algoplay",
   "name": "AlgoPlay",
   "category": "coding",
   "categoryKey": "catCode",
@@ -160,6 +166,7 @@ const programs: Program[] = [
  },
  {
   "id": "galileo",
+  "detailSlug": "galileo-technic",
   "name": "Galileo Technic",
   "category": "building",
   "categoryKey": "catBuild",
@@ -189,6 +196,7 @@ const programs: Program[] = [
  },
  {
   "id": "robotoys",
+  "detailSlug": "robotoys",
   "name": "RoboToys",
   "category": "robotics",
   "categoryKey": "catRobot",
@@ -218,6 +226,7 @@ const programs: Program[] = [
  },
  {
   "id": "algoc",
+  "detailSlug": "algoc",
   "name": "AlgoC",
   "category": "coding",
   "categoryKey": "catCode",

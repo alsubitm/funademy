@@ -1,5 +1,6 @@
 import { baloo, plexArabic, plexMono, spaceGrotesk, manrope, notoArabic } from '../fonts';
 import { siteUrl } from '@/lib/site-url';
+import { buildSocialMetadata } from '@/lib/page-metadata';
 import { PHONE_DISPLAY } from '@/lib/constants';
 import '../globals.css';
 import '../v3.css';
@@ -7,7 +8,6 @@ import type { Metadata, Viewport } from 'next';
 import { PublicChatMount } from '@/components/chat/PublicChatMount';
 
 const SITE_URL = siteUrl();
-const OG_IMAGE = `${SITE_URL}/og-default.jpg`;
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -22,24 +22,12 @@ export const metadata: Metadata = {
   },
   description:
     'FunAdemy — حيث المتعة تلتقي بالأكاديمية. تعليم STEM عبر نماذج LEGO® للأطفال من ٤ إلى ١٨ سنة. e² Young Engineers، ترخيص فالكون آي.',
-  openGraph: {
-    siteName: 'FunAdemy',
-    type: 'website',
-    locale: 'ar_SA',
-    url: SITE_URL,
+  ...buildSocialMetadata({
+    canonical: `${SITE_URL}/`,
     title: 'FunAdemy — حيث المتعة تلتقي بالأكاديمية',
     description:
-      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص حضورية في الرياض.',
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'FunAdemy' }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@funademy',
-    title: 'FunAdemy — حيث المتعة تلتقي بالأكاديمية',
-    description:
-      'تعليم STEM عبر نماذج LEGO® المتحركة للأطفال من ٤ إلى ١٨ سنة — حصص حضورية في الرياض.',
-    images: [OG_IMAGE],
-  },
+      'تعليم الهندسة والبرمجة والروبوتات للأطفال في الرياض مع e² Young Engineers. للمجموعات والأسعار الحالية زر صفحة التسجيل.',
+  }, 'ar'),
 };
 
 export default function ArabicRootLayout({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { listPage, bookingFilter, runFilter } from '@/lib/admin-list-query';
@@ -119,7 +120,7 @@ describe('authenticated server-side admin lists', () => {
     expect(ids(await list('runs', { rq: '%_' }), 'runs')).toEqual([runIds[0]]);
     expect((await list('runs', { rq: '17:00' })).pagination.matching).toBe(6);
     expect((await list('runs', { rq: 'no match' })).pagination.matching).toBe(0);
-    const options = await (await runsGET(new NextRequest('http://test.local/svc/admin/runs?options=1'))).json();
+    const options = await (await runsGET(new NextRequest(`http://test.local/svc/admin/runs?options=1&rq=${tag}`))).json();
     expect(options.runs.filter((r: any) => runIds.includes(r.id))).toHaveLength(5);
   });
 

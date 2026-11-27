@@ -281,6 +281,8 @@ CREATE TABLE "ye_chat_messages" (
     "sourceRefs" JSONB,
     "providerId" TEXT,
     "idempotencyKey" TEXT,
+    "replyLeaseToken" TEXT,
+    "replyLeaseUntil" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expiresAt" TIMESTAMP(3) NOT NULL,
 
@@ -833,6 +835,7 @@ CREATE TABLE "ye_xapi_outbox" (
     "studentId" INTEGER,
     "nationalId" TEXT NOT NULL,
     "courseIri" TEXT NOT NULL,
+    "objectId" TEXT,
     "verb" TEXT NOT NULL,
     "statementId" TEXT NOT NULL,
     "statement" JSONB NOT NULL,
@@ -870,6 +873,15 @@ CREATE TABLE "ye_rate_limit_hits" (
     "at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_rate_limit_hits_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_rate_limit_windows" (
+    "key" TEXT NOT NULL,
+    "hits" TIMESTAMP(3)[],
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_rate_limit_windows_pkey" PRIMARY KEY ("key")
 );
 
 -- CreateTable
@@ -1041,10 +1053,16 @@ CREATE UNIQUE INDEX "ye_enrollments_studentId_courseRunId_key" ON "ye_enrollment
 CREATE INDEX "ye_payments_familyId_createdAt_idx" ON "ye_payments"("familyId", "createdAt");
 
 -- CreateIndex
+CREATE INDEX "ye_payments_status_createdAt_idx" ON "ye_payments"("status", "createdAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_payment_items_trialBookingId_key" ON "ye_payment_items"("trialBookingId");
 
 -- CreateIndex
 CREATE INDEX "ye_payment_items_paymentId_idx" ON "ye_payment_items"("paymentId");
+
+-- CreateIndex
+CREATE INDEX "ye_payment_items_enrollmentId_idx" ON "ye_payment_items"("enrollmentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ye_kit_shipments_paymentItemId_key" ON "ye_kit_shipments"("paymentItemId");
@@ -1101,6 +1119,9 @@ CREATE INDEX "ye_appointments_phone_idx" ON "ye_appointments"("phone");
 CREATE INDEX "ye_appointments_startsAt_idx" ON "ye_appointments"("startsAt");
 
 -- CreateIndex
+CREATE INDEX "ye_appointments_bookingId_idx" ON "ye_appointments"("bookingId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_blog_posts_slug_key" ON "ye_blog_posts"("slug");
 
 -- CreateIndex
@@ -1152,16 +1173,25 @@ CREATE INDEX "ye_xapi_outbox_childId_idx" ON "ye_xapi_outbox"("childId");
 CREATE INDEX "ye_xapi_outbox_studentId_idx" ON "ye_xapi_outbox"("studentId");
 
 -- CreateIndex
+CREATE INDEX "ye_xapi_outbox_nationalId_courseIri_verb_idx" ON "ye_xapi_outbox"("nationalId", "courseIri", "verb");
+
+-- CreateIndex
+CREATE INDEX "ye_xapi_outbox_nationalId_verb_objectId_idx" ON "ye_xapi_outbox"("nationalId", "verb", "objectId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_xapi_outbox_flush_runs_runId_key" ON "ye_xapi_outbox_flush_runs"("runId");
 
 -- CreateIndex
 CREATE INDEX "ye_xapi_outbox_flush_runs_expiresAt_idx" ON "ye_xapi_outbox_flush_runs"("expiresAt");
 
 -- CreateIndex
-CREATE INDEX "ye_rate_limit_hits_key_at_idx" ON "ye_rate_limit_hits"("key", "at");
+CREATE INDEX "ye_rate_limit_hits_key_at_idx" ON "ye_rate_limit_hits"("key" text_pattern_ops, "at");
 
 -- CreateIndex
 CREATE INDEX "ye_rate_limit_hits_at_idx" ON "ye_rate_limit_hits"("at");
+
+-- CreateIndex
+CREATE INDEX "ye_rate_limit_windows_expiresAt_idx" ON "ye_rate_limit_windows"("expiresAt");
 
 -- CreateIndex
 CREATE INDEX "campaign_brick_events_key_created_at_idx" ON "campaign_brick_events"("key", "created_at");

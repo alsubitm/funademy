@@ -1,36 +1,35 @@
-/**
- * Durable sliding-window rate limiter for public booking endpoints.
- * Counters are persisted in the database (ye_rate_limit_hits) so limits
- * survive server restarts and apply across multiple instances — an
- * in-memory Map would reset to zero on every deploy, letting a script
- * create unlimited real Google Calendar events.
- *
- * Not a substitute for a WAF, but stops casual scripted abuse of routes
- * that trigger real Google Calendar events and emails.
- */
 import { prisma, withDbRetry } from '@/lib/db';
 
 /**
- * Returns true when the caller is within `max` hits per `windowMs`.
- * A Postgres advisory transaction lock on the key serializes concurrent
- * checks, making the count-then-insert an atomic quota claim: parallel
- * requests for the same key queue on the lock instead of all observing
- * the same stale count. Fails closed: if the database is unavailable the
- * request is rejected, since every accepted request can create a real
- * calendar event.
+ * Atomic sliding-window claim in one DB round trip. PostgreSQL's ON CONFLICT
+ * row lock re-evaluates the array against the latest committed row, unlike a
+ * count CTE after an advisory lock (which can use a stale statement snapshot).
+ * Storage is bounded by max timestamps per key, not a growing row per hit.
+ * Old hit rows seed new windows during the rollout so live quotas do not reset.
  */
 export async function allowRate(key: string, max: number, windowMs: number): Promise<boolean> {
-  const now = new Date();
-  const cutoff = new Date(now.getTime() - windowMs);
+  if (!Number.isInteger(max) || max < 1 || !Number.isFinite(windowMs) || windowMs < 1) return false;
   try {
-    return await withDbRetry(() => prisma.$transaction(async (tx) => {
-      // Per-key mutex, auto-released at transaction end.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
-      const hits = await tx.rateLimitHit.count({ where: { key, at: { gt: cutoff } } });
-      if (hits >= max) return false;
-      await tx.rateLimitHit.create({ data: { key, at: now } });
-      return true;
-    }), { operation: 'rate-limit-claim', kind: 'transaction' });
+    const rows = await withDbRetry(() => prisma.$queryRaw<{ key: string }[]>`
+      INSERT INTO ye_rate_limit_windows AS w (key, hits, "expiresAt")
+      SELECT ${key}, seed.hits || ARRAY[statement_timestamp()::timestamp],
+        statement_timestamp() + ${windowMs} * INTERVAL '1 millisecond'
+      FROM (SELECT ARRAY(
+        SELECT at FROM ye_rate_limit_hits
+        WHERE key = ${key} AND at > statement_timestamp() - ${windowMs} * INTERVAL '1 millisecond'
+        ORDER BY at DESC LIMIT ${max}
+      ) AS hits) seed
+      WHERE cardinality(seed.hits) < ${max}
+      ON CONFLICT (key) DO UPDATE SET
+        hits = ARRAY(SELECT h FROM unnest(w.hits) h
+          WHERE h > statement_timestamp() - ${windowMs} * INTERVAL '1 millisecond')
+          || ARRAY[statement_timestamp()::timestamp],
+        "expiresAt" = statement_timestamp() + ${windowMs} * INTERVAL '1 millisecond'
+      WHERE cardinality(ARRAY(SELECT h FROM unnest(w.hits) h
+        WHERE h > statement_timestamp() - ${windowMs} * INTERVAL '1 millisecond')) < ${max}
+      RETURNING key
+    `, { operation: 'rate-limit-claim', kind: 'transaction' });
+    return rows.length === 1;
   } catch (e) {
     console.error('[rate-limit] check failed, rejecting request:', e);
     return false;

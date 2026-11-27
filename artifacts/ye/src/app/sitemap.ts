@@ -22,6 +22,7 @@ const PROGRAM_SLUGS_FALLBACK = [
 const STATIC_PATHS = [
   '/', '/en', '/programs', '/en/programs', '/watanona', '/en/watanona',
   '/book', '/en/book', '/contact', '/en/contact', '/blog', '/en/blog',
+  '/help', '/en/help',
   '/enroll', '/en/enroll', '/consult', '/en/consult',
   '/privacy', '/en/privacy', '/terms', '/en/terms',
 ];

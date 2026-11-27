@@ -338,6 +338,8 @@ model ChatMessage {
   sourceRefs     Json?
   providerId     String?
   idempotencyKey String?
+  replyLeaseToken String?
+  replyLeaseUntil DateTime?
   createdAt      DateTime         @default(now())
   expiresAt      DateTime
 
@@ -571,6 +573,7 @@ model Payment {
   items       PaymentItem[]
 
   @@index([familyId, createdAt])
+  @@index([status, createdAt])
   @@map("ye_payments")
 }
 
@@ -595,6 +598,7 @@ model PaymentItem {
   kitShipment    KitShipment?
 
   @@index([paymentId])
+  @@index([enrollmentId])
   @@map("ye_payment_items")
 }
 
@@ -892,6 +896,7 @@ model Appointment {
 
   @@index([phone])
   @@index([startsAt])
+  @@index([bookingId])
   @@map("ye_appointments")
 }
 
@@ -1161,6 +1166,7 @@ model XapiOutbox {
   studentId      Int? // informational only — no FK (live-class attendance events)
   nationalId     String // actor identity (child's national ID at event time)
   courseIri      String // course IRI the statement targets (subject or live course run)
+  objectId       String? // indexed activity IRI; null only on legacy rows
   verb           String // registered | completed_lesson | completed_unit | progressed | completed_course | attended
   statementId    String    @unique // client-generated xAPI statement UUID
   statement      Json // full xAPI statement built at event time
@@ -1181,6 +1187,8 @@ model XapiOutbox {
   @@index([status, id])
   @@index([childId])
   @@index([studentId])
+  @@index([nationalId, courseIri, verb])
+  @@index([nationalId, verb, objectId])
   @@map("ye_xapi_outbox")
 }
 
@@ -1211,9 +1219,20 @@ model RateLimitHit {
   key String
   at  DateTime @default(now())
 
-  @@index([key, at])
+  // Bytewise prefix bounds work under non-C database collations too.
+  @@index([key(ops: raw("text_pattern_ops")), at])
   @@index([at])
   @@map("ye_rate_limit_hits")
+}
+
+// One bounded timestamp array per quota key, updated atomically by PostgreSQL.
+model RateLimitWindow {
+  key       String   @id
+  hits      DateTime[]
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("ye_rate_limit_windows")
 }
 
 // ————————— Shared campaign tables (pre-existing raw-SQL tables in public) —————————
