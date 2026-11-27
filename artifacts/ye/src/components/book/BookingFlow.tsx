@@ -65,6 +65,19 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
   
   const [error, setError] = useState('');
   const [verified, setVerified] = useState(false);
+  const [validationAttempted, setValidationAttempted] = useState(false);
+  const invalidFields = {
+    parentName: validationAttempted && !parentName,
+    phone: validationAttempted && !/^(\+?966|0)?5\d{8}$/.test(phone.replace(/[\s-]/g, '')),
+    childFirstName: validationAttempted && !childFirstName,
+    childBirthYear: validationAttempted && !childBirthYear,
+    email: validationAttempted && !email.trim(),
+    contactConsent: validationAttempted && !contactConsent,
+  };
+  const fieldErrorProps = (invalid: boolean) => ({
+    'aria-invalid': invalid || undefined,
+    'aria-describedby': invalid && error ? 'book-error' : undefined,
+  });
 
   // Derived
   const programSlots = slots.filter((s) => s.programId === programId);
@@ -101,6 +114,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
 
   const onSubmit = () => {
     setError('');
+    setValidationAttempted(true);
     if (!parentName || !phone || !childFirstName || !childBirthYear || !contactConsent || !email.trim()) {
       setError(d.valError);
       return;
@@ -233,19 +247,19 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
         {step === 3 && <h3>{d.fillDetails}</h3>}
       </div>
 
-      {error && <div className="err-box">{error}</div>}
+      <div id="book-error" role="alert" aria-atomic="true" className={error ? 'err-box' : undefined}>{error}</div>
 
       <div className="w-content">
         {step === 1 && (
           <>
           <div className="fmt-question">
             <span className="fmt-q-label">{lang === 'ar' ? 'كم عمر طفلك؟' : 'How old is your child?'}</span>
-            <div className="fmt-q-opts" style={{ flexWrap: 'wrap' }}>
-              <button type="button" className={`fmt-q-btn ${ageFilter === null ? 'sel' : ''}`} onClick={() => setAgeFilter(null)}>
+            <div className="fmt-q-opts" role="group" aria-label={lang === 'ar' ? 'كم عمر طفلك؟' : 'How old is your child?'} style={{ flexWrap: 'wrap' }}>
+              <button type="button" aria-pressed={ageFilter === null} className={`fmt-q-btn ${ageFilter === null ? 'sel' : ''}`} onClick={() => setAgeFilter(null)}>
                 {lang === 'ar' ? 'الكل' : 'All'}
               </button>
               {Array.from({ length: 15 }, (_, i) => i + 4).map((a) => (
-                <button key={a} type="button" className={`fmt-q-btn ${ageFilter === a ? 'sel' : ''}`} onClick={() => setAgeFilter(a)}>
+                <button key={a} type="button" aria-pressed={ageFilter === a} className={`fmt-q-btn ${ageFilter === a ? 'sel' : ''}`} onClick={() => setAgeFilter(a)}>
                   {a}
                 </button>
               ))}
@@ -339,26 +353,26 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
           <div className="form-grid">
             <div className="f-group">
               <label htmlFor="book-parent-name">{d.parentName}</label>
-              <input id="book-parent-name" type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} disabled={isPending} />
+              <input id="book-parent-name" {...fieldErrorProps(invalidFields.parentName)} type="text" value={parentName} onChange={(e) => setParentName(e.target.value)} disabled={isPending} />
             </div>
             <div className="f-group">
               <label htmlFor="book-mobile">{d.mobile}</label>
-              <input id="book-mobile" type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} readOnly disabled={isPending} />
+              <input id="book-mobile" {...fieldErrorProps(invalidFields.phone)} type="tel" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={phone} readOnly disabled={isPending} />
             </div>
             <div className="f-group">
               <label htmlFor="book-child-name">{d.childName}</label>
-              <input id="book-child-name" type="text" value={childFirstName} onChange={(e) => setChildFirstName(e.target.value)} disabled={isPending} />
+              <input id="book-child-name" {...fieldErrorProps(invalidFields.childFirstName)} type="text" value={childFirstName} onChange={(e) => setChildFirstName(e.target.value)} disabled={isPending} />
             </div>
             <div className="f-group">
               <label htmlFor="book-birth-year">{d.birthYear}</label>
-              <select id="book-birth-year" value={childBirthYear} onChange={(e) => setChildBirthYear(e.target.value)} disabled={isPending}>
+              <select id="book-birth-year" {...fieldErrorProps(invalidFields.childBirthYear)} value={childBirthYear} onChange={(e) => setChildBirthYear(e.target.value)} disabled={isPending}>
                 <option value="">--</option>
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
             <div className="f-group">
               <label htmlFor="book-email">{d.email}</label>
-              <input id="book-email" type="email" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isPending} />
+              <input id="book-email" {...fieldErrorProps(invalidFields.email)} type="email" dir="ltr" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isPending} />
             </div>
             <div className="f-group">
               <label>{d.contactChannel}</label>
@@ -367,6 +381,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, gridColumn: '1 / -1', cursor: 'pointer' }}>
               <input
                 type="checkbox"
+                {...fieldErrorProps(invalidFields.contactConsent)}
                 checked={contactConsent}
                 onChange={(e) => setContactConsent(e.target.checked)}
                 disabled={isPending}

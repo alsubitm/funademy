@@ -1,17 +1,22 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import { watanonaDict } from './dictionary';
 import { arabicDigits } from '@/lib/constants';
 
 // Brand palette only (blue / gold / cyan / sand) — mirrors svc/bricks BRICK_COLORS.
 const BRICK_COLORS = ['#1C54CB', '#FFCA17', '#22DAFF', '#E5AE4A'];
+const BRICK_COLOR_NAMES = {
+  ar: ['أزرق', 'ذهبي', 'سماوي', 'رملي'],
+  en: ['Blue', 'Gold', 'Cyan', 'Sand'],
+};
 
 type WallBrick = { id: number; authorName: string; color: string; message: string };
 type Child = { id: number; firstName: string; birthYear: number };
 
 export function ClientBricks({ initialCount, lang }: { initialCount: number; lang: 'ar' | 'en' }) {
   const d = watanonaDict[lang];
+  const formId = useId();
   const [count, setCount] = useState(initialCount);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -156,12 +161,13 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
 
         {/* ——— Placement: color + optional message (+ child link if logged in) ——— */}
         <div style={{ maxWidth: 460, margin: '34px auto 0', display: 'grid', gap: 10, textAlign: 'start' }}>
-          <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)', textAlign: 'center' }}>{d.brickColorLbl}</label>
-          <div className="color-pick">
-            {BRICK_COLORS.map((c) => (
+          <div id={`${formId}-color-label`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)', textAlign: 'center' }}>{d.brickColorLbl}</div>
+          <div className="color-pick" role="group" aria-labelledby={`${formId}-color-label`}>
+            {BRICK_COLORS.map((c, index) => (
               <button
                 key={c}
                 type="button"
+                aria-label={BRICK_COLOR_NAMES[lang][index]}
                 aria-pressed={color === c}
                 className={color === c ? 'sel' : ''}
                 style={{ background: c }}
@@ -172,8 +178,9 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
 
           {children.length > 0 ? (
             <>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)' }}>{d.brickChildLbl}</label>
+              <label htmlFor={`${formId}-child`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)' }}>{d.brickChildLbl}</label>
               <select
+                id={`${formId}-child`}
                 value={childId ?? ''}
                 onChange={(e) => setChildId(e.target.value ? Number(e.target.value) : null)}
                 style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(159,192,255,0.3)', background: 'rgba(255,255,255,0.06)', color: 'inherit', fontFamily: 'inherit' }}
@@ -186,8 +193,9 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
 
           {(
             <>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)' }}>{d.wallMsgLbl}</label>
+              <label htmlFor={`${formId}-message`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mut)' }}>{d.wallMsgLbl}</label>
               <input
+                id={`${formId}-message`}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 maxLength={120}
@@ -214,18 +222,18 @@ export function ClientBricks({ initialCount, lang }: { initialCount: number; lan
           {' · '}<a href={lang === 'ar' ? '/contact' : '/en/contact'}>{lang === 'ar' ? 'التواصل' : 'Contact'}</a>
         </label>}
 
-        {pendingNote && (
-          <div style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: 'var(--color-gold)' }}>{d.wallPendingNote}</div>
-        )}
-
-        <div className="mt-4 text-sm font-mono font-semibold" style={{ color: 'var(--color-mut)', marginTop: '16px' }}>
-          {error ? (
-            <span style={{ color: '#FF7B74' }}>{error}</span>
-          ) : remaining !== null ? (
-            <span style={{ color: 'var(--color-gold)' }}>{d.wallRemaining(remaining)}</span>
-          ) : (
-            <span>{displayCount} {d.wallCountLbl}</span>
+        <div role="alert" aria-atomic="true" style={error ? { color: '#FF7B74', marginTop: 16 } : undefined}>{error}</div>
+        <div role="status" aria-atomic="true">
+          {pendingNote && (
+            <div style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: 'var(--color-gold)' }}>{d.wallPendingNote}</div>
           )}
+          {!error && <div className="mt-4 text-sm font-mono font-semibold" style={{ color: 'var(--color-mut)', marginTop: '16px' }}>
+            {remaining !== null ? (
+              <span style={{ color: 'var(--color-gold)' }}>{d.wallRemaining(remaining)}</span>
+            ) : (
+              <span>{displayCount} {d.wallCountLbl}</span>
+            )}
+          </div>}
         </div>
       </div>
     </div>
