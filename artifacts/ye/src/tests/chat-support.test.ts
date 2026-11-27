@@ -24,6 +24,8 @@ import { FAMILY_COOKIE, familyToken } from '@/lib/family-auth';
 import { CHAT_VISITOR_COOKIE, chatExpiry, visitorTokenHash } from '@/lib/chat-auth';
 import { answerWithOpenAI } from '@/lib/chat-openai';
 import { createTrialBooking } from '@/lib/chat-booking';
+import { withTrialSeats } from '@/lib/trial-capacity';
+import { nextOccurrence } from '@/lib/appointments';
 import { executeChatAction, prepareChatAction } from '@/lib/chat-tools';
 import { POST as conversationsPOST, GET as conversationsGET } from '@/app/(ar)/svc/chat/conversations/route';
 import { GET as transcriptGET, DELETE as conversationDELETE } from '@/app/(ar)/svc/chat/conversations/[id]/route';
@@ -475,12 +477,41 @@ describe('retention and trial shared service safeguards', () => {
       taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
     } });
     programIds.push(program.id);
-    const full = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 0, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 1, seatsLeft: 0 } });
+    const full = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 0, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 1, seatsLeft: 1 } });
+    const other = await family('Other trial parent');
+    await createTrialBooking({ familyId: other.id, programId: program.id, slotId: full.id, parentName: 'P', phone: '+966511111110', email: null, childFirstName: 'First', childBirthYear: new Date().getFullYear() - 8 });
     await expect(createTrialBooking({ familyId: verified.id, programId: program.id, slotId: full.id, parentName: 'P', phone: '+966511111111', email: null, childFirstName: 'C', childBirthYear: new Date().getFullYear() - 8 })).rejects.toThrow('slot_full');
     const open = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 2, seatsLeft: 2 } });
     const base = { familyId: verified.id, programId: program.id, slotId: open.id, parentName: 'P', phone: '+966522222222', email: null, childFirstName: 'C' };
     await expect(createTrialBooking({ ...base, childBirthYear: new Date().getFullYear() - 4 })).rejects.toThrow('program_not_eligible');
     await createTrialBooking({ ...base, childBirthYear: new Date().getFullYear() - 8 });
     await expect(createTrialBooking({ ...base, childBirthYear: new Date().getFullYear() - 8 })).rejects.toThrow('already_booked');
+  });
+
+  it('counts trial capacity per weekly date so earlier weeks never fill later ones', async () => {
+    const parentA = await family('Week parent A');
+    const parentB = await family('Week parent B');
+    const program = await prisma.program.create({ data: {
+      slug: `chat-week-${RUN}`, kitCode: 'KIT-01', nameEn: 'Week Test', nameAr: 'اختبار أسبوع', ageMin: 7, ageMax: 10, format: 'in_person', color: '#000000', level: 1,
+      taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
+    } });
+    programIds.push(program.id);
+    // A legacy running counter of 0 must not block a date that has no bookings.
+    const slot = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 3, time: '17:00', format: 'online', capacity: 1, seatsLeft: 0 } });
+    const thisWeek = nextOccurrence(3, '17:00');
+    const nextWeek = new Date(thisWeek.getTime() + 7 * 86_400_000);
+    const base = { programId: program.id, slotId: slot.id, parentName: 'P', phone: '+966500000000', email: null, childFirstName: 'C', childBirthYear: new Date().getFullYear() - 8 };
+
+    expect((await withTrialSeats([slot]))[0].seatsLeft).toBe(1);
+    await createTrialBooking({ ...base, familyId: parentA.id, trialStartsAt: thisWeek });
+    expect((await withTrialSeats([slot]))[0].seatsLeft).toBe(0);
+    await expect(createTrialBooking({ ...base, familyId: parentB.id, trialStartsAt: thisWeek })).rejects.toThrow('slot_full');
+
+    // The following week has its own seats.
+    await createTrialBooking({ ...base, familyId: parentB.id, trialStartsAt: nextWeek });
+    expect((await withTrialSeats([slot], new Date(thisWeek.getTime() + 60_000)))[0].seatsLeft).toBe(0);
+    expect((await withTrialSeats([slot], new Date(nextWeek.getTime() + 60_000)))[0].seatsLeft).toBe(1);
+    // The legacy counter is no longer touched.
+    expect((await prisma.scheduleSlot.findUniqueOrThrow({ where: { id: slot.id } })).seatsLeft).toBe(0);
   });
 });

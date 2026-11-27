@@ -60,7 +60,10 @@ afterEach(() => {
 
 // The workspace may hold REAL NELC LRS secrets — clear them for every test so
 // the suite never depends on (or leaks into) the real environment.
-beforeEach(() => {
+beforeEach(async () => {
+  // Step-up failures are throttled globally; never let one test's deliberate
+  // wrong passwords lock out the next test's correct one.
+  await prisma.rateLimitHit.deleteMany({ where: { key: 'admin-stepup-failure' } });
   vi.stubEnv('NELC_LRS_ENDPOINT', '');
   vi.stubEnv('NELC_LRS_KEY', '');
   vi.stubEnv('NELC_LRS_SECRET', '');

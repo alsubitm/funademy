@@ -4,6 +4,7 @@ import { addAttendeeToEvent, createMeetEvent } from '@/lib/google-calendar';
 import { CONSULT_DURATION_MIN, consultAvailability, nextOccurrence } from '@/lib/appointments';
 import { CATALOG } from '@/lib/catalog';
 import { classroomLocation, classroomMapUrl, isCityOnlyLocation } from '@/lib/classroom-location';
+import { trialSeatsLeftAt } from '@/lib/trial-capacity';
 
 type TrialInput = {
   programId: number; slotId: number; parentName: string; phone: string; email: string | null;
@@ -51,11 +52,12 @@ export async function createTrialBooking(input: TrialInput) {
           where: { phone: input.phone, createdAt: { gte: new Date(Date.now() - 86400_000) } },
         });
         if (recent >= 5) throw new Error('trial_limit');
-        const claimed = await tx.scheduleSlot.updateMany({
-          where: { id: input.slotId, programId: input.programId, active: true, seatsLeft: { gt: 0 } },
-          data: { seatsLeft: { decrement: 1 } },
-        });
-        if (!claimed.count) throw new Error('slot_full');
+        // Capacity is per concrete trial date (see trial-capacity.ts): serialise
+        // claims for this occurrence, then count its bookings. Lock order
+        // (family occurrence → family quota → occurrence seats) is the same in
+        // every transaction, so these locks cannot deadlock.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`trial-seats:${input.slotId}:${trialStartsAt.toISOString()}`}))`;
+        if ((await trialSeatsLeftAt(tx, slot, trialStartsAt)) <= 0) throw new Error('slot_full');
         const reminderAt = new Date(trialStartsAt.getTime() - 24 * 60 * 60_000);
         const followUpAt = new Date(trialStartsAt.getTime() + 60 * 60_000);
         const booking = await tx.booking.create({

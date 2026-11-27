@@ -308,6 +308,15 @@ describe('renewal', () => {
     expect(res.status).toBe(409);
     expect((await res.json()).error).toBe('not_renewable');
   });
+
+  it('refuses to renew a pending enrollment whose first payment has not settled', async () => {
+    const e = await prisma.enrollment.findFirst({ where: { studentId: studentA2.id, courseRunId: runId } });
+    const pending = await prisma.enrollment.update({ where: { id: e!.id }, data: { status: 'pending' } });
+    asFamily(familyA.id);
+    const res = await renew({ enrollmentId: pending.id, provider: 'moyasar_mada' });
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe('not_renewable');
+  });
 });
 
 // ────────────────────────────────────────────────────────────

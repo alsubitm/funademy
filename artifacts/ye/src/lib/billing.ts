@@ -12,8 +12,13 @@ export function addOneMonth(d: Date): Date {
 }
 
 /** Effective monthly price in SAR after the sibling discount. */
+/**
+ * Discounted monthly fee in WHOLE riyals. Payment amounts are stored as Int
+ * SAR, so a fractional result (e.g. 10% off 1375 = 1237.5) would make checkout
+ * fail; checkout and renewal both use this one rounding rule.
+ */
 export function effectiveMonthlySar(monthlyPriceSar: number, discountPct: number): number {
-  return Math.round(monthlyPriceSar * (100 - discountPct)) / 100;
+  return Math.round((monthlyPriceSar * (100 - discountPct)) / 100);
 }
 
 export type SubscriptionState = 'paid' | 'due_soon' | 'due' | 'none';
