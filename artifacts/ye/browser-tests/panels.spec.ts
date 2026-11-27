@@ -192,6 +192,96 @@ test('progress selector finds an older class beyond the first page and hands off
   }
 });
 
+test('progress class and student survive reload, back/forward, and unavailable saved classes', async ({ page, context }) => {
+  const second = await db.courseRun.create({ data: {
+    programId, titleAr: `${prefix}-second`, startDate: new Date(), endDate: new Date(),
+    weekday: 1, time: '16:00', format: 'online',
+    enrollments: { create: { studentId: students[1], status: 'active' } },
+  } });
+  const skill = await db.skill.create({ data: {
+    programId, code: `${prefix}-gears`, nameAr: `${prefix}-skill-gears`, nameEn: `${prefix}-skill-gears`,
+  } });
+  await db.studentSkill.create({ data: { studentId: students[0], skillId: skill.id, status: 'mastered' } });
+  try {
+    await auth(context, 'admin');
+    const picker = page.getByTestId('input-progress-run');
+    const student = page.getByTestId('select-progress-student');
+    const heading = page.getByText(`مهارات Same name — ${prefix}`);
+    const mastered = page.getByRole('button', { name: 'أتقنها ★' });
+    const choose = async (title: string, runId: number) => {
+      await picker.click();
+      await picker.fill(title);
+      await expect(page.getByTestId('list-progress-runs').getByRole('option')).toHaveCount(1);
+      await page.getByTestId(`option-progress-run-${runId}`).click();
+      await expect(picker).toHaveValue(new RegExp(`#${runId}$`));
+    };
+    const expectUrl = async (run: number | null, kid: number | null) => {
+      await expect.poll(() => {
+        const q = new URL(page.url()).searchParams;
+        return [q.get('tab'), q.get('prun'), q.get('pstudent')];
+      }).toEqual(['progress', run === null ? null : String(run), kid === null ? null : String(kid)]);
+    };
+    const expectSelection = async (run: number, kid: number | null) => {
+      await expectUrl(run, kid);
+      await expect(picker).toHaveValue(new RegExp(`#${run}$`));
+      await expect(student).toHaveValue(kid === null ? '' : String(kid));
+      if (kid === null) await expect(heading).toHaveCount(0);
+      else await expect(heading).toBeVisible();
+    };
+
+    await page.goto('/admin?tab=progress');
+    await choose(`${prefix}-available`, courseId);
+    await expectUrl(courseId, null);
+    await student.selectOption(String(students[0]));
+    await expectSelection(courseId, students[0]);
+    await expect(page.getByText(`${prefix}-skill-gears`)).toBeVisible();
+    await expect(mastered).toHaveClass(/D69F00/);
+
+    // Refresh restores the same class, student and saved skill status.
+    await page.reload();
+    await expectSelection(courseId, students[0]);
+    await expect(page.getByText(`${prefix}-skill-gears`)).toBeVisible();
+    await expect(mastered).toHaveClass(/D69F00/);
+
+    // A second class and student, then step back and forward through history.
+    await choose(`${prefix}-second`, second.id);
+    await expectSelection(second.id, null);
+    await expect(student.locator('option[value]:not([value=""])')).toHaveCount(1);
+    await student.selectOption(String(students[1]));
+    await expectSelection(second.id, students[1]);
+    await expect(page.getByText(`${prefix}-skill-gears`)).toBeVisible();
+    await expect(mastered).not.toHaveClass(/D69F00/);
+
+    await page.goBack();
+    await expectSelection(second.id, null);
+    await page.goBack();
+    await expectSelection(courseId, students[0]);
+    await expect(mastered).toHaveClass(/D69F00/);
+    await page.goForward();
+    await expectSelection(second.id, null);
+    await page.goForward();
+    await expectSelection(second.id, students[1]);
+    await expect(mastered).not.toHaveClass(/D69F00/);
+
+    // Saved IDs for an inactive class and a deleted one show the notice and clear the params.
+    const notice = page.getByTestId('text-progress-run-missing');
+    for (const gone of [fullCourseId, 2147483000]) {
+      await page.goto(`/admin?tab=progress&prun=${gone}&pstudent=${students[0]}`);
+      await expect(notice).toBeVisible();
+      await expectUrl(null, null);
+      await expect(picker).toHaveValue('');
+      await expect(student).toBeDisabled();
+      await expect(heading).toHaveCount(0);
+    }
+    // Picking a class afterwards hides the notice again.
+    await choose(`${prefix}-available`, courseId);
+    await expect(notice).toHaveCount(0);
+  } finally {
+    await db.skill.delete({ where: { id: skill.id } });
+    await db.courseRun.delete({ where: { id: second.id } });
+  }
+});
+
 test('instructor class handoff, draft-safe refresh, failed save and attendance', async ({ page, context }) => {
   await auth(context, 'instructor');
   expect((await context.request.get('/svc/admin/bookings')).status()).toBe(401);

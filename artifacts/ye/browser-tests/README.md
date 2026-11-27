@@ -44,7 +44,11 @@ note save failures and draft-safe refresh; Arabic/English child-preserving porta
 links, wrong/right PIN selection, unavailable lessons, parent-exit gates, and
 learner session/enrollment/network recovery; and the admin progress class
 picker paging/searching to an older class beyond the first server page, then
-loading its roster and student progress. Only deliberate failure responses
+loading its roster and student progress. A second progress scenario checks
+that reload restores the URL-saved class, student and skill status, that
+Back/Forward step between two chosen classes and students, and that an
+inactive or deleted saved class shows the unavailable notice and clears
+`prun`/`pstudent`. Only deliberate failure responses
 are intercepted; successful writes use the real authenticated services.
 
 Browser evidence uses Chromium at desktop 1280×720, tablet 768×1024 and phone
