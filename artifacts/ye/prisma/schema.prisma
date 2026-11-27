@@ -254,9 +254,12 @@ model Family {
   parentName        String
   email             String?
   locale            String             @default("ar")
+  /// Last kit delivery address (prefills the next online checkout).
+  deliveryAddress   Json?
   createdAt         DateTime           @default(now())
   students          Student[]
   payments          Payment[]
+  kitShipments      KitShipment[]
   lrnChildren       LrnChild[]
   chatConversations ChatConversation[]
   chatActions       ChatActionAudit[]
@@ -475,6 +478,9 @@ model CourseRun {
   capacity        Int            @default(12)
   seatsLeft       Int            @default(12)
   monthlyPriceSar Int            @default(1380)
+  /// One-time kit fee (SAR, VAT and delivery included) charged with the FIRST
+  /// month of every new enrollment in an ONLINE run. Owner-editable in admin.
+  kitFeeSar       Int            @default(0)
   meetingUrl      String? // run-level meeting link for online runs (Zoom/Meet)
   active          Boolean        @default(true)
   sessions        ClassSession[]
@@ -561,6 +567,8 @@ model Payment {
   simulated   Boolean         @default(true)
   enrollmentIssue String?
   enrollmentIssueAt DateTime?
+  /// Kit delivery address captured at checkout (only when an item has a kit).
+  deliveryAddress Json?
   createdAt   DateTime        @default(now())
   items       PaymentItem[]
 
@@ -582,13 +590,63 @@ model PaymentItem {
   periodEnd    DateTime
   baseSar      Int
   discountPct  Int         @default(0)
+  /// Kit fee in this line (already INCLUDED in totalSar; never discounted).
+  kitFeeSar    Int         @default(0)
   totalSar     Int
   trialBooking   Booking? @relation("TrialConversion", fields: [trialBookingId], references: [id], onDelete: SetNull)
   trialBookingId Int?     @unique
+  kitShipment    KitShipment?
 
   @@index([paymentId])
   @@index([enrollmentId])
   @@map("ye_payment_items")
+}
+
+enum KitShipmentStatus {
+  to_ship
+  shipped
+  delivered
+  returned
+  cancelled
+
+  @@map("ye_kit_shipment_status")
+}
+
+/// One physical kit per child per new online enrollment, created when the
+/// payment settles and the enrollment is activated. Address fields are a
+/// snapshot of what the parent entered at checkout.
+model KitShipment {
+  id                  Int               @id @default(autoincrement())
+  paymentItem         PaymentItem?      @relation(fields: [paymentItemId], references: [id], onDelete: SetNull)
+  paymentItemId       Int?              @unique
+  family              Family            @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  familyId            Int
+  enrollmentId        Int?
+  studentName         String
+  programAr           String
+  programEn           String
+  kitCode             String
+  kitFeeSar           Int
+  recipientName       String
+  recipientPhone      String
+  city                String
+  district            String
+  addressLine         String
+  nationalAddressCode String?
+  postalCode          String?
+  status              KitShipmentStatus @default(to_ship)
+  carrier             String            @default("SMSA")
+  trackingNumber      String?
+  shippedAt           DateTime?
+  deliveredAt         DateTime?
+  returnedAt          DateTime?
+  adminNote           String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([status, createdAt])
+  @@index([familyId])
+  @@map("ye_kit_shipments")
 }
 
 enum PaymentKind {

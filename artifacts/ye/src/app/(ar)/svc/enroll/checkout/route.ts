@@ -8,6 +8,7 @@ import { addOneMonth } from '@/lib/billing';
 import { originFromRequest } from '@/lib/request-origin';
 import { createPaymentReturnState } from '@/lib/payment-return-state';
 import { isCityOnlyLocation } from '@/lib/classroom-location';
+import { createKitShipmentInTx, parseDeliveryAddress, type DeliveryAddress } from '@/lib/kit-delivery';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,16 @@ export async function POST(req: NextRequest) {
     { operation: 'checkout-family-read' },
   );
   if (!family) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  // Online enrollments ship a kit: a delivery address is required up front.
+  let deliveryAddress: DeliveryAddress | null = null;
+  if (cart.needsDelivery) {
+    const parsed = parseDeliveryAddress(body.delivery, family.phone);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: 'delivery_address_invalid', field: parsed.field }, { status: 400 });
+    }
+    deliveryAddress = parsed.address;
+  }
 
   const periodStart = new Date();
   const periodEnd = addOneMonth(periodStart);
@@ -110,6 +121,10 @@ export async function POST(req: NextRequest) {
             });
         enrollmentIds.push(enrollment.id);
       }
+      if (deliveryAddress) {
+        // Remember the address to prefill the family's next online checkout.
+        await tx.family.update({ where: { id: familyId }, data: { deliveryAddress } });
+      }
       const payment = await tx.payment.create({
         data: {
           familyId,
@@ -121,6 +136,7 @@ export async function POST(req: NextRequest) {
           discountSar: cart.discountSar,
           totalSar: cart.totalSar,
           simulated: false,
+          ...(deliveryAddress ? { deliveryAddress } : {}),
           items: {
             create: cart.items.map((item, i) => ({
               enrollmentId: enrollmentIds[i],
@@ -131,6 +147,7 @@ export async function POST(req: NextRequest) {
               periodEnd,
               baseSar: item.baseSar,
               discountPct: item.discountPct,
+              kitFeeSar: item.kitSar,
               totalSar: Math.round(item.totalSar),
               trialBookingId: item.trialBookingId,
             })),
@@ -163,10 +180,15 @@ export async function POST(req: NextRequest) {
       callbackUrl: `${origin}/svc/pay/return?state=${encodeURIComponent(returnState)}&lang=${lang}`,
       orderRef: String(paymentId),
       consumer: { name: family.parentName, phone: family.phone, email: family.email },
-      lines: cart.items.map((i) => ({
-        name: `${i.programNameEn} — ${i.studentName}`,
-        totalSar: Math.round(i.totalSar),
-      })),
+      lines: cart.items.flatMap((i) => [
+        { name: `${i.programNameEn} — ${i.studentName}`, totalSar: Math.round(i.totalSar - i.kitSar) },
+        ...(i.kitSar > 0
+          ? [{ name: `Engineering kit incl. SMSA delivery — ${i.studentName}`, totalSar: i.kitSar, physical: true }]
+          : []),
+      ]),
+      ...(deliveryAddress
+        ? { shippingAddress: { name: deliveryAddress.recipientName, phone: deliveryAddress.recipientPhone, city: deliveryAddress.city, line1: `${deliveryAddress.addressLine}, ${deliveryAddress.district}` } }
+        : {}),
     },
   );
 
@@ -229,6 +251,8 @@ export async function POST(req: NextRequest) {
       where: { id: { in: enrollmentIds } },
       data: { status: 'active', startedAt: new Date(), paidThrough: periodEnd },
     });
+    const settled = await tx.payment.findUniqueOrThrow({ where: { id: paymentId }, include: { items: true } });
+    for (const item of settled.items) await createKitShipmentInTx(tx, settled, item);
   }), { operation: 'checkout-simulated-settlement', kind: 'transaction' });
 
   const res = NextResponse.json({
@@ -238,6 +262,7 @@ export async function POST(req: NextRequest) {
     provider,
     totalSar: cart.totalSar,
     discountSar: cart.discountSar,
+    kitSar: cart.kitSar,
     items: cart.items,
     enrollmentIds,
   });
@@ -276,6 +301,7 @@ export async function GET(req: NextRequest) {
       studentName: i.studentName,
       programNameAr: i.programAr,
       programNameEn: i.programEn,
+      kitSar: i.kitFeeSar,
       totalSar: i.totalSar,
     })),
   });

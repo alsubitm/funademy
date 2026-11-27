@@ -25,6 +25,8 @@ export async function GET() {
       capacity: r.capacity,
       seatsLeft: r.seatsLeft,
       monthlyPriceSar: r.monthlyPriceSar,
+      // One-time kit fee for new online enrollments (0 for in-person runs).
+      kitFeeSar: r.format === 'online' ? r.kitFeeSar : 0,
     })),
   });
 }

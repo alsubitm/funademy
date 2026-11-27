@@ -41,6 +41,9 @@ CREATE TYPE "ye_session_status" AS ENUM ('scheduled', 'completed', 'cancelled');
 CREATE TYPE "ye_enrollment_status" AS ENUM ('pending', 'active', 'paused', 'cancelled');
 
 -- CreateEnum
+CREATE TYPE "ye_kit_shipment_status" AS ENUM ('to_ship', 'shipped', 'delivered', 'returned', 'cancelled');
+
+-- CreateEnum
 CREATE TYPE "ye_payment_kind" AS ENUM ('enrollment', 'renewal');
 
 -- CreateEnum
@@ -243,6 +246,7 @@ CREATE TABLE "ye_families" (
     "parentName" TEXT NOT NULL,
     "email" TEXT,
     "locale" TEXT NOT NULL DEFAULT 'ar',
+    "deliveryAddress" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_families_pkey" PRIMARY KEY ("id")
@@ -386,6 +390,7 @@ CREATE TABLE "ye_course_runs" (
     "capacity" INTEGER NOT NULL DEFAULT 12,
     "seatsLeft" INTEGER NOT NULL DEFAULT 12,
     "monthlyPriceSar" INTEGER NOT NULL DEFAULT 1380,
+    "kitFeeSar" INTEGER NOT NULL DEFAULT 0,
     "meetingUrl" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
 
@@ -434,6 +439,7 @@ CREATE TABLE "ye_payments" (
     "simulated" BOOLEAN NOT NULL DEFAULT true,
     "enrollmentIssue" TEXT,
     "enrollmentIssueAt" TIMESTAMP(3),
+    "deliveryAddress" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ye_payments_pkey" PRIMARY KEY ("id")
@@ -451,10 +457,42 @@ CREATE TABLE "ye_payment_items" (
     "periodEnd" TIMESTAMP(3) NOT NULL,
     "baseSar" INTEGER NOT NULL,
     "discountPct" INTEGER NOT NULL DEFAULT 0,
+    "kitFeeSar" INTEGER NOT NULL DEFAULT 0,
     "totalSar" INTEGER NOT NULL,
     "trialBookingId" INTEGER,
 
     CONSTRAINT "ye_payment_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ye_kit_shipments" (
+    "id" SERIAL NOT NULL,
+    "paymentItemId" INTEGER,
+    "familyId" INTEGER NOT NULL,
+    "enrollmentId" INTEGER,
+    "studentName" TEXT NOT NULL,
+    "programAr" TEXT NOT NULL,
+    "programEn" TEXT NOT NULL,
+    "kitCode" TEXT NOT NULL,
+    "kitFeeSar" INTEGER NOT NULL,
+    "recipientName" TEXT NOT NULL,
+    "recipientPhone" TEXT NOT NULL,
+    "city" TEXT NOT NULL,
+    "district" TEXT NOT NULL,
+    "addressLine" TEXT NOT NULL,
+    "nationalAddressCode" TEXT,
+    "postalCode" TEXT,
+    "status" "ye_kit_shipment_status" NOT NULL DEFAULT 'to_ship',
+    "carrier" TEXT NOT NULL DEFAULT 'SMSA',
+    "trackingNumber" TEXT,
+    "shippedAt" TIMESTAMP(3),
+    "deliveredAt" TIMESTAMP(3),
+    "returnedAt" TIMESTAMP(3),
+    "adminNote" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_kit_shipments_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1027,6 +1065,15 @@ CREATE INDEX "ye_payment_items_paymentId_idx" ON "ye_payment_items"("paymentId")
 CREATE INDEX "ye_payment_items_enrollmentId_idx" ON "ye_payment_items"("enrollmentId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ye_kit_shipments_paymentItemId_key" ON "ye_kit_shipments"("paymentItemId");
+
+-- CreateIndex
+CREATE INDEX "ye_kit_shipments_status_createdAt_idx" ON "ye_kit_shipments"("status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ye_kit_shipments_familyId_idx" ON "ye_kit_shipments"("familyId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ye_attendance_sessionId_studentId_key" ON "ye_attendance"("sessionId", "studentId");
 
 -- CreateIndex
@@ -1220,6 +1267,12 @@ ALTER TABLE "ye_payment_items" ADD CONSTRAINT "ye_payment_items_enrollmentId_fke
 
 -- AddForeignKey
 ALTER TABLE "ye_payment_items" ADD CONSTRAINT "ye_payment_items_trialBookingId_fkey" FOREIGN KEY ("trialBookingId") REFERENCES "ye_bookings"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_kit_shipments" ADD CONSTRAINT "ye_kit_shipments_paymentItemId_fkey" FOREIGN KEY ("paymentItemId") REFERENCES "ye_payment_items"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ye_kit_shipments" ADD CONSTRAINT "ye_kit_shipments_familyId_fkey" FOREIGN KEY ("familyId") REFERENCES "ye_families"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ye_attendance" ADD CONSTRAINT "ye_attendance_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ye_class_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;

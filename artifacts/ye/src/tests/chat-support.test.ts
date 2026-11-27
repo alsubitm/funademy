@@ -246,6 +246,14 @@ describe('chat messages and action confirmation', () => {
   });
 
   it('allows an ordinary phone/age and an OTP support question without an actual code', async () => {
+    // "my child is age 8" is a recommendation request: with no published programme
+    // for that age, Nujaym answers deterministically without the model. Create one so
+    // this test does not depend on fixtures other suites happen to leave behind.
+    const program = await prisma.program.create({ data: {
+      slug: `chat-age-fit-${RUN}`, kitCode: 'KIT-01', nameEn: 'Age Fit', nameAr: 'مناسب للعمر', ageMin: 4, ageMax: 14, format: 'in_person', color: '#101010', level: 1,
+      taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
+    } });
+    programIds.push(program.id);
     const c = await conversation(null);
     for (const [n, content] of ['My phone is +966 50 555 1021 and my child is age 8', 'How do I receive my login OTP?'].entries()) {
       const response = await messagesPOST(
@@ -456,6 +464,11 @@ describe('chat messages and action confirmation', () => {
       taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
     } });
     programIds.push(program.id);
+    // An explicit id does not advance the serial sequence. On a fresh database the
+    // smallest free id IS the sequence's next value, so later program.create calls
+    // would collide (unique violation). Move the sequence past every used id; this
+    // only ever raises it, so ids are never recycled.
+    await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('ye_programs', 'id'), GREATEST((SELECT MAX(id) FROM ye_programs), (SELECT last_value FROM ye_programs_id_seq)))`;
     const slot = await prisma.scheduleSlot.create({ data: { programId: program.id, weekday: 1, time: '17:00', format: 'in_person', location: 'Synthetic Test Centre', capacity: 2, seatsLeft: 2 } });
     const c = await conversation(f.id);
     asFamily(f.id);
