@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
+import { effectiveMonthlySar } from '@/lib/billing';
 
 /**
  * Enrollment cart — items live in a signed httpOnly cookie tied to the family
@@ -141,7 +142,7 @@ export async function priceCart(familyId: number, items: CartItem[]): Promise<Pr
 
   const priced: PricedItem[] = valid.map(({ s, r, trialBookingId }, idx) => {
     const discountPct = idx === 0 ? 0 : SIBLING_DISCOUNT_PCT;
-    const totalSar = Math.round(r.monthlyPriceSar * (100 - discountPct)) / 100;
+    const totalSar = effectiveMonthlySar(r.monthlyPriceSar, discountPct);
     return {
       studentId: s.id,
       studentName: s.firstName,

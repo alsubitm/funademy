@@ -33,6 +33,7 @@ import {
 import { POST as appointmentsPOST } from '@/app/(ar)/svc/appointments/route';
 import { POST as bookingsPOST } from '@/app/(ar)/svc/bookings/route';
 import { createTrialBooking } from '@/lib/chat-booking';
+import { withTrialSeats } from '@/lib/trial-capacity';
 
 const mockCreate = vi.mocked(createMeetEvent);
 const mockAddAttendee = vi.mocked(addAttendeeToEvent);
@@ -346,7 +347,7 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     auth.familyId = 2147483647;
     expect((await bookingsPOST(jsonReq('/svc/bookings', bookingBody(program.id, slot.id)))).status).toBe(401);
     expect(await prisma.booking.count({ where: { slotId: slot.id } })).toBe(0);
-    expect((await prisma.scheduleSlot.findUniqueOrThrow({ where: { id: slot.id } })).seatsLeft).toBe(12);
+    expect((await withTrialSeats([slot]))[0].seatsLeft).toBe(12);
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -376,10 +377,8 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     expect(outcomes.filter((r) => r.status === 'rejected').every((r) =>
       r.status === 'rejected' && r.reason.message === 'trial_limit')).toBe(true);
     expect(await prisma.booking.count({ where: { phone: verifiedPhone } })).toBe(5);
-    const remaining = await prisma.scheduleSlot.aggregate({
-      where: { id: { in: [slot.id, other.id] } }, _sum: { seatsLeft: true },
-    });
-    expect(remaining._sum.seatsLeft).toBe(19);
+    const remaining = await withTrialSeats([slot, other]);
+    expect(remaining.reduce((sum, s) => sum + s.seatsLeft, 0)).toBe(19);
   });
 
   it('second booking into the same program/time reuses the event and adds the guest', async () => {
@@ -531,6 +530,6 @@ describe('POST /svc/bookings — trial meeting reuse', () => {
     expect(await prisma.booking.count({
       where: { id: json.id, programId: program.id, slotId: slot.id, phone: body.phone },
     })).toBe(1);
-    expect((await prisma.scheduleSlot.findUniqueOrThrow({ where: { id: slot.id } })).seatsLeft).toBe(11);
+    expect((await withTrialSeats([slot]))[0].seatsLeft).toBe(11);
   });
 });

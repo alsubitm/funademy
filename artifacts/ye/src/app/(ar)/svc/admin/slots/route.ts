@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { withTrialSeats } from '@/lib/trial-capacity';
 import { requireAdmin } from '../guard';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,8 @@ export async function GET() {
     include: { program: true },
     orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
   });
-  return NextResponse.json({ slots });
+  // Seats shown are for each slot's next weekly occurrence (trial-capacity.ts).
+  return NextResponse.json({ slots: await withTrialSeats(slots) });
 }
 
 export async function POST(req: NextRequest) {

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { chatExpiry } from '@/lib/chat-auth';
 import { consultAvailability, nextOccurrence } from '@/lib/appointments';
 import { createConsultation, createTrialBooking } from '@/lib/chat-booking';
+import { withTrialSeats } from '@/lib/trial-capacity';
 
 export const prepareActionSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -166,10 +167,12 @@ export async function prepareChatAction(conversationId: string, familyId: number
   } else {
     const [student, slot] = await Promise.all([
       prisma.student.findFirst({ where: { id: input.studentId, familyId } }),
-      prisma.scheduleSlot.findFirst({ where: { id: input.slotId, programId: input.programId, active: true, seatsLeft: { gt: 0 } } }),
+      prisma.scheduleSlot.findFirst({ where: { id: input.slotId, programId: input.programId, active: true } }),
     ]);
     if (!student) throw new Error('student_not_owned');
     if (!slot) throw new Error('slot_unavailable');
+    // Early, friendly check only; createTrialBooking re-checks under the seat lock.
+    if ((await withTrialSeats([slot]))[0].seatsLeft <= 0) throw new Error('slot_unavailable');
     actionPayload = {
       studentId: input.studentId,
       programId: input.programId,

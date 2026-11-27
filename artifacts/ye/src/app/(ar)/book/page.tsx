@@ -1,6 +1,7 @@
 export const revalidate = 300;
 import { prisma, withDbRetry } from '@/lib/db';
 import { safeQuery } from '@/lib/safe-query';
+import { withTrialSeats } from '@/lib/trial-capacity';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SandStripe } from '@/components/SandStripe';
@@ -48,10 +49,12 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
     () => withDbRetry(
       () => Promise.all([
         prisma.program.findMany({ orderBy: { position: 'asc' } }),
-        prisma.scheduleSlot.findMany({
-          where: { active: true },
-          orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
-        }),
+        prisma.scheduleSlot
+          .findMany({
+            where: { active: true },
+            orderBy: [{ weekday: 'asc' }, { time: 'asc' }],
+          })
+          .then((slots) => withTrialSeats(slots)),
       ]),
       { operation: 'book-ar:availability', kind: 'read' },
     ),

@@ -282,7 +282,7 @@ export function BookingFlow({ programs, slots, lang, preselectProgramSlug, prese
             {filteredSlots.map((s) => {
               const isFull = s.seatsLeft <= 0;
               const isSelected = s.id === slotId;
-              const fmtLabel = d.inPerson;
+              const fmtLabel = s.format === 'online' ? d.online : d.inPerson;
               const slotInfo = (
                 <>
                   <div className="slot-main">

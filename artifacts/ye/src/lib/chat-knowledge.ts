@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { withTrialSeats } from '@/lib/trial-capacity';
 
 export type KnowledgeSource = {
   id: string;
@@ -30,11 +31,14 @@ export async function buildLiveKnowledge(): Promise<KnowledgeSource[]> {
       orderBy: { startDate: 'asc' },
       take: 40,
     }),
-    prisma.scheduleSlot.findMany({
-      where: { active: true },
-      include: { program: { select: { nameAr: true, nameEn: true } } },
-      take: 60,
-    }),
+    prisma.scheduleSlot
+      .findMany({
+        where: { active: true },
+        include: { program: { select: { nameAr: true, nameEn: true } } },
+        take: 60,
+      })
+      // Seat counts are informative only; never let them break the assistant's knowledge.
+      .then((slots) => withTrialSeats(slots).catch(() => slots)),
     prisma.faqEntry.findMany({ where: { published: true }, orderBy: { position: 'asc' }, take: 60 }),
   ]);
 

@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
     include: { student: { include: { family: true } }, courseRun: { include: { program: true } } },
   });
   if (!enrollment) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  if (enrollment.status !== 'active' && enrollment.status !== 'pending') {
+  // Only ACTIVE enrollments renew. A pending enrollment's first payment has not
+  // settled yet: renewing it could leave the renewal money with no seat (if the
+  // first payment expires) or have its month overwritten when it settles.
+  if (enrollment.status !== 'active') {
     return NextResponse.json({ error: 'not_renewable' }, { status: 409 });
   }
 
