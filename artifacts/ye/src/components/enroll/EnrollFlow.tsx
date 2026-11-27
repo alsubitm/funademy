@@ -19,6 +19,8 @@ type Run = {
   location: string | null;
   seatsLeft: number;
   monthlyPriceSar: number;
+  /** One-time kit fee for new online enrollments (0 for in-person). */
+  kitFeeSar: number;
   startDate: string;
   endDate: string;
 };
@@ -32,9 +34,13 @@ type CartItem = {
   time: string;
   baseSar: number;
   discountPct: number;
+  kitSar: number;
   totalSar: number;
 };
-type Cart = { items: CartItem[]; subtotalSar: number; discountSar: number; totalSar: number };
+type Cart = { items: CartItem[]; subtotalSar: number; discountSar: number; totalSar: number; kitSar: number; needsDelivery: boolean };
+const EMPTY_CART: Cart = { items: [], subtotalSar: 0, discountSar: 0, totalSar: 0, kitSar: 0, needsDelivery: false };
+const DELIVERY_FIELDS = ['recipientName', 'recipientPhone', 'city', 'district', 'addressLine', 'nationalAddressCode', 'postalCode'] as const;
+type Delivery = Record<(typeof DELIVERY_FIELDS)[number], string>;
 type DoneItem = Partial<CartItem> & { studentName: string; programNameAr: string; programNameEn: string; totalSar: number; studentId: number; courseRunId: number };
 type Done = { reference: string; totalSar: number; discountSar: number; items: DoneItem[]; simulated?: boolean };
 
@@ -50,7 +56,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
   const [authed, setAuthed] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
-  const [cart, setCart] = useState<Cart>({ items: [], subtotalSar: 0, discountSar: 0, totalSar: 0 });
+  const [cart, setCart] = useState<Cart>(EMPTY_CART);
 
   const [childId, setChildId] = useState<number | null>(null);
   const [provider, setProvider] = useState<string>('moyasar_mada');
@@ -59,6 +65,9 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
   const [done, setDone] = useState<Done | null>(null);
   const [live, setLive] = useState<{ moyasar: boolean; tamara: boolean }>({ moyasar: false, tamara: false });
   const [avail, setAvail] = useState<{ moyasar: boolean; tamara: boolean }>({ moyasar: true, tamara: true });
+  // Declared after the original state so existing hook order stays stable.
+  const [delivery, setDelivery] = useState<Delivery>({ recipientName: '', recipientPhone: '', city: '', district: '', addressLine: '', nationalAddressCode: '', postalCode: '' });
+  const [badField, setBadField] = useState<string | null>(null);
 
   const errMsg = (k: string | null) => (k ? d.errors[k] ?? d.errors.generic : null);
 
@@ -102,6 +111,14 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
         setAuthed(true);
         setStudents(me.students);
         if (me.students.length === 1) setChildId(me.students[0].id);
+        // Prefill the kit delivery address from the last online checkout.
+        const saved = me.deliveryAddress && typeof me.deliveryAddress === 'object' ? me.deliveryAddress : null;
+        setDelivery((cur) => {
+          const next = { ...cur };
+          for (const f of DELIVERY_FIELDS) next[f] = typeof saved?.[f] === 'string' ? saved[f] : next[f];
+          if (!next.recipientName && typeof me.parentName === 'string') next.recipientName = me.parentName;
+          return next;
+        });
         const cartRes = await fetch('/svc/enroll/cart', { cache: 'no-store' });
         if (cartRes.ok) setCart(await cartRes.json());
       }
@@ -160,17 +177,21 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
       const res = await fetch('/svc/enroll/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, lang }),
+        body: JSON.stringify({ provider, lang, ...(cart.needsDelivery ? { delivery } : {}) }),
       });
       const data = await res.json();
-      if (!res.ok) return setError(data.error ?? 'generic');
+      if (!res.ok) {
+        setBadField(data.error === 'delivery_address_invalid' ? data.field ?? null : null);
+        return setError(data.error ?? 'generic');
+      }
+      setBadField(null);
       if (data.redirectUrl) {
         // LIVE payment — continue on the provider's secure page.
         window.location.assign(data.redirectUrl);
         return;
       }
       setDone(data);
-      setCart({ items: [], subtotalSar: 0, discountSar: 0, totalSar: 0 });
+      setCart(EMPTY_CART);
     } catch {
       setError('generic');
     } finally {
@@ -197,6 +218,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
               <p>{new Date(r.startDate).toLocaleDateString(lang === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', { timeZone: 'Asia/Riyadh' })} – {new Date(r.endDate).toLocaleDateString(lang === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', { timeZone: 'Asia/Riyadh' })}</p>
               {r.format === 'in_person' && <ClassroomLocation location={r.location} lang={lang} />}
               <p>{fmt(lang, r.monthlyPriceSar)} {d.perMonth}</p>
+              {r.kitFeeSar > 0 && <p>{d.kitOnce(fmt(lang, r.kitFeeSar))}</p>}
               <p>{lang === 'ar' ? 'تفاصيل الضريبة، مدة وعدد الحصص، الأدوات وشروط التجديد: تُؤكَّد مع الإدارة قبل الدفع.' : 'Tax details, session count and duration, kits and renewal terms: confirm with the academy before paying.'}</p>
               {unconfirmed ? <p>{lang === 'ar' ? 'المقر قيد التأكيد — التسجيل غير متاح لهذه المجموعة.' : 'Venue to be confirmed — enrollment unavailable for this group.'}</p>
                 : r.seatsLeft <= 0 ? <p>{d.full}</p>
@@ -306,6 +328,7 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
                       <div className="r-price">
                         {fmt(lang, r.monthlyPriceSar)} {d.perMonth}
                       </div>
+                      {r.kitFeeSar > 0 && <div className="r-meta">{d.kitOnce(fmt(lang, r.kitFeeSar))}</div>}
                       <button
                         className="acct-btn"
                         style={{ width: 'auto', fontSize: 13, padding: '8px 16px', marginTop: 6 }}
@@ -341,13 +364,14 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
                 <div className="c-price">
                   {it.discountPct > 0 && (
                     <div className="base off">
-                      {fmt(lang, it.baseSar)} {d.sar}
+                      {fmt(lang, it.baseSar + it.kitSar)} {d.sar}
                     </div>
                   )}
                   <div className="final">
                     {fmt(lang, it.totalSar)} {d.sar}
                   </div>
                   {it.discountPct > 0 && <span className="tag">{d.siblingDiscount}</span>}
+                  {it.kitSar > 0 && <div className="base">{d.kitIncluded(fmt(lang, it.kitSar))}</div>}
                 </div>
                 <button className="acct-btn danger" onClick={() => removeItem(it)}>
                   {d.remove}
@@ -356,11 +380,19 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
             ))}
             <div className="enr-totals">
               <div className="row">
-                <span>{d.subtotal}</span>
+                <span>{cart.kitSar > 0 ? d.classFees : d.subtotal}</span>
                 <span>
-                  {fmt(lang, cart.subtotalSar)} {d.sar}
+                  {fmt(lang, cart.subtotalSar - cart.kitSar)} {d.sar}
                 </span>
               </div>
+              {cart.kitSar > 0 && (
+                <div className="row">
+                  <span>{d.kitLine}</span>
+                  <span>
+                    {fmt(lang, cart.kitSar)} {d.sar}
+                  </span>
+                </div>
+              )}
               {cart.discountSar > 0 && (
                 <div className="row">
                   <span>{d.discount}</span>
@@ -370,12 +402,35 @@ export function EnrollFlow({ lang, preselectProgramSlug, trialBookingId }: { lan
                 </div>
               )}
               <div className="row grand">
-                <span>{d.total}</span>
+                <span>{cart.kitSar > 0 ? d.totalFirst : d.total}</span>
                 <span>
                   {fmt(lang, cart.totalSar)} {d.sar}
                 </span>
               </div>
             </div>
+
+            {cart.needsDelivery && (
+              <fieldset className="enr-delivery" style={{ marginTop: 20, border: 0, padding: 0 }}>
+                <legend><h3 style={{ margin: 0 }}>{d.deliveryTitle}</h3></legend>
+                <p style={{ margin: '6px 0 12px' }}>{d.deliveryNote}</p>
+                {DELIVERY_FIELDS.map((f) => (
+                  <div key={f} className="acct-field">
+                    <label htmlFor={`delivery-${f}`}>{d.deliveryFields[f]}</label>
+                    <input
+                      id={`delivery-${f}`}
+                      value={delivery[f]}
+                      onChange={(e) => { setDelivery({ ...delivery, [f]: e.target.value }); if (badField === f) setBadField(null); }}
+                      aria-invalid={badField === f}
+                      dir={f === 'recipientPhone' || f === 'nationalAddressCode' || f === 'postalCode' ? 'ltr' : undefined}
+                      inputMode={f === 'recipientPhone' || f === 'postalCode' ? 'numeric' : undefined}
+                      autoComplete={f === 'recipientName' ? 'name' : f === 'recipientPhone' ? 'tel' : f === 'city' ? 'address-level2' : f === 'postalCode' ? 'postal-code' : f === 'addressLine' ? 'street-address' : 'off'}
+                      required={f === 'recipientName' || f === 'city' || f === 'district' || f === 'addressLine'}
+                      style={badField === f ? { borderColor: '#c0392b' } : undefined}
+                    />
+                  </div>
+                ))}
+              </fieldset>
+            )}
 
             <h3 style={{ marginTop: 20 }}>{d.payTitle}</h3>
             {!avail.moyasar && !avail.tamara ? (

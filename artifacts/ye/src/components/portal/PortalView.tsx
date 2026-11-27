@@ -494,7 +494,7 @@ async function RenewalAlert({ lang, familyId, d }: { lang: Lang; familyId: numbe
 
 async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; familyId: number; d: (typeof portalDict)['ar']; payNotice?: 'paid' | 'pending' | 'fail' }) {
   const base = lang === 'ar' ? '' : '/en';
-  const [subs, payments] = await Promise.all([
+  const [subs, payments, kits] = await Promise.all([
     prisma.enrollment.findMany({
       where: { student: { familyId }, status: { in: ['active', 'pending'] } },
       include: { student: true, courseRun: { include: { program: true } } },
@@ -506,7 +506,15 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
       orderBy: { createdAt: 'desc' },
       take: 20,
     }),
+    prisma.kitShipment.findMany({
+      where: { familyId, status: { not: 'cancelled' } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
   ]);
+  const kitStatus: Record<string, string> = lang === 'ar'
+    ? { to_ship: 'قيد التجهيز للشحن', shipped: 'تم الشحن مع سمسا', delivered: 'تم التسليم', returned: 'تم الإرجاع' }
+    : { to_ship: 'Being prepared for shipping', shipped: 'Shipped with SMSA', delivered: 'Delivered', returned: 'Returned' };
 
   const stateLabel: Record<string, string> = {
     paid: d.subPaid, due_soon: d.subDueSoon, due: d.subDue, none: d.subNone,
@@ -572,6 +580,22 @@ async function PaymentsSection({ lang, familyId, d, payNotice }: { lang: Lang; f
       )}
 
       {/* payment history + receipts */}
+      {kits.length > 0 && (
+        <>
+          <div className="ptl-prog-name">{lang === 'ar' ? 'أطقم الأطفال' : 'Children’s kits'}</div>
+          {kits.map((k) => (
+            <div key={k.id} className="ptl-pay" data-testid="portal-kit">
+              <span className="d">{fmtDate(lang, k.shippedAt ?? k.createdAt)}</span>
+              <span className="p">
+                {k.studentName} — {lang === 'ar' ? k.programAr : k.programEn}
+                <span className="ptl-tag" style={{ marginInlineStart: 8 }}>{kitStatus[k.status] ?? k.status}</span>
+              </span>
+              <span className="amt" dir="ltr">{k.trackingNumber ?? ''}</span>
+            </div>
+          ))}
+        </>
+      )}
+
       <div className="ptl-prog-name">{d.history}</div>
       {payments.length === 0 ? (
         <div className="ptl-empty">

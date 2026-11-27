@@ -51,6 +51,8 @@ export function RunsTab({ programs }: { programs: any[] }) {
   const [location, setLocation] = useState('');
   const [capacity, setCapacity] = useState('12');
   const [price, setPrice] = useState('1380');
+  // Suggested kit fee for online runs (owner decision Nov 2026: 570 SAR incl. VAT + SMSA delivery).
+  const [kitFee, setKitFee] = useState('570');
   const [meetUrl, setMeetUrl] = useState('');
 
   // drill-down
@@ -66,6 +68,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
   const [eTime, setETime] = useState('');
   const [eCap, setECap] = useState('');
   const [ePrice, setEPrice] = useState('');
+  const [eKit, setEKit] = useState('');
   const [eLoc, setELoc] = useState('');
   const [eMeet, setEMeet] = useState('');
   const [saving, setSaving] = useState(false);
@@ -75,6 +78,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
     setETime(run.time);
     setECap(String(run.capacity));
     setEPrice(String(run.monthlyPriceSar));
+    setEKit(String(run.kitFeeSar ?? 0));
     setELoc(run.location || '');
     setEMeet(run.meetingUrl || '');
     setEditing(true);
@@ -89,7 +93,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
       body: JSON.stringify({
         id: openRun.id, titleAr: eTitle || null, time: eTime,
         capacity: Number(eCap), monthlyPriceSar: Number(ePrice), location: eLoc || null,
-        ...(openRun.format === 'online' ? { meetingUrl: eMeet.trim() || null } : {}),
+        ...(openRun.format === 'online' ? { meetingUrl: eMeet.trim() || null, kitFeeSar: Number(eKit || 0) } : {}),
       }),
     });
     if (res.ok) {
@@ -239,6 +243,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
         location: format === 'in_person' ? location : null,
         meetingUrl: format === 'online' ? meetUrl.trim() || null : null,
         capacity: Number(capacity), monthlyPriceSar: Number(price),
+        kitFeeSar: format === 'online' ? Number(kitFee || 0) : 0,
       }),
     });
     if (res.ok) {
@@ -337,7 +342,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h2 className="text-2xl font-display font-bold text-[#101A38]">{openRun.program?.nameAr} — {openRun.titleAr || fmtDate(openRun.startDate)}</h2>
-              <p className="text-sm text-[#5F6B92] mt-1">{WEEKDAYS_AR[openRun.weekday]} {openRun.time} · {openRun.format === 'in_person' ? 'حضوري' : 'أونلاين'}{openRun.location ? ` · ${openRun.location}` : ''} · السعة {openRun.capacity} · {openRun.monthlyPriceSar} ر.س/شهر</p>
+              <p className="text-sm text-[#5F6B92] mt-1">{WEEKDAYS_AR[openRun.weekday]} {openRun.time} · {openRun.format === 'in_person' ? 'حضوري' : 'أونلاين'}{openRun.location ? ` · ${openRun.location}` : ''} · السعة {openRun.capacity} · {openRun.monthlyPriceSar} ر.س/شهر{openRun.format === 'online' ? ` · الطقم ${openRun.kitFeeSar ?? 0} ر.س` : ''}</p>
             </div>
             <button onClick={() => (editing ? setEditing(false) : startEdit(openRun))} className="text-[#1C54CB] font-bold text-sm bg-[#F0F5FF] px-4 py-2 rounded-xl hover:bg-[#E0EBFF] transition-colors">
               {editing ? 'إلغاء' : 'تعديل الدفعة'}
@@ -365,6 +370,12 @@ export function RunsTab({ programs }: { programs: any[] }) {
                 <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">الموقع</label>
                 <input value={eLoc} onChange={(e) => setELoc(e.target.value)} className="input-hq" />
               </div>
+              {openRun.format === 'online' && (
+                <div>
+                  <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">رسوم الطقم — مرة واحدة مع الشهر الأول (ر.س)</label>
+                  <input type="number" value={eKit} onChange={(e) => setEKit(e.target.value)} className="input-hq font-mono text-center" min="0" max="10000" required />
+                </div>
+              )}
               {openRun.format === 'online' && (
                 <div className="sm:col-span-2">
                   <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">رابط الاجتماع (Zoom/Meet)</label>
@@ -489,6 +500,13 @@ export function RunsTab({ programs }: { programs: any[] }) {
             <div className="lg:col-span-3">
               <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">الموقع (اختياري)</label>
               <input value={location} onChange={(e) => setLocation(e.target.value)} className="input-hq" placeholder="مثال: مدرسة أطياف، حي الصحافة..." />
+            </div>
+          )}
+          {format === 'online' && (
+            <div>
+              <label className="block text-[13px] font-bold text-[#5F6B92] mb-2">رسوم الطقم — مرة واحدة (ر.س)</label>
+              <input type="number" value={kitFee} onChange={(e) => setKitFee(e.target.value)} className="input-hq font-mono text-center" min="0" max="10000" required />
+              <p className="text-xs text-[#5F6B92] mt-1">تُضاف للشهر الأول لكل طفل جديد، شاملة الضريبة والتوصيل (بدون خصم إخوة)</p>
             </div>
           )}
           {format === 'online' && (

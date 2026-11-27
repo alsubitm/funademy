@@ -6,8 +6,9 @@ import { effectiveMonthlySar } from '@/lib/billing';
 
 /**
  * Enrollment cart — items live in a signed httpOnly cookie tied to the family
- * session; ALL pricing (1,380 SAR/child/month, 10% sibling discount from the
- * 2nd item) is computed server-side from the database, never from the client.
+ * session; ALL pricing (monthly fee per run, 10% sibling discount on the class
+ * fee from the 2nd item, plus the one-time kit fee for new ONLINE enrollments)
+ * is computed server-side from the database, never from the client.
  */
 
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -81,6 +82,8 @@ export type PricedItem = {
   seatsLeft: number;
   baseSar: number;
   discountPct: number;
+  /** One-time kit fee for a new ONLINE enrollment (0 otherwise). Never discounted; included in totalSar. */
+  kitSar: number;
   totalSar: number;
   trialBookingId?: number;
 };
@@ -90,7 +93,16 @@ export type PricedCart = {
   subtotalSar: number;
   discountSar: number;
   totalSar: number;
+  /** Sum of kit fees in the cart (already included in subtotal and total). */
+  kitSar: number;
+  /** True when any item ships a kit, so checkout needs a delivery address. */
+  needsDelivery: boolean;
 };
+
+/** Kit fee for a new enrollment in this run: online runs only. */
+export function kitFeeFor(run: { format: string; kitFeeSar: number }): number {
+  return run.format === 'online' ? Math.max(0, run.kitFeeSar) : 0;
+}
 
 /**
  * Validate cart items against the DB (ownership, active run, age eligibility)
@@ -144,7 +156,9 @@ export async function priceCart(familyId: number, items: CartItem[]): Promise<Pr
 
   const priced: PricedItem[] = valid.map(({ s, r, trialBookingId }, idx) => {
     const discountPct = idx === 0 ? 0 : SIBLING_DISCOUNT_PCT;
-    const totalSar = effectiveMonthlySar(r.monthlyPriceSar, discountPct);
+    // Sibling discount applies to the class fee only; the kit is charged in full.
+    const kitSar = kitFeeFor(r);
+    const totalSar = effectiveMonthlySar(r.monthlyPriceSar, discountPct) + kitSar;
     return {
       studentId: s.id,
       studentName: s.firstName,
@@ -162,12 +176,14 @@ export async function priceCart(familyId: number, items: CartItem[]): Promise<Pr
       seatsLeft: r.seatsLeft,
       baseSar: r.monthlyPriceSar,
       discountPct,
+      kitSar,
       totalSar,
       ...(trialBookingId ? { trialBookingId } : {}),
     };
   });
 
-  const subtotalSar = priced.reduce((sum, i) => sum + i.baseSar, 0);
+  const kitSar = priced.reduce((sum, i) => sum + i.kitSar, 0);
+  const subtotalSar = priced.reduce((sum, i) => sum + i.baseSar, 0) + kitSar;
   const totalSar = priced.reduce((sum, i) => sum + i.totalSar, 0);
-  return { items: priced, subtotalSar, discountSar: subtotalSar - totalSar, totalSar };
+  return { items: priced, subtotalSar, discountSar: subtotalSar - totalSar, totalSar, kitSar, needsDelivery: kitSar > 0 };
 }

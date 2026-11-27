@@ -1,6 +1,7 @@
 import { addOneMonth } from '@/lib/billing';
 import { reconcilePaymentCreation, verifyPayment, type PaymentProvider, PAYMENT_PROVIDERS } from '@/lib/payments';
 import { prisma, withDbRetry } from '@/lib/db';
+import { createKitShipmentInTx } from '@/lib/kit-delivery';
 
 /**
  * Shared finalization for live payments.
@@ -142,6 +143,7 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
               where: { id: enr.id },
               data: { status: 'active', startedAt: now, paidThrough: item.periodEnd },
             });
+            if (!(await createKitShipmentInTx(tx, freshPayment, item))) issue = 'kit_address_missing';
           } else {
             issue = 'payment_received_enrollment_unconfirmed';
             // Run is full — keep enrollment as cancelled, flag for manual refund.
@@ -154,6 +156,8 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
             where: { id: enr.id },
             data: { status: 'active', startedAt: now, paidThrough: item.periodEnd },
           });
+          // One kit per child for a new online enrollment (no-op when kitFeeSar is 0).
+          if (!(await createKitShipmentInTx(tx, freshPayment, item))) issue = 'kit_address_missing';
         } else { issue = 'enrollment_state_conflict'; }
       }
     } else {

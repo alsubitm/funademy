@@ -28,6 +28,8 @@ export async function GET() {
     phone: family.phone,
     parentName: family.parentName,
     locale: family.locale,
+    // Last kit delivery address — prefills the next online checkout.
+    deliveryAddress: family.deliveryAddress ?? null,
     students: family.students.map((s) => ({
       id: s.id,
       firstName: s.firstName,

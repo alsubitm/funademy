@@ -8,7 +8,7 @@ export function loadProgramPricing(programId: number, now = new Date()) {
     orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
     select: {
       id: true, titleAr: true, titleEn: true, startDate: true,
-      weekday: true, time: true, format: true, location: true, monthlyPriceSar: true,
+      weekday: true, time: true, format: true, location: true, monthlyPriceSar: true, kitFeeSar: true,
     },
   }), null, 'program:pricing');
 }

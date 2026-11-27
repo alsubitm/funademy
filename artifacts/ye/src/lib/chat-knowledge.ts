@@ -100,7 +100,7 @@ export async function buildLiveKnowledge(): Promise<KnowledgeSource[]> {
       titleEn: r.program.nameEn,
       url: '/enroll',
       text: clean(
-        `${r.program.nameAr} / ${r.program.nameEn}; ${r.startDate.toISOString()}–${r.endDate.toISOString()}; weekday ${r.weekday}; ${r.time}; ${r.format}; seats ${r.seatsLeft}; monthly SAR ${r.monthlyPriceSar}`,
+        `${r.program.nameAr} / ${r.program.nameEn}; ${r.startDate.toISOString()}–${r.endDate.toISOString()}; weekday ${r.weekday}; ${r.time}; ${r.format}; seats ${r.seatsLeft}; monthly SAR ${r.monthlyPriceSar}${r.format === 'online' && r.kitFeeSar > 0 ? `; one-time kit SAR ${r.kitFeeSar} with the first month (VAT and SMSA delivery included, sibling discount does not apply to the kit)` : ''}`,
       ),
     })),
     ...slots.map((s) => ({
