@@ -404,7 +404,12 @@ describe('chat messages and action confirmation', () => {
   it('replays the original prepared action rather than preparing a second one', async () => {
     const f = await family('stream-recovery');
     const child = await prisma.student.create({ data: { familyId: f.id, firstName: 'Child', birthYear: new Date().getFullYear() - 8 } });
+    // The chat blocks any 13-19 digit run as a possible card number, so keep the
+    // command's IDs short even after the shared test database has grown.
+    const [{ free }] = await prisma.$queryRaw<{ free: number }[]>`
+      SELECT n AS free FROM generate_series(1, 100000) n WHERE NOT EXISTS (SELECT 1 FROM ye_programs WHERE id = n) LIMIT 1`;
     const program = await prisma.program.create({ data: {
+      id: Number(free),
       slug: `chat-stream-recovery-${RUN}`, kitCode: 'KIT-01', nameEn: 'Test', nameAr: 'اختبار', ageMin: 4, ageMax: 14, format: 'in_person', color: '#101010', level: 1,
       taglineEn: 't', taglineAr: 'ت', descEn: 'd', descAr: 'د', buildsEn: [], buildsAr: [], termsEn: [], termsAr: [],
     } });

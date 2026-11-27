@@ -31,7 +31,10 @@ describe('URL-backed admin list state', () => {
     expect(location.searchParams.get('rcursor')).toBe('prev:4');
     expect(location.searchParams.get('rq')).toBe('class');
     expect(location.hash).toBe('#list');
-    expect(navigate).toHaveBeenCalledWith({ next: 'preserved' }, '', expect.any(String));
+    // Fresh state (no Next.js internal marker) lets the app router sync the new URL;
+    // forwarding its old state made a later router commit restore stale filters.
+    expect(navigate).toHaveBeenCalledWith({}, '', expect.any(String));
+    expect(navigate.mock.calls[0][0]).not.toBe(window.history.state);
   });
   it('resets run paging on filter/clear, but page navigation keeps its filters', () => {
     const { location } = browser('https://example.invalid/admin?tab=runs&rq=class&rcursor=next:20&bowner=assigned&bcursor=next:9');

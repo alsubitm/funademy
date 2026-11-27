@@ -35,7 +35,9 @@ export function setAdminParams(patch: Record<string, string | null>, mode: 'push
   }
   const next = `${url.pathname}${url.search}${url.hash}`;
   if (next === `${window.location.pathname}${window.location.search}${window.location.hash}`) return;
-  window.history[mode === 'push' ? 'pushState' : 'replaceState'](window.history.state, '', next);
+  // Pass fresh state: Next skips its router URL sync for entries already
+  // carrying its internal marker, then a later router commit restores the old URL.
+  window.history[mode === 'push' ? 'pushState' : 'replaceState']({}, '', next);
   window.dispatchEvent(new Event(EVT));
 }
 

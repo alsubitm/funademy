@@ -1,55 +1,88 @@
-# FunAdemy audit — work in progress
+# FunAdemy audit — technical report
 
-Date: 18 November 2026. This is **not a release approval or completed audit**.
-No publishing, customer communications, real charges/refunds or real bookings were performed.
+Date: 27 November 2026. Branch `audit-funademy-remediation-20261118`.
+Scope: development workspace only. Nothing was published; no customers were contacted;
+no real bookings, charges, refunds or credential rotations were made; no data was deleted.
+The live site (https://funademy.io) still runs the previously published build and is **not** fixed until
+these changes are reviewed and published.
 
-## Verified so far
+## Verification results (this revision, after the two task merges)
 
-- 125 focused payment/OTP tests passed across payments.test.ts, audit-settlement.test.ts and audit-otp.test.ts.
-- TypeScript passed after the public catalog/privacy changes.
-- New payment issue columns were added to development and isolated tests only.
-- Static security scan returned no findings (not proof of absence).
-- Production metadata reports a successful published build at https://funademy.io; this does not identify the deployed source revision or prove these changes are live.
+| Check | Result |
+|---|---|
+| `pnpm --filter @workspace/ye db:push` (development, guarded) | In sync |
+| `pnpm --filter @workspace/ye typecheck` | Passed |
+| `pnpm --filter @workspace/ye test` (isolated `ye_test` DB) | 60 files passed, 1 skipped; **809 tests passed, 1 skipped, 0 failed** (final revision, including two new payment-ownership regression tests) |
+| `pnpm --filter @workspace/ye run build` | Succeeded with the middleware; the later payment-hold and admin-URL fixes were checked by typecheck and tests, not a second build |
+| Playwright browser suite with system Chromium (`pnpm exec playwright test`) | First run 47 passed, 1 failed (admin filters reset — fixed, see below); rerun **48 passed, 0 failed**. Typecheck passed after the fix |
+| Static security scan | No findings (not proof of absence) |
+| Preview `/enroll` screenshots (desktop 1280×720, mobile 390×844) | Public catalog renders logged out |
 
-## Implemented, still undergoing whole-task verification
+Not done: tests on real phones/tablets, Safari/Firefox engines, screen readers, or against production.
 
-- Atomic latest-code OTP consumption, resend invalidation and expiry boundary.
-- Authoritative SAR/minor-unit verification; partial/authorized Tamara transactions cannot enroll.
-- Capture conflicts require authoritative recheck; production cannot simulate missing payment providers.
-- Payment-row locking and fresh enrollment state prevent expiry/settlement seat races.
-- Persisted paid-but-unconfirmed enrollment state, admin attention and parent warnings. The checkout completion endpoint does not present these as success.
-- Public course runs/pricing on existing enrollment pages; selected group can be carried through account login.
-- Pricing navigation points to the catalog; footer legal links and cross-page FAQ navigation fixed.
-- Optional public wall messages require recorded consent and moderation. Public authors are anonymized; old posts lacking recorded consent are hidden, not deleted. Removal requests use existing contact/admin moderation.
-- Privacy pages disclose public messages and OpenAI through Replit; no Saudi-only hosting claim.
-- Watanona explicitly identifies the planned date as 23 September 2027 and asks users to confirm time/venue.
-- Security headers and report-only CSP; no claim that CSP is enforced.
-- Five secondary font families no longer preload; fonts remain self-hosted. No WOFF2 conversion or measured byte reduction claimed.
-- Sitemap no longer emits invented static/program last-modified dates; actual blog updatedAt remains.
+## Status per issue
 
-## Findings still open
+| Area | Issue | Status | Main files |
+|---|---|---|---|
+| OTP | Older codes stayed valid; non-atomic consumption | Fixed | `src/lib/otp*`, `audit-otp.test.ts` |
+| Payments | Simulation possible in production | Fixed: production never simulates | `src/lib/payments.ts` |
+| Payments | Amount/currency not verified | Fixed: SAR minor units and currency checked | `src/lib/payments.ts` |
+| Payments | Partial / authorized-only Tamara states could enroll | Fixed; capture conflicts rechecked | `src/lib/payments.ts` |
+| Payments | Previously simulated "paid" rows trusted | Fixed: re-verified | `src/lib/pay-core.ts` |
+| Payments | Paid but no seat shown as success | Fixed: durable `enrollmentIssue`, parent + admin warnings, `payreview` return state | `pay-core.ts`, checkout route, pay return route, portal/admin |
+| Payments | Expiry/settlement and renewal races | Fixed with row locks | `pay-core.ts` |
+| Payments | Late success of an expired payment after a retry already paid was recorded as a normal success | Fixed: flagged `duplicate_payment_enrollment_already_active` for manual review; coverage and seats unchanged; regression test added | `pay-core.ts`, `payments.test.ts` |
+| Payments | Late failure of an expired payment could cancel a newer checkout's seat hold on the reused enrollment row | Fixed: only an `initiated` payment releases holds; enrollment rows locked; regression test added | `pay-core.ts`, `payments.test.ts` |
+| Payments | Provider response bodies in logs | Fixed | `src/lib/payments.ts` |
+| Payments | Automatic refunds | Intentionally not added: flagged for manual review | — |
+| Booking | Enrollment with venue "Riyadh"/empty | Blocked in UI, cart, checkout (row lock) and trial booking (row lock) | `classroom-location.ts`, checkout, `chat-booking.ts` |
+| Public info | Prices/schedules hidden behind login | Fixed: public catalog at `/enroll`; login keeps selected group | `/enroll` pages |
+| Public info | Broken pricing/FAQ/legal links | Fixed | header, footer |
+| Public info | Tax, session count, kit, renewal terms | Marked "to be confirmed before payment" — owner facts needed | catalog |
+| Privacy | Watanona wall published names without consent | Fixed: consent stored, author anonymised, unconsented posts hidden (not deleted) | `svc/bricks`, schema |
+| Privacy | Policy omitted public wall and OpenAI processing | Fixed; no Saudi-only hosting claim | privacy pages (ar/en) |
+| Content | Watanona date ambiguity | Planned 23 Sep 2027, "confirm details" | watanona page |
+| Security | Cross-site state changes | Origin/fetch-site check on `/svc/*` (webhooks exempt) | `src/middleware.ts`, `audit-csrf.test.ts` |
+| Security | Missing headers | Added; CSP is **report-only**, not enforced | `next.config` |
+| Security | picomatch CVE-2026-112366 (dev tooling) | **Open** — no patched release available | — |
+| Performance | 13 font preloads (3,190,040 bytes on published site) | 0 preloads in preview; fonts not converted to WOFF2 | layout, `generated-artifacts/audit-font-measurement.json` |
+| SEO | Invented sitemap `lastmod` | Removed (real blog dates kept) | sitemap |
+| Admin | Booking/run filters intermittently reset after typing (found by browser tests after a merge) | Fixed: history updates now let the router sync the URL | `src/components/admin/useAdminQuery.ts` |
+| Tests | Chat test broke once test-DB IDs formed a 13-digit run (blocked as a possible card number, correctly) | Test now uses a short free program ID | `chat-support.test.ts` |
+| Tests | Viewport debug logs | Replaced with assertions | browser tests |
 
-- High dependency advisory GHSA-fc5q-39xc-vjpf / CVE-2026-112366 affects transitive picomatch 4.0.5 in development tooling. Registry latest checked was 4.0.7, also within advisory's affected range. No safe patched release identified; no firewall bypass or misleading version bump.
-- Privacy scanner flagged two viewport debug logs as phone-number output. They held browser layout diagnostics, not telephone values; replaced with actual overflow assertions.
-- Full payment recovery workflow, renewal races and provider log sanitization need further review.
-- In-person venue confirmation is currently displayed/blocked in public catalog UI, but server-side enforcement is not yet complete.
-- Full commercial terms, current/planned online availability, schedules, tax/kit inclusions and license issuing authority require owner confirmation.
-- Full-suite results, build, mobile/keyboard/browser journey coverage, Nujaym retention audit, performance measurement and final Arabic/English reports remain pending.
+## Database impact
 
-## Database/release handling
+Additive only, nothing dropped:
+- Audit columns: `Payment.enrollmentIssue`, `Payment.enrollmentIssueAt`, `WatanBrick.publicConsentAt` (nullable).
+- From the merged admin paging work: the `pg_trgm` PostgreSQL extension, GIN trigram search indexes on booking,
+  program and course-run text fields, and B-tree paging indexes (`status,id`, `programId,id`, `active,id`, `seatsLeft,id`).
+  Creating the extension needs database permission for `CREATE EXTENSION`, and building the indexes briefly locks writes on those tables.
 
-Additive Payment enrollmentIssue/enrollmentIssueAt and WatanBrick publicConsentAt fields. Use guarded development db:push; no production DDL scripts. Production schema changes require review in Publish. Preserve columns on application rollback rather than dropping financial/consent history.
+Applied to development and the isolated test DB. Production gets them only through the Publish schema review.
+Existing wall posts without consent become hidden; nothing is deleted.
 
-## Commands run
+## Facts needed from the owner
 
-```
-pnpm --filter @workspace/ye exec prisma generate
-pnpm --filter @workspace/ye db:push
-pnpm --filter @workspace/ye typecheck
-pnpm --filter @workspace/ye exec vitest run src/tests/payments.test.ts src/tests/audit-settlement.test.ts src/tests/audit-otp.test.ts
-pnpm --filter @workspace/ye exec vitest run src/tests/brick-wall.test.ts src/tests/local-fonts.test.ts
-```
+1. Current schedules and exact venues for in-person groups (until set, those groups cannot be booked).
+2. Price inclusions: VAT, number of sessions, kit, renewal terms.
+3. Whether online January 2027 classes are open for enrollment.
+4. Licence authority and type for registration 4030388340.
+5. Watanona event time and venue.
+6. Approval of privacy/retention wording (assistant chats kept 90 days).
 
-The last command initially found one legacy moderation fixture missing the new explicit consent field; fixture updated, rerun pending. It is not recorded as passing.
+## Staging and rollback plan
 
-Latest checks: development schema synced again after consent field; typecheck passed. Preview restarted cleanly and /enroll rendered at 390×844. Full suite started with NELC_LIVE=0 on isolated ye_test; outcome pending. No browser interaction pass has yet been run.
+1. Review this branch; publish to production only after owner approval and the facts above.
+2. On Publish, review the schema diff: three nullable columns, the `pg_trgm` extension and the new indexes; confirm nothing is dropped. Publish at a quiet hour because index creation briefly blocks writes.
+3. After publish: open `/enroll` logged out, run one sandbox-free low-value real payment only with owner consent,
+   check the admin "payment needs review" view, and watch logs for `ADMIN ACTION REQUIRED` / `REFUND REQUIRED`.
+4. Rollback: restore the previous checkpoint/deployment. Keep the new columns (do not drop financial or consent history).
+   The extension and indexes can stay in place after a rollback.
+   Note: rolling back re-exposes wall author names and the older payment behaviour.
+
+## Is production approval safe?
+
+Technically the branch is ready for review: typecheck, full test suite and build pass. It should not be published
+until the owner confirms the facts above and reviews the privacy wording. The picomatch advisory remains open and the
+content security policy is not enforced.

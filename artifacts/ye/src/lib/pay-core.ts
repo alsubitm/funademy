@@ -83,8 +83,12 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
       });
       if (claimed.count === 0) return;
       if (current.kind === 'enrollment') {
+        // This payment's own items may release their trial-booking link.
         await tx.paymentItem.updateMany({ where: { paymentId }, data: { trialBookingId: null } });
-        await _cancelEnrollmentsInTx(tx, current.items);
+        // An expired payment already released its seat holds. Its cancelled
+        // enrollment rows may since have been reclaimed by a NEWER checkout, so a
+        // late failure must never cancel them — only an initiated payment owns its holds.
+        if (current.status === 'initiated') await _cancelEnrollmentsInTx(tx, current.items);
       }
     }), { operation: 'payment-finalize-failed', kind: 'transaction' });
     return 'failed';
@@ -119,7 +123,14 @@ export async function finalizePayment(paymentId: number): Promise<FinalizeOutcom
           continue;
         }
 
-        if (enr.status === 'active') continue;
+        if (enr.status === 'active') {
+          // Checkout never attaches an active enrollment, so this row was
+          // activated by ANOTHER payment (e.g. a retry after this one expired).
+          // This charge adds no coverage: keep it visible for manual review.
+          issue = 'duplicate_payment_enrollment_already_active';
+          console.error(`[payments] REFUND REVIEW: payment ${paymentId} settled but enrollment ${enr.id} is already active from another payment`);
+          continue;
+        }
         if (enr.status === 'cancelled') {
           // Seats were released on timeout. Try to reclaim a seat for this run.
           const reseated = await tx.courseRun.updateMany({
@@ -200,6 +211,7 @@ async function _cancelEnrollmentsInTx(
 ): Promise<void> {
   for (const item of items) {
     if (item.enrollmentId == null) continue;
+    await tx.$queryRaw`SELECT id FROM ye_enrollments WHERE id = ${item.enrollmentId} FOR UPDATE`;
     const enr = await tx.enrollment.findUnique({ where: { id: item.enrollmentId } });
     if (!enr || enr.status !== 'pending') continue;
     await tx.enrollment.update({ where: { id: enr.id }, data: { status: 'cancelled' } });
