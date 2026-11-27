@@ -54,12 +54,13 @@ async function routeMetadata(
   const findUnique = async () => record;
   new Function(
     'exports', 'siteUrl', 'ogImageUrl', 'buildPageMetadata', 'buildSocialMetadata',
-    'prisma', 'safeQuery', 'withDbRetry', code,
+    'prisma', 'safeQuery', 'withDbRetry', 'getProgramDetail', code,
   )(
     exports, siteUrl, ogImageUrl, buildPageMetadata, buildSocialMetadata,
     { program: { findUnique }, blogPost: { findUnique } },
     async (query: () => Promise<unknown>) => query(),
     async (query: () => Promise<unknown>) => query(),
+    findUnique,
   );
   return exports.generateMetadata
     ? exports.generateMetadata({ params: Promise.resolve({ slug: 'sample' }) })

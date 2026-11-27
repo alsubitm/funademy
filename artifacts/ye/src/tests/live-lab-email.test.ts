@@ -38,6 +38,7 @@ beforeEach(async () => {
 afterAll(async () => {
   await prisma.instructor.deleteMany({ where: { id: { in: [teacher, other] } } });
   await prisma.rateLimitHit.deleteMany({ where: { key: { in: [`live-email:${teacher}`, `live-email:${other}`, `live-calendar:${teacher}`] } } });
+  await prisma.rateLimitWindow.deleteMany({ where: { key: { in: [`live-email:${teacher}`, `live-email:${other}`, `live-calendar:${teacher}`] } } });
   vi.unstubAllEnvs();
 });
 describe('private lab email delivery', () => {

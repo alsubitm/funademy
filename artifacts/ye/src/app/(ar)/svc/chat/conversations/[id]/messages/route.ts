@@ -7,7 +7,7 @@ import { chatExpiry, ownedConversation, requireChatCsrf } from '@/lib/chat-auth'
 import { buildLiveKnowledge, selectKnowledge } from '@/lib/chat-knowledge';
 import { answerWithOpenAI, deterministicGroundedAnswer } from '@/lib/chat-openai';
 import { accountSummary, formatAccountSummary, prepareChatAction } from '@/lib/chat-tools';
-import { purgeExpiredChat } from '@/lib/chat-retention';
+import { claimChatReply, commitChatReply, releaseChatReply } from '@/lib/chat-reply';
 import { detectSensitivePaymentInput } from '@/lib/chat-safety';
 import { waLink } from '@/lib/constants';
 import { childAge, gearReply, isRecommendation, recommendationSources, responseLocale } from '@/lib/nujaym';
@@ -25,7 +25,6 @@ const sse = (value: unknown) => encoder.encode(`data: ${JSON.stringify(value)}\n
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const csrf = requireChatCsrf(req);
   if (csrf) return csrf;
-  void purgeExpiredChat().catch(() => {});
   const { id } = await params;
   if (!(await allowRate(`chat:send:${clientIp(req)}`, 30, 10 * 60_000))) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
@@ -78,31 +77,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const stream = new ReadableStream({
     async start(controller) {
+      let leaseToken: string | null = null;
       try {
-        // The request identity survives a lost stream. A transaction-scoped lock
-        // serializes generation across replicas and is released on process death.
-        // Never emit a reply before its content and terminal metadata commit.
-        const reply = await prisma.$transaction(async (tx) => {
-          const [lock] = await tx.$queryRaw<{ acquired: boolean }[]>`
-            SELECT pg_try_advisory_xact_lock(hashtextextended(${`chat-reply:${userMessage.id}`}, 0)) AS acquired
-          `;
-          if (!lock.acquired) throw new Error('reply_in_progress');
-          const saved = await tx.chatMessage.findUnique({
-            where: { conversationId_idempotencyKey: { conversationId: id, idempotencyKey: `reply:${userMessage.id}` } },
-          });
-          if (saved) {
-            const completion = await tx.chatAudit.findFirst({
-              where: { conversationId: id, event: 'reply_completed', detail: { path: ['messageId'], equals: saved.id } },
-            });
-            if (!completion?.detail) throw new Error('missing_reply_metadata');
-            return { content: saved.content, done: completion.detail };
-          }
-          const history = await tx.chatMessage.findMany({
-            where: { conversationId: id, id: { not: userMessage.id }, role: { in: ['user', 'assistant'] } },
-            select: { role: true, content: true },
-            orderBy: { createdAt: 'desc' },
-            take: 12,
-          });
+        const claim = await claimChatReply(id, userMessage.id);
+        if (claim.saved) {
+          controller.enqueue(sse({ type: 'delta', content: claim.saved.content }));
+          controller.enqueue(sse(claim.saved.done));
+          return;
+        }
+        leaseToken = claim.token;
+        const history = claim.history;
         const chronologicalHistory = [...history].reverse();
         const allSources = await buildLiveKnowledge();
         const recommendation = isRecommendation(parsed.data.content, chronologicalHistory);
@@ -167,16 +151,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             ? 'جهزت طلبك فقط. راجع بطاقة الإجراء واضغط تأكيد لتنفيذه.'
             : 'I only prepared the request. Review the action card and click confirm to execute it.';
         }
-        if (sensitive) {
-          const alreadyOpen = await tx.chatEscalation.findFirst({
-            where: { conversationId: id, reason: 'sensitive_request', status: 'open' },
-          });
-          if (!alreadyOpen) {
-            await tx.chatEscalation.create({
-              data: { conversationId: id, reason: 'sensitive_request', summary: 'Sensitive request', contactMethod: conversation.contactMethod, expiresAt: chatExpiry() },
-            });
-          }
-        }
         const modelAnswer = !sensitive && !deterministicAnswer ? await answerWithOpenAI(
           parsed.data.content,
           chronologicalHistory.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content.slice(0, 3000) })),
@@ -205,16 +179,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             id: sourceId, title: locale === 'ar' ? titleAr : titleEn,
             url: locale === 'en' ? `/en${url === '/' ? '' : url}` : url,
           }));
-        const assistant = await tx.chatMessage.create({
-          data: { conversationId: id, role: 'assistant', content: answer, sourceRefs: refs, idempotencyKey: `reply:${userMessage.id}`, expiresAt: chatExpiry() },
+        const done = JSON.parse(JSON.stringify({ type: 'done', userMessageId: userMessage.id, sources: refs, preparedAction, celebrate: !sensitive && answer === challenge?.text && challenge.celebrate, providerUnavailable })) as Prisma.JsonObject;
+        const reply = await commitChatReply({
+          conversationId: id, userMessageId: userMessage.id, token: leaseToken!,
+          familyId: conversation.familyId, content: answer, refs, done, expiresAt: chatExpiry(),
+          ...(sensitive ? { escalation: { contactMethod: conversation.contactMethod } } : {}),
         });
-        await tx.chatConversation.update({ where: { id }, data: { expiresAt: chatExpiry() } });
-        const done = JSON.parse(JSON.stringify({ type: 'done', messageId: assistant.id, userMessageId: userMessage.id, sources: refs, preparedAction, celebrate: !sensitive && answer === challenge?.text && challenge.celebrate, providerUnavailable })) as Prisma.JsonObject;
-        await tx.chatAudit.create({
-          data: { conversationId: id, familyId: conversation.familyId, event: 'reply_completed', detail: done, expiresAt: chatExpiry() },
-        });
-        return { content: answer, done };
-        }, { timeout: 60_000 });
+        leaseToken = null;
         controller.enqueue(sse({ type: 'delta', content: reply.content }));
         controller.enqueue(sse(reply.done));
       } catch (error) {
@@ -222,6 +193,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         await prisma.chatAudit.create({ data: { conversationId: id, familyId: conversation.familyId, event: 'provider_failure', expiresAt: chatExpiry() } }).catch(() => {});
         controller.enqueue(sse({ type: 'error', error: 'temporarily_unavailable' }));
       } finally {
+        if (leaseToken) await releaseChatReply(userMessage.id, leaseToken).catch(() => {});
         controller.close();
       }
     },

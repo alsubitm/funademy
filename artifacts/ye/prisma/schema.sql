@@ -277,6 +277,8 @@ CREATE TABLE "ye_chat_messages" (
     "sourceRefs" JSONB,
     "providerId" TEXT,
     "idempotencyKey" TEXT,
+    "replyLeaseToken" TEXT,
+    "replyLeaseUntil" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expiresAt" TIMESTAMP(3) NOT NULL,
 
@@ -836,6 +838,15 @@ CREATE TABLE "ye_rate_limit_hits" (
 );
 
 -- CreateTable
+CREATE TABLE "ye_rate_limit_windows" (
+    "key" TEXT NOT NULL,
+    "hits" TIMESTAMP(3)[],
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ye_rate_limit_windows_pkey" PRIMARY KEY ("key")
+);
+
+-- CreateTable
 CREATE TABLE "campaign_counters" (
     "key" TEXT NOT NULL,
     "count" INTEGER NOT NULL DEFAULT 0,
@@ -1131,6 +1142,9 @@ CREATE INDEX "ye_rate_limit_hits_key_at_idx" ON "ye_rate_limit_hits"("key" text_
 
 -- CreateIndex
 CREATE INDEX "ye_rate_limit_hits_at_idx" ON "ye_rate_limit_hits"("at");
+
+-- CreateIndex
+CREATE INDEX "ye_rate_limit_windows_expiresAt_idx" ON "ye_rate_limit_windows"("expiresAt");
 
 -- CreateIndex
 CREATE INDEX "campaign_brick_events_key_created_at_idx" ON "campaign_brick_events"("key", "created_at");

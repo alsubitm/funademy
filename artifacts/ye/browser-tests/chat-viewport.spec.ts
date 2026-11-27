@@ -20,6 +20,7 @@ test.afterEach(async () => {
   await db.chatConversation.deleteMany({ where: { id: { in: ids } } });
   createdConversations.clear();
   await db.rateLimitHit.deleteMany({ where: { key: { in: [...createdRateKeys] } } });
+  await db.rateLimitWindow.deleteMany({ where: { key: { in: [...createdRateKeys] } } });
   createdRateKeys.clear();
 });
 test.afterAll(async () => { await db.$disconnect(); });

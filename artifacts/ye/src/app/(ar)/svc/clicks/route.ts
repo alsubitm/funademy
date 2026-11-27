@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/db';
 import { riyadhDay } from '@/lib/constants';
 import { allowRate, clientIp } from '@/lib/rate-limit';
+import { allowGlobalClick } from '@/lib/click-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,8 +18,8 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
-  // A global ceiling also bounds limiter rows if callers rotate/spoof IPs.
-  if (!(await allowRate('clicks:global', 600, 60_000)) ||
+  // Analytics don't require a cross-instance global lock. Per-IP quotas remain durable.
+  if (!allowGlobalClick() ||
       !(await allowRate(`clicks:ip:${clientIp(req)}`, 30, 60_000))) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }

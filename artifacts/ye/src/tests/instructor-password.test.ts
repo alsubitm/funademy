@@ -27,12 +27,14 @@ beforeEach(async () => {
   vi.useRealTimers();
   await prisma.instructor.update({ where: { id }, data: { active: true, authVersion: 1, passwordHash: hash } });
   await prisma.rateLimitHit.deleteMany({ where: { key: `instructor-password:${id}` } });
+  await prisma.rateLimitWindow.deleteMany({ where: { key: `instructor-password:${id}` } });
   jar.clear(); jar.set(INSTRUCTOR_COOKIE, instructorToken(id, 1));
 });
 afterAll(async () => {
   vi.useRealTimers();
   await prisma.instructor.delete({ where: { id } });
   await prisma.rateLimitHit.deleteMany({ where: { key: `instructor-password:${id}` } });
+  await prisma.rateLimitWindow.deleteMany({ where: { key: `instructor-password:${id}` } });
   vi.unstubAllEnvs();
 });
 
@@ -79,7 +81,7 @@ describe('instructor self-service password changes', () => {
       POST(request({ currentPassword: 'wrong', newPassword }))));
     expect(responses.filter(r => r.status === 400)).toHaveLength(5);
     expect(responses.filter(r => r.status === 429)).toHaveLength(3);
-    expect(await prisma.rateLimitHit.count({ where: { key: `instructor-password:${id}` } })).toBe(5);
+    expect((await prisma.rateLimitWindow.findUniqueOrThrow({ where: { key: `instructor-password:${id}` } })).hits).toHaveLength(5);
     jar.set(INSTRUCTOR_COOKIE, instructorToken(id, 1));
     expect((await POST(request(undefined, { 'x-forwarded-for': '198.51.100.99' }))).status).toBe(429);
   });

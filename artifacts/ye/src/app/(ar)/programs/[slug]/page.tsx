@@ -1,4 +1,5 @@
-export const revalidate = 0;
+export const revalidate = 60;
+import { getProgramDetail, getProgramSiblings } from '@/lib/program-detail-data';
 import { loadProgramPricing } from '@/lib/program-pricing';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
@@ -11,7 +12,7 @@ import { buildPageMetadata } from '@/lib/page-metadata';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
-  const program = await safeQuery(() => prisma.program.findUnique({ where: { slug } }), null, 'program:metadata');
+  const program = await getProgramDetail(slug);
   if (!program) return {};
   const base = siteUrl();
   const ogImage = ogImageUrl(program.coverImageUrl);
@@ -53,21 +54,16 @@ export async function generateStaticParams() {
 
 export default async function ProgramPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
-  const program = await safeQuery(() => prisma.program.findUnique({
-    where: { slug },
-    include: {
-      slots: {
-        where: { active: true },
-        orderBy: [{ weekday: 'asc' }, { time: 'asc' }]
-      }
-    }
-  }), null, 'program:page');
+  const stored = await getProgramDetail(slug);
 
-  if (!program) notFound();
-  program.slots = await safeQuery(() => withTrialSeats(program.slots), program.slots, 'program:trialSeats');
-  const pricingRuns = await loadProgramPricing(program.id);
-
-  const allProgs = await safeQuery(() => prisma.program.findMany({ orderBy: { position: 'asc' } }), [], 'program:siblings');
+  if (!stored) notFound();
+  const program = { ...stored };
+  const [slots, pricingRuns, allProgs] = await Promise.all([
+    safeQuery(() => withTrialSeats(program.slots), program.slots, 'program:trialSeats'),
+    loadProgramPricing(program.id),
+    getProgramSiblings(),
+  ]);
+  program.slots = slots;
   const idx = allProgs.findIndex(p => p.id === program.id);
   const prevProg = idx > 0 ? allProgs[idx - 1] : null;
   const nextProg = idx < allProgs.length - 1 ? allProgs[idx + 1] : null;

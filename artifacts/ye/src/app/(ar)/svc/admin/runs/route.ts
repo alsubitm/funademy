@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { revalidatePrograms } from '@/lib/revalidate-programs';
 import { requireAdmin } from '../guard';
 import { listPage, pageRows, runFilter } from '@/lib/admin-list-query';
 
@@ -162,6 +163,7 @@ export async function POST(req: NextRequest) {
     },
     include: { _count: { select: { sessions: true } } },
   });
+  revalidatePrograms();
   return NextResponse.json({ run }, { status: 201 });
 }
 
@@ -218,6 +220,7 @@ export async function PATCH(req: NextRequest) {
       }
       return tx.courseRun.update({ where: { id }, data });
     });
+    revalidatePrograms();
     return NextResponse.json({ run: updated });
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';

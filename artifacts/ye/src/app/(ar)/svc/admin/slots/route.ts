@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { revalidatePrograms } from '@/lib/revalidate-programs';
 import { withTrialSeats } from '@/lib/trial-capacity';
 import { requireAdmin } from '../guard';
 
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
   const slot = await prisma.scheduleSlot.create({
     data: { programId, weekday, time, format: format as 'online' | 'in_person', capacity, seatsLeft: capacity, location },
   });
+  revalidatePrograms();
   return NextResponse.json({ slot }, { status: 201 });
 }
 
@@ -55,6 +57,7 @@ export async function PATCH(req: NextRequest) {
   if (b.active !== undefined) data.active = Boolean(b.active);
   if (b.location !== undefined) data.location = b.location ? String(b.location) : null;
   const slot = await prisma.scheduleSlot.update({ where: { id }, data });
+  revalidatePrograms();
   return NextResponse.json({ slot });
 }
 
@@ -67,8 +70,10 @@ export async function DELETE(req: NextRequest) {
   if (hasBookings > 0) {
     // keep history — deactivate instead of delete
     await prisma.scheduleSlot.update({ where: { id }, data: { active: false } });
+    revalidatePrograms();
     return NextResponse.json({ deactivated: true });
   }
   await prisma.scheduleSlot.delete({ where: { id } });
+  revalidatePrograms();
   return NextResponse.json({ deleted: true });
 }

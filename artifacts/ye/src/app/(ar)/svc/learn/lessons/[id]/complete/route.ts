@@ -15,7 +15,8 @@ export async function POST(
   const lessonId = Number(id);
   if (!lessonId) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  const guard = await requireLessonAccess(lessonId);
+  // The transaction below checks this limit under the child row lock.
+  const guard = await requireLessonAccess(lessonId, { skipDailyLimit: true });
   if (!guard.ok) return guard.response;
 
   const { child, lesson } = guard;

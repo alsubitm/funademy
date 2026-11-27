@@ -8,7 +8,7 @@
  *
  * Runs against the isolated ye_test database.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { afterAll, describe, it, expect, vi } from 'vitest';
 
 vi.mock('@/lib/google-calendar', () => ({
   createMeetEvent: vi.fn(async () => ({ eventId: 'evt-x', meetUrl: 'https://meet.google.com/x' })),
@@ -21,6 +21,10 @@ import { allowRate } from '@/lib/rate-limit';
 import { POST as appointmentsPOST } from '@/app/(ar)/svc/appointments/route';
 
 const RUN = `rl-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+afterAll(async () => {
+  await prisma.rateLimitWindow.deleteMany({ where: { key: { startsWith: RUN } } });
+  await prisma.rateLimitHit.deleteMany({ where: { key: { startsWith: RUN } } });
+});
 
 describe('allowRate (DB-backed)', () => {
   it('allows up to max hits then rejects within the window', async () => {
@@ -49,8 +53,9 @@ describe('allowRate (DB-backed)', () => {
       Array.from({ length: 12 }, () => allowRate(key, 5, 60_000)),
     );
     expect(results.filter(Boolean).length).toBe(5);
-    // The DB holds exactly the admitted hits.
-    expect(await prisma.rateLimitHit.count({ where: { key } })).toBe(5);
+    // A single row holds exactly the admitted hits.
+    expect((await prisma.rateLimitWindow.findUniqueOrThrow({ where: { key } })).hits).toHaveLength(5);
+    expect(await prisma.rateLimitHit.count({ where: { key } })).toBe(0);
   });
 
   it('hits outside the sliding window no longer count', async () => {
@@ -66,6 +71,35 @@ describe('allowRate (DB-backed)', () => {
     expect(await allowRate(key, 2, 10 * 60_000)).toBe(true);
     expect(await allowRate(key, 2, 10 * 60_000)).toBe(true);
     expect(await allowRate(key, 2, 10 * 60_000)).toBe(false);
+  });
+
+  it('expires only old claims, not the entire sliding window', async () => {
+    const key = `${RUN}:sliding`;
+    const recent = new Date();
+    await prisma.rateLimitWindow.create({ data: {
+      key, hits: [new Date(Date.now() - 120_000), recent], expiresAt: new Date(Date.now() + 60_000),
+    } });
+    const query = vi.spyOn(prisma, '$queryRaw');
+    const transaction = vi.spyOn(prisma, '$transaction');
+    try {
+      expect(await allowRate(key, 2, 60_000)).toBe(true);
+      expect(await allowRate(key, 2, 60_000)).toBe(false);
+      expect(query).toHaveBeenCalledTimes(2);
+      expect(transaction).not.toHaveBeenCalled();
+      const window = await prisma.rateLimitWindow.findUniqueOrThrow({ where: { key } });
+      expect(window.hits).toHaveLength(2);
+      expect(window.hits[0]).toEqual(recent);
+    } finally { query.mockRestore(); transaction.mockRestore(); }
+  });
+
+  it('preserves an exhausted pre-upgrade quota and fails closed on DB errors', async () => {
+    const key = `${RUN}:legacy`;
+    await prisma.rateLimitHit.create({ data: { key } });
+    expect(await allowRate(key, 1, 60_000)).toBe(false);
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const query = vi.spyOn(prisma, '$queryRaw').mockRejectedValueOnce(new Error('offline'));
+    try { expect(await allowRate(`${RUN}:offline`, 1, 60_000)).toBe(false); }
+    finally { query.mockRestore(); log.mockRestore(); }
   });
 
   it('appointments route returns 429 once the per-phone daily cap is hit', async () => {

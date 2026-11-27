@@ -21,8 +21,8 @@ export function ProgramDetail({
   lang
 }: {
   program: ProgWithSlots;
-  prevProg: Program | null;
-  nextProg: Program | null;
+  prevProg: Pick<Program, 'slug' | 'nameAr' | 'nameEn'> | null;
+  nextProg: Pick<Program, 'slug' | 'nameAr' | 'nameEn'> | null;
   pricingRuns: ProgramPricingRun[] | null;
   lang: 'ar' | 'en';
 }) {

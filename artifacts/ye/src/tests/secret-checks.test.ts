@@ -59,9 +59,11 @@ describe('verifyAdminStepUp', () => {
   beforeEach(async () => {
     vi.stubEnv('ADMIN_PASSWORD', 'step-up-pass-for-test');
     await prisma.rateLimitHit.deleteMany({ where: { key: 'admin-stepup-failure' } });
+    await prisma.rateLimitWindow.deleteMany({ where: { key: 'admin-stepup-failure' } });
   });
   afterEach(async () => {
     await prisma.rateLimitHit.deleteMany({ where: { key: 'admin-stepup-failure' } });
+    await prisma.rateLimitWindow.deleteMany({ where: { key: 'admin-stepup-failure' } });
   });
 
   it('accepts the right password and rejects a wrong one', async () => {

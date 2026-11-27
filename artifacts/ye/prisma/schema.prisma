@@ -335,6 +335,8 @@ model ChatMessage {
   sourceRefs     Json?
   providerId     String?
   idempotencyKey String?
+  replyLeaseToken String?
+  replyLeaseUntil DateTime?
   createdAt      DateTime         @default(now())
   expiresAt      DateTime
 
@@ -1163,6 +1165,16 @@ model RateLimitHit {
   @@index([key(ops: raw("text_pattern_ops")), at])
   @@index([at])
   @@map("ye_rate_limit_hits")
+}
+
+// One bounded timestamp array per quota key, updated atomically by PostgreSQL.
+model RateLimitWindow {
+  key       String   @id
+  hits      DateTime[]
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("ye_rate_limit_windows")
 }
 
 // ————————— Shared campaign tables (pre-existing raw-SQL tables in public) —————————

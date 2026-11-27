@@ -18,8 +18,9 @@ describe('independently committed retention batches', () => {
       .mockResolvedValueOnce(5000).mockResolvedValueOnce(1)
       .mockResolvedValue(0);
     await sweepAbuseRetention(new Date('2026-11-27T12:00:00Z'));
-    expect(db.$transaction).toHaveBeenCalledTimes(5);
-    expect(db.$queryRaw).toHaveBeenCalledTimes(5);
+    expect(db.$transaction).toHaveBeenCalledTimes(6);
+    expect(db.$queryRaw).toHaveBeenCalledTimes(6);
+    expect(db.$executeRaw.mock.calls[0][0].sql).toContain('DELETE FROM ye_rate_limit_windows');
     for (const [query] of db.$executeRaw.mock.calls) {
       expect(query.sql).toContain('LIMIT');
       expect(query.values).toContain(5000);
@@ -41,6 +42,6 @@ describe('independently committed retention batches', () => {
     expect(db.$transaction).toHaveBeenCalledTimes(2);
     db.$executeRaw.mockReset().mockResolvedValue(0);
     await sweepAbuseRetention();
-    expect(db.$transaction).toHaveBeenCalledTimes(5);
+    expect(db.$transaction).toHaveBeenCalledTimes(6);
   });
 });

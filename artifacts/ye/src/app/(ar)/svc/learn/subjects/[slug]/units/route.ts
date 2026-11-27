@@ -12,28 +12,26 @@ export async function GET(
   const familyId = await getFamilyId();
   if (!familyId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const enrolled = await familyHasActiveEnrollment(familyId);
+  const [kidSession, { slug }] = await Promise.all([getKidSession(), params]);
+  const validSelection = kidSession?.familyId === familyId;
+  const [enrolled, child, subject] = await Promise.all([
+    familyHasActiveEnrollment(familyId),
+    validSelection ? prisma.lrnChild.findFirst({ where: { id: kidSession.childId, familyId } }) : Promise.resolve(null),
+    validSelection ? prisma.lrnSubject.findUnique({ where: { slug } }) : Promise.resolve(null),
+  ]);
   if (!enrolled) return NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 });
 
-  const kidSession = await getKidSession();
   if (!kidSession || kidSession.familyId !== familyId)
     return NextResponse.json({ error: 'no_kid_selected' }, { status: 401 });
 
-  const child = await prisma.lrnChild.findFirst({ where: { id: kidSession.childId, familyId } });
   if (!child) return NextResponse.json({ error: 'no_kid_selected' }, { status: 401 });
-
-  const { slug } = await params;
-  const subject = await prisma.lrnSubject.findUnique({ where: { slug } });
   if (!subject) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
   // Match lesson-guard: attempts are not durable progression claims.
-  const completions = await prisma.lrnFirstCompletion.findMany({
+  const [completions, units] = await Promise.all([prisma.lrnFirstCompletion.findMany({
     where: { childId: child.id },
     select: { lessonId: true },
-  });
-  const completedIds = new Set(completions.map((c) => c.lessonId));
-
-  const units = await prisma.lrnUnit.findMany({
+  }), prisma.lrnUnit.findMany({
     where: { subjectId: subject.id, band: child.band, status: 'published' },
     orderBy: { position: 'asc' },
     include: {
@@ -43,7 +41,8 @@ export async function GET(
         include: { _count: { select: { exercises: true } } },
       },
     },
-  });
+  })]);
+  const completedIds = new Set(completions.map((c) => c.lessonId));
 
   const unitsData = units.map((u) => {
     const prevUnitsComplete = units.filter((pu) => pu.position < u.position).every((pu) =>

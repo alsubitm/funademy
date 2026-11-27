@@ -11,7 +11,6 @@ import {
   requireChatCsrf,
   visitorTokenHash,
 } from '@/lib/chat-auth';
-import { purgeExpiredChat } from '@/lib/chat-retention';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +41,6 @@ const createSchema = z.object({
 export async function POST(req: NextRequest) {
   const csrf = requireChatCsrf(req);
   if (csrf) return csrf;
-  void purgeExpiredChat().catch(() => {});
   if (!(await allowRate(`chat:create:${clientIp(req)}`, 10, 60 * 60_000))) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }

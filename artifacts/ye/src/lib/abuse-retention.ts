@@ -22,6 +22,14 @@ async function drainBatch(query: Prisma.Sql) {
 /** Scheduled maintenance only: never invoke from a public request. */
 export async function sweepAbuseRetention(now = new Date()) {
   await drainBatch(Prisma.sql`
+    -- Recheck the target after any row-lock wait. A quota writer can renew
+    -- an expired row after this statement's subquery snapshot was taken.
+    DELETE FROM ye_rate_limit_windows WHERE "expiresAt" < ${now} AND key IN (
+      SELECT key FROM ye_rate_limit_windows
+      WHERE "expiresAt" < ${now}
+      LIMIT ${BATCH_SIZE}
+    )`);
+  await drainBatch(Prisma.sql`
     DELETE FROM ye_rate_limit_hits WHERE id IN (
       SELECT id FROM ye_rate_limit_hits
       -- Pattern operators match the text_pattern_ops index regardless of

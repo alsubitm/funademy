@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { loadProgramPricing } from '@/lib/program-pricing';

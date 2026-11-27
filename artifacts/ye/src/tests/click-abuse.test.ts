@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 vi.mock('@/lib/rate-limit', () => ({ allowRate: vi.fn(async () => true), clientIp: () => 'test' }));
+vi.mock('@/lib/click-rate-limit', () => ({ allowGlobalClick: vi.fn(() => true) }));
+import { allowGlobalClick } from '@/lib/click-rate-limit';
 import { allowRate } from '@/lib/rate-limit';
 import { prisma } from '@/lib/db';
 import { riyadhDay } from '@/lib/constants';
@@ -13,6 +15,7 @@ const request = (body: unknown) => new NextRequest('http://test.local/svc/clicks
 
 beforeEach(async () => {
   vi.mocked(allowRate).mockReset().mockResolvedValue(true);
+  vi.mocked(allowGlobalClick).mockReset().mockReturnValue(true);
   await prisma.clickEvent.deleteMany({});
 });
 
@@ -41,9 +44,10 @@ describe('bounded public click tracking', () => {
     expect((await POST(request({ kind: 'whatsapp', page: 'home' }))).status).toBe(429);
     expect(allowRate).toHaveBeenCalledTimes(1);
     expect(await prisma.clickEvent.count()).toBe(0);
-    vi.mocked(allowRate).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    vi.mocked(allowGlobalClick).mockReturnValueOnce(false);
     expect((await POST(request({ kind: 'whatsapp', page: '/contact' }))).status).toBe(429);
     expect(await prisma.clickEvent.count()).toBe(0);
+    expect(allowRate).toHaveBeenCalledTimes(1);
   });
   it('cleans click limiter rows after one minute but preserves longer booking windows', async () => {
     const now = new Date();
@@ -97,12 +101,12 @@ describe('bounded public click tracking', () => {
   it('the real limiter does no retention scans or inserts once a quota is exhausted', async () => {
     const { allowRate: realAllowRate } = await vi.importActual<typeof import('@/lib/rate-limit')>('@/lib/rate-limit');
     const key = `clicks:exhausted:${Date.now()}`;
-    await prisma.rateLimitHit.create({ data: { key } });
+    expect(await realAllowRate(key, 1, 60_000)).toBe(true);
     const cleanup = vi.spyOn(prisma.rateLimitHit, 'deleteMany');
     for (let i = 0; i < 30; i++) expect(await realAllowRate(key, 1, 60_000)).toBe(false);
     expect(cleanup).not.toHaveBeenCalled();
-    expect(await prisma.rateLimitHit.count({ where: { key } })).toBe(1);
+    expect((await prisma.rateLimitWindow.findUniqueOrThrow({ where: { key } })).hits).toHaveLength(1);
     cleanup.mockRestore();
-    await prisma.rateLimitHit.deleteMany({ where: { key } });
+    await prisma.rateLimitWindow.deleteMany({ where: { key } });
   });
 });

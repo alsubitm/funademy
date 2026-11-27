@@ -79,6 +79,12 @@ export async function register() {
 
   const runMaintenance = async () => {
     try {
+      const { purgeExpiredChat } = await import('@/lib/chat-retention');
+      await purgeExpiredChat();
+    } catch (e) {
+      console.error('[chat-retention] periodic cleanup failed:', e);
+    }
+    try {
       const { sweepAbuseRetention } = await import('@/lib/abuse-retention');
       await sweepAbuseRetention();
     } catch (e) {

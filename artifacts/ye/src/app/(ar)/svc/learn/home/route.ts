@@ -11,23 +11,23 @@ export async function GET() {
   const familyId = await getFamilyId();
   if (!familyId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const enrolled = await familyHasActiveEnrollment(familyId);
+  const sessionPromise = getKidSession();
+  const [enrolled, kidSession, child] = await Promise.all([
+    familyHasActiveEnrollment(familyId), sessionPromise,
+    sessionPromise.then(session => session?.familyId === familyId ? prisma.lrnChild.findFirst({
+      where: { id: session.childId, familyId },
+      include: { firstCompletions: { select: { lessonId: true } } },
+    }) : null),
+  ]);
   if (!enrolled) return NextResponse.json({ error: 'no_active_enrollment' }, { status: 403 });
-
-  const kidSession = await getKidSession();
   if (!kidSession || kidSession.familyId !== familyId)
     return NextResponse.json({ error: 'no_kid_selected' }, { status: 401 });
-
-  const child = await prisma.lrnChild.findFirst({
-    where: { id: kidSession.childId, familyId },
-    include: { firstCompletions: { select: { lessonId: true } } },
-  });
   if (!child) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
   const completedIds = new Set(child.firstCompletions.map((c) => c.lessonId));
 
   // Find next lesson to continue in child's band (first published, not yet completed)
-  const remainingLessons = await prisma.lrnLesson.findMany({
+  const [remainingLessons, subjects, todayLessonCompletions] = await Promise.all([prisma.lrnLesson.findMany({
     where: {
       status: 'published',
       unit: { band: child.band, status: 'published' },
@@ -41,10 +41,7 @@ export async function GET() {
         subject: { select: { nameAr: true, nameEn: true, color: true, icon: true } },
       } },
     },
-  });
-
-  // Subjects with progress
-  const subjects = await prisma.lrnSubject.findMany({
+  }), prisma.lrnSubject.findMany({
     orderBy: { position: 'asc' },
     include: {
       units: {
@@ -57,7 +54,10 @@ export async function GET() {
         },
       },
     },
-  });
+  }), prisma.lrnFirstCompletion.findMany({
+    where: { childId: child.id, claimedAt: { gte: riyadhDayStart() } },
+    include: { lesson: { select: { durationMinutes: true } } },
+  })]);
 
   const subjectData = subjects
     .filter((s) => s.units.length > 0)
@@ -80,11 +80,6 @@ export async function GET() {
 
   // Today's usage — first completions only, using the Riyadh day boundary.
   // Replays never inflate the daily-use display.
-  const todayStart = riyadhDayStart();
-  const todayLessonCompletions = await prisma.lrnFirstCompletion.findMany({
-    where: { childId: child.id, claimedAt: { gte: todayStart } },
-    include: { lesson: { select: { durationMinutes: true } } },
-  });
   const todayMinutes = todayLessonCompletions.reduce(
     (sum, c) => sum + c.lesson.durationMinutes,
     0,
