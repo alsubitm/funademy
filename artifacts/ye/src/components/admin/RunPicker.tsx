@@ -14,6 +14,35 @@ export function runLabel(r: RunOption) {
   return `${r.program?.nameAr} — ${r.titleAr || r.time} · #${r.id}`;
 }
 
+/** Parse a positive int4 ID from a URL param; anything else is ignored. */
+export function parseRunParam(raw: string | null): number | null {
+  const m = /^([1-9]\d{0,9})$/.exec(raw ?? '');
+  return m && Number(m[1]) <= 2147483647 ? Number(m[1]) : null;
+}
+
+/**
+ * Resolve one active run by exact ID through the selector endpoint (`rq=#<id>`).
+ * The search may also return text matches, ordered by ID descending, so we page
+ * only until the target or a lower ID appears. Returns null when the run is
+ * missing or inactive; throws on request failures (401 reloads the page).
+ */
+export async function fetchRunById(id: number, signal?: AbortSignal): Promise<RunOption | null> {
+  let cursor: string | null = null;
+  for (let pageNo = 0; pageNo < 10; pageNo++) {
+    const params = new URLSearchParams({ options: '1', limit: '20', rq: `#${id}` });
+    if (cursor) params.set('cursor', cursor);
+    const res = await fetch(`/svc/admin/runs?${params}`, { cache: 'no-store', signal });
+    if (res.status === 401) { window.location.reload(); throw new Error('unauthorized'); }
+    if (!res.ok) throw new Error(String(res.status));
+    const data: { runs: RunOption[]; nextCursor: string | null } = await res.json();
+    const hit = data.runs.find((r) => r.id === id);
+    if (hit) return hit;
+    if (!data.nextCursor || data.runs.some((r) => r.id < id)) return null;
+    cursor = data.nextCursor;
+  }
+  return null;
+}
+
 /**
  * Accessible combobox over active course runs. The server searches and pages
  * (`/svc/admin/runs?options=1`), so older runs stay reachable regardless of volume.
