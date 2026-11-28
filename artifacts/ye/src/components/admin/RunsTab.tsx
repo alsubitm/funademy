@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { WEEKDAYS_AR } from '@/lib/constants';
 import { adminListQuery, emptyPagination, useAdminList, useAdminSearch, pick, setAdminParams, type AdminPagination } from './useAdminQuery';
 import { AdminPaging } from './AdminPaging';
+import { TimetableBuilder } from './TimetableBuilder';
 
 const R_STATE = ['all', 'active', 'inactive'] as const;
 const R_SEATS = ['all', 'available', 'full'] as const;
@@ -39,6 +40,7 @@ export function RunsTab({ programs }: { programs: any[] }) {
   const clearRunFilters = () => setAdminParams({ rq: null, rstate: null, rseats: null, rprogram: null });
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showTimetable, setShowTimetable] = useState(false);
 
   // create form
   const [programId, setProgramId] = useState(programs[0]?.id || '');
@@ -446,10 +448,17 @@ export function RunsTab({ programs }: { programs: any[] }) {
           <h2 className="text-3xl font-display font-bold text-[#101A38]">الدفعات الشهرية</h2>
           <p className="text-sm text-[#5F6B92] mt-1 font-medium">إنشاء دفعة يولّد جلساتها الأسبوعية تلقائياً</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="bg-[#1C54CB] text-white px-6 py-3 rounded-xl font-display font-bold shadow-[0_4px_0_#11388E] hover:translate-y-[-2px] hover:shadow-[0_6px_0_#11388E] transition-all">
-          {showForm ? 'إغلاق' : '+ دفعة جديدة'}
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button onClick={() => { setShowTimetable(!showTimetable); setShowForm(false); }} className="px-6 py-3 rounded-xl font-display font-bold border-2" style={{ borderColor: '#7C3AED', color: '#7C3AED', background: '#FFFEFA' }}>
+            {showTimetable ? 'إغلاق الجدول' : '+ جدول كامل'}
+          </button>
+          <button onClick={() => { setShowForm(!showForm); setShowTimetable(false); }} className="bg-[#1C54CB] text-white px-6 py-3 rounded-xl font-display font-bold shadow-[0_4px_0_#11388E] hover:translate-y-[-2px] hover:shadow-[0_6px_0_#11388E] transition-all">
+            {showForm ? 'إغلاق' : '+ دفعة جديدة'}
+          </button>
+        </div>
       </div>
+
+      {showTimetable && <TimetableBuilder programs={programs} onCreated={fetchRuns} />}
 
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white p-6 sm:p-8 rounded-[24px] border border-[#DFE5F2] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
